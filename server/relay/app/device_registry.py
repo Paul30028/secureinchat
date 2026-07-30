@@ -15,6 +15,18 @@ class DeviceRegistry:
     def register(self, device_id: str, public_key_raw: bytes) -> None:
         self._public_keys[device_id] = public_key_raw
 
+    def rotate(self, device_id: str, new_public_key_raw: bytes) -> bool:
+        """换公钥——要求设备已经注册过。和 register() 的语义故意分开：
+        register() 用于"从没见过这个 deviceId"，rotate() 用于"已经认识，换把钥匙"。
+        谁来验证"调用者真的有权做这次轮换"不是这个类的职责（那是 pubkey_auth /
+        server.py 的事），这里只负责"未注册时不允许 rotate"这一条数据层面的红线。
+        返回 False 表示设备未注册，调用方应该按错误处理，不能静默创建。
+        """
+        if device_id not in self._public_keys:
+            return False
+        self._public_keys[device_id] = new_public_key_raw
+        return True
+
     def lookup(self, device_id: str) -> bytes | None:
         return self._public_keys.get(device_id)
 

@@ -24,3 +24,18 @@ def test_re_register_replaces_the_key():
     reg.register("device-1", b"old-key")
     reg.register("device-1", b"new-key")
     assert reg.lookup("device-1") == b"new-key"
+
+
+def test_rotate_succeeds_for_a_registered_device():
+    reg = DeviceRegistry()
+    reg.register("device-1", b"key-v1")
+    result = reg.rotate("device-1", b"key-v2")
+    assert result is True
+    assert reg.lookup("device-1") == b"key-v2"
+
+
+def test_rotate_fails_for_an_unregistered_device_and_does_not_create_it():
+    reg = DeviceRegistry()
+    result = reg.rotate("never-registered", b"some-key")
+    assert result is False
+    assert reg.is_registered("never-registered") is False
