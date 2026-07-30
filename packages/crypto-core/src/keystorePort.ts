@@ -13,6 +13,13 @@ export interface KeystorePort {
   sign(alias: string, data: Uint8Array): Promise<Uint8Array>;
   /** 校验签名 */
   verify(alias: string, data: Uint8Array, signature: Uint8Array): Promise<boolean>;
+  /**
+   * 导出公钥的原始字节（未压缩点格式：0x04 || X || Y，P-256 下是 65 字节）。
+   * 公钥不是秘密——这是服务端做设备认证必须要有的能力：注册/邀请环节把这个
+   * 发给服务端，之后服务端才能独立验证客户端签的 proof，不需要共享密钥。
+   * 私钥本身永远不会、也不能通过这个接口拿到。
+   */
+  exportPublicKeyRaw(alias: string): Promise<Uint8Array>;
   /** 是否有硬件级密钥支持（StrongBox / TEE），用于安全提示展示 */
   hasHardwareBackedKeystore(): Promise<boolean>;
 }
@@ -47,6 +54,13 @@ export class TestOnlyInMemoryKeystore implements KeystorePort {
       signature as BufferSource,
       data as BufferSource
     );
+  }
+
+  async exportPublicKeyRaw(alias: string): Promise<Uint8Array> {
+    const pair = this.requireKey(alias);
+    const subtle = globalThis.crypto.subtle;
+    const raw = await subtle.exportKey("raw", pair.publicKey);
+    return new Uint8Array(raw);
   }
 
   async hasHardwareBackedKeystore(): Promise<boolean> {
