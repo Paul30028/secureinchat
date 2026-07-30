@@ -27,8 +27,15 @@
    - 失败 → `{"type": "auth_failed", "reason": "..."}`，随后服务端主动断开连接
 5. 握手完成前，服务端拒绝处理任何非 `auth_response` 帧。
 
-`DeviceVerifier` 是一个协议接口，本切片只提供一个**仅供测试**的实现（HMAC 校验一个共享
-测试密钥），真实实现要接 Android 端 Keystore 签名验证，属于后续切片，不在这里冒充。
+`DeviceVerifier` 是一个协议接口，有两个实现：
+- `PlaceholderHmacVerifier`——仅供本地测试/联调，共享密钥 HMAC，proof 是
+  base64url(HMAC-SHA256(sharedSecret, "deviceId:nonce"))
+- `PublicKeyDeviceVerifier`——真实方向，proof 是 base64url(ECDSA-P256-SHA256
+  签名)，签名用客户端 Keystore 私钥对 `nonce` 的 UTF-8 字节签出（Web Crypto
+  的 P1363 格式，服务端转成 DER 再验证），公钥来自 `DeviceRegistry`
+
+公钥怎么注册进 `DeviceRegistry`（邀请环节的登记流程）还没做，是后续切片，不在这份
+契约里冒充已经完成。
 
 ## 密文转发（盲中继核心）
 
