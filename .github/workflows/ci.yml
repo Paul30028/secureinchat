@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [protocol, crypto-core, ui]
+        package: [protocol, crypto-core, ui, secure-storage, chat-core]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
