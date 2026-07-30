@@ -8,3 +8,9 @@ android/.gradle/
 *.jks
 .env
 .env.local
+-e 
+# Python
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
