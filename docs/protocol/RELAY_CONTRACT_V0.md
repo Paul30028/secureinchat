@@ -18,14 +18,26 @@
    ```json
    {"type": "auth_challenge", "nonce": "<base64url 随机数>"}
    ```
-3. 客户端回复：
+3. 客户端回复以下两种帧之一：
+
+   **a) `register_device`（首次见面，TOFU 注册）**——deviceId 还没注册过时用这个：
    ```json
-   {"type": "auth_response", "deviceId": "<设备id>", "groupId": "<群id>", "proof": "<对 nonce 的证明>"}
+   {"type": "register_device", "deviceId": "...", "groupId": "...",
+    "publicKeyRawB64Url": "<未压缩点格式公钥>", "proof": "<对 nonce 的签名>"}
+   ```
+   服务端校验 `proof` 确实是用 `publicKeyRawB64Url` 对应的私钥签的（自证持有），
+   且 `deviceId` **尚未注册过**——已注册的 deviceId 一律拒绝，不允许用这个帧
+   覆盖已有公钥（防止身份冒充/密钥劫持）。通过则登记进 `DeviceRegistry` 并视为
+   认证成功。
+
+   **b) `auth_response`（已注册设备的日常认证）**：
+   ```json
+   {"type": "auth_response", "deviceId": "...", "groupId": "...", "proof": "..."}
    ```
 4. 服务端用可替换的 `DeviceVerifier` 校验 `proof`：
    - 通过 → `{"type": "auth_ok"}`，连接被登记进 `groupId` 对应的房间
    - 失败 → `{"type": "auth_failed", "reason": "..."}`，随后服务端主动断开连接
-5. 握手完成前，服务端拒绝处理任何非 `auth_response` 帧。
+5. 握手完成前，服务端拒绝处理任何其他类型的帧。
 
 `DeviceVerifier` 是一个协议接口，有两个实现：
 - `PlaceholderHmacVerifier`——仅供本地测试/联调，共享密钥 HMAC，proof 是
