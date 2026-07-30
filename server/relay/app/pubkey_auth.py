@@ -24,7 +24,7 @@ from app.device_registry import DeviceRegistry
 P256_COORDINATE_BYTES = 32
 
 
-def _b64url_decode(s: str) -> bytes:
+def b64url_decode(s: str) -> bytes:
     padded = s + "=" * (-len(s) % 4)
     return base64.urlsafe_b64decode(padded)
 
@@ -38,6 +38,24 @@ def p1363_to_der(signature_p1363: bytes) -> bytes:
     return encode_dss_signature(r, s)
 
 
+def verify_with_public_key(public_key_raw: bytes, nonce: str, proof: str) -> bool:
+    """验证 nonce 的签名是否匹配给定的公钥——不查注册表，只做纯粹的密码学验证。
+    供 PublicKeyDeviceVerifier（查注册表）和 register_device 的"自证持有私钥"
+    两个场景复用，避免两处各写一遍格式转换逻辑。
+    """
+    try:
+        public_key = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), public_key_raw)
+        signature_der = p1363_to_der(b64url_decode(proof))
+    except Exception:  # noqa: BLE001 — 任何格式/解析错误都视为验证失败，不上抛给调用方
+        return False
+
+    try:
+        public_key.verify(signature_der, nonce.encode("utf-8"), ec.ECDSA(hashes.SHA256()))
+        return True
+    except InvalidSignature:
+        return False
+
+
 class PublicKeyDeviceVerifier:
     """真正的设备身份验证：ECDSA P-256 + SHA-256，公钥来自 DeviceRegistry。"""
 
@@ -48,15 +66,4 @@ class PublicKeyDeviceVerifier:
         public_key_raw = self._registry.lookup(device_id)
         if public_key_raw is None:
             return False  # 未注册的设备，直接拒绝，不尝试解析
-
-        try:
-            public_key = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP256R1(), public_key_raw)
-            signature_der = p1363_to_der(_b64url_decode(proof))
-        except Exception:  # noqa: BLE001 — 任何格式/解析错误都视为验证失败，不上抛给调用方
-            return False
-
-        try:
-            public_key.verify(signature_der, nonce.encode("utf-8"), ec.ECDSA(hashes.SHA256()))
-            return True
-        except InvalidSignature:
-            return False
+        return verify_with_public_key(public_key_raw, nonce, proof)
