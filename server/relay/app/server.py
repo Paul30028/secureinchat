@@ -16,6 +16,8 @@ from websockets.asyncio.server import ServerConnection
 
 from app.auth import DeviceVerifier, generate_nonce
 from app.device_registry import DeviceRegistry
+from app.invite_registry import InviteRegistry
+from app.membership import GroupMembership
 from app.pubkey_auth import b64url_decode, verify_with_public_key
 from app.registry import RoomRegistry
 
@@ -23,11 +25,22 @@ logger = logging.getLogger("secureinchat.relay")
 
 
 class RelayServer:
-    def __init__(self, verifier: DeviceVerifier, device_registry: DeviceRegistry | None = None):
+    def __init__(
+        self,
+        verifier: DeviceVerifier,
+        device_registry: DeviceRegistry | None = None,
+        invite_registry: InviteRegistry | None = None,
+        membership: GroupMembership | None = None,
+    ):
         self._verifier = verifier
         # 传了 device_registry 才支持 register_device（首次见面注册公钥）帧；
         # 用 PlaceholderHmacVerifier 联调时不需要，传 None 即可。
         self._device_registry = device_registry
+        # membership 传了就在 handle_connection 里真正校验；invite_registry 目前
+        # 还没有对应的帧来消耗它（"用邀请码加群"是下一个切片），先接受这个依赖
+        # 但暂不在连接流程里调用它，避免在没有帧驱动的情况下猜一个语义出来。
+        self._invite_registry = invite_registry
+        self._membership = membership
         self._registry: RoomRegistry[ServerConnection] = RoomRegistry()
 
     async def handle_connection(self, ws: ServerConnection) -> None:
@@ -41,6 +54,11 @@ class RelayServer:
             if device_id is None:
                 return  # auth_failed already sent, connection will close
 
+            if self._membership is not None and not self._membership.is_member(device_id, group_id):
+                await ws.send(json.dumps({"type": "auth_failed", "reason": "not a member of this group"}))
+                return
+
+            await ws.send(json.dumps({"type": "auth_ok"}))
             self._registry.register(group_id, device_id, ws)
             await self._relay_loop(ws, device_id, group_id)
         except websockets.ConnectionClosed:
@@ -61,9 +79,14 @@ class RelayServer:
         if frame_type == "register_device" and self._device_registry is not None:
             return await self._handle_register_device(ws, nonce, frame)
 
+        if frame_type == "rotate_device_key" and self._device_registry is not None:
+            return await self._handle_rotate_device_key(ws, nonce, frame)
+
         if frame_type != "auth_response":
             await ws.send(
-                json.dumps({"type": "auth_failed", "reason": "expected auth_response or register_device"})
+                json.dumps(
+                    {"type": "auth_failed", "reason": "expected auth_response, register_device, or rotate_device_key"}
+                )
             )
             return None, None
 
@@ -78,7 +101,8 @@ class RelayServer:
             await ws.send(json.dumps({"type": "auth_failed", "reason": "invalid proof"}))
             return None, None
 
-        await ws.send(json.dumps({"type": "auth_ok"}))
+        # 注意：auth_ok 不在这里发——身份证明通过只是第一关，还要过 handle_connection
+        # 里的成员资格校验。两件事合并成一次 auth_ok，不要提前发送。
         return device_id, group_id
 
     async def _handle_register_device(
@@ -114,7 +138,56 @@ class RelayServer:
             return None, None
 
         self._device_registry.register(device_id, public_key_raw)
-        await ws.send(json.dumps({"type": "auth_ok"}))
+        # auth_ok 同样延后到 handle_connection 里统一发（见上面 auth_response 分支的注释）
+        return device_id, group_id
+
+    async def _handle_rotate_device_key(
+        self, ws: ServerConnection, nonce: str, frame: dict[str, Any]
+    ) -> tuple[str | None, str | None]:
+        """密钥轮换：要求同时证明"持有旧私钥"（你就是当前登记的这个设备）和
+        "持有新私钥"（你不是随手指定了一个不属于自己的公钥）。任何一个证明缺失
+        或验证失败都整体拒绝，注册表保持不变——不做部分更新。
+        """
+        assert self._device_registry is not None  # 调用方已检查过
+
+        device_id = frame.get("deviceId")
+        group_id = frame.get("groupId")
+        new_public_key_b64url = frame.get("newPublicKeyRawB64Url")
+        old_key_proof = frame.get("oldKeyProof")
+        new_key_proof = frame.get("newKeyProof")
+        if not device_id or not group_id or not new_public_key_b64url or not old_key_proof or not new_key_proof:
+            await ws.send(json.dumps({"type": "auth_failed", "reason": "missing fields"}))
+            return None, None
+
+        current_public_key_raw = self._device_registry.lookup(device_id)
+        if current_public_key_raw is None:
+            await ws.send(
+                json.dumps({"type": "auth_failed", "reason": "device not registered, use register_device"})
+            )
+            return None, None
+
+        if not verify_with_public_key(current_public_key_raw, nonce, old_key_proof):
+            await ws.send(json.dumps({"type": "auth_failed", "reason": "invalid old key proof"}))
+            return None, None
+
+        try:
+            new_public_key_raw = b64url_decode(new_public_key_b64url)
+        except Exception:  # noqa: BLE001 — 畸形公钥编码，一律当验证失败处理
+            await ws.send(json.dumps({"type": "auth_failed", "reason": "malformed new public key"}))
+            return None, None
+
+        if not verify_with_public_key(new_public_key_raw, nonce, new_key_proof):
+            await ws.send(json.dumps({"type": "auth_failed", "reason": "invalid new key proof"}))
+            return None, None
+
+        rotated = self._device_registry.rotate(device_id, new_public_key_raw)
+        if not rotated:
+            # 理论上不会走到这——上面已经确认过 lookup 不是 None——但防御性地处理，
+            # 万一未来有并发场景导致设备在两次检查之间被移除。
+            await ws.send(json.dumps({"type": "auth_failed", "reason": "device not registered, use register_device"}))
+            return None, None
+
+        # auth_ok 同样延后到 handle_connection 里统一发
         return device_id, group_id
 
     async def _relay_loop(self, ws: ServerConnection, device_id: str, group_id: str) -> None:

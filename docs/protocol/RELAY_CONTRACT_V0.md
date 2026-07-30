@@ -35,9 +35,25 @@
    {"type": "auth_response", "deviceId": "...", "groupId": "...", "proof": "..."}
    ```
 4. 服务端用可替换的 `DeviceVerifier` 校验 `proof`：
-   - 通过 → `{"type": "auth_ok"}`，连接被登记进 `groupId` 对应的房间
-   - 失败 → `{"type": "auth_failed", "reason": "..."}`，随后服务端主动断开连接
+   - 校验失败 → `{"type": "auth_failed", "reason": "..."}`，随后服务端主动断开连接
+   - 校验通过但配置了成员资格检查（`membership` 传了 `GroupMembership` 实例）且该
+     设备不是 `groupId` 的成员 → 同样 `auth_failed`，reason 为
+     `"not a member of this group"`。**`auth_ok` 只有在身份证明和成员资格都通过后
+     才发送**——早期实现里 `auth_ok` 在身份证明通过后立刻发送，成员资格检查是后
+     加的第二道关卡，导致客户端在关卡生效前就已经收到了 `auth_ok`（这是一个真实
+     发现并修复的时序 bug，不是设计如此）。
+   - 都通过 → `{"type": "auth_ok"}`，连接被登记进 `groupId` 对应的房间
 5. 握手完成前，服务端拒绝处理任何其他类型的帧。
+
+## 成员资格（membership）与邀请码校验（invite_registry）的当前状态
+
+- `GroupMembership`：已经接入 `handle_connection`，如果构造 `RelayServer` 时传了
+  `membership` 实例，未加入群的设备连接会被拒绝。不传（默认）则完全跳过这层检查，
+  向后兼容。
+- `InviteRegistry`：已经实现且有独立单测（校验/消耗邀请码、过期、次数用尽等），
+  但**还没有接入任何帧**——目前没有"用邀请码加群"这个动作对应的帧类型，
+  `RelayServer` 的构造函数接受这个依赖但当前不会调用它。这是明确的下一个切片，
+  不是遗漏后忘了说。
 
 `DeviceVerifier` 是一个协议接口，有两个实现：
 - `PlaceholderHmacVerifier`——仅供本地测试/联调，共享密钥 HMAC，proof 是
