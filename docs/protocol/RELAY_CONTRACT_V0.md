@@ -47,7 +47,33 @@
    - 都通过 → `{"type": "auth_ok"}`，连接被登记进 `groupId` 对应的房间
 5. 握手完成前，服务端拒绝处理任何其他类型的帧。
 
-## 成员资格（membership）与邀请码校验（invite_registry）
+## WebRTC 通话信令（一对一）
+
+握手完成、进了房间之后，客户端可以发送以下几种信令帧，服务端按 `targetDeviceId`
+**精确路由给同一个群里的那一个人**（不是像 `forward` 那样广播给全房间）：
+
+```json
+{"type": "call_invite", "targetDeviceId": "...", "callId": "...", "sdpOffer": "..."}
+{"type": "call_ring", "targetDeviceId": "...", "callId": "..."}
+{"type": "call_answer", "targetDeviceId": "...", "callId": "...", "sdpAnswer": "..."}
+{"type": "call_reject", "targetDeviceId": "...", "callId": "...", "reason": "..."}
+{"type": "call_cancel", "targetDeviceId": "...", "callId": "..."}
+{"type": "call_hangup", "targetDeviceId": "...", "callId": "..."}
+{"type": "ice_candidate", "targetDeviceId": "...", "callId": "...", "candidate": "..."}
+```
+
+服务端转发时原样透传所有字段并加上 `fromDeviceId`，**不解析 `sdpOffer`/`sdpAnswer`/
+`candidate` 的内容**——盲中继原则同样适用于信令，不只是聊天密文。
+
+目标设备不在线、或者不在同一个 `groupId`（即使那个设备本身在线）——两种情况
+服务端都回同一个错误，不额外区分，防止拿信令当探测别的群里有没有这个设备的工具：
+
+```json
+{"type": "call_failed", "callId": "...", "reason": "target_offline"}
+```
+
+**非目标**：群通话/SFU、STUN/TURN 服务器本身、客户端侧的通话状态机（接听/拒绝/
+计时/断线重连），这些都不在这份契约里。
 
 - `GroupMembership`：接入 `handle_connection`，如果构造 `RelayServer` 时传了
   `membership` 实例，未加入群的设备连接会被拒绝。不传（默认）则完全跳过这层检查，

@@ -24,6 +24,11 @@ from app.registry import RoomRegistry
 logger = logging.getLogger("secureinchat.relay")
 
 
+SIGNALING_FRAME_TYPES = frozenset(
+    {"call_invite", "call_ring", "call_answer", "call_reject", "call_cancel", "call_hangup", "ice_candidate"}
+)
+
+
 class RelayServer:
     def __init__(
         self,
@@ -219,7 +224,13 @@ class RelayServer:
             except (json.JSONDecodeError, TypeError):
                 continue  # 静默丢弃畸形帧，不因为一条坏帧断开整个会话
 
-            if frame.get("type") != "forward":
+            frame_type = frame.get("type")
+
+            if frame_type in SIGNALING_FRAME_TYPES:
+                await self._route_signaling_frame(ws, device_id, group_id, frame_type, frame)
+                continue
+
+            if frame_type != "forward":
                 continue
 
             # 盲中继红线：只取 ciphertextB64 字段本身转发，不解析、不检查里面是什么。
@@ -235,6 +246,34 @@ class RelayServer:
                     await peer.send(outgoing)
                 except websockets.ConnectionClosed:
                     pass  # 对方连接已断，registry 会在它自己的 finally 里清理
+
+    async def _route_signaling_frame(
+        self, ws: ServerConnection, device_id: str, group_id: str, frame_type: str, frame: dict[str, Any]
+    ) -> None:
+        """一对一 WebRTC 信令路由：只按 targetDeviceId 转发给同一个群里的那一个人，
+        不广播给全房间（这是和 `forward` 密文转发最大的区别）。服务端不解析
+        sdpOffer/sdpAnswer/candidate 的内容——盲中继原则同样适用于信令。
+        """
+        target_device_id = frame.get("targetDeviceId")
+        call_id = frame.get("callId")
+        if not target_device_id or not call_id:
+            return  # 畸形信令帧，静默丢弃，和 forward 帧的处理方式一致
+
+        target_conn = self._registry.get(group_id, target_device_id)
+        if target_conn is None:
+            # 目标不在线，或者根本不在这个群里——两种情况对发送方来说是一回事，
+            # 不额外透露"这个 deviceId 到底存不存在"，防止拿这个当探测工具用。
+            await ws.send(
+                json.dumps({"type": "call_failed", "callId": call_id, "reason": "target_offline"})
+            )
+            return
+
+        outgoing = dict(frame)
+        outgoing["fromDeviceId"] = device_id
+        try:
+            await target_conn.send(json.dumps(outgoing))
+        except websockets.ConnectionClosed:
+            await ws.send(json.dumps({"type": "call_failed", "callId": call_id, "reason": "target_offline"}))
 
 
 async def run_server(

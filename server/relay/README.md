@@ -32,8 +32,10 @@ python3 -m venv .venv
 ./.venv/bin/python -m pytest tests/ -v
 ```
 
-62 个测试：房间注册表、HMAC 认证桩、真实 WebSocket 集成测试、`PublicKeyDeviceVerifier`
+83 个测试：房间注册表、HMAC 认证桩、真实 WebSocket 集成测试、`PublicKeyDeviceVerifier`
 跨语言互操作测试、`register_device` TOFU 注册（含防冒充攻击测试）、
 `rotate_device_key` 密钥轮换（新旧密钥双重证明、拒绝未注册设备轮换等 7 个场景）、
 `GroupMembership` 单测 + 通过真实连接验证的成员资格关卡（含"不配置 membership 就
-完全跳过检查"的向后兼容测试）、`InviteRegistry` 单测（尚未接入连接流程）。
+完全跳过检查"的向后兼容测试）、`InviteRegistry` 单测 + 邀请码加群集成测试（7 个场景，
+含过期/次数用尽/向后兼容）、WebRTC 一对一信令路由（`call_invite`/`call_answer`/
+`ice_candidate` 等 7 种帧类型全覆盖，含跨群隔离和 SDP/ICE 内容不被解析的验证）。
