@@ -18,7 +18,9 @@
    ```json
    {"type": "auth_challenge", "nonce": "<base64url 随机数>"}
    ```
-3. 客户端回复以下两种帧之一：
+3. 客户端回复以下几种帧之一（`auth_response` / `register_device` / `rotate_device_key`
+   都可以额外带一个可选的 `inviteCode` 字段——只有在设备还不是这个 `groupId` 的成员
+   时才会用到，已经是成员的话这个字段被忽略）：
 
    **a) `register_device`（首次见面，TOFU 注册）**——deviceId 还没注册过时用这个：
    ```json
@@ -45,15 +47,16 @@
    - 都通过 → `{"type": "auth_ok"}`，连接被登记进 `groupId` 对应的房间
 5. 握手完成前，服务端拒绝处理任何其他类型的帧。
 
-## 成员资格（membership）与邀请码校验（invite_registry）的当前状态
+## 成员资格（membership）与邀请码校验（invite_registry）
 
-- `GroupMembership`：已经接入 `handle_connection`，如果构造 `RelayServer` 时传了
+- `GroupMembership`：接入 `handle_connection`，如果构造 `RelayServer` 时传了
   `membership` 实例，未加入群的设备连接会被拒绝。不传（默认）则完全跳过这层检查，
   向后兼容。
-- `InviteRegistry`：已经实现且有独立单测（校验/消耗邀请码、过期、次数用尽等），
-  但**还没有接入任何帧**——目前没有"用邀请码加群"这个动作对应的帧类型，
-  `RelayServer` 的构造函数接受这个依赖但当前不会调用它。这是明确的下一个切片，
-  不是遗漏后忘了说。
+- `InviteRegistry`：**已接入**——设备通过成员资格检查失败、且帧里带了 `inviteCode`、
+  且配置了 `invite_registry` 时，服务端会尝试校验并消耗这个邀请码；成功则调用
+  `membership.add()` 授予成员资格并放行，失败则 `auth_failed`（reason 形如
+  `"invalid invite: expired"`）。已经是成员的设备不需要、也不会用到 `inviteCode`。
+  邀请码本身怎么生成、管理员怎么分发不在这份契约里——那是第十三节的管理员功能。
 
 `DeviceVerifier` 是一个协议接口，有两个实现：
 - `PlaceholderHmacVerifier`——仅供本地测试/联调，共享密钥 HMAC，proof 是
