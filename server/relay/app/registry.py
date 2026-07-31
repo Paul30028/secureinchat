@@ -34,6 +34,13 @@ class RoomRegistry(Generic[ConnectionT]):
         room = self._rooms.get(group_id, {})
         return [conn for device_id, conn in room.items() if device_id != exclude_device_id]
 
+    def get(self, group_id: str, device_id: str) -> ConnectionT | None:
+        """按 groupId+deviceId 精确取一个连接——一对一信令路由用这个，不是广播。
+        目标不在这个群里在线，返回 None；调用方不应该据此判断"这个 deviceId 是否
+        存在"——只能判断"当前这个群里现在联系不上"，两者要分开看待。
+        """
+        return self._rooms.get(group_id, {}).get(device_id)
+
     def member_count(self, group_id: str) -> int:
         return len(self._rooms.get(group_id, {}))
 

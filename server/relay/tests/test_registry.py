@@ -47,3 +47,17 @@ def test_re_register_same_device_replaces_connection():
     # bob should see alice's newest connection, not the stale one
     reg.register("group-1", "bob", "conn-bob")
     assert reg.members_excluding("group-1", "bob") == ["conn-new"]
+
+
+def test_get_returns_the_exact_connection():
+    reg: RoomRegistry[str] = RoomRegistry()
+    reg.register("group-1", "alice", "conn-alice")
+    reg.register("group-1", "bob", "conn-bob")
+    assert reg.get("group-1", "bob") == "conn-bob"
+
+
+def test_get_returns_none_for_offline_or_wrong_group():
+    reg: RoomRegistry[str] = RoomRegistry()
+    reg.register("group-1", "alice", "conn-alice")
+    assert reg.get("group-1", "nonexistent") is None
+    assert reg.get("group-2", "alice") is None  # alice isn't in group-2
