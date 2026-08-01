@@ -6,15 +6,17 @@ import { InviteParseError, type BuildInviteInput, type ParsedInvite, type Protoc
  * 格式：`SIC2.<payloadB64Url>`，payload 是 JSON：
  * {
  *   v: 2,
- *   sjc: string;      // serverJoinCode
+ *   sjc: string;      // serverJoinCode（可轮换，不影响群密钥）
+ *   gid: string;      // groupId（稳定的群标识，群密钥派生要用这个当盐值）
  *   km: string;       // keyMaterialB64Url
  *   epoch: number;
  *   exp?: number;     // expiresAtMs
  *   uses?: number;    // remainingUses
  * }
  *
- * 与 SIC1 的关键区别：显式携带 epoch（密钥轮换的版本号）、可选过期时间和
- * 剩余次数，供服务端和客户端双重校验，而不是只靠服务端单方面判断。
+ * 与 SIC1 的关键区别：显式携带 epoch（密钥轮换的版本号）、groupId（和可轮换的
+ * serverJoinCode 分开）、可选过期时间和剩余次数，供服务端和客户端双重校验，
+ * 而不是只靠服务端单方面判断。
  */
 const PREFIX = "SIC2";
 const SUPPORTED_PAYLOAD_VERSION = 2;
@@ -22,6 +24,7 @@ const SUPPORTED_PAYLOAD_VERSION = 2;
 interface Sic2Payload {
   v: number;
   sjc: string;
+  gid: string;
   km: string;
   epoch: number;
   exp?: number;
@@ -52,7 +55,7 @@ export function parseSic2Invite(raw: string, now: number = Date.now()): ParsedIn
   if (payload.v !== SUPPORTED_PAYLOAD_VERSION) {
     throw new InviteParseError(`不支持的 SIC2 载荷版本：${payload.v}`, "invalid-json");
   }
-  if (!payload.sjc || !isValidBase64Url(payload.km ?? "")) {
+  if (!payload.sjc || !payload.gid || !isValidBase64Url(payload.km ?? "")) {
     throw new InviteParseError("SIC2 邀请串字段非法", "malformed-segments");
   }
   if (typeof payload.exp === "number" && payload.exp < now) {
@@ -66,6 +69,7 @@ export function parseSic2Invite(raw: string, now: number = Date.now()): ParsedIn
     version: "SIC2",
     isCompatMode: false,
     serverJoinCode: payload.sjc,
+    groupId: payload.gid,
     keyMaterialB64Url: payload.km,
     epoch: payload.epoch,
     ...(payload.exp !== undefined ? { expiresAtMs: payload.exp } : {}),
@@ -74,11 +78,12 @@ export function parseSic2Invite(raw: string, now: number = Date.now()): ParsedIn
 }
 
 export function buildSic2Invite(input: BuildInviteInput): string {
-  const payload: Sic2Payload = {
+  const payload: Partial<Sic2Payload> = {
     v: SUPPORTED_PAYLOAD_VERSION,
     sjc: input.serverJoinCode,
     km: input.keyMaterialB64Url,
     epoch: input.epoch ?? 0,
+    ...(input.groupId !== undefined ? { gid: input.groupId } : {}),
     ...(input.expiresAtMs !== undefined ? { exp: input.expiresAtMs } : {}),
     ...(input.remainingUses !== undefined ? { uses: input.remainingUses } : {}),
   };

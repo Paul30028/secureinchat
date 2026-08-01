@@ -12,6 +12,13 @@ export interface ParsedInvite {
   readonly isCompatMode: boolean;
   /** 服务器用于校验入群资格的短码，管理员可轮换，不影响群密钥 */
   readonly serverJoinCode: string;
+  /**
+   * 群组的稳定标识符——和 serverJoinCode 是两个不同的概念：serverJoinCode 可以被
+   * 管理员轮换（换一批新邀请码），但 groupId 必须保持不变，否则群密钥派生
+   * （crypto-core 的 deriveGroupEpochKey 拿 groupId 当盐值）会跟着变，等于换了一个
+   * "新群"。SIC1（旧协议）没有这个概念，只有 SIC2 才带。
+   */
+  readonly groupId?: string;
   /** 客户端本地派生群密钥所需的原始材料（未解密前的 opaque bytes，base64url 编码） */
   readonly keyMaterialB64Url: string;
   /** SIC2 起才有：群 epoch，用于密钥轮换与重放校验 */
@@ -53,6 +60,8 @@ export interface ProtocolAdapter {
 export interface BuildInviteInput {
   serverJoinCode: string;
   keyMaterialB64Url: string;
+  /** SIC2 必须提供；SIC1 没有这个概念，传了也会被忽略 */
+  groupId?: string;
   epoch?: number;
   expiresAtMs?: number;
   remainingUses?: number;

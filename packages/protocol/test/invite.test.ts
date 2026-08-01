@@ -40,6 +40,7 @@ describe("SIC2 (current protocol)", () => {
     const future = Date.now() + 1000 * 60 * 60 * 24;
     const raw = buildSic2Invite({
       serverJoinCode: "ABCD1234",
+      groupId: "group-xyz",
       keyMaterialB64Url: "abcXYZ_-09",
       epoch: 3,
       expiresAtMs: future,
@@ -48,6 +49,7 @@ describe("SIC2 (current protocol)", () => {
     const parsed = parseSic2Invite(raw);
     expect(parsed.version).toBe("SIC2");
     expect(parsed.isCompatMode).toBe(false);
+    expect(parsed.groupId).toBe("group-xyz");
     expect(parsed.epoch).toBe(3);
     expect(parsed.expiresAtMs).toBe(future);
     expect(parsed.remainingUses).toBe(5);
@@ -55,7 +57,7 @@ describe("SIC2 (current protocol)", () => {
 
   it("rejects expired invites", () => {
     const past = Date.now() - 1000;
-    const raw = buildSic2Invite({ serverJoinCode: "X", keyMaterialB64Url: "abc", epoch: 0, expiresAtMs: past });
+    const raw = buildSic2Invite({ serverJoinCode: "X", groupId: "g1", keyMaterialB64Url: "abc", epoch: 0, expiresAtMs: past });
     expect(() => parseSic2Invite(raw)).toThrow(InviteParseError);
     try {
       parseSic2Invite(raw);
@@ -65,8 +67,23 @@ describe("SIC2 (current protocol)", () => {
   });
 
   it("rejects exhausted invites", () => {
-    const raw = buildSic2Invite({ serverJoinCode: "X", keyMaterialB64Url: "abc", epoch: 0, remainingUses: 0 });
+    const raw = buildSic2Invite({ serverJoinCode: "X", groupId: "g1", keyMaterialB64Url: "abc", epoch: 0, remainingUses: 0 });
     expect(() => parseSic2Invite(raw)).toThrow(InviteParseError);
+    try {
+      parseSic2Invite(raw);
+    } catch (e) {
+      expect((e as InviteParseError).reason).toBe("exhausted");
+    }
+  });
+
+  it("rejects a SIC2 invite missing groupId", () => {
+    const raw = buildSic2Invite({ serverJoinCode: "X", keyMaterialB64Url: "abc", epoch: 0 }); // no groupId
+    try {
+      parseSic2Invite(raw);
+      expect.fail("expected parseSic2Invite to throw");
+    } catch (e) {
+      expect((e as InviteParseError).reason).toBe("malformed-segments");
+    }
   });
 
   it("rejects tampered payload (invalid base64url)", () => {
@@ -85,7 +102,7 @@ describe("SIC2 (current protocol)", () => {
 
 describe("parseInviteAuto", () => {
   it("dispatches to SIC2 when prefixed SIC2.", () => {
-    const raw = buildSic2Invite({ serverJoinCode: "X", keyMaterialB64Url: "abc", epoch: 0 });
+    const raw = buildSic2Invite({ serverJoinCode: "X", groupId: "g1", keyMaterialB64Url: "abc", epoch: 0 });
     expect(parseInviteAuto(raw).version).toBe("SIC2");
   });
 

@@ -1,4 +1,5 @@
 export * from "./types";
+export { decodeBase64UrlToBytes } from "./base64url";
 export { parseSic1Invite, buildSic1Invite, sic1Adapter } from "./sic1/codec";
 export { parseSic2Invite, buildSic2Invite, sic2Adapter } from "./sic2/codec";
 

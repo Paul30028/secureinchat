@@ -22,11 +22,16 @@ export function encodeJsonToBase64Url(value: unknown): string {
   return base64ToBase64Url(b64);
 }
 
-export function decodeBase64UrlToJson<T>(s: string): T {
+export function decodeBase64UrlToBytes(s: string): Uint8Array {
   const b64 = base64UrlToBase64(s);
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+export function decodeBase64UrlToJson<T>(s: string): T {
+  const bytes = decodeBase64UrlToBytes(s);
   const json = new TextDecoder().decode(bytes);
   return JSON.parse(json) as T;
 }
