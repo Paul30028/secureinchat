@@ -8,6 +8,11 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@secureinchat/protocol": "0.1.0",
+    "@secureinchat/crypto-core": "0.1.0",
+    "@secureinchat/secure-storage": "0.1.0"
+  },
   "devDependencies": {
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"
