@@ -25,7 +25,7 @@ export interface InviteInfoCardProps {
   invite: InviteInfo;
   onConfirm: () => void;
   /** 确认按钮的加载态——避免用户在网络请求还没返回时重复点击 */
-  isConfirming?: boolean;
+  isConfirming?: boolean | undefined;
 }
 
 const INVALID_REASON_LABEL: Record<InvalidInviteInfo["reason"], string> = {
