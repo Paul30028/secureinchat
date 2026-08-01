@@ -14,7 +14,10 @@
     "react-dom": "^19.0.0",
     "@capacitor/core": "^7.0.0",
     "@secureinchat/ui": "0.1.0",
-    "@secureinchat/protocol": "0.1.0"
+    "@secureinchat/protocol": "0.1.0",
+    "@secureinchat/crypto-core": "0.1.0",
+    "@secureinchat/secure-storage": "0.1.0",
+    "@secureinchat/chat-core": "0.1.0"
   },
   "devDependencies": {
     "@capacitor/android": "^7.0.0",

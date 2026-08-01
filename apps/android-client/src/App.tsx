@@ -1,13 +1,21 @@
 import { useState } from "react";
-import { InviteParseError, parseInviteAuto } from "@secureinchat/protocol";
+import { InviteParseError, parseInviteAuto, type ParsedInvite } from "@secureinchat/protocol";
+import { joinGroupFromInvite, MissingGroupIdError } from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
 import { SplashScreen } from "./screens/SplashScreen";
 import { InviteScreen } from "./screens/InviteScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
+import { getDeviceStore } from "./deviceStoreStub";
 
 type Screen =
   | { name: "splash" }
-  | { name: "invite"; invite: InviteInfo }
+  | {
+      name: "invite";
+      invite: InviteInfo;
+      parsed?: ParsedInvite | undefined;
+      isConfirming: boolean;
+      errorMessage?: string | undefined;
+    }
   | { name: "messages"; groupName: string };
 
 /**
@@ -27,10 +35,11 @@ export function App() {
 
   function handleSubmitInviteCode(raw: string) {
     try {
+      const parsed = parseInviteAuto(raw);
       // 解析成功只证明"邀请串格式和有效期本身没问题"，群名、邀请人这些元数据
       // 不在邀请串里，真实产品里要另外问服务器要——这里先用占位内容展示，
-      // 明确不是真实数据（见下方注释和 handoff 里的非目标说明）。
-      parseInviteAuto(raw);
+      // 明确不是真实数据。真正要用于密钥派生的 parsed（groupId/keyMaterial/epoch）
+      // 是真实的解析结果，不是占位。
       const mockInvite: InviteInfo = {
         status: "valid",
         groupName: "同心同行", // 占位：真实群名来自服务器，不来自邀请串本身
@@ -38,10 +47,31 @@ export function App() {
         inviterName: "李阳",
         expiryLabel: "有效期剩 2 天 18 小时",
       };
-      setScreen({ name: "invite", invite: mockInvite });
+      setScreen({ name: "invite", invite: mockInvite, parsed, isConfirming: false });
     } catch (err) {
       const reason = err instanceof InviteParseError ? mapParseErrorReason(err.reason) : "malformed";
-      setScreen({ name: "invite", invite: { status: "invalid", reason } });
+      setScreen({ name: "invite", invite: { status: "invalid", reason }, isConfirming: false });
+    }
+  }
+
+  async function handleConfirmJoin() {
+    if (screen.name !== "invite" || !screen.parsed) return;
+    const parsed = screen.parsed;
+    setScreen({ ...screen, isConfirming: true, errorMessage: undefined });
+
+    try {
+      const store = await getDeviceStore();
+      await joinGroupFromInvite(parsed, store);
+      const groupName = screen.invite.status === "valid" ? screen.invite.groupName : "邀群密聊";
+      setScreen({ name: "messages", groupName });
+    } catch (err) {
+      const message =
+        err instanceof MissingGroupIdError
+          ? "这个邀请是旧版兼容格式，暂不支持加密入群"
+          : "加群失败，请重试";
+      setScreen((prev) =>
+        prev.name === "invite" ? { ...prev, isConfirming: false, errorMessage: message } : prev
+      );
     }
   }
 
@@ -53,11 +83,10 @@ export function App() {
     return (
       <InviteScreen
         invite={screen.invite}
+        isConfirming={screen.isConfirming}
+        errorMessage={screen.errorMessage}
         onBack={() => setScreen({ name: "splash" })}
-        onConfirm={() => {
-          const groupName = screen.invite.status === "valid" ? screen.invite.groupName : "邀群密聊";
-          setScreen({ name: "messages", groupName });
-        }}
+        onConfirm={handleConfirmJoin}
       />
     );
   }
