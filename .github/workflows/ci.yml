@@ -57,10 +57,32 @@ jobs:
         working-directory: server/relay
         run: python -m pytest tests/ -v
 
+  cross-stack-integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set up relay venv
+        working-directory: server/relay
+        run: |
+          python -m venv .venv
+          ./.venv/bin/pip install -r requirements.txt
+      - name: Install chat-core deps
+        working-directory: packages/chat-core
+        run: npm install
+      - name: Run cross-stack integration tests
+        working-directory: packages/chat-core
+        env:
+          SECUREINCHAT_RUN_CROSS_STACK_TESTS: "1"
+        run: npx vitest run test/relayClient.integration.test.ts
+
   # 以下工作流对应第十六节的完整列表，随对应功能落地再启用：
   # - ESLint（等 packages/ui、chat-core 有实际代码后接入统一 lint 配置）
-  # - 协议集成测试 / 双客户端通信测试（tests/integration 落地后，这里指的是
-  #   跨 TS 客户端与 Python 服务端的端到端联调，server/relay 自己的集成测试已经在跑了）
   # - 依赖漏洞扫描（npm audit / pip-audit）
   # - Android debug APK 构建 + 安装启动检查（apps/android-client 落地后，
   #   需要 Android SDK 环境，不在当前沙箱内验证过）

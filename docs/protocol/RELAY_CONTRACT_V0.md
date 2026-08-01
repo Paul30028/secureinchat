@@ -47,6 +47,14 @@
    - 都通过 → `{"type": "auth_ok"}`，连接被登记进 `groupId` 对应的房间
 5. 握手完成前，服务端拒绝处理任何其他类型的帧。
 
+## 客户端实现现状
+
+`packages/chat-core` 的 `RelayClient` 是这份契约的客户端侧实现——握手（TOFU
+注册/日常认证）、AES-256-GCM 加解密消息、通过真实 WebSocket 收发。
+`packages/chat-core/test/relayClient.integration.test.ts` 是全项目唯一一处
+真正跨进程、跨语言的集成测试：真的拉起这个 Python relay，TS 客户端连上去，
+两台"设备"互发加密消息并验证对方能解密——不是分别测两边就假设接得上。
+
 ## WebRTC 通话信令（一对一）
 
 握手完成、进了房间之后，客户端可以发送以下几种信令帧，服务端按 `targetDeviceId`
