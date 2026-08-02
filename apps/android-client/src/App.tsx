@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { InviteParseError, parseInviteAuto, type ParsedInvite } from "@secureinchat/protocol";
-import { joinGroupFromInvite, MissingGroupIdError } from "@secureinchat/chat-core";
+import { joinGroupFromInvite, MissingGroupIdError, RelayClient } from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
 import { SplashScreen } from "./screens/SplashScreen";
 import { InviteScreen } from "./screens/InviteScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
-import { getDeviceStore } from "./deviceStoreStub";
+import { ChatScreen } from "./screens/ChatScreen";
+import { getDeviceStore, getDeviceIdentity } from "./deviceStoreStub";
+import { RELAY_URL } from "./relayConfig";
 
 type Screen =
   | { name: "splash" }
@@ -16,7 +18,8 @@ type Screen =
       isConfirming: boolean;
       errorMessage?: string | undefined;
     }
-  | { name: "messages"; groupName: string };
+  | { name: "messages"; groupName: string; client: RelayClient }
+  | { name: "chat"; groupName: string; client: RelayClient };
 
 /**
  * protocol 包解析出的 InviteParseError.reason 和 ui 包 InviteInfoCard 期待的
@@ -61,14 +64,28 @@ export function App() {
 
     try {
       const store = await getDeviceStore();
-      await joinGroupFromInvite(parsed, store);
+      const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
+      const identity = await getDeviceIdentity();
+
+      const client = new RelayClient(RELAY_URL, {
+        deviceId: identity.deviceId,
+        groupId,
+        keystore: identity.keystore,
+        keystoreAlias: identity.keystoreAlias,
+        groupKey: epochKey,
+        epoch,
+      });
+      // 每次页面加载都是全新的临时设备身份（见 deviceStoreStub.ts 的注释），
+      // 对 relay 来说永远是"没见过的新设备"，所以固定走 register（TOFU）。
+      await client.connect("register");
+
       const groupName = screen.invite.status === "valid" ? screen.invite.groupName : "邀群密聊";
-      setScreen({ name: "messages", groupName });
+      setScreen({ name: "messages", groupName, client });
     } catch (err) {
       const message =
         err instanceof MissingGroupIdError
           ? "这个邀请是旧版兼容格式，暂不支持加密入群"
-          : "加群失败，请重试";
+          : `加群失败：${err instanceof Error ? err.message : "请重试"}`;
       setScreen((prev) =>
         prev.name === "invite" ? { ...prev, isConfirming: false, errorMessage: message } : prev
       );
@@ -91,5 +108,20 @@ export function App() {
     );
   }
 
-  return <MessageListScreen joinedGroupName={screen.groupName} />;
+  if (screen.name === "messages") {
+    return (
+      <MessageListScreen
+        joinedGroupName={screen.groupName}
+        onOpenChat={() => setScreen({ name: "chat", groupName: screen.groupName, client: screen.client })}
+      />
+    );
+  }
+
+  return (
+    <ChatScreen
+      groupName={screen.groupName}
+      client={screen.client}
+      onBack={() => setScreen({ name: "messages", groupName: screen.groupName, client: screen.client })}
+    />
+  );
 }

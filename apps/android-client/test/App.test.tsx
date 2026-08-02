@@ -1,7 +1,42 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeAll } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { buildSic1Invite, buildSic2Invite } from "@secureinchat/protocol";
 import { App } from "../src/App";
+
+/**
+ * jsdom 没有真的网络，App 里的 RelayClient 连不上真的服务器——这里用一个假的
+ * WebSocket 模拟"服务端行为合规"的握手响应（下发 auth_challenge，收到
+ * register_device/auth_response 就回 auth_ok），这样才能测到"确认加入"之后
+ * 真正连接成功、进入消息列表这条链路。真正的协议正确性（握手细节、加解密）
+ * 已经在 packages/chat-core 的跨进程集成测试里用真实 Python relay 测过了，
+ * 这里只关心 App 层面的状态流转对不对。
+ */
+class MockRelayWebSocket {
+  onmessage: ((event: { data: string }) => void) | null = null;
+  onerror: (() => void) | null = null;
+  onclose: (() => void) | null = null;
+
+  constructor(_url: string) {
+    setTimeout(() => {
+      this.onmessage?.({ data: JSON.stringify({ type: "auth_challenge", nonce: "test-nonce" }) });
+    }, 0);
+  }
+
+  send(raw: string) {
+    const frame = JSON.parse(raw);
+    if (frame.type === "register_device" || frame.type === "auth_response") {
+      setTimeout(() => {
+        this.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
+      }, 0);
+    }
+  }
+
+  close() {}
+}
+
+beforeAll(() => {
+  (globalThis as unknown as { WebSocket: unknown }).WebSocket = MockRelayWebSocket;
+});
 
 function futureExpiry(): number {
   return Date.now() + 1000 * 60 * 60 * 24;
@@ -135,5 +170,67 @@ describe("App navigation", () => {
     expect(await screen.findByText("这个邀请是旧版兼容格式，暂不支持加密入群")).toBeInTheDocument();
     // Must NOT have navigated to the message list on failure.
     expect(screen.queryByText("欢迎加入！")).not.toBeInTheDocument();
+  });
+
+  it("opening the joined group from the message list navigates to a real chat screen", async () => {
+    render(<App />);
+    const validCode = buildSic2Invite({
+      serverJoinCode: "ABCD",
+      groupId: "group-1",
+      keyMaterialB64Url: "abc123",
+      epoch: 0,
+      expiresAtMs: futureExpiry(),
+    });
+    fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
+    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
+    await screen.findByText("欢迎加入！");
+
+    fireEvent.click(screen.getByText("同心同行")); // tap the message list item
+    expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
+    expect(screen.getByText("还没有消息，说点什么吧")).toBeInTheDocument();
+  });
+
+  it("sending a message in the chat screen shows it as an own bubble", async () => {
+    render(<App />);
+    const validCode = buildSic2Invite({
+      serverJoinCode: "ABCD",
+      groupId: "group-1",
+      keyMaterialB64Url: "abc123",
+      epoch: 0,
+      expiresAtMs: futureExpiry(),
+    });
+    fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
+    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
+    await screen.findByText("欢迎加入！");
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "大家好" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    expect(await screen.findByText("大家好")).toBeInTheDocument();
+    expect(screen.queryByText("还没有消息，说点什么吧")).not.toBeInTheDocument();
+  });
+
+  it("going back from the chat screen returns to the message list", async () => {
+    render(<App />);
+    const validCode = buildSic2Invite({
+      serverJoinCode: "ABCD",
+      groupId: "group-1",
+      keyMaterialB64Url: "abc123",
+      epoch: 0,
+      expiresAtMs: futureExpiry(),
+    });
+    fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
+    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
+    await screen.findByText("欢迎加入！");
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    expect(await screen.findByText("欢迎加入！")).toBeInTheDocument();
   });
 });
