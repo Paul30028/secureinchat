@@ -6,7 +6,7 @@ import { SplashScreen } from "./screens/SplashScreen";
 import { InviteScreen } from "./screens/InviteScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
 import { ChatScreen } from "./screens/ChatScreen";
-import { getDeviceStore, getDeviceIdentity } from "./deviceStoreStub";
+import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
 import { RELAY_URL } from "./relayConfig";
 
 type Screen =
@@ -75,9 +75,20 @@ export function App() {
         groupKey: epochKey,
         epoch,
       });
-      // 每次页面加载都是全新的临时设备身份（见 deviceStoreStub.ts 的注释），
-      // 对 relay 来说永远是"没见过的新设备"，所以固定走 register（TOFU）。
-      await client.connect("register");
+      // 设备身份现在跨刷新持久（见 deviceIdentity.ts），但 relay 端的
+      // DeviceRegistry 是内存态的（进程重启就清空），所以没法从客户端直接
+      // 知道"这次连接对服务端来说是不是新设备"。先尝试 register（TOFU），
+      // 如果服务端说"已经注册过"（relay 进程还没重启，之前连过），
+      // 就换成 authenticate 重试一次——而不是把这个已知会发生的情况当异常处理。
+      try {
+        await client.connect("register");
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("already registered")) {
+          await client.connect("authenticate");
+        } else {
+          throw err;
+        }
+      }
 
       const groupName = screen.invite.status === "valid" ? screen.invite.groupName : "邀群密聊";
       setScreen({ name: "messages", groupName, client });

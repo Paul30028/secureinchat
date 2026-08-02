@@ -233,4 +233,56 @@ describe("App navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
     expect(await screen.findByText("欢迎加入！")).toBeInTheDocument();
   });
+
+  it("falls back to authenticate when register_device is rejected as already-registered", async () => {
+    // register_device always fails as "already registered"; auth_response always succeeds.
+    // This proves App retries with the other auth mode instead of just failing outright —
+    // real scenario: same persisted device identity reconnecting while the relay
+    // process (and its in-memory DeviceRegistry) is still up from a previous connection.
+    class AlreadyRegisteredThenOkWebSocket {
+      onmessage: ((event: { data: string }) => void) | null = null;
+      onerror: (() => void) | null = null;
+      onclose: (() => void) | null = null;
+      constructor(_url: string) {
+        setTimeout(() => {
+          this.onmessage?.({ data: JSON.stringify({ type: "auth_challenge", nonce: "test-nonce" }) });
+        }, 0);
+      }
+      send(raw: string) {
+        const frame = JSON.parse(raw);
+        if (frame.type === "register_device") {
+          setTimeout(() => {
+            this.onmessage?.({
+              data: JSON.stringify({ type: "auth_failed", reason: "device already registered" }),
+            });
+          }, 0);
+        } else if (frame.type === "auth_response") {
+          setTimeout(() => {
+            this.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
+          }, 0);
+        }
+      }
+      close() {}
+    }
+
+    const original = (globalThis as unknown as { WebSocket: unknown }).WebSocket;
+    (globalThis as unknown as { WebSocket: unknown }).WebSocket = AlreadyRegisteredThenOkWebSocket;
+    try {
+      render(<App />);
+      const validCode = buildSic2Invite({
+        serverJoinCode: "ABCD",
+        groupId: "group-1",
+        keyMaterialB64Url: "abc123",
+        epoch: 0,
+        expiresAtMs: futureExpiry(),
+      });
+      fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
+      fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+      fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
+
+      expect(await screen.findByText("欢迎加入！")).toBeInTheDocument();
+    } finally {
+      (globalThis as unknown as { WebSocket: unknown }).WebSocket = original;
+    }
+  });
 });
