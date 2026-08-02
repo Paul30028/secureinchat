@@ -9,9 +9,9 @@ export interface ChatBubbleProps {
   isOwn: boolean;
   timeLabel: string;
   /** 只有自己发的消息才有已发送/已送达/已读状态；对方发的消息不显示这个 */
-  status?: MessageStatus;
+  status?: MessageStatus | undefined;
   /** 群聊里对方消息上方显示发送人名字；自己的消息、或者一对一场景不需要传 */
-  senderName?: string;
+  senderName?: string | undefined;
 }
 
 function StatusTicks({ status }: { status: MessageStatus }) {
