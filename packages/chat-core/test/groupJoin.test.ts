@@ -75,4 +75,20 @@ describe("joinGroupFromInvite", () => {
     const keyB = await store.get(storageKeyForGroupEpoch("group-B", 0));
     expect(Array.from(keyA!)).not.toEqual(Array.from(keyB!));
   });
+
+  it("returns the epochKey directly, usable without re-reading storage, and it matches what was persisted", async () => {
+    const { storePromise } = makeStore();
+    const store = await storePromise;
+    const rawMaterial = crypto.getRandomValues(new Uint8Array(32));
+
+    const result = await joinGroupFromInvite(
+      { groupId: "group-1", keyMaterialB64Url: toBase64Url(rawMaterial), epoch: 0 },
+      store
+    );
+
+    const exportedReturned = await crypto.subtle.exportKey("raw", result.epochKey);
+    const persisted = await store.get(result.storageKey);
+
+    expect(Array.from(new Uint8Array(exportedReturned))).toEqual(Array.from(persisted!));
+  });
 });

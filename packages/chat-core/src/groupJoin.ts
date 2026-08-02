@@ -21,6 +21,9 @@ export interface JoinGroupResult {
   epoch: number;
   /** 落盘用的 key（供调用方知道去哪个 key 底下能取回这把群密钥，不是密钥本身） */
   storageKey: string;
+  /** 这次派生出来的密钥本身——当次会话立即要用（比如连 RelayClient）不用再从
+   *  存储里读一遍；下次重启应用要用还是得走 storageKey 从 store 里取。 */
+  epochKey: CryptoKey;
 }
 
 export function storageKeyForGroupEpoch(groupId: string, epoch: number): string {
@@ -44,5 +47,5 @@ export async function joinGroupFromInvite(
   const storageKey = storageKeyForGroupEpoch(groupId, epoch);
   await store.set(storageKey, rawEpochKeyBytes);
 
-  return { groupId, epoch, storageKey };
+  return { groupId, epoch, storageKey, epochKey };
 }
