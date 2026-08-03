@@ -1,6 +1,7 @@
 import { encryptAead, decryptAead, type AeadCiphertext } from "@secureinchat/crypto-core";
 import type { KeystorePort } from "@secureinchat/crypto-core";
 import { decodeEnvelope, encodeEnvelope, type MessageEnvelope } from "./messageEnvelope";
+import { OfflineOutbox } from "./offlineOutbox";
 
 /**
  * 客户端这边的中继协议实现——对应 docs/protocol/RELAY_CONTRACT_V0.md。
@@ -123,6 +124,13 @@ export class RelayClient {
   private reconnectAttempt = 0;
   /** 用户主动 close() 之后不再自动重连——否则关不掉 */
   private intentionallyClosed = false;
+  /**
+   * 断线期间要发的消息排在这里，重连成功后按入队顺序补发。
+   * 中继是无状态盲转发、按设计不暂存消息，所以"离线消息"只能由发送方自己扛。
+   */
+  private outbox = new OfflineOutbox<MessageEnvelope>();
+  private queueHandlers: Array<(pendingCount: number) => void> = [];
+  private queueSeq = 0;
 
   constructor(
     private readonly url: string,
@@ -163,6 +171,14 @@ export class RelayClient {
           this.reconnectAttempt = 0;
           this.setStatus("connected");
           this.startHeartbeat();
+          // 补发完再 resolve —— connect() 返回应该意味着"已连上且积压已追平"，
+          // 否则调用方拿到 resolve 后立刻检查队列会看到还没发完的中间状态。
+          // 补发失败不阻塞连接本身：消息还在队列里，下次重连会再试。
+          try {
+            await this.flushOutbox();
+          } catch {
+            // 忽略：队列保留，等下一次重连
+          }
           ws.onmessage = (e: MessageEvent) => this.handleFrame(String(e.data));
           resolve();
           return;
@@ -403,12 +419,63 @@ export class RelayClient {
   }
 
   /** 发送任意类型的消息信封（文本/公告/文件分片都走这里） */
-  async sendEnvelope(envelope: MessageEnvelope): Promise<void> {
-    if (!this.ws) throw new Error("RelayClient 还没连接，不能发消息");
+  /**
+   * 发送消息信封。连接可用时直接发出（返回 "sent"）；断线时排进离线队列
+   * （返回 "queued"），重连成功后按入队顺序自动补发——不再直接抛错，
+   * 因为"手机锁屏了一下导致消息丢失"对用户来说是不可接受的。
+   */
+  async sendEnvelope(envelope: MessageEnvelope): Promise<"sent" | "queued"> {
+    if (this.status !== "connected" || !this.ws) {
+      this.enqueue(envelope);
+      return "queued";
+    }
+    try {
+      await this.transmit(envelope);
+      return "sent";
+    } catch {
+      // 发的瞬间断了——排队等重连，别把消息丢了
+      this.enqueue(envelope);
+      return "queued";
+    }
+  }
+
+  private async transmit(envelope: MessageEnvelope): Promise<void> {
+    if (!this.ws) throw new Error("连接不可用");
     const aad = new TextEncoder().encode(`secureinchat:msg:${this.deps.groupId}:${this.deps.epoch}`);
     const ciphertext = await encryptAead(this.deps.groupKey, encodeEnvelope(envelope), aad);
     const ciphertextB64 = toBase64Url(packCiphertext(ciphertext));
     this.ws.send(JSON.stringify({ type: "forward", ciphertextB64 }));
+  }
+
+  private enqueue(envelope: MessageEnvelope): void {
+    this.outbox.enqueue(`q-${this.queueSeq++}`, envelope);
+    this.notifyQueue();
+  }
+
+  private notifyQueue(): void {
+    const pending = this.pendingMessageCount;
+    for (const handler of this.queueHandlers) handler(pending);
+  }
+
+  /** 还有多少条消息在等待发送——UI 可以据此显示"N 条等待发送" */
+  get pendingMessageCount(): number {
+    return this.outbox.listByStatus("pending").length;
+  }
+
+  onQueueChange(handler: (pendingCount: number) => void): void {
+    this.queueHandlers.push(handler);
+  }
+
+  /**
+   * 重连成功后补发。OfflineOutbox 按入队顺序遍历，所以补发是保序的——
+   * 断线期间发的三条消息不会因为重连而乱序。
+   */
+  private async flushOutbox(): Promise<void> {
+    if (this.pendingMessageCount === 0) return;
+    await this.outbox.flush(async (envelope) => {
+      await this.transmit(envelope);
+    });
+    this.notifyQueue();
   }
 
   /** 发文本消息的便捷方法 */
