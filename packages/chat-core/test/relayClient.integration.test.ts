@@ -80,7 +80,9 @@ describe.skipIf(!RUN_CROSS_STACK)("RelayClient <-> real Python relay (cross-stac
     await bob.connect("register");
 
     const received: string[] = [];
-    bob.onMessage((msg) => received.push(msg.text));
+    bob.onMessage((msg) => {
+      if (msg.envelope.kind === "text") received.push(msg.envelope.text);
+    });
 
     await alice.sendText("你好，这是一条真实跨进程加密消息");
 
@@ -105,7 +107,9 @@ describe.skipIf(!RUN_CROSS_STACK)("RelayClient <-> real Python relay (cross-stac
     await eve.connect("register");
 
     const received: string[] = [];
-    eve.onMessage((msg) => received.push(msg.text));
+    eve.onMessage((msg) => {
+      if (msg.envelope.kind === "text") received.push(msg.envelope.text);
+    });
 
     await alice.sendText("这条消息 eve 不应该能读懂");
     await new Promise((resolve) => setTimeout(resolve, 300));

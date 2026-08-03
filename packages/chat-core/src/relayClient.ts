@@ -1,5 +1,6 @@
 import { encryptAead, decryptAead, type AeadCiphertext } from "@secureinchat/crypto-core";
 import type { KeystorePort } from "@secureinchat/crypto-core";
+import { decodeEnvelope, encodeEnvelope, type MessageEnvelope } from "./messageEnvelope";
 
 /**
  * 客户端这边的中继协议实现——对应 docs/protocol/RELAY_CONTRACT_V0.md。
@@ -21,9 +22,9 @@ export interface RelayClientDeps {
   WebSocketImpl?: typeof WebSocket;
 }
 
-export interface IncomingTextMessage {
+export interface IncomingMessage {
   fromDeviceId: string;
-  text: string;
+  envelope: MessageEnvelope;
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -59,7 +60,7 @@ function unpackCiphertext(packed: Uint8Array): AeadCiphertext {
 
 export class RelayClient {
   private ws: WebSocket | null = null;
-  private messageHandlers: Array<(msg: IncomingTextMessage) => void> = [];
+  private messageHandlers: Array<(msg: IncomingMessage) => void> = [];
 
   constructor(
     private readonly url: string,
@@ -167,21 +168,39 @@ export class RelayClient {
       return;
     }
 
-    const text = new TextDecoder().decode(plaintextBytes);
-    for (const handler of this.messageHandlers) handler({ fromDeviceId, text });
+    let envelope: MessageEnvelope;
+    try {
+      envelope = decodeEnvelope(plaintextBytes);
+    } catch {
+      // 解密成功但内容不认识——多半是对端用了更新版本的客户端发了新类型的消息。
+      // 忽略这一条，不要因为不认识就断开连接或崩溃。
+      return;
+    }
+
+    for (const handler of this.messageHandlers) handler({ fromDeviceId, envelope });
   }
 
-  onMessage(handler: (msg: IncomingTextMessage) => void): void {
+  onMessage(handler: (msg: IncomingMessage) => void): void {
     this.messageHandlers.push(handler);
   }
 
-  async sendText(text: string): Promise<void> {
+  /** 发送任意类型的消息信封（文本/公告/文件分片都走这里） */
+  async sendEnvelope(envelope: MessageEnvelope): Promise<void> {
     if (!this.ws) throw new Error("RelayClient 还没连接，不能发消息");
     const aad = new TextEncoder().encode(`secureinchat:msg:${this.deps.groupId}:${this.deps.epoch}`);
-    const plaintext = new TextEncoder().encode(text);
-    const ciphertext = await encryptAead(this.deps.groupKey, plaintext, aad);
+    const ciphertext = await encryptAead(this.deps.groupKey, encodeEnvelope(envelope), aad);
     const ciphertextB64 = toBase64Url(packCiphertext(ciphertext));
     this.ws.send(JSON.stringify({ type: "forward", ciphertextB64 }));
+  }
+
+  /** 发文本消息的便捷方法 */
+  async sendText(text: string): Promise<void> {
+    await this.sendEnvelope({
+      kind: "text",
+      id: crypto.randomUUID(),
+      text,
+      sentAtMs: Date.now(),
+    });
   }
 
   close(): void {
