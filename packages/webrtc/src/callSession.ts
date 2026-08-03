@@ -32,6 +32,8 @@ export interface CallSessionOptions {
   kind: CallKind;
   transport: CallSignalingTransport;
   iceServers?: RTCIceServer[];
+  /** "relay" = 强制所有媒体走 TURN 中继（不向对端暴露 IP）。没有 TURN 时不要设成 relay。 */
+  iceTransportPolicy?: RTCIceTransportPolicy;
   onStateChange: (info: CallStateInfo) => void;
   onRemoteStream: (stream: MediaStream) => void;
   onLocalStream: (stream: MediaStream) => void;
@@ -60,7 +62,10 @@ export class CallSession {
 
   private async ensurePeerConnection(): Promise<RTCPeerConnection> {
     if (this.pc) return this.pc;
-    const pc = new RTCPeerConnection({ iceServers: this.opts.iceServers ?? DEFAULT_ICE_SERVERS });
+    const pc = new RTCPeerConnection({
+      iceServers: this.opts.iceServers ?? DEFAULT_ICE_SERVERS,
+      ...(this.opts.iceTransportPolicy ? { iceTransportPolicy: this.opts.iceTransportPolicy } : {}),
+    });
 
     pc.onicecandidate = (e) => {
       if (!e.candidate) return;
