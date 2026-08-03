@@ -7,3 +7,4 @@ export * from "./components/MessageListItem";
 export * from "./components/ChatBubble";
 export * from "./components/Composer";
 export * from "./components/InviteInfoCard";
+export * from "./components/CopyableCode";
