@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { InviteParseError, parseInviteAuto, type ParsedInvite } from "@secureinchat/protocol";
-import { joinGroupFromInvite, MissingGroupIdError, RelayClient } from "@secureinchat/chat-core";
+import {
+  joinGroupFromInvite,
+  MissingGroupIdError,
+  RelayClient,
+  FileAssembler,
+  buildFileEnvelopes,
+} from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
 import { SplashScreen } from "./screens/SplashScreen";
 import { InviteScreen } from "./screens/InviteScreen";
 import { CreateGroupScreen } from "./screens/CreateGroupScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
-import { ChatScreen, type DisplayMessage } from "./screens/ChatScreen";
+import { ChatScreen, type DisplayMessage, type Announcement } from "./screens/ChatScreen";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
 import { RELAY_URL } from "./relayConfig";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
@@ -30,6 +36,9 @@ type Screen =
       messages: DisplayMessage[];
       view: "list" | "chat";
       sendError?: string | undefined;
+      deviceId: string;
+      announcement?: Announcement | undefined;
+      incomingProgress?: { fileId: string; fileName: string; receivedChunks: number; totalChunks: number }[];
     };
 
 /**
@@ -78,21 +87,76 @@ export function App() {
       }
     }
 
+    const assembler = new FileAssembler();
+
     client.onMessage((msg) => {
+      const env = msg.envelope;
+
+      if (env.kind === "text") {
+        setScreen((prev) =>
+          prev.name === "connected"
+            ? {
+                ...prev,
+                messages: [
+                  ...prev.messages,
+                  { id: `recv-${nextMessageId++}`, text: env.text, isOwn: false, fromDeviceId: msg.fromDeviceId },
+                ],
+              }
+            : prev
+        );
+        return;
+      }
+
+      if (env.kind === "announcement") {
+        // 公告是"当前生效的那一条"，新的覆盖旧的，不堆成列表
+        setScreen((prev) =>
+          prev.name === "connected"
+            ? { ...prev, announcement: { id: env.id, title: env.title, body: env.body } }
+            : prev
+        );
+        return;
+      }
+
+      if (env.kind === "file-meta") {
+        assembler.acceptMeta(env);
+        setScreen((prev) => (prev.name === "connected" ? { ...prev, incomingProgress: assembler.progress() } : prev));
+        return;
+      }
+
+      // file-chunk：集齐了就组装成一条媒体消息
+      const done = assembler.acceptChunk(env);
+      if (!done) {
+        setScreen((prev) => (prev.name === "connected" ? { ...prev, incomingProgress: assembler.progress() } : prev));
+        return;
+      }
+      const blob = new Blob([done.bytes as BlobPart], { type: done.mimeType });
+      const objectUrl = URL.createObjectURL(blob);
       setScreen((prev) =>
         prev.name === "connected"
           ? {
               ...prev,
+              incomingProgress: assembler.progress(),
               messages: [
                 ...prev.messages,
-                { id: `recv-${nextMessageId++}`, text: msg.text, isOwn: false, fromDeviceId: msg.fromDeviceId },
+                {
+                  id: `recv-${nextMessageId++}`,
+                  isOwn: false,
+                  fromDeviceId: msg.fromDeviceId,
+                  media: {
+                    mediaKind: done.mediaKind,
+                    fileName: done.fileName,
+                    mimeType: done.mimeType,
+                    objectUrl,
+                    sizeBytes: done.bytes.byteLength,
+                  },
+                },
               ],
             }
           : prev
       );
     });
 
-    setScreen({ name: "connected", groupName, client, messages: [], view: "list" });
+    setScreen({ name: "connected", groupName, client, messages: [], view: "list", deviceId: identity.deviceId });
   }
 
   function handleSubmitInviteCode(raw: string) {
@@ -161,6 +225,72 @@ export function App() {
     }
   }
 
+  async function handleSendFile(file: File, mediaKind: "image" | "voice" | "file") {
+    if (screen.name !== "connected") return;
+    const client = screen.client;
+    setScreen({ ...screen, sendError: undefined });
+
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const fileId = crypto.randomUUID();
+      const { meta, chunks } = buildFileEnvelopes({
+        fileId,
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        mediaKind,
+        bytes,
+      });
+
+      // meta 必须先到，接收方才知道总共有多少片；分片按顺序发（网络可能乱序，
+      // 接收端的 FileAssembler 已经能处理乱序，这里顺序发只是最自然的做法）
+      await client.sendEnvelope(meta);
+      for (const chunk of chunks) {
+        await client.sendEnvelope(chunk);
+      }
+
+      // 自己发的媒体本地直接显示（中继不会把自己发的消息转发回来）
+      const objectUrl = URL.createObjectURL(file);
+      setScreen((prev) =>
+        prev.name === "connected"
+          ? {
+              ...prev,
+              messages: [
+                ...prev.messages,
+                {
+                  id: `sent-${nextMessageId++}`,
+                  isOwn: true,
+                  media: {
+                    mediaKind,
+                    fileName: file.name,
+                    mimeType: file.type || "application/octet-stream",
+                    objectUrl,
+                    sizeBytes: bytes.byteLength,
+                  },
+                },
+              ],
+            }
+          : prev
+      );
+    } catch {
+      setScreen((prev) => (prev.name === "connected" ? { ...prev, sendError: "发送失败，请检查连接" } : prev));
+    }
+  }
+
+  async function handlePublishAnnouncement(title: string, body: string) {
+    if (screen.name !== "connected") return;
+    const announcement = { id: crypto.randomUUID(), title, body };
+    // 公告走和普通消息完全一样的加密通道——中继不知道这是一条公告。
+    // 注意：目前任何成员都能发公告，没有管理员权限校验（管理员体系还没做）。
+    await screen.client.sendEnvelope({
+      kind: "announcement",
+      id: announcement.id,
+      title,
+      body,
+      sentAtMs: Date.now(),
+    });
+    setScreen((prev) => (prev.name === "connected" ? { ...prev, announcement } : prev));
+  }
+
   if (!isSecureContextAvailable()) {
     return <InsecureContextNotice />;
   }
@@ -195,6 +325,9 @@ export function App() {
       <MessageListScreen
         joinedGroupName={screen.groupName}
         onOpenChat={() => setScreen({ ...screen, view: "chat" })}
+        announcement={screen.announcement}
+        onPublishAnnouncement={handlePublishAnnouncement}
+        deviceId={screen.deviceId}
       />
     );
   }
@@ -203,8 +336,11 @@ export function App() {
     <ChatScreen
       groupName={screen.groupName}
       messages={screen.messages}
+      announcement={screen.announcement}
+      incomingProgress={screen.incomingProgress}
       sendError={screen.sendError}
       onSend={handleSendMessage}
+      onSendFile={handleSendFile}
       onBack={() => setScreen({ ...screen, view: "list" })}
     />
   );

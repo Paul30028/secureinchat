@@ -42,6 +42,21 @@ function futureExpiry(): number {
   return Date.now() + 1000 * 60 * 60 * 24;
 }
 
+/** 走一遍"粘贴邀请码 → 确认加入"，停在消息列表页。新加的几个测试都从这里开始。 */
+async function joinTestGroup() {
+  const validCode = buildSic2Invite({
+    serverJoinCode: "ABCD",
+    groupId: "group-1",
+    keyMaterialB64Url: "abc123",
+    epoch: 0,
+    expiresAtMs: futureExpiry(),
+  });
+  fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
+  fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+  fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
+  await screen.findByText("欢迎加入！");
+}
+
 describe("App navigation", () => {
   it("starts on the splash screen with an invite code input", () => {
     render(<App />);
@@ -132,7 +147,7 @@ describe("App navigation", () => {
 
     await screen.findByText("欢迎加入！"); // wait for the async join to complete and screen to switch (unique to the message-list screen; the invite screen also shows the group name)
     fireEvent.click(screen.getByText("我的"));
-    expect(screen.getByText("我的页尚未接入")).toBeInTheDocument();
+    expect(screen.getByText("本机身份")).toBeInTheDocument();
   });
 
   it("the invite-code submit button is disabled for empty input", () => {
@@ -342,5 +357,75 @@ describe("App navigation", () => {
     // Navigate back in — the earlier message must still be there.
     fireEvent.click(screen.getByText("同心同行"));
     expect(await screen.findByText("第一条消息")).toBeInTheDocument();
+  });
+
+  it("publishing an announcement shows it in the announcements tab and in the chat", async () => {
+    render(<App />);
+    await joinTestGroup();
+
+    fireEvent.click(screen.getByText("公告"));
+    expect(screen.getByText("还没有公告")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("公告标题输入框"), { target: { value: "每日宣言" } });
+    fireEvent.change(screen.getByLabelText("公告内容输入框"), { target: { value: "今晚七点线上交流" } });
+    fireEvent.click(screen.getByRole("button", { name: "发布公告" }));
+
+    expect(await screen.findByText("每日宣言")).toBeInTheDocument();
+    expect(screen.getByText("今晚七点线上交流")).toBeInTheDocument();
+
+    // It should also appear at the top of the chat screen.
+    fireEvent.click(screen.getByText("消息"));
+    fireEvent.click(screen.getByText("同心同行"));
+    expect(await screen.findByText("每日宣言")).toBeInTheDocument();
+  });
+
+  it("the publish button is disabled until both title and body are filled in", async () => {
+    render(<App />);
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("公告"));
+
+    expect(screen.getByRole("button", { name: "发布公告" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("公告标题输入框"), { target: { value: "只有标题" } });
+    expect(screen.getByRole("button", { name: "发布公告" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("公告内容输入框"), { target: { value: "有内容了" } });
+    expect(screen.getByRole("button", { name: "发布公告" })).toBeEnabled();
+  });
+
+  it("sending an image renders it as a media bubble in the chat", async () => {
+    render(<App />);
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    const file = new File([new Uint8Array([1, 2, 3, 4])], "photo.jpg", { type: "image/jpeg" });
+    const input = screen.getByLabelText("选择图片");
+    fireEvent.change(input, { target: { files: [file] } });
+
+    const img = (await screen.findByAltText("photo.jpg")) as HTMLImageElement;
+    expect(img.tagName).toBe("IMG");
+  });
+
+  it("sending a generic file renders a downloadable file bubble", async () => {
+    render(<App />);
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    const file = new File([new Uint8Array(2048)], "提纲.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText("选择文件"), { target: { files: [file] } });
+
+    expect(await screen.findByText("提纲.pdf")).toBeInTheDocument();
+    expect(screen.getByText(/2\.0 KB · 已加密/)).toBeInTheDocument();
+  });
+
+  it("the chat screen exposes image, file, and voice controls", async () => {
+    render(<App />);
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    expect(screen.getByLabelText("发送图片")).toBeInTheDocument();
+    expect(screen.getByLabelText("发送文件")).toBeInTheDocument();
+    expect(screen.getByLabelText("录制语音")).toBeInTheDocument();
   });
 });
