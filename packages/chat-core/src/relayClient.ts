@@ -27,6 +27,39 @@ export interface IncomingMessage {
   envelope: MessageEnvelope;
 }
 
+/** 通话信令帧类型——和 server/relay 的 SIGNALING_FRAME_TYPES 一一对应 */
+export type SignalingType =
+  | "call_invite"
+  | "call_ring"
+  | "call_answer"
+  | "call_reject"
+  | "call_cancel"
+  | "call_hangup"
+  | "ice_candidate";
+
+export interface IncomingSignaling {
+  type: SignalingType;
+  fromDeviceId: string;
+  callId: string;
+  /** 解密后的信令内容（SDP / ICE candidate / 拒接原因等） */
+  payload: Record<string, unknown>;
+}
+
+export interface CallFailed {
+  callId: string;
+  reason: string;
+}
+
+const SIGNALING_TYPES = new Set<string>([
+  "call_invite",
+  "call_ring",
+  "call_answer",
+  "call_reject",
+  "call_cancel",
+  "call_hangup",
+  "ice_candidate",
+]);
+
 function toBase64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
@@ -61,6 +94,8 @@ function unpackCiphertext(packed: Uint8Array): AeadCiphertext {
 export class RelayClient {
   private ws: WebSocket | null = null;
   private messageHandlers: Array<(msg: IncomingMessage) => void> = [];
+  private signalingHandlers: Array<(sig: IncomingSignaling) => void> = [];
+  private callFailedHandlers: Array<(info: CallFailed) => void> = [];
 
   constructor(
     private readonly url: string,
@@ -152,7 +187,26 @@ export class RelayClient {
     } catch {
       return;
     }
-    if (frame.type !== "forward") return;
+
+    const frameType = frame.type;
+
+    if (typeof frameType === "string" && SIGNALING_TYPES.has(frameType)) {
+      await this.handleSignalingFrame(frameType as SignalingType, frame);
+      return;
+    }
+
+    if (frameType === "call_failed") {
+      const callId = frame.callId;
+      const reason = frame.reason;
+      if (typeof callId === "string") {
+        for (const handler of this.callFailedHandlers) {
+          handler({ callId, reason: typeof reason === "string" ? reason : "unknown" });
+        }
+      }
+      return;
+    }
+
+    if (frameType !== "forward") return;
 
     const ciphertextB64 = frame.ciphertextB64;
     const fromDeviceId = frame.fromDeviceId;
@@ -182,6 +236,64 @@ export class RelayClient {
 
   onMessage(handler: (msg: IncomingMessage) => void): void {
     this.messageHandlers.push(handler);
+  }
+
+  onSignaling(handler: (sig: IncomingSignaling) => void): void {
+    this.signalingHandlers.push(handler);
+  }
+
+  onCallFailed(handler: (info: CallFailed) => void): void {
+    this.callFailedHandlers.push(handler);
+  }
+
+  private signalingAad(): Uint8Array {
+    // 和消息用不同的 AAD 前缀——防止有人把一条消息密文挪来当信令用（或反过来）
+    return new TextEncoder().encode(`secureinchat:signal:${this.deps.groupId}:${this.deps.epoch}`);
+  }
+
+  private async handleSignalingFrame(type: SignalingType, frame: Record<string, unknown>): Promise<void> {
+    const fromDeviceId = frame.fromDeviceId;
+    const callId = frame.callId;
+    if (typeof fromDeviceId !== "string" || typeof callId !== "string") return;
+
+    let payload: Record<string, unknown> = {};
+    const encrypted = frame.payloadB64Url;
+    if (typeof encrypted === "string") {
+      try {
+        const bytes = await decryptAead(this.deps.groupKey, unpackCiphertext(fromBase64Url(encrypted)), this.signalingAad());
+        const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+        if (typeof parsed === "object" && parsed !== null) payload = parsed as Record<string, unknown>;
+      } catch {
+        // 信令解密失败——不是本群成员发的，或者被篡改了。丢弃，不让它影响通话状态机。
+        return;
+      }
+    }
+
+    for (const handler of this.signalingHandlers) handler({ type, fromDeviceId, callId, payload });
+  }
+
+  /**
+   * 发送一条通话信令。SDP 和 ICE candidate 里含有 IP 地址等敏感信息，所以
+   * payload 用群密钥加密——中继只能看到"谁在什么时候给谁发了一条什么类型的
+   * 信令"（路由必需的元数据），看不到内容。
+   */
+  async sendSignaling(
+    type: SignalingType,
+    targetDeviceId: string,
+    callId: string,
+    payload: Record<string, unknown> = {}
+  ): Promise<void> {
+    if (!this.ws) throw new Error("RelayClient 还没连接，不能发信令");
+    const plaintext = new TextEncoder().encode(JSON.stringify(payload));
+    const ciphertext = await encryptAead(this.deps.groupKey, plaintext, this.signalingAad());
+    this.ws.send(
+      JSON.stringify({
+        type,
+        targetDeviceId,
+        callId,
+        payloadB64Url: toBase64Url(packCiphertext(ciphertext)),
+      })
+    );
   }
 
   /** 发送任意类型的消息信封（文本/公告/文件分片都走这里） */
