@@ -226,6 +226,17 @@ class RelayServer:
 
             frame_type = frame.get("type")
 
+            if frame_type == "ping":
+                # 应用层心跳——协议层的 WebSocket ping 由 websockets 库自动处理
+                # （见 run_server 的 ping_interval），但应用层 ping 让客户端能
+                # 测量真实的消息往返延迟，也能发现"TCP 还在但对端已经不处理消息"
+                # 这种半开连接。原样回带 timestamp，客户端据此算 RTT。
+                pong: dict[str, Any] = {"type": "pong"}
+                if "timestamp" in frame:
+                    pong["timestamp"] = frame["timestamp"]
+                await ws.send(json.dumps(pong))
+                continue
+
             if frame_type in SIGNALING_FRAME_TYPES:
                 await self._route_signaling_frame(ws, device_id, group_id, frame_type, frame)
                 continue
@@ -285,5 +296,10 @@ async def run_server(
     membership: GroupMembership | None = None,
 ) -> None:
     relay = RelayServer(verifier, device_registry, invite_registry, membership)
-    async with websockets.asyncio.server.serve(relay.handle_connection, host, port):
+    # ping_interval/ping_timeout 按你的中继文档第 9 节：防 NAT 超时、移动网络
+    # 断开和 Cloudflare 空闲关闭。这是 WebSocket 协议层的心跳，和上面应用层的
+    # {"type":"ping"} 是两回事，两个都要有。
+    async with websockets.asyncio.server.serve(
+        relay.handle_connection, host, port, ping_interval=20, ping_timeout=60
+    ):
         await asyncio.Future()  # run forever
