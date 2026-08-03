@@ -4,6 +4,7 @@ import { joinGroupFromInvite, MissingGroupIdError, RelayClient } from "@securein
 import type { InviteInfo } from "@secureinchat/ui";
 import { SplashScreen } from "./screens/SplashScreen";
 import { InviteScreen } from "./screens/InviteScreen";
+import { CreateGroupScreen } from "./screens/CreateGroupScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
 import { ChatScreen } from "./screens/ChatScreen";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
@@ -11,6 +12,7 @@ import { RELAY_URL } from "./relayConfig";
 
 type Screen =
   | { name: "splash" }
+  | { name: "createGroup" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -31,6 +33,38 @@ function mapParseErrorReason(reason: InviteParseError["reason"]): "expired" | "e
   if (reason === "expired") return "expired";
   if (reason === "exhausted") return "exhausted";
   return "malformed";
+}
+
+/**
+ * 派生群密钥、连上 relay——加入邀请码流程和创建群聊流程最终都要做同一件事，
+ * 抽成一个函数，不要在两个地方各写一份容易走歪的版本。
+ */
+async function connectToGroup(parsed: ParsedInvite): Promise<RelayClient> {
+  const store = await getDeviceStore();
+  const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
+  const identity = await getDeviceIdentity();
+
+  const client = new RelayClient(RELAY_URL, {
+    deviceId: identity.deviceId,
+    groupId,
+    keystore: identity.keystore,
+    keystoreAlias: identity.keystoreAlias,
+    groupKey: epochKey,
+    epoch,
+  });
+  // 设备身份跨刷新持久（见 deviceIdentity.ts），但 relay 端的 DeviceRegistry 是
+  // 内存态的（进程重启就清空），客户端没法直接知道"这次对服务端是不是新设备"。
+  // 先尝试 register（TOFU），服务端说"已经注册过"就换 authenticate 重试。
+  try {
+    await client.connect("register");
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("already registered")) {
+      await client.connect("authenticate");
+    } else {
+      throw err;
+    }
+  }
+  return client;
 }
 
 export function App() {
@@ -63,33 +97,7 @@ export function App() {
     setScreen({ ...screen, isConfirming: true, errorMessage: undefined });
 
     try {
-      const store = await getDeviceStore();
-      const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
-      const identity = await getDeviceIdentity();
-
-      const client = new RelayClient(RELAY_URL, {
-        deviceId: identity.deviceId,
-        groupId,
-        keystore: identity.keystore,
-        keystoreAlias: identity.keystoreAlias,
-        groupKey: epochKey,
-        epoch,
-      });
-      // 设备身份现在跨刷新持久（见 deviceIdentity.ts），但 relay 端的
-      // DeviceRegistry 是内存态的（进程重启就清空），所以没法从客户端直接
-      // 知道"这次连接对服务端来说是不是新设备"。先尝试 register（TOFU），
-      // 如果服务端说"已经注册过"（relay 进程还没重启，之前连过），
-      // 就换成 authenticate 重试一次——而不是把这个已知会发生的情况当异常处理。
-      try {
-        await client.connect("register");
-      } catch (err) {
-        if (err instanceof Error && err.message.includes("already registered")) {
-          await client.connect("authenticate");
-        } else {
-          throw err;
-        }
-      }
-
+      const client = await connectToGroup(parsed);
       const groupName = screen.invite.status === "valid" ? screen.invite.groupName : "邀群密聊";
       setScreen({ name: "messages", groupName, client });
     } catch (err) {
@@ -103,8 +111,28 @@ export function App() {
     }
   }
 
+  async function handleGroupCreated(input: {
+    groupId: string;
+    groupName: string;
+    keyMaterialB64Url: string;
+    inviteCode: string;
+  }) {
+    const parsed = parseInviteAuto(input.inviteCode); // 复用解析路径，不手搓一份 ParsedInvite
+    const client = await connectToGroup(parsed);
+    setScreen({ name: "messages", groupName: input.groupName, client });
+  }
+
   if (screen.name === "splash") {
-    return <SplashScreen onSubmitInviteCode={handleSubmitInviteCode} />;
+    return (
+      <SplashScreen
+        onSubmitInviteCode={handleSubmitInviteCode}
+        onCreateGroup={() => setScreen({ name: "createGroup" })}
+      />
+    );
+  }
+
+  if (screen.name === "createGroup") {
+    return <CreateGroupScreen onBack={() => setScreen({ name: "splash" })} onCreated={handleGroupCreated} />;
   }
 
   if (screen.name === "invite") {

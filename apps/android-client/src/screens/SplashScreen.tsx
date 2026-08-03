@@ -3,11 +3,12 @@ import { colors, touchTarget, Button, Avatar } from "@secureinchat/ui";
 
 export interface SplashScreenProps {
   onSubmitInviteCode: (raw: string) => void;
+  onCreateGroup: () => void;
 }
 
 /** 启动页。对应设计稿"01 启动"+"02 公告与进入"的简化合并——公告卡片、
  *  今日经文这些内容型模块不在这次范围内，先把"输入邀请码进群"这条主干打通。 */
-export function SplashScreen({ onSubmitInviteCode }: SplashScreenProps) {
+export function SplashScreen({ onSubmitInviteCode, onCreateGroup }: SplashScreenProps) {
   const [code, setCode] = useState("");
 
   return (
@@ -52,6 +53,9 @@ export function SplashScreen({ onSubmitInviteCode }: SplashScreenProps) {
           style={{ width: "100%" }}
         >
           加入群聊
+        </Button>
+        <Button variant="secondary" onClick={onCreateGroup} style={{ width: "100%" }}>
+          创建群聊
         </Button>
       </div>
     </div>

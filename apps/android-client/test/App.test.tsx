@@ -285,4 +285,33 @@ describe("App navigation", () => {
       (globalThis as unknown as { WebSocket: unknown }).WebSocket = original;
     }
   });
+
+  it("creating a group generates a shareable invite code and can enter the resulting chat", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+
+    fireEvent.change(screen.getByLabelText("群聊名称输入框"), { target: { value: "周末爬山小队" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+
+    // A SIC2 invite code should now be displayed for sharing.
+    const codeEl = await screen.findByText(/^SIC2\./);
+    expect(codeEl.textContent).toMatch(/^SIC2\./);
+
+    fireEvent.click(screen.getByRole("button", { name: "进入群聊" }));
+    expect(await screen.findByText("周末爬山小队")).toBeInTheDocument();
+    expect(screen.getByText("欢迎加入！")).toBeInTheDocument();
+  });
+
+  it("the group name defaults to '新群聊' if left blank is prevented by the disabled create button", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    expect(screen.getByRole("button", { name: "创建群聊" })).toBeDisabled();
+  });
+
+  it("going back from create-group returns to splash", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    expect(screen.getByLabelText("邀请码输入框")).toBeInTheDocument();
+  });
 });
