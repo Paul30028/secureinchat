@@ -6,6 +6,7 @@ import {
   RelayClient,
   FileAssembler,
   buildFileEnvelopes,
+  type ConnectionStatus,
 } from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
 import { SplashScreen } from "./screens/SplashScreen";
@@ -47,6 +48,8 @@ type Screen =
       messages: DisplayMessage[];
       view: "list" | "chat";
       sendError?: string | undefined;
+      connectionStatus: ConnectionStatus;
+      pendingCount: number;
       deviceId: string;
       announcement?: Announcement | undefined;
       /** 从收到的消息/信令里观察到的同群设备——单群试用版没有服务端成员列表，
@@ -246,7 +249,24 @@ export function App() {
       currentCallRef.current?.session.hangup();
     });
 
-    setScreen({ name: "connected", groupName, client, messages: [], view: "list", deviceId: identity.deviceId, knownPeers: [] });
+    client.onStatusChange((connectionStatus) => {
+      setScreen((prev) => (prev.name === "connected" ? { ...prev, connectionStatus } : prev));
+    });
+    client.onQueueChange((pendingCount) => {
+      setScreen((prev) => (prev.name === "connected" ? { ...prev, pendingCount } : prev));
+    });
+
+    setScreen({
+      name: "connected",
+      groupName,
+      client,
+      messages: [],
+      view: "list",
+      deviceId: identity.deviceId,
+      knownPeers: [],
+      connectionStatus: client.connectionStatus,
+      pendingCount: client.pendingMessageCount,
+    });
   }
 
   function handleSubmitInviteCode(raw: string) {
@@ -304,6 +324,8 @@ export function App() {
     const client = screen.client;
     setScreen({ ...screen, sendError: undefined });
     try {
+      // sendText 现在断线时会排队而不是抛错——排队也算"发出去了"，
+      // 连接状态横幅会告诉用户还有几条在等待，不需要再报一次"发送失败"
       await client.sendText(text);
       setScreen((prev) =>
         prev.name === "connected"
@@ -466,6 +488,8 @@ export function App() {
       announcement={screen.announcement}
       incomingProgress={screen.incomingProgress}
       sendError={screen.sendError}
+      connectionStatus={screen.connectionStatus}
+      pendingCount={screen.pendingCount}
       knownPeers={screen.knownPeers}
       onStartCall={(kind, peer) => void handleStartCall(kind, peer)}
       onSend={handleSendMessage}

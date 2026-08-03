@@ -25,6 +25,9 @@ export interface ChatScreenProps {
   onSend: (text: string) => Promise<void>;
   onSendFile: (file: File, mediaKind: "image" | "voice" | "file") => Promise<void>;
   sendError?: string | undefined;
+  connectionStatus?: "connecting" | "connected" | "reconnecting" | "disconnected" | undefined;
+  /** 断线期间排队等待发送的消息条数 */
+  pendingCount?: number | undefined;
   /** 正在接收中的文件进度，例如 "photo.jpg 3/12" */
   incomingProgress?: { fileId: string; fileName: string; receivedChunks: number; totalChunks: number }[] | undefined;
   /** 同群里已知的其他设备——没有服务端成员列表，只能从收到过的消息里推断 */
@@ -55,6 +58,8 @@ export function ChatScreen({
   onSend,
   onSendFile,
   sendError,
+  connectionStatus,
+  pendingCount,
   incomingProgress,
   knownPeers,
   onStartCall,
@@ -124,6 +129,26 @@ export function ChatScreen({
           </>
         ) : null}
       </div>
+
+      {connectionStatus && connectionStatus !== "connected" ? (
+        <div
+          role="status"
+          style={{
+            background: `${colors.wheatGold}22`,
+            color: colors.wheatGold,
+            fontSize: 12,
+            textAlign: "center",
+            padding: "6px 12px",
+          }}
+        >
+          {connectionStatus === "reconnecting"
+            ? "连接已断开，正在自动重连..."
+            : connectionStatus === "connecting"
+              ? "正在连接..."
+              : "已断开连接"}
+          {pendingCount ? `（${pendingCount} 条消息等待发送）` : ""}
+        </div>
+      ) : null}
 
       <div style={{ flex: 1, padding: "8px 16px", display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
         {announcement ? <AnnouncementCard title={announcement.title} body={announcement.body} /> : null}

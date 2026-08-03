@@ -12,11 +12,13 @@ import { App } from "../src/App";
  * 这里只关心 App 层面的状态流转对不对。
  */
 class MockRelayWebSocket {
+  static lastInstance: MockRelayWebSocket | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
   onerror: (() => void) | null = null;
   onclose: (() => void) | null = null;
 
   constructor(_url: string) {
+    MockRelayWebSocket.lastInstance = this;
     setTimeout(() => {
       this.onmessage?.({ data: JSON.stringify({ type: "auth_challenge", nonce: "test-nonce" }) });
     }, 0);
@@ -439,5 +441,29 @@ describe("App navigation", () => {
     // showing a call button here would be a button that can't do anything.
     expect(screen.queryByLabelText("语音通话")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("视频通话")).not.toBeInTheDocument();
+  });
+});
+
+describe("connection status banner", () => {
+  it("shows a reconnecting banner with the pending message count when the socket drops", async () => {
+    render(<App />);
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    // 正常连接时不该有横幅打扰用户
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+
+    // 模拟掉线：触发 mock socket 的 onclose
+    const socket = MockRelayWebSocket.lastInstance;
+    expect(socket).toBeDefined();
+    socket!.onclose?.();
+
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "断线时发的" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    const banner = await screen.findByRole("status");
+    expect(banner.textContent).toContain("正在自动重连");
+    expect(banner.textContent).toContain("1 条消息等待发送");
   });
 });
