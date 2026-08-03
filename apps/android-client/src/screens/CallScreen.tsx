@@ -14,6 +14,8 @@ export interface CallScreenProps {
   onToggleMute: (muted: boolean) => void;
   onToggleCamera: (enabled: boolean) => void;
   onDismiss: () => void;
+  /** 没配 TURN 时如实提示：跨运营商/跨网络大概率接不通，不要让用户以为是自己的问题 */
+  hasTurn?: boolean | undefined;
 }
 
 function CircleButton({
@@ -62,6 +64,7 @@ export function CallScreen({
   onToggleMute,
   onToggleCamera,
   onDismiss,
+  hasTurn,
 }: CallScreenProps) {
   const [muted, setMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(kind === "video");
@@ -148,6 +151,12 @@ export function CallScreen({
       <span style={{ fontSize: 13, color: "#8A8A82" }}>
         {info.state === "connected" ? durationLabel : describeCallState(info, kind)}
       </span>
+
+      {hasTurn === false && info.state !== "connected" && info.state !== "ended" ? (
+        <span style={{ fontSize: 11, color: colors.wheatGold, textAlign: "center", maxWidth: 260, lineHeight: 1.6 }}>
+          未配置 TURN 中继服务：双方处于不同运营商网络（如移动 ↔ 电信）时可能无法接通
+        </span>
+      ) : null}
 
       <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
         {info.state === "incoming" ? (

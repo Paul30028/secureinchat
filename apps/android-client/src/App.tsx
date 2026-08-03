@@ -16,7 +16,7 @@ import { ChatScreen, type DisplayMessage, type Announcement } from "./screens/Ch
 import { CallScreen } from "./screens/CallScreen";
 import { CallSession, type CallKind, type CallStateInfo } from "@secureinchat/webrtc";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
-import { RELAY_URL } from "./relayConfig";
+import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
 
 interface ActiveCall {
@@ -197,6 +197,8 @@ export function App() {
         peerDeviceId,
         kind,
         transport: client,
+        iceServers: ICE_CONFIG.iceServers,
+        iceTransportPolicy: ICE_CONFIG.iceTransportPolicy,
         onStateChange: (info) => updateCall({ info }),
         onLocalStream: (localStream) => updateCall({ localStream }),
         onRemoteStream: (remoteStream) => updateCall({ remoteStream }),
@@ -425,6 +427,7 @@ export function App() {
     const call = screen.call;
     return (
       <CallScreen
+      hasTurn={ICE_CONFIG.hasTurn}
         kind={call.kind}
         info={call.info}
         peerLabel={screen.groupName}
