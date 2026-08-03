@@ -1,49 +1,26 @@
-import { useEffect, useRef, useState } from "react";
 import { colors, ChatBubble, Composer } from "@secureinchat/ui";
-import type { RelayClient } from "@secureinchat/chat-core";
 
-export interface ChatScreenProps {
-  groupName: string;
-  client: RelayClient;
-  onBack: () => void;
-}
-
-interface DisplayMessage {
+export interface DisplayMessage {
   id: string;
   text: string;
   isOwn: boolean;
   fromDeviceId?: string;
 }
 
+export interface ChatScreenProps {
+  groupName: string;
+  messages: DisplayMessage[];
+  onSend: (text: string) => Promise<void>;
+  sendError?: string | undefined;
+  onBack: () => void;
+}
+
 /**
- * 真正收发消息的聊天页。中继按设计不会把你自己发的消息再转发回给你
- * （见 RELAY_CONTRACT_V0.md 的"密文转发"一节），所以这里发出去的消息是
- * 本地直接追加显示，收到的（onMessage 回调）一定是别人发的。
+ * 纯展示的聊天页——消息数组和发送逻辑都由 App 层传进来，这个组件本身不持有
+ * 状态、不订阅 RelayClient。这样从聊天页切回消息列表再切回来，消息不会因为
+ * 组件卸载而丢失（消息状态活在 App 里，不活在这个组件里）。
  */
-export function ChatScreen({ groupName, client, onBack }: ChatScreenProps) {
-  const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [sendError, setSendError] = useState<string | undefined>(undefined);
-  const nextId = useRef(0);
-
-  useEffect(() => {
-    client.onMessage((msg) => {
-      setMessages((prev) => [
-        ...prev,
-        { id: `recv-${nextId.current++}`, text: msg.text, isOwn: false, fromDeviceId: msg.fromDeviceId },
-      ]);
-    });
-  }, [client]);
-
-  async function handleSend(text: string) {
-    setSendError(undefined);
-    try {
-      await client.sendText(text);
-      setMessages((prev) => [...prev, { id: `sent-${nextId.current++}`, text, isOwn: true }]);
-    } catch {
-      setSendError("发送失败，请检查连接");
-    }
-  }
-
+export function ChatScreen({ groupName, messages, onSend, sendError, onBack }: ChatScreenProps) {
   return (
     <div style={{ minHeight: "100vh", background: colors.ivory, display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
@@ -74,7 +51,7 @@ export function ChatScreen({ groupName, client, onBack }: ChatScreenProps) {
           {sendError}
         </p>
       ) : null}
-      <Composer onSend={handleSend} />
+      <Composer onSend={onSend} />
     </div>
   );
 }

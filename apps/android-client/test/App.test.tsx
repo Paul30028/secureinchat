@@ -314,4 +314,33 @@ describe("App navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
     expect(screen.getByLabelText("邀请码输入框")).toBeInTheDocument();
   });
+
+  it("messages survive navigating from chat back to the message list and back to chat", async () => {
+    render(<App />);
+    const validCode = buildSic2Invite({
+      serverJoinCode: "ABCD",
+      groupId: "group-1",
+      keyMaterialB64Url: "abc123",
+      epoch: 0,
+      expiresAtMs: futureExpiry(),
+    });
+    fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
+    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
+    await screen.findByText("欢迎加入！");
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "第一条消息" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    await screen.findByText("第一条消息");
+
+    // Navigate away (this used to unmount ChatScreen and lose its local state).
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    await screen.findByText("欢迎加入！");
+
+    // Navigate back in — the earlier message must still be there.
+    fireEvent.click(screen.getByText("同心同行"));
+    expect(await screen.findByText("第一条消息")).toBeInTheDocument();
+  });
 });

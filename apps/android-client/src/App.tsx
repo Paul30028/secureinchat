@@ -6,7 +6,7 @@ import { SplashScreen } from "./screens/SplashScreen";
 import { InviteScreen } from "./screens/InviteScreen";
 import { CreateGroupScreen } from "./screens/CreateGroupScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
-import { ChatScreen } from "./screens/ChatScreen";
+import { ChatScreen, type DisplayMessage } from "./screens/ChatScreen";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
 import { RELAY_URL } from "./relayConfig";
 
@@ -20,8 +20,16 @@ type Screen =
       isConfirming: boolean;
       errorMessage?: string | undefined;
     }
-  | { name: "messages"; groupName: string; client: RelayClient }
-  | { name: "chat"; groupName: string; client: RelayClient };
+  // "messages" 和 "chat" 合成一个状态，view 只决定渲染哪个屏幕——消息数组
+  // 活在这一个对象里，在两个视图之间切换不会因为组件卸载而丢失历史。
+  | {
+      name: "connected";
+      groupName: string;
+      client: RelayClient;
+      messages: DisplayMessage[];
+      view: "list" | "chat";
+      sendError?: string | undefined;
+    };
 
 /**
  * protocol 包解析出的 InviteParseError.reason 和 ui 包 InviteInfoCard 期待的
@@ -35,40 +43,56 @@ function mapParseErrorReason(reason: InviteParseError["reason"]): "expired" | "e
   return "malformed";
 }
 
-/**
- * 派生群密钥、连上 relay——加入邀请码流程和创建群聊流程最终都要做同一件事，
- * 抽成一个函数，不要在两个地方各写一份容易走歪的版本。
- */
-async function connectToGroup(parsed: ParsedInvite): Promise<RelayClient> {
-  const store = await getDeviceStore();
-  const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
-  const identity = await getDeviceIdentity();
-
-  const client = new RelayClient(RELAY_URL, {
-    deviceId: identity.deviceId,
-    groupId,
-    keystore: identity.keystore,
-    keystoreAlias: identity.keystoreAlias,
-    groupKey: epochKey,
-    epoch,
-  });
-  // 设备身份跨刷新持久（见 deviceIdentity.ts），但 relay 端的 DeviceRegistry 是
-  // 内存态的（进程重启就清空），客户端没法直接知道"这次对服务端是不是新设备"。
-  // 先尝试 register（TOFU），服务端说"已经注册过"就换 authenticate 重试。
-  try {
-    await client.connect("register");
-  } catch (err) {
-    if (err instanceof Error && err.message.includes("already registered")) {
-      await client.connect("authenticate");
-    } else {
-      throw err;
-    }
-  }
-  return client;
-}
+let nextMessageId = 0;
 
 export function App() {
   const [screen, setScreen] = useState<Screen>({ name: "splash" });
+
+  /**
+   * 派生群密钥、连上 relay——加入邀请码流程和创建群聊流程最终都要做同一件事，
+   * 抽成一个函数，不要在两个地方各写一份容易走歪的版本。订阅 onMessage 也在
+   * 这里做一次，不放在 ChatScreen 里——ChatScreen 会被卸载/重新挂载（切到消息
+   * 列表再切回来），但这个订阅只应该建立一次，跟连接本身的生命周期绑定。
+   */
+  async function connectToGroup(parsed: ParsedInvite, groupName: string): Promise<void> {
+    const store = await getDeviceStore();
+    const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
+    const identity = await getDeviceIdentity();
+
+    const client = new RelayClient(RELAY_URL, {
+      deviceId: identity.deviceId,
+      groupId,
+      keystore: identity.keystore,
+      keystoreAlias: identity.keystoreAlias,
+      groupKey: epochKey,
+      epoch,
+    });
+    try {
+      await client.connect("register");
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("already registered")) {
+        await client.connect("authenticate");
+      } else {
+        throw err;
+      }
+    }
+
+    client.onMessage((msg) => {
+      setScreen((prev) =>
+        prev.name === "connected"
+          ? {
+              ...prev,
+              messages: [
+                ...prev.messages,
+                { id: `recv-${nextMessageId++}`, text: msg.text, isOwn: false, fromDeviceId: msg.fromDeviceId },
+              ],
+            }
+          : prev
+      );
+    });
+
+    setScreen({ name: "connected", groupName, client, messages: [], view: "list" });
+  }
 
   function handleSubmitInviteCode(raw: string) {
     try {
@@ -97,9 +121,8 @@ export function App() {
     setScreen({ ...screen, isConfirming: true, errorMessage: undefined });
 
     try {
-      const client = await connectToGroup(parsed);
       const groupName = screen.invite.status === "valid" ? screen.invite.groupName : "邀群密聊";
-      setScreen({ name: "messages", groupName, client });
+      await connectToGroup(parsed, groupName);
     } catch (err) {
       const message =
         err instanceof MissingGroupIdError
@@ -118,8 +141,23 @@ export function App() {
     inviteCode: string;
   }) {
     const parsed = parseInviteAuto(input.inviteCode); // 复用解析路径，不手搓一份 ParsedInvite
-    const client = await connectToGroup(parsed);
-    setScreen({ name: "messages", groupName: input.groupName, client });
+    await connectToGroup(parsed, input.groupName);
+  }
+
+  async function handleSendMessage(text: string) {
+    if (screen.name !== "connected") return;
+    const client = screen.client;
+    setScreen({ ...screen, sendError: undefined });
+    try {
+      await client.sendText(text);
+      setScreen((prev) =>
+        prev.name === "connected"
+          ? { ...prev, messages: [...prev.messages, { id: `sent-${nextMessageId++}`, text, isOwn: true }] }
+          : prev
+      );
+    } catch {
+      setScreen((prev) => (prev.name === "connected" ? { ...prev, sendError: "发送失败，请检查连接" } : prev));
+    }
   }
 
   if (screen.name === "splash") {
@@ -147,11 +185,11 @@ export function App() {
     );
   }
 
-  if (screen.name === "messages") {
+  if (screen.view === "list") {
     return (
       <MessageListScreen
         joinedGroupName={screen.groupName}
-        onOpenChat={() => setScreen({ name: "chat", groupName: screen.groupName, client: screen.client })}
+        onOpenChat={() => setScreen({ ...screen, view: "chat" })}
       />
     );
   }
@@ -159,8 +197,10 @@ export function App() {
   return (
     <ChatScreen
       groupName={screen.groupName}
-      client={screen.client}
-      onBack={() => setScreen({ name: "messages", groupName: screen.groupName, client: screen.client })}
+      messages={screen.messages}
+      sendError={screen.sendError}
+      onSend={handleSendMessage}
+      onBack={() => setScreen({ ...screen, view: "list" })}
     />
   );
 }
