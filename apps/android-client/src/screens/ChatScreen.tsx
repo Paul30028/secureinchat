@@ -27,6 +27,9 @@ export interface ChatScreenProps {
   sendError?: string | undefined;
   /** 正在接收中的文件进度，例如 "photo.jpg 3/12" */
   incomingProgress?: { fileId: string; fileName: string; receivedChunks: number; totalChunks: number }[] | undefined;
+  /** 同群里已知的其他设备——没有服务端成员列表，只能从收到过的消息里推断 */
+  knownPeers: string[];
+  onStartCall: (kind: "voice" | "video", peerDeviceId: string) => void;
   onBack: () => void;
 }
 
@@ -35,6 +38,16 @@ export interface ChatScreenProps {
  * 会话状态、不订阅 RelayClient。录音是唯一的例外：MediaRecorder 是纯本地的
  * 浏览器 API，录完直接交给 onSendFile，没必要把这个瞬时状态提到 App 层。
  */
+const callBtnStyle = {
+  minHeight: touchTarget.minDp,
+  minWidth: touchTarget.minDp,
+  background: "transparent",
+  border: "none",
+  boxShadow: "none",
+  fontSize: 18,
+  cursor: "pointer",
+} as const;
+
 export function ChatScreen({
   groupName,
   messages,
@@ -43,6 +56,8 @@ export function ChatScreen({
   onSendFile,
   sendError,
   incomingProgress,
+  knownPeers,
+  onStartCall,
   onBack,
 }: ChatScreenProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +104,25 @@ export function ChatScreen({
         >
           ←
         </button>
-        <span style={{ fontSize: 16, fontWeight: 500, color: colors.deepInkGreen }}>{groupName}</span>
+        <span style={{ fontSize: 16, fontWeight: 500, color: colors.deepInkGreen, flex: 1 }}>{groupName}</span>
+        {knownPeers.length > 0 ? (
+          <>
+            <button
+              onClick={() => onStartCall("voice", knownPeers[knownPeers.length - 1]!)}
+              aria-label="语音通话"
+              style={callBtnStyle}
+            >
+              📞
+            </button>
+            <button
+              onClick={() => onStartCall("video", knownPeers[knownPeers.length - 1]!)}
+              aria-label="视频通话"
+              style={callBtnStyle}
+            >
+              🎥
+            </button>
+          </>
+        ) : null}
       </div>
 
       <div style={{ flex: 1, padding: "8px 16px", display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>

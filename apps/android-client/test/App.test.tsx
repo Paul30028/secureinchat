@@ -428,4 +428,16 @@ describe("App navigation", () => {
     expect(screen.getByLabelText("发送文件")).toBeInTheDocument();
     expect(screen.getByLabelText("录制语音")).toBeInTheDocument();
   });
+
+  it("hides call buttons until a peer is known (nobody to call yet)", async () => {
+    render(<App />);
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    // No message has been received from anyone, so there's no known peer —
+    // showing a call button here would be a button that can't do anything.
+    expect(screen.queryByLabelText("语音通话")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("视频通话")).not.toBeInTheDocument();
+  });
 });

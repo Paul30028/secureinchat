@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { InviteParseError, parseInviteAuto, type ParsedInvite } from "@secureinchat/protocol";
 import {
   joinGroupFromInvite,
@@ -13,9 +13,20 @@ import { InviteScreen } from "./screens/InviteScreen";
 import { CreateGroupScreen } from "./screens/CreateGroupScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
 import { ChatScreen, type DisplayMessage, type Announcement } from "./screens/ChatScreen";
+import { CallScreen } from "./screens/CallScreen";
+import { CallSession, type CallKind, type CallStateInfo } from "@secureinchat/webrtc";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
 import { RELAY_URL } from "./relayConfig";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
+
+interface ActiveCall {
+  session: CallSession;
+  kind: CallKind;
+  info: CallStateInfo;
+  peerDeviceId: string;
+  localStream?: MediaStream;
+  remoteStream?: MediaStream;
+}
 
 type Screen =
   | { name: "splash" }
@@ -38,6 +49,10 @@ type Screen =
       sendError?: string | undefined;
       deviceId: string;
       announcement?: Announcement | undefined;
+      /** 从收到的消息/信令里观察到的同群设备——单群试用版没有服务端成员列表，
+       *  这是目前唯一能知道"群里还有谁在"的途径 */
+      knownPeers: string[];
+      call?: ActiveCall | undefined;
       incomingProgress?: { fileId: string; fileName: string; receivedChunks: number; totalChunks: number }[];
     };
 
@@ -57,6 +72,11 @@ let nextMessageId = 0;
 
 export function App() {
   const [screen, setScreen] = useState<Screen>({ name: "splash" });
+  // 信令回调是在 connectToGroup 里一次性注册的闭包，拿不到最新的 screen——
+  // 用 ref 让它们能读到当前通话状态，避免闭包捕获旧值这个经典坑。
+  const currentCallRef = useRef<ActiveCall | undefined>(undefined);
+  const callFactoryRef = useRef<((callId: string, peer: string, kind: CallKind) => CallSession) | null>(null);
+  currentCallRef.current = screen.name === "connected" ? screen.call : undefined;
 
   /**
    * 派生群密钥、连上 relay——加入邀请码流程和创建群聊流程最终都要做同一件事，
@@ -91,6 +111,13 @@ export function App() {
 
     client.onMessage((msg) => {
       const env = msg.envelope;
+
+      // 记录这个设备存在于群里——通话需要知道呼叫对象是谁
+      setScreen((prev) =>
+        prev.name === "connected" && !prev.knownPeers.includes(msg.fromDeviceId)
+          ? { ...prev, knownPeers: [...prev.knownPeers, msg.fromDeviceId] }
+          : prev
+      );
 
       if (env.kind === "text") {
         setScreen((prev) =>
@@ -156,7 +183,68 @@ export function App() {
       );
     });
 
-    setScreen({ name: "connected", groupName, client, messages: [], view: "list", deviceId: identity.deviceId });
+    // 通话信令。这里创建的 CallSession 会驱动整个通话状态机；
+    // 每一路通话一个 session，结束后丢弃。
+    const updateCall = (patch: Partial<ActiveCall>) => {
+      setScreen((prev) =>
+        prev.name === "connected" && prev.call ? { ...prev, call: { ...prev.call, ...patch } } : prev
+      );
+    };
+
+    const makeSession = (callId: string, peerDeviceId: string, kind: CallKind): CallSession =>
+      new CallSession({
+        callId,
+        peerDeviceId,
+        kind,
+        transport: client,
+        onStateChange: (info) => updateCall({ info }),
+        onLocalStream: (localStream) => updateCall({ localStream }),
+        onRemoteStream: (remoteStream) => updateCall({ remoteStream }),
+      });
+
+    callFactoryRef.current = makeSession;
+
+    client.onSignaling(async (sig) => {
+      const current = currentCallRef.current;
+
+      if (sig.type === "call_invite") {
+        // 已经在通话中又来一通——直接拒掉，不支持呼叫等待
+        if (current && current.info.state !== "ended") {
+          await client.sendSignaling("call_reject", sig.fromDeviceId, sig.callId, { reason: "busy" });
+          return;
+        }
+        const kind: CallKind = sig.payload.kind === "video" ? "video" : "voice";
+        const session = makeSession(sig.callId, sig.fromDeviceId, kind);
+        setScreen((prev) =>
+          prev.name === "connected"
+            ? {
+                ...prev,
+                call: { session, kind, info: { state: "incoming" }, peerDeviceId: sig.fromDeviceId },
+              }
+            : prev
+        );
+        await session.receiveInvite(String(sig.payload.sdp ?? ""));
+        return;
+      }
+
+      if (!current) return;
+      const session = current.session;
+
+      if (sig.type === "call_ring") session.remoteRinging();
+      else if (sig.type === "call_answer") await session.receiveAnswer(String(sig.payload.sdp ?? ""));
+      else if (sig.type === "ice_candidate") {
+        await session.receiveIceCandidate(sig.payload.candidate as RTCIceCandidateInit);
+      } else if (sig.type === "call_reject") session.remoteEnded("rejected");
+      else if (sig.type === "call_cancel") session.remoteEnded("cancelled");
+      else if (sig.type === "call_hangup") session.remoteEnded("hungup");
+    });
+
+    // 目标不在线——中继回的 call_failed，如实反映到通话状态上
+    client.onCallFailed(() => {
+      currentCallRef.current?.session.hangup();
+    });
+
+    setScreen({ name: "connected", groupName, client, messages: [], view: "list", deviceId: identity.deviceId, knownPeers: [] });
   }
 
   function handleSubmitInviteCode(raw: string) {
@@ -291,6 +379,18 @@ export function App() {
     setScreen((prev) => (prev.name === "connected" ? { ...prev, announcement } : prev));
   }
 
+  async function handleStartCall(kind: CallKind, peerDeviceId: string) {
+    if (screen.name !== "connected" || !callFactoryRef.current) return;
+    const callId = crypto.randomUUID();
+    const session = callFactoryRef.current(callId, peerDeviceId, kind);
+    setScreen({ ...screen, call: { session, kind, info: { state: "idle" }, peerDeviceId } });
+    await session.startOutgoing();
+  }
+
+  function handleDismissCall() {
+    setScreen((prev) => (prev.name === "connected" ? { ...prev, call: undefined } : prev));
+  }
+
   if (!isSecureContextAvailable()) {
     return <InsecureContextNotice />;
   }
@@ -320,6 +420,30 @@ export function App() {
     );
   }
 
+  // 有通话时，通话界面优先于消息列表/聊天页显示
+  if (screen.call) {
+    const call = screen.call;
+    return (
+      <CallScreen
+        kind={call.kind}
+        info={call.info}
+        peerLabel={screen.groupName}
+        localStream={call.localStream}
+        remoteStream={call.remoteStream}
+        onAccept={() => void call.session.accept()}
+        onReject={() => void call.session.reject()}
+        onHangup={() =>
+          void (call.info.state === "outgoing" || call.info.state === "ringing-remote"
+            ? call.session.cancel()
+            : call.session.hangup())
+        }
+        onToggleMute={(muted) => call.session.setMuted(muted)}
+        onToggleCamera={(enabled) => call.session.setCameraEnabled(enabled)}
+        onDismiss={handleDismissCall}
+      />
+    );
+  }
+
   if (screen.view === "list") {
     return (
       <MessageListScreen
@@ -339,6 +463,8 @@ export function App() {
       announcement={screen.announcement}
       incomingProgress={screen.incomingProgress}
       sendError={screen.sendError}
+      knownPeers={screen.knownPeers}
+      onStartCall={(kind, peer) => void handleStartCall(kind, peer)}
       onSend={handleSendMessage}
       onSendFile={handleSendFile}
       onBack={() => setScreen({ ...screen, view: "list" })}
