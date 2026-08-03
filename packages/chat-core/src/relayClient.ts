@@ -20,6 +20,8 @@ export interface RelayClientDeps {
   epoch: number;
   /** 供测试注入；浏览器环境不传就用全局 WebSocket */
   WebSocketImpl?: typeof WebSocket;
+  /** 心跳间隔，默认 HEARTBEAT_INTERVAL_MS。测试可以调小以免等 20 秒。 */
+  heartbeatIntervalMs?: number;
 }
 
 export interface IncomingMessage {
@@ -60,6 +62,21 @@ const SIGNALING_TYPES = new Set<string>([
   "ice_candidate",
 ]);
 
+export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "disconnected";
+
+/** 心跳间隔——按中继技术文档第 9 节：20 秒，防 NAT 超时/移动网络断开/Cloudflare 空闲关闭 */
+export const HEARTBEAT_INTERVAL_MS = 20_000;
+
+/**
+ * 重连退避——按中继技术文档第 10 节：立即 → 3s → 指数退避 5/10/20/30 → 封顶 30s。
+ * 手机网络切换（WiFi ↔ 4G）、锁屏唤醒都会触发断连，必须自动恢复，不能让用户手动点。
+ */
+export function reconnectDelayMs(attempt: number): number {
+  if (attempt <= 0) return 0;
+  if (attempt === 1) return 3_000;
+  return Math.min(5_000 * 2 ** (attempt - 2), 30_000);
+}
+
 function toBase64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
@@ -96,6 +113,16 @@ export class RelayClient {
   private messageHandlers: Array<(msg: IncomingMessage) => void> = [];
   private signalingHandlers: Array<(sig: IncomingSignaling) => void> = [];
   private callFailedHandlers: Array<(info: CallFailed) => void> = [];
+  private statusHandlers: Array<(status: ConnectionStatus) => void> = [];
+  private latencyHandlers: Array<(rttMs: number) => void> = [];
+
+  private status: ConnectionStatus = "disconnected";
+  private lastAuthMode: AuthMode | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempt = 0;
+  /** 用户主动 close() 之后不再自动重连——否则关不掉 */
+  private intentionallyClosed = false;
 
   constructor(
     private readonly url: string,
@@ -104,6 +131,9 @@ export class RelayClient {
 
   /** 连上、握手、认证。resolve 代表 auth_ok；reject 代表握手失败或连接错误。 */
   connect(mode: AuthMode): Promise<void> {
+    this.lastAuthMode = mode;
+    this.intentionallyClosed = false;
+    this.setStatus(this.reconnectAttempt > 0 ? "reconnecting" : "connecting");
     const WS = this.deps.WebSocketImpl ?? WebSocket;
     return new Promise((resolve, reject) => {
       const ws = new WS(this.url);
@@ -130,6 +160,9 @@ export class RelayClient {
 
         if (frame.type === "auth_ok") {
           settled = true;
+          this.reconnectAttempt = 0;
+          this.setStatus("connected");
+          this.startHeartbeat();
           ws.onmessage = (e: MessageEvent) => this.handleFrame(String(e.data));
           resolve();
           return;
@@ -150,10 +183,14 @@ export class RelayClient {
       };
 
       ws.onclose = () => {
+        this.stopHeartbeat();
         if (!settled) {
           settled = true;
           reject(new Error("连接在握手完成前被关闭"));
+          return;
         }
+        // 握手成功之后才断的——属于运行中掉线，自动重连
+        this.scheduleReconnect();
       };
     });
   }
@@ -202,6 +239,15 @@ export class RelayClient {
         for (const handler of this.callFailedHandlers) {
           handler({ callId, reason: typeof reason === "string" ? reason : "unknown" });
         }
+      }
+      return;
+    }
+
+    if (frameType === "pong") {
+      const ts = frame.timestamp;
+      if (typeof ts === "number") {
+        const rtt = Date.now() - ts;
+        for (const handler of this.latencyHandlers) handler(rtt);
       }
       return;
     }
@@ -277,6 +323,66 @@ export class RelayClient {
    * payload 用群密钥加密——中继只能看到"谁在什么时候给谁发了一条什么类型的
    * 信令"（路由必需的元数据），看不到内容。
    */
+  onStatusChange(handler: (status: ConnectionStatus) => void): void {
+    this.statusHandlers.push(handler);
+  }
+
+  /** 每次收到 pong 时回调一次往返延迟（毫秒）——用于连接诊断页 */
+  onLatency(handler: (rttMs: number) => void): void {
+    this.latencyHandlers.push(handler);
+  }
+
+  get connectionStatus(): ConnectionStatus {
+    return this.status;
+  }
+
+  private setStatus(status: ConnectionStatus): void {
+    if (this.status === status) return;
+    this.status = status;
+    for (const handler of this.statusHandlers) handler(status);
+  }
+
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      // 发不出去说明连接已经废了——让 onclose/onerror 去触发重连，
+      // 这里不自己判断连接状态，避免两处逻辑打架
+      try {
+        this.ws?.send(JSON.stringify({ type: "ping", timestamp: Date.now() }));
+      } catch {
+        // 忽略：连接已断，重连由 onclose 负责
+      }
+    }, this.deps.heartbeatIntervalMs ?? HEARTBEAT_INTERVAL_MS);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
+    this.heartbeatTimer = null;
+  }
+
+  private scheduleReconnect(): void {
+    if (this.intentionallyClosed || this.lastAuthMode === null) {
+      this.setStatus("disconnected");
+      return;
+    }
+    if (this.reconnectTimer) return; // 已经排好队了，不要重复排
+
+    this.reconnectAttempt += 1;
+    this.setStatus("reconnecting");
+    const delay = reconnectDelayMs(this.reconnectAttempt);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      // 重连一律用 authenticate：设备在首次 register 时已经登记过了。
+      // 如果服务端重启过（DeviceRegistry 是内存态），authenticate 会失败，
+      // 这时退回 register 再试一次。
+      void this.connect("authenticate").catch(() => {
+        void this.connect("register").catch(() => {
+          // 两种都失败——onclose 会再次触发 scheduleReconnect，继续退避重试
+        });
+      });
+    }, delay);
+  }
+
   async sendSignaling(
     type: SignalingType,
     targetDeviceId: string,
@@ -316,7 +422,12 @@ export class RelayClient {
   }
 
   close(): void {
+    this.intentionallyClosed = true;
+    this.stopHeartbeat();
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
     this.ws?.close();
     this.ws = null;
+    this.setStatus("disconnected");
   }
 }
