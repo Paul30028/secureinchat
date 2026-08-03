@@ -9,6 +9,7 @@ import { MessageListScreen } from "./screens/MessageListScreen";
 import { ChatScreen, type DisplayMessage } from "./screens/ChatScreen";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
 import { RELAY_URL } from "./relayConfig";
+import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
 
 type Screen =
   | { name: "splash" }
@@ -158,6 +159,10 @@ export function App() {
     } catch {
       setScreen((prev) => (prev.name === "connected" ? { ...prev, sendError: "发送失败，请检查连接" } : prev));
     }
+  }
+
+  if (!isSecureContextAvailable()) {
+    return <InsecureContextNotice />;
   }
 
   if (screen.name === "splash") {
