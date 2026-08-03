@@ -14,3 +14,10 @@ android/.gradle/
 __pycache__/
 .pytest_cache/
 *.pyc
+
+# Capacitor Android — 提交原生工程本体，忽略构建产物
+apps/android-client/android/app/build/
+apps/android-client/android/.gradle/
+apps/android-client/android/build/
+apps/android-client/android/local.properties
+apps/android-client/android/app/src/main/assets/public/
