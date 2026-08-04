@@ -115,3 +115,32 @@ describe("parseInviteAuto", () => {
     expect(() => parseInviteAuto("SIC9.whatever")).toThrow(InviteParseError);
   });
 });
+
+describe("SIC2 group name", () => {
+  it("round-trips the group name so joiners see the real name, not a placeholder", () => {
+    const raw = buildSic2Invite({
+      serverJoinCode: "X",
+      groupId: "g1",
+      groupName: "周末爬山小队",
+      keyMaterialB64Url: "abc",
+      epoch: 0,
+    });
+    expect(parseSic2Invite(raw).groupName).toBe("周末爬山小队");
+  });
+
+  it("omits the field entirely when no name was given (older invites stay valid)", () => {
+    const raw = buildSic2Invite({ serverJoinCode: "X", groupId: "g1", keyMaterialB64Url: "abc", epoch: 0 });
+    expect(parseSic2Invite(raw).groupName).toBeUndefined();
+  });
+
+  it("handles names with spaces and emoji", () => {
+    const raw = buildSic2Invite({
+      serverJoinCode: "X",
+      groupId: "g1",
+      groupName: "读书会 📚 周三组",
+      keyMaterialB64Url: "abc",
+      epoch: 0,
+    });
+    expect(parseSic2Invite(raw).groupName).toBe("读书会 📚 周三组");
+  });
+});

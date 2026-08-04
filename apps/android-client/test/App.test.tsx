@@ -74,6 +74,7 @@ async function joinTestGroup() {
   const validCode = buildSic2Invite({
     serverJoinCode: "ABCD",
     groupId: "group-1",
+    groupName: "同心同行",
     keyMaterialB64Url: "abc123",
     epoch: 0,
     expiresAtMs: futureExpiry(),
@@ -97,6 +98,7 @@ describe("App navigation", () => {
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -106,7 +108,10 @@ describe("App navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
 
     expect(screen.getByText("确认加入")).toBeInTheDocument();
-    expect(screen.getByText("邀请人：李阳")).toBeInTheDocument();
+    // 群名来自邀请串本身（创建者写进去的），不是占位数据
+    expect(screen.getByText("同心同行")).toBeInTheDocument();
+    // 中继是盲的，拿不到邀请人和成员数——就不显示，而不是编一个
+    expect(screen.queryByText(/邀请人：/)).not.toBeInTheDocument();
   });
 
   it("navigates to the invite screen showing an invalid-invite card for a malformed code", async () => {
@@ -123,6 +128,7 @@ describe("App navigation", () => {
     const expiredCode = buildSic2Invite({
       serverJoinCode: "X",
       groupId: "group-1",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc",
       epoch: 0,
       expiresAtMs: Date.now() - 1000,
@@ -148,6 +154,7 @@ describe("App navigation", () => {
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -165,6 +172,7 @@ describe("App navigation", () => {
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -188,6 +196,7 @@ describe("App navigation", () => {
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -220,6 +229,7 @@ describe("App navigation", () => {
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -239,6 +249,7 @@ describe("App navigation", () => {
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -262,6 +273,7 @@ describe("App navigation", () => {
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -315,6 +327,7 @@ describe("App navigation", () => {
       const validCode = buildSic2Invite({
         serverJoinCode: "ABCD",
         groupId: "group-1",
+      groupName: "同心同行",
         keyMaterialB64Url: "abc123",
         epoch: 0,
         expiresAtMs: futureExpiry(),
@@ -363,6 +376,7 @@ describe("App navigation", () => {
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -457,16 +471,35 @@ describe("App navigation", () => {
     expect(screen.getByLabelText("录制语音")).toBeInTheDocument();
   });
 
-  it("hides call buttons until a peer is known (nobody to call yet)", async () => {
+  it("disables (rather than hides) call buttons when nobody else is online", async () => {
     await renderApp();
     await joinTestGroup();
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
-    // No message has been received from anyone, so there's no known peer —
-    // showing a call button here would be a button that can't do anything.
-    expect(screen.queryByLabelText("语音通话")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("视频通话")).not.toBeInTheDocument();
+    // 按钮要看得见（否则用户以为没有通话功能），但点不了，
+    // 并且 title 说清楚为什么
+    const voice = screen.getByLabelText("语音通话");
+    const video = screen.getByLabelText("视频通话");
+    expect(voice).toBeDisabled();
+    expect(video).toBeDisabled();
+    expect(voice).toHaveAttribute("title", "群里没有其他人在线");
+  });
+
+  it("enables call buttons once someone else is online", async () => {
+    await renderApp();
+    await joinTestGroup();
+    MockRelayWebSocket.lastInstance?.onmessage?.({
+      data: JSON.stringify({ type: "peer_joined", deviceId: "alice" }),
+    });
+    // presence 是异步处理的，等它落到界面上
+    await screen.findByText("1 位成员在线");
+
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    expect(screen.getByLabelText("语音通话")).toBeEnabled();
+    expect(screen.getByLabelText("视频通话")).toBeEnabled();
   });
 });
 
@@ -548,6 +581,7 @@ describe("older Android WebView compatibility", () => {
       const validCode = buildSic2Invite({
         serverJoinCode: "ABCD",
         groupId: "group-webview-compat",
+      groupName: "同心同行",
         keyMaterialB64Url: "abc123",
         epoch: 0,
         expiresAtMs: futureExpiry(),
@@ -589,6 +623,7 @@ describe("first-time profile setup", () => {
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-profile",
+      groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -678,6 +713,7 @@ describe("message history persistence", () => {
     const otherCode = buildSic2Invite({
       serverJoinCode: "ZZZZ",
       groupId: "group-completely-different",
+      groupName: "另一个群",
       keyMaterialB64Url: "zzz999",
       epoch: 0,
       expiresAtMs: futureExpiry(),
@@ -686,7 +722,8 @@ describe("message history persistence", () => {
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
     await screen.findByText("欢迎加入！");
-    fireEvent.click(screen.getByText("同心同行"));
+    // 这是另一个群，列表里显示的是它自己的名字
+    fireEvent.click(screen.getByText("另一个群"));
     await screen.findByLabelText("消息输入框");
 
     expect(screen.queryByText("群一的消息")).not.toBeInTheDocument();

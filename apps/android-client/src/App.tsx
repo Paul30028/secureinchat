@@ -74,6 +74,17 @@ type Screen =
  * 面向协议实现者），后者是"给用户看的失效原因"（面向最终用户）。这里做一次
  * 明确的映射，不要把协议层的内部错误码直接展示给用户。
  */
+/** 把过期时间戳转成"有效期剩 X 天 Y 小时"这种人话 */
+function formatExpiry(expiresAtMs: number): string {
+  const remainMs = expiresAtMs - Date.now();
+  if (remainMs <= 0) return "已过期";
+  const hours = Math.floor(remainMs / 3_600_000);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `有效期剩 ${days} 天 ${hours % 24} 小时`;
+  if (hours > 0) return `有效期剩 ${hours} 小时`;
+  return `有效期剩 ${Math.max(1, Math.floor(remainMs / 60_000))} 分钟`;
+}
+
 function mapParseErrorReason(reason: InviteParseError["reason"]): "expired" | "exhausted" | "malformed" {
   if (reason === "expired") return "expired";
   if (reason === "exhausted") return "exhausted";
@@ -347,14 +358,16 @@ export function App() {
       // 不在邀请串里，真实产品里要另外问服务器要——这里先用占位内容展示，
       // 明确不是真实数据。真正要用于密钥派生的 parsed（groupId/keyMaterial/epoch）
       // 是真实的解析结果，不是占位。
-      const mockInvite: InviteInfo = {
+      // 群名现在真的来自邀请串（创建者写进去的），不再是占位数据。
+      // 成员数和邀请人还拿不到——中继是盲的，不知道群里有谁、谁邀请的谁，
+      // 所以这两项暂时不显示，而不是编一个假的出来。
+      const invite: InviteInfo = {
         status: "valid",
-        groupName: "同心同行", // 占位：真实群名来自服务器，不来自邀请串本身
-        memberCount: 4,
-        inviterName: "李阳",
-        expiryLabel: "有效期剩 2 天 18 小时",
+        groupName: parsed.groupName ?? "加密群聊",
+        inviterName: undefined,
+        expiryLabel: parsed.expiresAtMs ? formatExpiry(parsed.expiresAtMs) : undefined,
       };
-      setScreen({ name: "invite", invite: mockInvite, parsed, isConfirming: false });
+      setScreen({ name: "invite", invite, parsed, isConfirming: false });
     } catch (err) {
       const reason = err instanceof InviteParseError ? mapParseErrorReason(err.reason) : "malformed";
       setScreen({ name: "invite", invite: { status: "invalid", reason }, isConfirming: false });

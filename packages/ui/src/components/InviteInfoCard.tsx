@@ -6,10 +6,13 @@ import { Card } from "./Card";
 export interface ValidInviteInfo {
   status: "valid";
   groupName: string;
-  memberCount: number;
-  inviterName: string;
+  /** 群人数。中继是盲的，不知道群里有谁，所以经常拿不到——拿不到就不显示，
+   *  而不是编一个数字出来。 */
+  memberCount?: number | undefined;
+  /** 同上，邀请串里没有邀请人信息时不显示这一行 */
+  inviterName?: string | undefined;
   /** 已经格式化好的剩余有效期文案，比如"有效期剩 2 天 18 小时"——组件不自己算时间 */
-  expiryLabel: string;
+  expiryLabel?: string | undefined;
 }
 
 export interface InvalidInviteInfo {
@@ -65,7 +68,9 @@ export function InviteInfoCard({ invite, onConfirm, isConfirming }: InviteInfoCa
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "8px 0" }}>
         <Avatar name={invite.groupName} size="large" />
         <span style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary }}>{invite.groupName}</span>
-        <span style={{ fontSize: 13, color: "#8A8A82" }}>{invite.memberCount}人 · 邀请制加密群聊</span>
+        <span style={{ fontSize: 13, color: "#8A8A82" }}>
+          {invite.memberCount !== undefined ? `${invite.memberCount}人 · ` : ""}邀请制加密群聊
+        </span>
 
         <div
           style={{
@@ -78,7 +83,9 @@ export function InviteInfoCard({ invite, onConfirm, isConfirming }: InviteInfoCa
             gap: 6,
           }}
         >
-          <span style={{ fontSize: 13, color: "#8A8A82" }}>邀请人：{invite.inviterName}</span>
+          {invite.inviterName ? (
+            <span style={{ fontSize: 13, color: "#8A8A82" }}>邀请人：{invite.inviterName}</span>
+          ) : null}
           <span
             style={{
               fontSize: 12,
@@ -89,7 +96,7 @@ export function InviteInfoCard({ invite, onConfirm, isConfirming }: InviteInfoCa
               alignSelf: "flex-start",
             }}
           >
-            邀请有效，可加入 · {invite.expiryLabel}
+            邀请有效，可加入{invite.expiryLabel ? ` · ${invite.expiryLabel}` : ""}
           </span>
         </div>
 

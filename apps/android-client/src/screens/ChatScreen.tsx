@@ -51,6 +51,27 @@ const callBtnStyle = {
   cursor: "pointer",
 } as const;
 
+const toolbarLabelStyle = { fontSize: 10, color: "#8A8A82" } as const;
+
+function toolbarButtonStyle(color: string) {
+  return {
+    minHeight: touchTarget.minDp,
+    minWidth: touchTarget.minDp,
+    flex: 1,
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+    background: "transparent",
+    border: "none",
+    boxShadow: "none",
+    fontSize: 18,
+    cursor: "pointer",
+    color,
+  };
+}
+
 export function ChatScreen({
   groupName,
   messages,
@@ -110,24 +131,26 @@ export function ChatScreen({
           ←
         </button>
         <span style={{ fontSize: 16, fontWeight: 500, color: colors.deepInkGreen, flex: 1 }}>{groupName}</span>
-        {knownPeers.length > 0 ? (
-          <>
-            <button
-              onClick={() => onStartCall("voice", knownPeers[knownPeers.length - 1]!)}
-              aria-label="语音通话"
-              style={callBtnStyle}
-            >
-              📞
-            </button>
-            <button
-              onClick={() => onStartCall("video", knownPeers[knownPeers.length - 1]!)}
-              aria-label="视频通话"
-              style={callBtnStyle}
-            >
-              🎥
-            </button>
-          </>
-        ) : null}
+        {/* 通话按钮常驻显示。之前是"没有在线成员就整个隐藏"，结果用户
+            以为功能不存在——现在改成禁用+说明，一眼能看出为什么点不了。 */}
+        <button
+          onClick={() => onStartCall("voice", knownPeers[knownPeers.length - 1]!)}
+          disabled={knownPeers.length === 0}
+          aria-label="语音通话"
+          title={knownPeers.length === 0 ? "群里没有其他人在线" : "语音通话"}
+          style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
+        >
+          📞
+        </button>
+        <button
+          onClick={() => onStartCall("video", knownPeers[knownPeers.length - 1]!)}
+          disabled={knownPeers.length === 0}
+          aria-label="视频通话"
+          title={knownPeers.length === 0 ? "群里没有其他人在线" : "视频通话"}
+          style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
+        >
+          🎥
+        </button>
       </div>
 
       {connectionStatus && connectionStatus !== "connected" ? (
@@ -181,7 +204,9 @@ export function ChatScreen({
         </p>
       ) : null}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 8px" }}>
+      {/* 底部分成两栏：上面是输入+发送，下面是功能栏。
+          之前挤在一行里，输入框被压得很窄，功能图标也没有文字标签。 */}
+      <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, background: colors.ivory }}>
         <input
           ref={imageInputRef}
           type="file"
@@ -205,54 +230,36 @@ export function ChatScreen({
             e.target.value = "";
           }}
         />
-        <button
-          onClick={() => imageInputRef.current?.click()}
-          aria-label="发送图片"
-          style={{
-            minHeight: touchTarget.minDp,
-            minWidth: touchTarget.minDp,
-            background: "transparent",
-            border: "none",
-            boxShadow: "none",
-            fontSize: 18,
-            cursor: "pointer",
-          }}
-        >
-          🖼️
-        </button>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          aria-label="发送文件"
-          style={{
-            minHeight: touchTarget.minDp,
-            minWidth: touchTarget.minDp,
-            background: "transparent",
-            border: "none",
-            boxShadow: "none",
-            fontSize: 18,
-            cursor: "pointer",
-          }}
-        >
-          📎
-        </button>
-        <button
-          onClick={isRecording ? stopRecording : startRecording}
-          aria-label={isRecording ? "停止录音并发送" : "录制语音"}
-          style={{
-            minHeight: touchTarget.minDp,
-            minWidth: touchTarget.minDp,
-            background: "transparent",
-            border: "none",
-            boxShadow: "none",
-            fontSize: 18,
-            cursor: "pointer",
-            color: isRecording ? "#A33" : colors.deepInkGreen,
-          }}
-        >
-          {isRecording ? "⏹" : "🎤"}
-        </button>
-        <div style={{ flex: 1 }}>
+
+        <div style={{ padding: "6px 10px 0" }}>
           <Composer onSend={onSend} />
+        </div>
+
+        <div style={{ display: "flex", alignItems: "stretch", padding: "0 6px 4px" }}>
+          <button
+            onClick={() => imageInputRef.current?.click()}
+            aria-label="发送图片"
+            style={toolbarButtonStyle(colors.deepInkGreen)}
+          >
+            🖼️
+            <span style={toolbarLabelStyle}>图片</span>
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="发送文件"
+            style={toolbarButtonStyle(colors.deepInkGreen)}
+          >
+            📎
+            <span style={toolbarLabelStyle}>文件</span>
+          </button>
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            aria-label={isRecording ? "停止录音并发送" : "录制语音"}
+            style={toolbarButtonStyle(isRecording ? "#A33" : colors.deepInkGreen)}
+          >
+            {isRecording ? "⏹" : "🎤"}
+            <span style={toolbarLabelStyle}>{isRecording ? "停止" : "语音"}</span>
+          </button>
         </div>
       </div>
     </div>

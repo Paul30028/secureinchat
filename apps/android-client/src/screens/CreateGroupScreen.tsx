@@ -41,6 +41,7 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
     const code = buildSic2Invite({
       serverJoinCode: randomUUID().slice(0, 8).toUpperCase(),
       groupId,
+      groupName: groupName.trim(),
       keyMaterialB64Url,
       epoch: 0,
     });

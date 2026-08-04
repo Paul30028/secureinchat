@@ -19,6 +19,12 @@ export interface ParsedInvite {
    * "新群"。SIC1（旧协议）没有这个概念，只有 SIC2 才带。
    */
   readonly groupId?: string;
+  /**
+   * 群名。放在邀请串里而不是问服务器要——中继是盲的，它不知道群叫什么，
+   * 也不应该知道。创建者把群名写进邀请串，加入者解析出来就能显示正确的名字。
+   * SIC1（旧协议）没有这个字段。
+   */
+  readonly groupName?: string;
   /** 客户端本地派生群密钥所需的原始材料（未解密前的 opaque bytes，base64url 编码） */
   readonly keyMaterialB64Url: string;
   /** SIC2 起才有：群 epoch，用于密钥轮换与重放校验 */
@@ -62,6 +68,8 @@ export interface BuildInviteInput {
   keyMaterialB64Url: string;
   /** SIC2 必须提供；SIC1 没有这个概念，传了也会被忽略 */
   groupId?: string;
+  /** 群名，会明文放进邀请串（拿到邀请串的人本来就要加入这个群） */
+  groupName?: string;
   epoch?: number;
   expiresAtMs?: number;
   remainingUses?: number;

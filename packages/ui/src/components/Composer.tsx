@@ -49,22 +49,6 @@ export function Composer({ onSend, placeholder = "输入消息...", value, onCha
       onSubmit={handleSubmit}
       style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", boxShadow: "none" }}
     >
-      <button
-        type="button"
-        aria-label="添加附件"
-        style={{
-          minWidth: touchTarget.minDp,
-          minHeight: touchTarget.minDp,
-          background: "transparent",
-          border: "none",
-          boxShadow: "none",
-          color: colors.deepInkGreen,
-          fontSize: 22,
-          cursor: "pointer",
-        }}
-      >
-        +
-      </button>
       <input
         type="text"
         value={text}
