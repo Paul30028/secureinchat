@@ -1,4 +1,4 @@
-import { encryptAead, decryptAead, type AeadCiphertext } from "@secureinchat/crypto-core";
+import { encryptAead, decryptAead, randomUUID, type AeadCiphertext } from "@secureinchat/crypto-core";
 import type { KeystorePort } from "@secureinchat/crypto-core";
 import { decodeEnvelope, encodeEnvelope, type MessageEnvelope } from "./messageEnvelope";
 import { OfflineOutbox } from "./offlineOutbox";
@@ -510,7 +510,7 @@ export class RelayClient {
   async sendText(text: string): Promise<void> {
     await this.sendEnvelope({
       kind: "text",
-      id: crypto.randomUUID(),
+      id: randomUUID(),
       text,
       sentAtMs: Date.now(),
     });

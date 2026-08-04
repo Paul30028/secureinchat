@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { colors, touchTarget, Button, CopyableCode } from "@secureinchat/ui";
 import { buildSic2Invite } from "@secureinchat/protocol";
+import { randomUUID } from "@secureinchat/crypto-core";
 
 export interface CreateGroupScreenProps {
   onCreated: (input: {
@@ -35,10 +36,10 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   function handleCreate() {
-    const groupId = `group-${crypto.randomUUID()}`;
+    const groupId = `group-${randomUUID()}`;
     const keyMaterialB64Url = randomBase64UrlKeyMaterial();
     const code = buildSic2Invite({
-      serverJoinCode: crypto.randomUUID().slice(0, 8).toUpperCase(),
+      serverJoinCode: randomUUID().slice(0, 8).toUpperCase(),
       groupId,
       keyMaterialB64Url,
       epoch: 0,

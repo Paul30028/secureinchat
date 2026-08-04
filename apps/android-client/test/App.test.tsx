@@ -509,3 +509,46 @@ describe("server settings", () => {
     expect(screen.getByLabelText("邀请码输入框")).toBeInTheDocument();
   });
 });
+
+describe("older Android WebView compatibility", () => {
+  it("joining a group works even when crypto.randomUUID is unavailable", async () => {
+    // 真机复现过的 bug：小米设备的 System WebView 比 Chrome 92 老，
+    // 有 crypto.subtle 但没有 crypto.randomUUID，导致"加群失败：
+    // crypto.randomUUID is not a function"。这里把它删掉复现那个环境。
+    const real = globalThis.crypto.randomUUID;
+    Object.defineProperty(globalThis.crypto, "randomUUID", { value: undefined, configurable: true });
+    try {
+      render(<App />);
+      const validCode = buildSic2Invite({
+        serverJoinCode: "ABCD",
+        groupId: "group-webview-compat",
+        keyMaterialB64Url: "abc123",
+        epoch: 0,
+        expiresAtMs: futureExpiry(),
+      });
+      fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
+      fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+      fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
+
+      expect(await screen.findByText("欢迎加入！")).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(globalThis.crypto, "randomUUID", { value: real, configurable: true });
+    }
+  });
+
+  it("creating a group works without crypto.randomUUID too", async () => {
+    const real = globalThis.crypto.randomUUID;
+    Object.defineProperty(globalThis.crypto, "randomUUID", { value: undefined, configurable: true });
+    try {
+      render(<App />);
+      fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+      fireEvent.change(screen.getByLabelText("群聊名称输入框"), { target: { value: "兼容性测试群" } });
+      fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+
+      const code = await screen.findByText(/^SIC2\./);
+      expect(code.textContent).toMatch(/^SIC2\./);
+    } finally {
+      Object.defineProperty(globalThis.crypto, "randomUUID", { value: real, configurable: true });
+    }
+  });
+});

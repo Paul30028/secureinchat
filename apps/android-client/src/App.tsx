@@ -17,6 +17,7 @@ import { ChatScreen, type DisplayMessage, type Announcement } from "./screens/Ch
 import { CallScreen } from "./screens/CallScreen";
 import { CallSession, type CallKind, type CallStateInfo } from "@secureinchat/webrtc";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
+import { randomUUID } from "@secureinchat/crypto-core";
 import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
 import { ServerSettingsScreen } from "./screens/ServerSettingsScreen";
 import { loadSavedRelayUrl } from "./relayUrlSetting";
@@ -355,7 +356,7 @@ export function App() {
 
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const fileId = crypto.randomUUID();
+      const fileId = randomUUID();
       const { meta, chunks } = buildFileEnvelopes({
         fileId,
         fileName: file.name,
@@ -401,7 +402,7 @@ export function App() {
 
   async function handlePublishAnnouncement(title: string, body: string) {
     if (screen.name !== "connected") return;
-    const announcement = { id: crypto.randomUUID(), title, body };
+    const announcement = { id: randomUUID(), title, body };
     // 公告走和普通消息完全一样的加密通道——中继不知道这是一条公告。
     // 注意：目前任何成员都能发公告，没有管理员权限校验（管理员体系还没做）。
     await screen.client.sendEnvelope({
@@ -416,7 +417,7 @@ export function App() {
 
   async function handleStartCall(kind: CallKind, peerDeviceId: string) {
     if (screen.name !== "connected" || !callFactoryRef.current) return;
-    const callId = crypto.randomUUID();
+    const callId = randomUUID();
     const session = callFactoryRef.current(callId, peerDeviceId, kind);
     setScreen({ ...screen, call: { session, kind, info: { state: "idle" }, peerDeviceId } });
     await session.startOutgoing();

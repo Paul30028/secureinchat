@@ -1,4 +1,4 @@
-import { getOrCreatePersistentAeadKey, BrowserKeystore } from "@secureinchat/crypto-core";
+import { getOrCreatePersistentAeadKey, BrowserKeystore, randomUUID } from "@secureinchat/crypto-core";
 import { EncryptedKeyValueStore, IndexedDbStorageBackend } from "@secureinchat/secure-storage";
 
 /**
@@ -48,7 +48,7 @@ export function getDeviceIdentity(): Promise<DeviceIdentity> {
       if (existing) {
         deviceId = new TextDecoder().decode(existing);
       } else {
-        deviceId = `device-${crypto.randomUUID()}`;
+        deviceId = `device-${randomUUID()}`;
         await backend.set(DEVICE_ID_STORAGE_KEY, new TextEncoder().encode(deviceId));
       }
       // BrowserKeystore.generateDeviceKeyPair 对同一个 alias 是幂等的（已存在就
