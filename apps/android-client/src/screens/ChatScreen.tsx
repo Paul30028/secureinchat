@@ -5,11 +5,11 @@ import { MediaBubbleContent, AnnouncementCard, type MediaContent } from "./Media
 export interface DisplayMessage {
   id: string;
   isOwn: boolean;
-  fromDeviceId?: string;
+  fromDeviceId?: string | undefined;
   /** 文本消息 */
-  text?: string;
+  text?: string | undefined;
   /** 媒体消息：图片/语音/文件——bytes 已经在本地解密组装好，用 objectUrl 渲染 */
-  media?: MediaContent;
+  media?: MediaContent | undefined;
 }
 
 export interface Announcement {

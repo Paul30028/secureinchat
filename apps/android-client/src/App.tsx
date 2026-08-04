@@ -6,6 +6,8 @@ import {
   RelayClient,
   FileAssembler,
   buildFileEnvelopes,
+  loadMessages,
+  saveMessages,
   type ConnectionStatus,
 } from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
@@ -23,6 +25,7 @@ import { ServerSettingsScreen } from "./screens/ServerSettingsScreen";
 import { loadSavedRelayUrl } from "./relayUrlSetting";
 import { ProfileSetupScreen } from "./screens/ProfileSetupScreen";
 import { loadNickname, saveNickname, displayNameFor } from "./profile";
+import { toStored, fromStored } from "./messageMapping";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
 
 interface ActiveCall {
@@ -87,6 +90,10 @@ export function App() {
   // 设置完昵称后要重新执行用户原本的动作，但那个回调是设置之前创建的闭包，
   // 里面读到的还是旧的 nickname（undefined），会被再拦一次。用 ref 读当前值。
   const nicknameRef = useRef<string | undefined>(undefined);
+  // 当前会话的落盘函数——连接建立时才知道 groupId 和 store，所以放 ref 里
+  const persistRef = useRef<((messages: DisplayMessage[], mediaBytesById?: Map<string, Uint8Array>) => void) | null>(
+    null
+  );
   // 昵称是异步从 IndexedDB 读的。读完之前不能判断"有没有设过"——否则老用户
   // 会被再弹一次设置页，违反"首次设置只出现一次"。
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -142,6 +149,19 @@ export function App() {
 
     const assembler = new FileAssembler();
 
+    // 每次消息列表变化就整体落盘。条数有上限（见 messageStore），所以这个
+    // 写入量是有界的；比起为每条消息单独维护增量写，整体写简单且不会写歪。
+    const persist = (messages: DisplayMessage[], mediaBytesById?: Map<string, Uint8Array>) => {
+      void saveMessages(
+        store,
+        groupId,
+        messages.map((m) => toStored(m, Date.now(), mediaBytesById?.get(m.id)))
+      );
+    };
+    persistRef.current = persist;
+
+    const history = (await loadMessages(store, groupId)).map(fromStored);
+
     client.onMessage((msg) => {
       const env = msg.envelope;
 
@@ -153,22 +173,20 @@ export function App() {
       );
 
       if (env.kind === "text") {
-        setScreen((prev) =>
-          prev.name === "connected"
-            ? {
-                ...prev,
-                messages: [
-                  ...prev.messages,
-                  {
-                    id: `recv-${nextMessageId++}`,
-                    text: env.text,
-                    isOwn: false,
-                    fromDeviceId: displayNameFor(env.senderName, msg.fromDeviceId),
-                  },
-                ],
-              }
-            : prev
-        );
+        setScreen((prev) => {
+          if (prev.name !== "connected") return prev;
+          const messages = [
+            ...prev.messages,
+            {
+              id: `recv-${nextMessageId++}`,
+              text: env.text,
+              isOwn: false,
+              fromDeviceId: displayNameFor(env.senderName, msg.fromDeviceId),
+            },
+          ];
+          persistRef.current?.(messages);
+          return { ...prev, messages };
+        });
         return;
       }
 
@@ -196,15 +214,13 @@ export function App() {
       }
       const blob = new Blob([done.bytes as BlobPart], { type: done.mimeType });
       const objectUrl = URL.createObjectURL(blob);
-      setScreen((prev) =>
-        prev.name === "connected"
-          ? {
-              ...prev,
-              incomingProgress: assembler.progress(),
-              messages: [
+      const receivedId = `recv-${nextMessageId++}`;
+      setScreen((prev) => {
+        if (prev.name !== "connected") return prev;
+        const messages = [
                 ...prev.messages,
                 {
-                  id: `recv-${nextMessageId++}`,
+                  id: receivedId,
                   isOwn: false,
                   fromDeviceId: displayNameFor(done.senderName, msg.fromDeviceId),
                   media: {
@@ -215,10 +231,10 @@ export function App() {
                     sizeBytes: done.bytes.byteLength,
                   },
                 },
-              ],
-            }
-          : prev
-      );
+        ];
+        persistRef.current?.(messages, new Map([[receivedId, done.bytes]]));
+        return { ...prev, incomingProgress: assembler.progress(), messages };
+      });
     });
 
     // 通话信令。这里创建的 CallSession 会驱动整个通话状态机；
@@ -295,7 +311,7 @@ export function App() {
       name: "connected",
       groupName,
       client,
-      messages: [],
+      messages: history,
       view: "list",
       deviceId: identity.deviceId,
       knownPeers: [],
@@ -381,11 +397,12 @@ export function App() {
       // sendText 现在断线时会排队而不是抛错——排队也算"发出去了"，
       // 连接状态横幅会告诉用户还有几条在等待，不需要再报一次"发送失败"
       await client.sendText(text, nickname);
-      setScreen((prev) =>
-        prev.name === "connected"
-          ? { ...prev, messages: [...prev.messages, { id: `sent-${nextMessageId++}`, text, isOwn: true }] }
-          : prev
-      );
+      setScreen((prev) => {
+        if (prev.name !== "connected") return prev;
+        const messages = [...prev.messages, { id: `sent-${nextMessageId++}`, text, isOwn: true }];
+        persistRef.current?.(messages);
+        return { ...prev, messages };
+      });
     } catch {
       setScreen((prev) => (prev.name === "connected" ? { ...prev, sendError: "发送失败，请检查连接" } : prev));
     }
@@ -417,14 +434,13 @@ export function App() {
 
       // 自己发的媒体本地直接显示（中继不会把自己发的消息转发回来）
       const objectUrl = URL.createObjectURL(file);
-      setScreen((prev) =>
-        prev.name === "connected"
-          ? {
-              ...prev,
-              messages: [
+      const sentId = `sent-${nextMessageId++}`;
+      setScreen((prev) => {
+        if (prev.name !== "connected") return prev;
+        const messages = [
                 ...prev.messages,
                 {
-                  id: `sent-${nextMessageId++}`,
+                  id: sentId,
                   isOwn: true,
                   media: {
                     mediaKind,
@@ -434,10 +450,10 @@ export function App() {
                     sizeBytes: bytes.byteLength,
                   },
                 },
-              ],
-            }
-          : prev
-      );
+        ];
+        persistRef.current?.(messages, new Map([[sentId, bytes]]));
+        return { ...prev, messages };
+      });
     } catch {
       setScreen((prev) => (prev.name === "connected" ? { ...prev, sendError: "发送失败，请检查连接" } : prev));
     }

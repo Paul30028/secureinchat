@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeAll, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, waitForElementToBeRemoved, cleanup } from "@testing-library/react";
 import { buildSic1Invite, buildSic2Invite } from "@secureinchat/protocol";
 import { App } from "../src/App";
 import { saveNickname, clearNickname } from "../src/profile";
@@ -637,5 +637,58 @@ describe("first-time profile setup", () => {
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
     fireEvent.click(screen.getByText("我的"));
     expect(screen.getByText("张溪")).toBeInTheDocument();
+  });
+});
+
+describe("message history persistence", () => {
+  it("restores previous messages after the app is restarted", async () => {
+    // 第一次会话：发一条消息
+    await renderApp();
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "重启前发的消息" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    await screen.findByText("重启前发的消息");
+
+    // 模拟重启：卸载整个 App 再重新挂载（IndexedDB 里的内容会保留，
+    // 就像用户杀掉进程再打开一样）
+    cleanup();
+
+    await renderApp();
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+
+    expect(await screen.findByText("重启前发的消息")).toBeInTheDocument();
+  });
+
+  it("keeps different groups' histories separate", async () => {
+    await renderApp();
+    await joinTestGroup(); // group-1
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "群一的消息" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    await screen.findByText("群一的消息");
+
+    cleanup();
+
+    // 加入另一个群（不同的 groupId），不应该看到群一的历史
+    await renderApp();
+    const otherCode = buildSic2Invite({
+      serverJoinCode: "ZZZZ",
+      groupId: "group-completely-different",
+      keyMaterialB64Url: "zzz999",
+      epoch: 0,
+      expiresAtMs: futureExpiry(),
+    });
+    fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: otherCode } });
+    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
+    await screen.findByText("欢迎加入！");
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    expect(screen.queryByText("群一的消息")).not.toBeInTheDocument();
   });
 });

@@ -5,3 +5,4 @@ export * from "./groupJoin";
 export * from "./relayClient";
 export * from "./messageEnvelope";
 export * from "./fileTransfer";
+export * from "./messageStore";
