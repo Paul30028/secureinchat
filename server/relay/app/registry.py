@@ -41,6 +41,13 @@ class RoomRegistry(Generic[ConnectionT]):
         """
         return self._rooms.get(group_id, {}).get(device_id)
 
+    def device_ids(self, group_id: str) -> list[str]:
+        """当前在这个群里在线的 deviceId 列表。
+        中继本来就按 deviceId 路由，这些 ID 对它不是秘密——把在线名单告诉
+        同群成员不会泄露额外信息，但能让客户端知道"现在可以给谁打电话"。
+        """
+        return list(self._rooms.get(group_id, {}).keys())
+
     def member_count(self, group_id: str) -> int:
         return len(self._rooms.get(group_id, {}))
 

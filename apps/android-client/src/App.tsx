@@ -165,12 +165,7 @@ export function App() {
     client.onMessage((msg) => {
       const env = msg.envelope;
 
-      // 记录这个设备存在于群里——通话需要知道呼叫对象是谁
-      setScreen((prev) =>
-        prev.name === "connected" && !prev.knownPeers.includes(msg.fromDeviceId)
-          ? { ...prev, knownPeers: [...prev.knownPeers, msg.fromDeviceId] }
-          : prev
-      );
+      // 在线成员由 onPeersChange 统一维护（中继主动推送），这里不再重复推断
 
       if (env.kind === "text") {
         setScreen((prev) => {
@@ -298,6 +293,12 @@ export function App() {
     // 目标不在线——中继回的 call_failed，如实反映到通话状态上
     client.onCallFailed(() => {
       currentCallRef.current?.session.hangup();
+    });
+
+    // 在线成员由中继维护并主动推送，不再靠"谁发过消息才知道他在"来猜——
+    // 那样没说过话的人打不了电话。
+    client.onPeersChange((deviceIds) => {
+      setScreen((prev) => (prev.name === "connected" ? { ...prev, knownPeers: deviceIds } : prev));
     });
 
     client.onStatusChange((connectionStatus) => {
@@ -576,6 +577,7 @@ export function App() {
         onPublishAnnouncement={handlePublishAnnouncement}
         deviceId={screen.deviceId}
         nickname={nickname}
+        onlinePeers={screen.knownPeers}
       />
     );
   }

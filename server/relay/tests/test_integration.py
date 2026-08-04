@@ -21,6 +21,9 @@ async def _auth_and_get_connection(uri: str, device_id: str, group_id: str, veri
     await ws.send(json.dumps({"type": "auth_response", "deviceId": device_id, "groupId": group_id, "proof": proof}))
     ack = json.loads(await ws.recv())
     assert ack["type"] == "auth_ok"
+    # auth_ok 之后服务端会立刻下发一帧 presence（当前在线名单），先消化掉
+    presence = json.loads(await ws.recv())
+    assert presence["type"] == "presence"
     return ws
 
 
@@ -56,6 +59,9 @@ async def test_ciphertext_is_forwarded_to_other_group_members_but_not_back_to_se
     uri, verifier = running_server
     alice = await _auth_and_get_connection(uri, "alice", "group-1", verifier)
     bob = await _auth_and_get_connection(uri, "bob", "group-1", verifier)
+    # bob 上线会让 alice 收到一帧 peer_joined，先消化掉，
+    # 否则下面"alice 不该收到自己消息的回声"会误判成收到了东西
+    assert json.loads(await asyncio.wait_for(alice.recv(), timeout=2))["type"] == "peer_joined"
 
     opaque_bytes = "not-real-ciphertext-just-opaque-base64=="
     await alice.send(json.dumps({"type": "forward", "ciphertextB64": opaque_bytes}))

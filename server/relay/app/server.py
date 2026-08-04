@@ -64,13 +64,32 @@ class RelayServer:
                     return  # auth_failed already sent inside _try_join_via_invite
 
             await ws.send(json.dumps({"type": "auth_ok"}))
+
+            # 先把当前在线名单发给新加入者，再把"我来了"广播给其他人。
+            # 顺序很重要：反过来的话，新人自己会出现在自己收到的 peer_joined 里。
+            existing = self._registry.device_ids(group_id)
+            await ws.send(json.dumps({"type": "presence", "deviceIds": existing}))
+
             self._registry.register(group_id, device_id, ws)
+            await self._broadcast_presence_event(group_id, device_id, "peer_joined")
+
             await self._relay_loop(ws, device_id, group_id)
         except websockets.ConnectionClosed:
             pass
         finally:
             if device_id is not None and group_id is not None:
                 self._registry.unregister(group_id, device_id)
+                await self._broadcast_presence_event(group_id, device_id, "peer_left")
+
+    async def _broadcast_presence_event(self, group_id: str, device_id: str, event_type: str) -> None:
+        """把某人上线/下线告诉同群其他人。发给对方失败就跳过——那个连接
+        自己的 finally 会负责清理，这里不该因为一个坏连接影响其他人。"""
+        payload = json.dumps({"type": event_type, "deviceId": device_id})
+        for peer in self._registry.members_excluding(group_id, device_id):
+            try:
+                await peer.send(payload)
+            except websockets.ConnectionClosed:
+                pass
 
     async def _try_join_via_invite(
         self, ws: ServerConnection, device_id: str, group_id: str, invite_code: str | None

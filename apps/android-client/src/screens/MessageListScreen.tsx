@@ -10,6 +10,8 @@ export interface MessageListScreenProps {
   onPublishAnnouncement: (title: string, body: string) => Promise<void>;
   deviceId: string;
   nickname?: string | undefined;
+  /** 当前在线的其他成员（不含自己） */
+  onlinePeers?: string[] | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -20,6 +22,7 @@ export function MessageListScreen({
   onPublishAnnouncement,
   deviceId,
   nickname,
+  onlinePeers,
 }: MessageListScreenProps) {
   const [activeTab, setActiveTab] = useState<BottomNavKey>("messages");
   const [title, setTitle] = useState("");
@@ -64,6 +67,13 @@ export function MessageListScreen({
             timeLabel="刚刚"
             onClick={onOpenChat}
           />
+        ) : null}
+        {activeTab === "messages" ? (
+          <div style={{ padding: "8px 6px", fontSize: 11, color: "#9A9A94" }}>
+            {onlinePeers && onlinePeers.length > 0
+              ? `${onlinePeers.length} 位成员在线`
+              : "群里暂时只有你在线"}
+          </div>
         ) : activeTab === "announcements" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
             {announcement ? (

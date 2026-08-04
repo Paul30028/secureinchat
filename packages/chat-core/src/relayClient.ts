@@ -140,6 +140,9 @@ export class RelayClient {
   private outbox = new OfflineOutbox<MessageEnvelope>();
   private queueHandlers: Array<(pendingCount: number) => void> = [];
   private queueSeq = 0;
+  /** 同群当前在线的 deviceId。中继维护，客户端只是跟着更新。 */
+  private peers = new Set<string>();
+  private peerHandlers: Array<(deviceIds: string[]) => void> = [];
 
   constructor(
     private readonly url: string,
@@ -287,6 +290,23 @@ export class RelayClient {
       return;
     }
 
+    // 在线状态：连上时收到一次完整名单，之后收到增量的上线/下线事件
+    if (frameType === "presence" && Array.isArray(frame.deviceIds)) {
+      this.peers = new Set(frame.deviceIds.filter((d): d is string => typeof d === "string"));
+      this.notifyPeers();
+      return;
+    }
+    if (frameType === "peer_joined" && typeof frame.deviceId === "string") {
+      this.peers.add(frame.deviceId);
+      this.notifyPeers();
+      return;
+    }
+    if (frameType === "peer_left" && typeof frame.deviceId === "string") {
+      this.peers.delete(frame.deviceId);
+      this.notifyPeers();
+      return;
+    }
+
     if (frameType === "pong") {
       const ts = frame.timestamp;
       if (typeof ts === "number") {
@@ -367,6 +387,20 @@ export class RelayClient {
    * payload 用群密钥加密——中继只能看到"谁在什么时候给谁发了一条什么类型的
    * 信令"（路由必需的元数据），看不到内容。
    */
+  /** 在线成员变化时回调（连上时一次全量，之后每次上下线各一次） */
+  onPeersChange(handler: (deviceIds: string[]) => void): void {
+    this.peerHandlers.push(handler);
+  }
+
+  get onlinePeers(): string[] {
+    return [...this.peers];
+  }
+
+  private notifyPeers(): void {
+    const list = this.onlinePeers;
+    for (const handler of this.peerHandlers) handler(list);
+  }
+
   onStatusChange(handler: (status: ConnectionStatus) => void): void {
     this.statusHandlers.push(handler);
   }

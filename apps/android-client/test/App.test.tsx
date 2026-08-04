@@ -692,3 +692,34 @@ describe("message history persistence", () => {
     expect(screen.queryByText("群一的消息")).not.toBeInTheDocument();
   });
 });
+
+describe("online presence", () => {
+  it("shows nobody online before any peer connects", async () => {
+    await renderApp();
+    await joinTestGroup();
+    expect(screen.getByText("群里暂时只有你在线")).toBeInTheDocument();
+  });
+
+  it("reflects the roster the relay pushes on connect", async () => {
+    await renderApp();
+    await joinTestGroup();
+
+    MockRelayWebSocket.lastInstance?.onmessage?.({
+      data: JSON.stringify({ type: "presence", deviceIds: ["alice", "bob"] }),
+    });
+
+    expect(await screen.findByText("2 位成员在线")).toBeInTheDocument();
+  });
+
+  it("updates when someone joins and leaves", async () => {
+    await renderApp();
+    await joinTestGroup();
+    const socket = MockRelayWebSocket.lastInstance!;
+
+    socket.onmessage?.({ data: JSON.stringify({ type: "peer_joined", deviceId: "alice" }) });
+    expect(await screen.findByText("1 位成员在线")).toBeInTheDocument();
+
+    socket.onmessage?.({ data: JSON.stringify({ type: "peer_left", deviceId: "alice" }) });
+    expect(await screen.findByText("群里暂时只有你在线")).toBeInTheDocument();
+  });
+});

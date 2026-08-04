@@ -18,6 +18,9 @@ async def _auth_and_connect(uri: str, device_id: str, group_id: str, verifier: P
     await ws.send(json.dumps({"type": "auth_response", "deviceId": device_id, "groupId": group_id, "proof": proof}))
     ack = json.loads(await ws.recv())
     assert ack["type"] == "auth_ok"
+    # auth_ok 之后服务端会立刻下发一帧 presence（当前在线名单），先消化掉
+    presence = json.loads(await ws.recv())
+    assert presence["type"] == "presence"
     return ws
 
 
