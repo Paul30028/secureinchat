@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InviteParseError, parseInviteAuto, type ParsedInvite } from "@secureinchat/protocol";
 import {
   joinGroupFromInvite,
@@ -18,6 +18,8 @@ import { CallScreen } from "./screens/CallScreen";
 import { CallSession, type CallKind, type CallStateInfo } from "@secureinchat/webrtc";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
 import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
+import { ServerSettingsScreen } from "./screens/ServerSettingsScreen";
+import { loadSavedRelayUrl } from "./relayUrlSetting";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
 
 interface ActiveCall {
@@ -32,6 +34,7 @@ interface ActiveCall {
 type Screen =
   | { name: "splash" }
   | { name: "createGroup" }
+  | { name: "serverSettings" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -75,6 +78,14 @@ let nextMessageId = 0;
 
 export function App() {
   const [screen, setScreen] = useState<Screen>({ name: "splash" });
+  // 应用内配置的中继地址优先于构建时注入的默认值——换服务器不用重新打包
+  const [relayUrl, setRelayUrl] = useState<string>(RELAY_URL);
+
+  useEffect(() => {
+    void loadSavedRelayUrl().then((saved) => {
+      if (saved) setRelayUrl(saved);
+    });
+  }, []);
   // 信令回调是在 connectToGroup 里一次性注册的闭包，拿不到最新的 screen——
   // 用 ref 让它们能读到当前通话状态，避免闭包捕获旧值这个经典坑。
   const currentCallRef = useRef<ActiveCall | undefined>(undefined);
@@ -92,7 +103,7 @@ export function App() {
     const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
     const identity = await getDeviceIdentity();
 
-    const client = new RelayClient(RELAY_URL, {
+    const client = new RelayClient(relayUrl, {
       deviceId: identity.deviceId,
       groupId,
       keystore: identity.keystore,
@@ -424,6 +435,18 @@ export function App() {
       <SplashScreen
         onSubmitInviteCode={handleSubmitInviteCode}
         onCreateGroup={() => setScreen({ name: "createGroup" })}
+        onOpenServerSettings={() => setScreen({ name: "serverSettings" })}
+        relayUrl={relayUrl}
+      />
+    );
+  }
+
+  if (screen.name === "serverSettings") {
+    return (
+      <ServerSettingsScreen
+        defaultUrl={RELAY_URL}
+        onSaved={(url) => setRelayUrl(url)}
+        onBack={() => setScreen({ name: "splash" })}
       />
     );
   }

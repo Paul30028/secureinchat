@@ -23,6 +23,8 @@ export interface RelayClientDeps {
   WebSocketImpl?: typeof WebSocket;
   /** 心跳间隔，默认 HEARTBEAT_INTERVAL_MS。测试可以调小以免等 20 秒。 */
   heartbeatIntervalMs?: number;
+  /** 连接+认证的整体超时，默认 CONNECT_TIMEOUT_MS */
+  connectTimeoutMs?: number;
 }
 
 export interface IncomingMessage {
@@ -67,6 +69,13 @@ export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "di
 
 /** 心跳间隔——按中继技术文档第 9 节：20 秒，防 NAT 超时/移动网络断开/Cloudflare 空闲关闭 */
 export const HEARTBEAT_INTERVAL_MS = 20_000;
+
+/**
+ * 连接+认证的整体超时。没有这个的话，连到一个"能建 TCP 但不响应"的地址
+ * （地址填错、服务没起、被防火墙静默丢包）会一直转圈不报错——用户完全不知道
+ * 发生了什么。10 秒足够正常的手机网络完成 TLS + 握手。
+ */
+export const CONNECT_TIMEOUT_MS = 10_000;
 
 /**
  * 重连退避——按中继技术文档第 10 节：立即 → 3s → 指数退避 5/10/20/30 → 封顶 30s。
@@ -148,6 +157,20 @@ export class RelayClient {
       this.ws = ws;
       let settled = false;
 
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try {
+          ws.close();
+        } catch {
+          // 忽略：本来就是连不上才超时的
+        }
+        reject(new Error(`连接超时（${this.url}）——请检查服务器地址是否正确、服务是否已启动`));
+      }, this.deps.connectTimeoutMs ?? CONNECT_TIMEOUT_MS);
+      const settle = () => {
+        clearTimeout(timeout);
+      };
+
       ws.onmessage = async (event: MessageEvent) => {
         let frame: Record<string, unknown>;
         try {
@@ -161,6 +184,7 @@ export class RelayClient {
             await this.respondToChallenge(ws, mode, String(frame.nonce));
           } catch (err) {
             settled = true;
+            settle();
             reject(err);
           }
           return;
@@ -168,6 +192,7 @@ export class RelayClient {
 
         if (frame.type === "auth_ok") {
           settled = true;
+          settle();
           this.reconnectAttempt = 0;
           this.setStatus("connected");
           this.startHeartbeat();
@@ -186,6 +211,7 @@ export class RelayClient {
 
         if (frame.type === "auth_failed") {
           settled = true;
+          settle();
           reject(new Error(`认证失败: ${String(frame.reason)}`));
           return;
         }
@@ -194,6 +220,7 @@ export class RelayClient {
       ws.onerror = () => {
         if (!settled) {
           settled = true;
+          settle();
           reject(new Error("WebSocket 连接错误"));
         }
       };
@@ -202,6 +229,7 @@ export class RelayClient {
         this.stopHeartbeat();
         if (!settled) {
           settled = true;
+          settle();
           reject(new Error("连接在握手完成前被关闭"));
           return;
         }

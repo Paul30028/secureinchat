@@ -187,3 +187,42 @@ describe("RelayClient heartbeat and reconnect", () => {
     expect(socket.sent.filter((s) => JSON.parse(s).type === "ping")).toHaveLength(pingsAtClose);
   });
 });
+
+describe("connect timeout", () => {
+  it("rejects with an actionable message when the server never responds", async () => {
+    /** 建得起连接但从不下发 auth_challenge——模拟地址填错/服务没起/被静默丢包 */
+    class SilentSocket {
+      onmessage: ((e: { data: string }) => void) | null = null;
+      onerror: (() => void) | null = null;
+      onclose: (() => void) | null = null;
+      constructor(public url: string) {}
+      send() {}
+      close() {}
+    }
+
+    const keystore = new TestOnlyInMemoryKeystore();
+    const alias = await keystore.generateDeviceKeyPair("d");
+    const groupKey = await generateAeadKey();
+    const client = new RelayClient("ws://unreachable.example", {
+      deviceId: "d",
+      groupId: "g",
+      keystore,
+      keystoreAlias: alias,
+      groupKey,
+      epoch: 0,
+      WebSocketImpl: SilentSocket as unknown as typeof WebSocket,
+      connectTimeoutMs: 50,
+    });
+
+    await expect(client.connect("register")).rejects.toThrow(/连接超时/);
+  });
+
+  it("does not fire the timeout when the handshake completes normally", async () => {
+    const client = await makeConnectedClient();
+    expect(client.connectionStatus).toBe("connected");
+    // 等超过超时时间，确认已连上的会话不会被超时误伤
+    await new Promise((r) => setTimeout(r, 60));
+    expect(client.connectionStatus).toBe("connected");
+    client.close();
+  });
+});

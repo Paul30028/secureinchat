@@ -467,3 +467,45 @@ describe("connection status banner", () => {
     expect(banner.textContent).toContain("1 条消息等待发送");
   });
 });
+
+describe("server settings", () => {
+  it("is reachable from the splash screen and shows the current relay address", () => {
+    render(<App />);
+    const entry = screen.getByText("服务器设置");
+    expect(entry).toBeInTheDocument();
+
+    fireEvent.click(entry);
+    expect(screen.getByLabelText("中继服务器地址输入框")).toBeInTheDocument();
+  });
+
+  it("rejects an invalid address with an explanation instead of silently accepting it", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText("服务器设置"));
+    const input = await screen.findByLabelText("中继服务器地址输入框");
+
+    fireEvent.change(input, { target: { value: "https://not-a-websocket.example" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("ws://");
+  });
+
+  it("saves a valid address and confirms it", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText("服务器设置"));
+    const input = await screen.findByLabelText("中继服务器地址输入框");
+
+    fireEvent.change(input, { target: { value: "wss://ws.example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("已保存");
+  });
+
+  it("going back returns to splash", async () => {
+    render(<App />);
+    fireEvent.click(screen.getByText("服务器设置"));
+    await screen.findByLabelText("中继服务器地址输入框");
+
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    expect(screen.getByLabelText("邀请码输入框")).toBeInTheDocument();
+  });
+});
