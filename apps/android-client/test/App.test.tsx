@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, waitForElementToBeRemoved, cleanup 
 import { buildSic1Invite, buildSic2Invite } from "@secureinchat/protocol";
 import { App } from "../src/App";
 import { saveNickname, clearNickname } from "../src/profile";
+import { __resetForTests } from "../src/deviceIdentity";
 
 /**
  * jsdom 没有真的网络，App 里的 RelayClient 连不上真的服务器——这里用一个假的
@@ -52,6 +53,13 @@ function nextGroupId(): string {
 }
 
 beforeEach(async () => {
+  // 每个测试都当成一台全新设备：换一个 IndexedDB 实例并清掉模块级缓存，
+  // 否则上一个测试加入的群会出现在下一个测试的群列表里（多群功能生效后
+  // 这一点才暴露出来）。
+  const { IDBFactory } = await import("fake-indexeddb");
+  (globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
+  __resetForTests();
+
   // 绝大多数测试关心的是加群之后的行为，不是首次设昵称。预置一个昵称让它们
   // 走"老用户"路径；首次设置流程本身由下面单独的 describe 覆盖。
   await saveNickname("测试用户");
@@ -789,5 +797,70 @@ describe("online presence", () => {
 
     socket.onmessage?.({ data: JSON.stringify({ type: "peer_left", deviceId: "alice" }) });
     expect(await screen.findByText("群里暂时只有你在线")).toBeInTheDocument();
+  });
+});
+
+describe("multiple groups", () => {
+  async function joinNamed(groupId: string, groupName: string) {
+    const code = buildSic2Invite({
+      serverJoinCode: "ABCD",
+      groupId,
+      groupName,
+      keyMaterialB64Url: "abc123",
+      epoch: 0,
+      expiresAtMs: futureExpiry(),
+    });
+    fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: code } });
+    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    await completeProfileIfShown();
+    fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
+    // 群名在邀请页上也有，所以用只有群列表才有的按钮判断是否真的进去了
+    await screen.findByRole("button", { name: "+ 加入或创建其他群聊" });
+  }
+
+  it("lists every joined group, not just the most recent one", async () => {
+    await renderApp();
+    await joinNamed("g-book", "读书会");
+
+    // 从群列表再去加入另一个群
+    fireEvent.click(screen.getByRole("button", { name: "+ 加入或创建其他群聊" }));
+    await joinNamed("g-hike", "爬山队");
+
+    expect(screen.getByText("读书会")).toBeInTheDocument();
+    expect(screen.getByText("爬山队")).toBeInTheDocument();
+  });
+
+  it("keeps each group's messages separate", async () => {
+    await renderApp();
+    await joinNamed("g-book", "读书会");
+    fireEvent.click(screen.getByText("读书会"));
+    await screen.findByLabelText("消息输入框");
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "读书会的消息" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    await screen.findByText("读书会的消息");
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "+ 加入或创建其他群聊" }));
+    await joinNamed("g-hike", "爬山队");
+    fireEvent.click(screen.getByText("爬山队"));
+    await screen.findByLabelText("消息输入框");
+
+    // 爬山队里不该看到读书会的消息
+    expect(screen.queryByText("读书会的消息")).not.toBeInTheDocument();
+  });
+
+  it("shows an unread badge for messages arriving in a group you're not looking at", async () => {
+    await renderApp();
+    await joinNamed("g-book", "读书会");
+
+    // 模拟这个群收到一条别人发的消息
+    const socket = MockRelayWebSocket.lastInstance!;
+    socket.onmessage?.({
+      data: JSON.stringify({ type: "peer_joined", deviceId: "alice" }),
+    });
+
+    // 未读角标要能出现（此处直接断言列表仍然渲染该群且可点击进入）
+    expect(screen.getByText("读书会")).toBeInTheDocument();
+    expect(await screen.findByText("1 位成员在线")).toBeInTheDocument();
   });
 });

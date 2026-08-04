@@ -59,3 +59,15 @@ export function getDeviceIdentity(): Promise<DeviceIdentity> {
   }
   return identityPromise;
 }
+
+/**
+ * 仅供测试：清掉模块级缓存，让下一次调用重新读一遍存储。
+ *
+ * 生产代码不该调用这个——设备身份和主密钥在一次运行内应该是稳定的。
+ * 但测试需要每个用例都是"一台全新的设备"，否则上一个测试加入的群会
+ * 出现在下一个测试的群列表里。
+ */
+export function __resetForTests(): void {
+  storePromise = null;
+  identityPromise = null;
+}

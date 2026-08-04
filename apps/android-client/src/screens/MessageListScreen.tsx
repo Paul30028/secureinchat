@@ -4,29 +4,34 @@ import { AnnouncementCard } from "./MediaBubbleContent";
 import { formatListTime } from "../timeFormat";
 import type { Announcement } from "./ChatScreen";
 
+export interface GroupListItem {
+  groupId: string;
+  groupName: string;
+  unread: number;
+  onlineCount: number;
+  lastMessage?: { preview: string; sentAtMs: number } | undefined;
+}
+
 export interface MessageListScreenProps {
-  joinedGroupName: string;
-  onOpenChat: () => void;
+  groups: GroupListItem[];
+  onOpenGroup: (groupId: string) => void;
+  /** 去加入/创建另一个群 */
+  onJoinAnotherGroup: () => void;
   announcement?: Announcement | undefined;
   onPublishAnnouncement: (title: string, body: string) => Promise<void>;
   deviceId: string;
   nickname?: string | undefined;
-  /** 当前在线的其他成员（不含自己） */
-  onlinePeers?: string[] | undefined;
-  /** 最后一条消息，用于列表预览——之前这里永远显示"欢迎加入！" */
-  lastMessage?: { preview: string; sentAtMs: number } | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
 export function MessageListScreen({
-  joinedGroupName,
-  onOpenChat,
+  groups,
+  onOpenGroup,
+  onJoinAnotherGroup,
   announcement,
   onPublishAnnouncement,
   deviceId,
   nickname,
-  onlinePeers,
-  lastMessage,
 }: MessageListScreenProps) {
   const [activeTab, setActiveTab] = useState<BottomNavKey>("messages");
   const [title, setTitle] = useState("");
@@ -65,18 +70,37 @@ export function MessageListScreen({
 
       <div style={{ flex: 1, padding: "0 12px" }}>
         {activeTab === "messages" ? (
-          <MessageListItem
-            name={joinedGroupName}
-            previewText={lastMessage ? lastMessage.preview : "还没有消息"}
-            timeLabel={lastMessage ? formatListTime(lastMessage.sentAtMs) : ""}
-            onClick={onOpenChat}
-          />
-        ) : null}
-        {activeTab === "messages" ? (
-          <div style={{ padding: "8px 6px", fontSize: 11, color: "#9A9A94" }}>
-            {onlinePeers && onlinePeers.length > 0
-              ? `${onlinePeers.length} 位成员在线`
-              : "群里暂时只有你在线"}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {groups.map((g) => (
+              <div key={g.groupId}>
+                <MessageListItem
+                  name={g.groupName}
+                  previewText={g.lastMessage ? g.lastMessage.preview : "还没有消息"}
+                  timeLabel={g.lastMessage ? formatListTime(g.lastMessage.sentAtMs) : ""}
+                  unreadCount={g.unread}
+                  onClick={() => onOpenGroup(g.groupId)}
+                />
+                <div style={{ padding: "0 6px 6px 60px", fontSize: 11, color: "#9A9A94" }}>
+                  {g.onlineCount > 0 ? `${g.onlineCount} 位成员在线` : "群里暂时只有你在线"}
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={onJoinAnotherGroup}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 12,
+                background: "transparent",
+                border: `0.5px dashed ${colors.sageMint}`,
+                borderRadius: 14,
+                color: colors.deepInkGreen,
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              + 加入或创建其他群聊
+            </button>
           </div>
         ) : activeTab === "announcements" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>

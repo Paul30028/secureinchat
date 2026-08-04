@@ -8,6 +8,9 @@ import {
   buildFileEnvelopes,
   loadMessages,
   saveMessages,
+  loadJoinedGroups,
+  saveJoinedGroups,
+  upsertGroup,
   type ConnectionStatus,
 } from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
@@ -26,6 +29,14 @@ import { loadSavedRelayUrl } from "./relayUrlSetting";
 import { ProfileSetupScreen } from "./screens/ProfileSetupScreen";
 import { loadNickname, saveNickname, displayNameFor } from "./profile";
 import { toStored, fromStored } from "./messageMapping";
+import {
+  patchSession,
+  sortSessions,
+  unreadFor,
+  previewFor,
+  type GroupSession,
+  type GroupSessions,
+} from "./groupSession";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
 
 interface ActiveCall {
@@ -52,20 +63,11 @@ type Screen =
   // 活在这一个对象里，在两个视图之间切换不会因为组件卸载而丢失历史。
   | {
       name: "connected";
-      groupName: string;
-      client: RelayClient;
-      messages: DisplayMessage[];
+      /** 当前打开的群；null 表示在群列表页 */
+      activeGroupId: string | null;
       view: "list" | "chat";
-      sendError?: string | undefined;
-      connectionStatus: ConnectionStatus;
-      pendingCount: number;
       deviceId: string;
-      announcement?: Announcement | undefined;
-      /** 从收到的消息/信令里观察到的同群设备——单群试用版没有服务端成员列表，
-       *  这是目前唯一能知道"群里还有谁在"的途径 */
-      knownPeers: string[];
       call?: ActiveCall | undefined;
-      incomingProgress?: { fileId: string; fileName: string; receivedChunks: number; totalChunks: number }[];
     };
 
 /**
@@ -103,6 +105,9 @@ export function App() {
   const [screen, setScreen] = useState<Screen>({ name: "splash" });
   // 应用内配置的中继地址优先于构建时注入的默认值——换服务器不用重新打包
   const [relayUrl, setRelayUrl] = useState<string>(RELAY_URL);
+  // 会话不放在 screen 里——导航到别的页面（比如去加入另一个群）不该断开
+  // 已经连上的群。之前放在 screen 里时，回启动页会把所有连接一起丢掉。
+  const [sessions, setSessions] = useState<GroupSessions>({});
   const [nickname, setNickname] = useState<string | undefined>(undefined);
   // 设置完昵称后要重新执行用户原本的动作，但那个回调是设置之前创建的闭包，
   // 里面读到的还是旧的 nickname（undefined），会被再拦一次。用 ref 读当前值。
@@ -128,6 +133,30 @@ export function App() {
         setNickname(saved);
       })
       .finally(() => setProfileLoaded(true));
+
+    // 启动时重连所有已加入的群。全部连上而不是只连一个——否则你在 A 群
+    // 时 B 群来了消息不会知道。某个群连不上不影响其他群。
+    void (async () => {
+      const store = await getDeviceStore();
+      const groups = await loadJoinedGroups(store);
+      for (const g of groups) {
+        try {
+          await connectToGroup(
+            {
+              version: "SIC2",
+              isCompatMode: false,
+              serverJoinCode: "",
+              groupId: g.groupId,
+              keyMaterialB64Url: g.keyMaterialB64Url,
+              epoch: g.epoch,
+            },
+            g.groupName
+          );
+        } catch {
+          // 这个群连不上就跳过，继续连下一个
+        }
+      }
+    })();
   }, []);
   // 信令回调是在 connectToGroup 里一次性注册的闭包，拿不到最新的 screen——
   // 用 ref 让它们能读到当前通话状态，避免闭包捕获旧值这个经典坑。
@@ -168,6 +197,8 @@ export function App() {
 
     // 每次消息列表变化就整体落盘。条数有上限（见 messageStore），所以这个
     // 写入量是有界的；比起为每条消息单独维护增量写，整体写简单且不会写歪。
+    // 每个群各自落盘到自己的 key。闭包捕获了 groupId，所以每条连接的
+    // 回调都会写到正确的群，不会串。
     const persist = (messages: DisplayMessage[], mediaBytesById?: Map<string, Uint8Array>) => {
       void saveMessages(
         store,
@@ -175,171 +206,111 @@ export function App() {
         messages.map((m) => toStored(m, mediaBytesById?.get(m.id)))
       );
     };
-    persistRef.current = persist;
+
+    /** 更新这个群的会话状态——不影响其他群 */
+    const patch = (p: Partial<GroupSession>) => {
+      setSessions((prev) => patchSession(prev, groupId, p));
+    };
+
+    /** 往这个群追加消息并落盘 */
+    const appendMessage = (message: DisplayMessage, mediaBytes?: Uint8Array) => {
+      setSessions((prev) => {
+        const session = prev[groupId];
+        if (!session) return prev;
+        const messages = [...session.messages, message];
+        persist(messages, mediaBytes ? new Map([[message.id, mediaBytes]]) : undefined);
+        return patchSession(prev, groupId, { messages });
+      });
+    };
 
     const history = (await loadMessages(store, groupId)).map(fromStored);
 
     client.onMessage((msg) => {
       const env = msg.envelope;
 
-      // 在线成员由 onPeersChange 统一维护（中继主动推送），这里不再重复推断
-
       if (env.kind === "text") {
-        setScreen((prev) => {
-          if (prev.name !== "connected") return prev;
-          const messages = [
-            ...prev.messages,
-            {
-              id: `recv-${nextMessageId++}`,
-              text: env.text,
-              isOwn: false,
-              fromDeviceId: displayNameFor(env.senderName, msg.fromDeviceId),
-              // 用发送方带过来的时间，不是本机收到的时间——离线补发的消息
-              // 应该显示当初发出的时刻
-              sentAtMs: env.sentAtMs,
-            },
-          ];
-          persistRef.current?.(messages);
-          return { ...prev, messages };
+        appendMessage({
+          id: `recv-${nextMessageId++}`,
+          text: env.text,
+          isOwn: false,
+          fromDeviceId: displayNameFor(env.senderName, msg.fromDeviceId),
+          // 用发送方带过来的时间，不是本机收到的时间——离线补发的消息
+          // 应该显示当初发出的时刻
+          sentAtMs: env.sentAtMs,
         });
         return;
       }
 
       if (env.kind === "announcement") {
         // 公告是"当前生效的那一条"，新的覆盖旧的，不堆成列表
-        setScreen((prev) =>
-          prev.name === "connected"
-            ? { ...prev, announcement: { id: env.id, title: env.title, body: env.body } }
-            : prev
-        );
+        patch({ announcement: { id: env.id, title: env.title, body: env.body } });
         return;
       }
 
       if (env.kind === "file-meta") {
         assembler.acceptMeta(env);
-        setScreen((prev) => (prev.name === "connected" ? { ...prev, incomingProgress: assembler.progress() } : prev));
+        patch({ incomingProgress: assembler.progress() });
         return;
       }
 
       // file-chunk：集齐了就组装成一条媒体消息
       const done = assembler.acceptChunk(env);
       if (!done) {
-        setScreen((prev) => (prev.name === "connected" ? { ...prev, incomingProgress: assembler.progress() } : prev));
+        patch({ incomingProgress: assembler.progress() });
         return;
       }
-      const blob = new Blob([done.bytes as BlobPart], { type: done.mimeType });
-      const objectUrl = URL.createObjectURL(blob);
-      const receivedId = `recv-${nextMessageId++}`;
-      setScreen((prev) => {
-        if (prev.name !== "connected") return prev;
-        const messages = [
-                ...prev.messages,
-                {
-                  id: receivedId,
-                  isOwn: false,
-                  fromDeviceId: displayNameFor(done.senderName, msg.fromDeviceId),
-                  sentAtMs: Date.now(),
-                  media: {
-                    mediaKind: done.mediaKind,
-                    fileName: done.fileName,
-                    mimeType: done.mimeType,
-                    objectUrl,
-                    sizeBytes: done.bytes.byteLength,
-                  },
-                },
-        ];
-        persistRef.current?.(messages, new Map([[receivedId, done.bytes]]));
-        return { ...prev, incomingProgress: assembler.progress(), messages };
-      });
-    });
-
-    // 通话信令。这里创建的 CallSession 会驱动整个通话状态机；
-    // 每一路通话一个 session，结束后丢弃。
-    const updateCall = (patch: Partial<ActiveCall>) => {
-      setScreen((prev) =>
-        prev.name === "connected" && prev.call ? { ...prev, call: { ...prev.call, ...patch } } : prev
+      const objectUrl = URL.createObjectURL(new Blob([done.bytes as BlobPart], { type: done.mimeType }));
+      patch({ incomingProgress: assembler.progress() });
+      appendMessage(
+        {
+          id: `recv-${nextMessageId++}`,
+          isOwn: false,
+          fromDeviceId: displayNameFor(done.senderName, msg.fromDeviceId),
+          sentAtMs: Date.now(),
+          media: {
+            mediaKind: done.mediaKind,
+            fileName: done.fileName,
+            mimeType: done.mimeType,
+            objectUrl,
+            sizeBytes: done.bytes.byteLength,
+          },
+        },
+        done.bytes
       );
-    };
-
-    const makeSession = (callId: string, peerDeviceId: string, kind: CallKind): CallSession =>
-      new CallSession({
-        callId,
-        peerDeviceId,
-        kind,
-        transport: client,
-        iceServers: ICE_CONFIG.iceServers,
-        iceTransportPolicy: ICE_CONFIG.iceTransportPolicy,
-        onStateChange: (info) => updateCall({ info }),
-        onLocalStream: (localStream) => updateCall({ localStream }),
-        onRemoteStream: (remoteStream) => updateCall({ remoteStream }),
-      });
-
-    callFactoryRef.current = makeSession;
-
-    client.onSignaling(async (sig) => {
-      const current = currentCallRef.current;
-
-      if (sig.type === "call_invite") {
-        // 已经在通话中又来一通——直接拒掉，不支持呼叫等待
-        if (current && current.info.state !== "ended") {
-          await client.sendSignaling("call_reject", sig.fromDeviceId, sig.callId, { reason: "busy" });
-          return;
-        }
-        const kind: CallKind = sig.payload.kind === "video" ? "video" : "voice";
-        const session = makeSession(sig.callId, sig.fromDeviceId, kind);
-        setScreen((prev) =>
-          prev.name === "connected"
-            ? {
-                ...prev,
-                call: { session, kind, info: { state: "incoming" }, peerDeviceId: sig.fromDeviceId },
-              }
-            : prev
-        );
-        await session.receiveInvite(String(sig.payload.sdp ?? ""));
-        return;
-      }
-
-      if (!current) return;
-      const session = current.session;
-
-      if (sig.type === "call_ring") session.remoteRinging();
-      else if (sig.type === "call_answer") await session.receiveAnswer(String(sig.payload.sdp ?? ""));
-      else if (sig.type === "ice_candidate") {
-        await session.receiveIceCandidate(sig.payload.candidate as RTCIceCandidateInit);
-      } else if (sig.type === "call_reject") session.remoteEnded("rejected");
-      else if (sig.type === "call_cancel") session.remoteEnded("cancelled");
-      else if (sig.type === "call_hangup") session.remoteEnded("hungup");
     });
 
-    // 目标不在线——中继回的 call_failed，如实反映到通话状态上
-    client.onCallFailed(() => {
-      currentCallRef.current?.session.hangup();
-    });
+    client.onPeersChange((onlinePeers) => patch({ onlinePeers }));
+    client.onStatusChange((connectionStatus) => patch({ connectionStatus }));
+    client.onQueueChange((pendingCount) => patch({ pendingCount }));
 
-    // 在线成员由中继维护并主动推送，不再靠"谁发过消息才知道他在"来猜——
-    // 那样没说过话的人打不了电话。
-    client.onPeersChange((deviceIds) => {
-      setScreen((prev) => (prev.name === "connected" ? { ...prev, knownPeers: deviceIds } : prev));
-    });
-
-    client.onStatusChange((connectionStatus) => {
-      setScreen((prev) => (prev.name === "connected" ? { ...prev, connectionStatus } : prev));
-    });
-    client.onQueueChange((pendingCount) => {
-      setScreen((prev) => (prev.name === "connected" ? { ...prev, pendingCount } : prev));
-    });
-
-    setScreen({
-      name: "connected",
+    const session: GroupSession = {
+      groupId,
       groupName,
       client,
       messages: history,
-      view: "list",
-      deviceId: identity.deviceId,
-      knownPeers: [],
       connectionStatus: client.connectionStatus,
       pendingCount: client.pendingMessageCount,
+      onlinePeers: client.onlinePeers,
+      lastReadAtMs: Date.now(),
+    };
+
+    // 记住这个群，下次启动自动重连
+    const groups = upsertGroup(await loadJoinedGroups(store), {
+      groupId,
+      groupName,
+      keyMaterialB64Url: parsed.keyMaterialB64Url,
+      epoch,
+      joinedAtMs: Date.now(),
+      lastReadAtMs: Date.now(),
     });
+    await saveJoinedGroups(store, groups);
+
+    setSessions((prev) => ({ ...prev, [groupId]: session }));
+    setScreen((prev) =>
+      prev.name === "connected"
+        ? prev
+        : { name: "connected", activeGroupId: null, view: "list", deviceId: identity.deviceId }
+    );
   }
 
   /** 还没设昵称就先去设置，设完自动继续原来的动作——不打断用户的意图 */
@@ -413,29 +384,49 @@ export function App() {
     await connectToGroup(parsed, input.groupName);
   }
 
+  /** 当前打开的群的会话；不在群里就是 undefined */
+  function activeSession(): GroupSession | undefined {
+    if (screen.name !== "connected" || !screen.activeGroupId) return undefined;
+    return sessions[screen.activeGroupId];
+  }
+
+  /** 往当前群追加一条自己发的消息并落盘 */
+  async function appendOwnMessage(groupId: string, message: DisplayMessage, mediaBytes?: Uint8Array) {
+    const store = await getDeviceStore();
+    setSessions((prev) => {
+      const session = prev[groupId];
+      if (!session) return prev;
+      const messages = [...session.messages, message];
+      void saveMessages(store, groupId, messages.map((m) => toStored(m, mediaBytes && m.id === message.id ? mediaBytes : undefined)));
+      return patchSession(prev, groupId, { messages });
+    });
+  }
+
   async function handleSendMessage(text: string) {
-    if (screen.name !== "connected") return;
-    const client = screen.client;
-    setScreen({ ...screen, sendError: undefined });
+    const session = activeSession();
+    if (!session) return;
+    const { groupId, client } = session;
+    setSessions((prev) => patchSession(prev, groupId, { sendError: undefined }));
     try {
       // sendText 现在断线时会排队而不是抛错——排队也算"发出去了"，
       // 连接状态横幅会告诉用户还有几条在等待，不需要再报一次"发送失败"
       await client.sendText(text, nickname);
-      setScreen((prev) => {
-        if (prev.name !== "connected") return prev;
-        const messages = [...prev.messages, { id: `sent-${nextMessageId++}`, text, isOwn: true, sentAtMs: Date.now() }];
-        persistRef.current?.(messages);
-        return { ...prev, messages };
+      await appendOwnMessage(groupId, {
+        id: `sent-${nextMessageId++}`,
+        text,
+        isOwn: true,
+        sentAtMs: Date.now(),
       });
     } catch {
-      setScreen((prev) => (prev.name === "connected" ? { ...prev, sendError: "发送失败，请检查连接" } : prev));
+      setSessions((prev) => patchSession(prev, groupId, { sendError: "发送失败，请检查连接" }));
     }
   }
 
   async function handleSendFile(file: File, mediaKind: "image" | "voice" | "file") {
-    if (screen.name !== "connected") return;
-    const client = screen.client;
-    setScreen({ ...screen, sendError: undefined });
+    const session = activeSession();
+    if (!session) return;
+    const { groupId, client } = session;
+    setSessions((prev) => patchSession(prev, groupId, { sendError: undefined }));
 
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
@@ -449,47 +440,41 @@ export function App() {
         bytes,
       });
 
-      // meta 必须先到，接收方才知道总共有多少片；分片按顺序发（网络可能乱序，
-      // 接收端的 FileAssembler 已经能处理乱序，这里顺序发只是最自然的做法）
+      // meta 必须先到，接收方才知道总共有多少片
       await client.sendEnvelope(meta);
       for (const chunk of chunks) {
         await client.sendEnvelope(chunk);
       }
 
       // 自己发的媒体本地直接显示（中继不会把自己发的消息转发回来）
-      const objectUrl = URL.createObjectURL(file);
-      const sentId = `sent-${nextMessageId++}`;
-      setScreen((prev) => {
-        if (prev.name !== "connected") return prev;
-        const messages = [
-                ...prev.messages,
-                {
-                  id: sentId,
-                  isOwn: true,
-                  sentAtMs: Date.now(),
-                  media: {
-                    mediaKind,
-                    fileName: file.name,
-                    mimeType: file.type || "application/octet-stream",
-                    objectUrl,
-                    sizeBytes: bytes.byteLength,
-                  },
-                },
-        ];
-        persistRef.current?.(messages, new Map([[sentId, bytes]]));
-        return { ...prev, messages };
-      });
+      await appendOwnMessage(
+        groupId,
+        {
+          id: `sent-${nextMessageId++}`,
+          isOwn: true,
+          sentAtMs: Date.now(),
+          media: {
+            mediaKind,
+            fileName: file.name,
+            mimeType: file.type || "application/octet-stream",
+            objectUrl: URL.createObjectURL(file),
+            sizeBytes: bytes.byteLength,
+          },
+        },
+        bytes
+      );
     } catch {
-      setScreen((prev) => (prev.name === "connected" ? { ...prev, sendError: "发送失败，请检查连接" } : prev));
+      setSessions((prev) => patchSession(prev, groupId, { sendError: "发送失败，请检查连接" }));
     }
   }
 
   async function handlePublishAnnouncement(title: string, body: string) {
-    if (screen.name !== "connected") return;
+    const session = activeSession() ?? (sortSessions(sessions)[0]);
+    if (!session) return;
     const announcement = { id: randomUUID(), title, body };
     // 公告走和普通消息完全一样的加密通道——中继不知道这是一条公告。
     // 注意：目前任何成员都能发公告，没有管理员权限校验（管理员体系还没做）。
-    await screen.client.sendEnvelope({
+    await session.client.sendEnvelope({
       kind: "announcement",
       id: announcement.id,
       title,
@@ -497,7 +482,7 @@ export function App() {
       sentAtMs: Date.now(),
       ...(nickname ? { senderName: nickname } : {}),
     });
-    setScreen((prev) => (prev.name === "connected" ? { ...prev, announcement } : prev));
+    setSessions((prev) => patchSession(prev, session.groupId, { announcement }));
   }
 
   async function handleStartCall(kind: CallKind, peerDeviceId: string) {
@@ -570,12 +555,13 @@ export function App() {
   // 有通话时，通话界面优先于消息列表/聊天页显示
   if (screen.call) {
     const call = screen.call;
+    const callSession = activeSession();
     return (
       <CallScreen
-      hasTurn={ICE_CONFIG.hasTurn}
+        hasTurn={ICE_CONFIG.hasTurn}
         kind={call.kind}
         info={call.info}
-        peerLabel={screen.groupName}
+        peerLabel={callSession?.groupName ?? "通话"}
         localStream={call.localStream}
         remoteStream={call.remoteStream}
         onAccept={() => void call.session.accept()}
@@ -592,36 +578,48 @@ export function App() {
     );
   }
 
-  if (screen.view === "list") {
+  const active = activeSession();
+
+  if (screen.view === "list" || !active) {
     return (
       <MessageListScreen
-        joinedGroupName={screen.groupName}
-        onOpenChat={() => setScreen({ ...screen, view: "chat" })}
-        announcement={screen.announcement}
+        groups={sortSessions(sessions).map((s) => ({
+          groupId: s.groupId,
+          groupName: s.groupName,
+          unread: unreadFor(s),
+          onlineCount: s.onlinePeers.length,
+          lastMessage: previewFor(s),
+        }))}
+        onOpenGroup={(groupId) => {
+          // 打开即标记已读
+          setSessions((prev) => patchSession(prev, groupId, { lastReadAtMs: Date.now() }));
+          setScreen((prev) =>
+            prev.name === "connected" ? { ...prev, activeGroupId: groupId, view: "chat" } : prev
+          );
+        }}
+        onJoinAnotherGroup={() => setScreen({ name: "splash" })}
+        announcement={
+          // 在列表页时没有"当前打开的群"，所以显示任意一个有公告的群的公告。
+          // 多群场景下公告应该按群分开展示，那是后续的事。
+          active?.announcement ?? sortSessions(sessions).find((s) => s.announcement)?.announcement
+        }
         onPublishAnnouncement={handlePublishAnnouncement}
         deviceId={screen.deviceId}
         nickname={nickname}
-        onlinePeers={screen.knownPeers}
-        lastMessage={(() => {
-          const last = screen.messages[screen.messages.length - 1];
-          if (!last) return undefined;
-          const preview = last.text ?? (last.media ? `[${mediaLabel(last.media.mediaKind)}] ${last.media.fileName}` : "");
-          return { preview, sentAtMs: last.sentAtMs };
-        })()}
       />
     );
   }
 
   return (
     <ChatScreen
-      groupName={screen.groupName}
-      messages={screen.messages}
-      announcement={screen.announcement}
-      incomingProgress={screen.incomingProgress}
-      sendError={screen.sendError}
-      connectionStatus={screen.connectionStatus}
-      pendingCount={screen.pendingCount}
-      knownPeers={screen.knownPeers}
+      groupName={active.groupName}
+      messages={active.messages}
+      announcement={active.announcement}
+      incomingProgress={active.incomingProgress}
+      sendError={active.sendError}
+      connectionStatus={active.connectionStatus}
+      pendingCount={active.pendingCount}
+      knownPeers={active.onlinePeers}
       onStartCall={(kind, peer) => void handleStartCall(kind, peer)}
       onSend={handleSendMessage}
       onSendFile={handleSendFile}
