@@ -21,6 +21,8 @@ import { randomUUID } from "@secureinchat/crypto-core";
 import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
 import { ServerSettingsScreen } from "./screens/ServerSettingsScreen";
 import { loadSavedRelayUrl } from "./relayUrlSetting";
+import { ProfileSetupScreen } from "./screens/ProfileSetupScreen";
+import { loadNickname, saveNickname, displayNameFor } from "./profile";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
 
 interface ActiveCall {
@@ -81,11 +83,27 @@ export function App() {
   const [screen, setScreen] = useState<Screen>({ name: "splash" });
   // 应用内配置的中继地址优先于构建时注入的默认值——换服务器不用重新打包
   const [relayUrl, setRelayUrl] = useState<string>(RELAY_URL);
+  const [nickname, setNickname] = useState<string | undefined>(undefined);
+  // 设置完昵称后要重新执行用户原本的动作，但那个回调是设置之前创建的闭包，
+  // 里面读到的还是旧的 nickname（undefined），会被再拦一次。用 ref 读当前值。
+  const nicknameRef = useRef<string | undefined>(undefined);
+  // 昵称是异步从 IndexedDB 读的。读完之前不能判断"有没有设过"——否则老用户
+  // 会被再弹一次设置页，违反"首次设置只出现一次"。
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  // 首次设置昵称时，用户原本想做的事（加群/建群）先存这里，设置完再继续
+  const pendingAfterProfileRef = useRef<(() => void) | null>(null);
+  const [needsProfile, setNeedsProfile] = useState(false);
 
   useEffect(() => {
     void loadSavedRelayUrl().then((saved) => {
       if (saved) setRelayUrl(saved);
     });
+    void loadNickname()
+      .then((saved) => {
+        nicknameRef.current = saved;
+        setNickname(saved);
+      })
+      .finally(() => setProfileLoaded(true));
   }, []);
   // 信令回调是在 connectToGroup 里一次性注册的闭包，拿不到最新的 screen——
   // 用 ref 让它们能读到当前通话状态，避免闭包捕获旧值这个经典坑。
@@ -141,7 +159,12 @@ export function App() {
                 ...prev,
                 messages: [
                   ...prev.messages,
-                  { id: `recv-${nextMessageId++}`, text: env.text, isOwn: false, fromDeviceId: msg.fromDeviceId },
+                  {
+                    id: `recv-${nextMessageId++}`,
+                    text: env.text,
+                    isOwn: false,
+                    fromDeviceId: displayNameFor(env.senderName, msg.fromDeviceId),
+                  },
                 ],
               }
             : prev
@@ -183,7 +206,7 @@ export function App() {
                 {
                   id: `recv-${nextMessageId++}`,
                   isOwn: false,
-                  fromDeviceId: msg.fromDeviceId,
+                  fromDeviceId: displayNameFor(done.senderName, msg.fromDeviceId),
                   media: {
                     mediaKind: done.mediaKind,
                     fileName: done.fileName,
@@ -281,7 +304,26 @@ export function App() {
     });
   }
 
+  /** 还没设昵称就先去设置，设完自动继续原来的动作——不打断用户的意图 */
+  function requireProfile(next: () => void): boolean {
+    if (nicknameRef.current) return false;
+    pendingAfterProfileRef.current = next;
+    setNeedsProfile(true);
+    return true;
+  }
+
+  async function handleProfileDone(name: string) {
+    await saveNickname(name);
+    nicknameRef.current = name;
+    setNickname(name);
+    setNeedsProfile(false);
+    const next = pendingAfterProfileRef.current;
+    pendingAfterProfileRef.current = null;
+    next?.();
+  }
+
   function handleSubmitInviteCode(raw: string) {
+    if (requireProfile(() => handleSubmitInviteCode(raw))) return;
     try {
       const parsed = parseInviteAuto(raw);
       // 解析成功只证明"邀请串格式和有效期本身没问题"，群名、邀请人这些元数据
@@ -338,7 +380,7 @@ export function App() {
     try {
       // sendText 现在断线时会排队而不是抛错——排队也算"发出去了"，
       // 连接状态横幅会告诉用户还有几条在等待，不需要再报一次"发送失败"
-      await client.sendText(text);
+      await client.sendText(text, nickname);
       setScreen((prev) =>
         prev.name === "connected"
           ? { ...prev, messages: [...prev.messages, { id: `sent-${nextMessageId++}`, text, isOwn: true }] }
@@ -359,6 +401,7 @@ export function App() {
       const fileId = randomUUID();
       const { meta, chunks } = buildFileEnvelopes({
         fileId,
+        ...(nickname ? { senderName: nickname } : {}),
         fileName: file.name,
         mimeType: file.type || "application/octet-stream",
         mediaKind,
@@ -411,6 +454,7 @@ export function App() {
       title,
       body,
       sentAtMs: Date.now(),
+      ...(nickname ? { senderName: nickname } : {}),
     });
     setScreen((prev) => (prev.name === "connected" ? { ...prev, announcement } : prev));
   }
@@ -431,11 +475,25 @@ export function App() {
     return <InsecureContextNotice />;
   }
 
+  // 昵称是异步从 IndexedDB 读的。读完之前不渲染主界面——否则会出现竞态：
+  // 读得慢时老用户被重复要求设昵称，或者新用户点得快就绕过了设置。
+  // 这一步通常是几十毫秒，用户几乎察觉不到。
+  if (!profileLoaded) {
+    return <div style={{ minHeight: "100%", background: "#EBECE5" }} aria-busy="true" />;
+  }
+
+  if (needsProfile) {
+    return <ProfileSetupScreen onDone={handleProfileDone} />;
+  }
+
   if (screen.name === "splash") {
     return (
       <SplashScreen
         onSubmitInviteCode={handleSubmitInviteCode}
-        onCreateGroup={() => setScreen({ name: "createGroup" })}
+        onCreateGroup={() => {
+          const go = () => setScreen({ name: "createGroup" });
+          if (!requireProfile(go)) go();
+        }}
         onOpenServerSettings={() => setScreen({ name: "serverSettings" })}
         relayUrl={relayUrl}
       />
@@ -501,6 +559,7 @@ export function App() {
         announcement={screen.announcement}
         onPublishAnnouncement={handlePublishAnnouncement}
         deviceId={screen.deviceId}
+        nickname={nickname}
       />
     );
   }

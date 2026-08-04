@@ -39,6 +39,7 @@ export interface BuildFileEnvelopesInput {
   mimeType: string;
   mediaKind: FileMetaEnvelope["mediaKind"];
   bytes: Uint8Array;
+  senderName?: string;
   sentAtMs?: number;
   chunkSize?: number;
 }
@@ -60,6 +61,7 @@ export function buildFileEnvelopes(input: BuildFileEnvelopesInput): {
     totalChunks,
     mediaKind: input.mediaKind,
     sentAtMs: input.sentAtMs ?? Date.now(),
+    ...(input.senderName ? { senderName: input.senderName } : {}),
   };
 
   const chunks: FileChunkEnvelope[] = [];
@@ -81,6 +83,7 @@ export interface AssembledFile {
   mimeType: string;
   mediaKind: FileMetaEnvelope["mediaKind"];
   bytes: Uint8Array;
+  senderName?: string | undefined;
 }
 
 export interface IncomingFileProgress {
@@ -142,6 +145,7 @@ export class FileAssembler {
       mimeType: entry.meta.mimeType,
       mediaKind: entry.meta.mediaKind,
       bytes,
+      senderName: entry.meta.senderName,
     };
   }
 

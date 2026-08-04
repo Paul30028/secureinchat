@@ -20,6 +20,9 @@ export interface TextEnvelope {
   id: string;
   text: string;
   sentAtMs: number;
+  /** 发送者昵称。在加密载荷内部，中继看不到。老版本客户端发的消息没有这个字段，
+   *  接收方要能容忍缺失（回退到设备 ID 短前缀）。 */
+  senderName?: string;
 }
 
 export interface AnnouncementEnvelope {
@@ -28,6 +31,7 @@ export interface AnnouncementEnvelope {
   title: string;
   body: string;
   sentAtMs: number;
+  senderName?: string;
 }
 
 /** 文件传输的第一帧：告诉接收方接下来会有多少个分片、原始文件名是什么。
@@ -35,6 +39,7 @@ export interface AnnouncementEnvelope {
  *  "文件名经过加密保护"的要求。 */
 export interface FileMetaEnvelope {
   kind: "file-meta";
+  senderName?: string;
   /** 文件 ID，后续分片用它关联回来 */
   fileId: string;
   fileName: string;

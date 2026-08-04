@@ -9,6 +9,7 @@ export interface MessageListScreenProps {
   announcement?: Announcement | undefined;
   onPublishAnnouncement: (title: string, body: string) => Promise<void>;
   deviceId: string;
+  nickname?: string | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -18,6 +19,7 @@ export function MessageListScreen({
   announcement,
   onPublishAnnouncement,
   deviceId,
+  nickname,
 }: MessageListScreenProps) {
   const [activeTab, setActiveTab] = useState<BottomNavKey>("messages");
   const [title, setTitle] = useState("");
@@ -103,7 +105,13 @@ export function MessageListScreen({
           </div>
         ) : (
           <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ fontSize: 13, color: colors.textPrimary }}>本机身份</div>
+            {nickname ? (
+              <>
+                <div style={{ fontSize: 13, color: colors.textPrimary }}>昵称</div>
+                <div style={{ fontSize: 15, color: colors.deepInkGreen }}>{nickname}</div>
+              </>
+            ) : null}
+            <div style={{ fontSize: 13, color: colors.textPrimary, marginTop: 8 }}>本机身份</div>
             <div style={{ fontSize: 11, color: "#8A8A82", wordBreak: "break-all", fontFamily: "monospace" }}>
               {deviceId}
             </div>

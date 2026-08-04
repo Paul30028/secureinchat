@@ -1,7 +1,8 @@
-import { describe, expect, it, beforeAll } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, expect, it, beforeAll, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
 import { buildSic1Invite, buildSic2Invite } from "@secureinchat/protocol";
 import { App } from "../src/App";
+import { saveNickname, clearNickname } from "../src/profile";
 
 /**
  * jsdom 没有真的网络，App 里的 RelayClient 连不上真的服务器——这里用一个假的
@@ -40,8 +41,32 @@ beforeAll(() => {
   (globalThis as unknown as { WebSocket: unknown }).WebSocket = MockRelayWebSocket;
 });
 
+// 绝大多数测试关心的是加群之后的行为，不是首次设昵称。预置一个昵称让它们
+// 走"老用户"路径；首次设置流程本身由下面单独的 describe 覆盖。
+beforeEach(async () => {
+  await saveNickname("测试用户");
+});
+
 function futureExpiry(): number {
   return Date.now() + 1000 * 60 * 60 * 24;
+}
+
+
+/** App 启动时会先异步读昵称，读完才渲染主界面。测试统一用这个渲染，
+ *  避免每处都写等待。 */
+async function renderApp() {
+  render(<App />);
+  await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeNull());
+}
+
+/** 首次设置昵称页会挡在加群/建群之前，测试里统一先过掉它。
+ *  真实用户也只会遇到一次（昵称存在设备本地）。 */
+async function completeProfileIfShown(nickname = "测试用户") {
+  const input = screen.queryByLabelText("昵称输入框");
+  if (!input) return;
+  fireEvent.change(input, { target: { value: nickname } });
+  fireEvent.click(screen.getByRole("button", { name: "完成设置" }));
+  await waitForElementToBeRemoved(() => screen.queryByLabelText("昵称输入框"));
 }
 
 /** 走一遍"粘贴邀请码 → 确认加入"，停在消息列表页。新加的几个测试都从这里开始。 */
@@ -55,19 +80,20 @@ async function joinTestGroup() {
   });
   fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
   fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
-  fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
+  await completeProfileIfShown();
+  fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
   await screen.findByText("欢迎加入！");
 }
 
 describe("App navigation", () => {
-  it("starts on the splash screen with an invite code input", () => {
-    render(<App />);
+  it("starts on the splash screen with an invite code input", async () => {
+    await renderApp();
     expect(screen.getByLabelText("邀请码输入框")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "加入群聊" })).toBeInTheDocument();
   });
 
-  it("navigates to the invite screen showing a valid-invite card for a well-formed SIC2 code", () => {
-    render(<App />);
+  it("navigates to the invite screen showing a valid-invite card for a well-formed SIC2 code", async () => {
+    await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
@@ -83,8 +109,8 @@ describe("App navigation", () => {
     expect(screen.getByText("邀请人：李阳")).toBeInTheDocument();
   });
 
-  it("navigates to the invite screen showing an invalid-invite card for a malformed code", () => {
-    render(<App />);
+  it("navigates to the invite screen showing an invalid-invite card for a malformed code", async () => {
+    await renderApp();
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: "not-a-real-invite-code" } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
 
@@ -92,8 +118,8 @@ describe("App navigation", () => {
     expect(screen.queryByRole("button", { name: "确认加入" })).not.toBeInTheDocument();
   });
 
-  it("maps an expired invite specifically to the 'expired' reason message", () => {
-    render(<App />);
+  it("maps an expired invite specifically to the 'expired' reason message", async () => {
+    await renderApp();
     const expiredCode = buildSic2Invite({
       serverJoinCode: "X",
       groupId: "group-1",
@@ -107,8 +133,8 @@ describe("App navigation", () => {
     expect(screen.getByText(/已过期或已被撤销/)).toBeInTheDocument();
   });
 
-  it("going back from the invite screen returns to splash", () => {
-    render(<App />);
+  it("going back from the invite screen returns to splash", async () => {
+    await renderApp();
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: "bad-code" } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     expect(screen.getByText("邀请已失效")).toBeInTheDocument();
@@ -118,7 +144,7 @@ describe("App navigation", () => {
   });
 
   it("confirming a valid invite navigates to the message list screen with the group visible", async () => {
-    render(<App />);
+    await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
@@ -135,7 +161,7 @@ describe("App navigation", () => {
   });
 
   it("the message list screen's bottom nav switches tabs", async () => {
-    render(<App />);
+    await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
@@ -152,13 +178,13 @@ describe("App navigation", () => {
     expect(screen.getByText("本机身份")).toBeInTheDocument();
   });
 
-  it("the invite-code submit button is disabled for empty input", () => {
-    render(<App />);
+  it("the invite-code submit button is disabled for empty input", async () => {
+    await renderApp();
     expect(screen.getByRole("button", { name: "加入群聊" })).toBeDisabled();
   });
 
   it("shows the loading label while the join (key derivation + storage) is in flight", async () => {
-    render(<App />);
+    await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
@@ -178,7 +204,7 @@ describe("App navigation", () => {
   });
 
   it("shows a specific error message and stays on the invite screen for a SIC1 (no groupId) invite", async () => {
-    render(<App />);
+    await renderApp();
     const sic1Code = buildSic1Invite({ serverJoinCode: "ABCD", keyMaterialB64Url: "abc123" });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: sic1Code } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
@@ -190,7 +216,7 @@ describe("App navigation", () => {
   });
 
   it("opening the joined group from the message list navigates to a real chat screen", async () => {
-    render(<App />);
+    await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
@@ -209,7 +235,7 @@ describe("App navigation", () => {
   });
 
   it("sending a message in the chat screen shows it as an own bubble", async () => {
-    render(<App />);
+    await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
@@ -232,7 +258,7 @@ describe("App navigation", () => {
   });
 
   it("going back from the chat screen returns to the message list", async () => {
-    render(<App />);
+    await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
@@ -285,7 +311,7 @@ describe("App navigation", () => {
     const original = (globalThis as unknown as { WebSocket: unknown }).WebSocket;
     (globalThis as unknown as { WebSocket: unknown }).WebSocket = AlreadyRegisteredThenOkWebSocket;
     try {
-      render(<App />);
+      await renderApp();
       const validCode = buildSic2Invite({
         serverJoinCode: "ABCD",
         groupId: "group-1",
@@ -304,7 +330,7 @@ describe("App navigation", () => {
   });
 
   it("creating a group generates a shareable invite code and can enter the resulting chat", async () => {
-    render(<App />);
+    await renderApp();
     fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
 
     fireEvent.change(screen.getByLabelText("群聊名称输入框"), { target: { value: "周末爬山小队" } });
@@ -319,21 +345,21 @@ describe("App navigation", () => {
     expect(screen.getByText("欢迎加入！")).toBeInTheDocument();
   });
 
-  it("the group name defaults to '新群聊' if left blank is prevented by the disabled create button", () => {
-    render(<App />);
+  it("the group name defaults to '新群聊' if left blank is prevented by the disabled create button", async () => {
+    await renderApp();
     fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
     expect(screen.getByRole("button", { name: "创建群聊" })).toBeDisabled();
   });
 
-  it("going back from create-group returns to splash", () => {
-    render(<App />);
+  it("going back from create-group returns to splash", async () => {
+    await renderApp();
     fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
     expect(screen.getByLabelText("邀请码输入框")).toBeInTheDocument();
   });
 
   it("messages survive navigating from chat back to the message list and back to chat", async () => {
-    render(<App />);
+    await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
       groupId: "group-1",
@@ -362,7 +388,7 @@ describe("App navigation", () => {
   });
 
   it("publishing an announcement shows it in the announcements tab and in the chat", async () => {
-    render(<App />);
+    await renderApp();
     await joinTestGroup();
 
     fireEvent.click(screen.getByText("公告"));
@@ -382,7 +408,7 @@ describe("App navigation", () => {
   });
 
   it("the publish button is disabled until both title and body are filled in", async () => {
-    render(<App />);
+    await renderApp();
     await joinTestGroup();
     fireEvent.click(screen.getByText("公告"));
 
@@ -394,7 +420,7 @@ describe("App navigation", () => {
   });
 
   it("sending an image renders it as a media bubble in the chat", async () => {
-    render(<App />);
+    await renderApp();
     await joinTestGroup();
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
@@ -408,7 +434,7 @@ describe("App navigation", () => {
   });
 
   it("sending a generic file renders a downloadable file bubble", async () => {
-    render(<App />);
+    await renderApp();
     await joinTestGroup();
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
@@ -421,7 +447,7 @@ describe("App navigation", () => {
   });
 
   it("the chat screen exposes image, file, and voice controls", async () => {
-    render(<App />);
+    await renderApp();
     await joinTestGroup();
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
@@ -432,7 +458,7 @@ describe("App navigation", () => {
   });
 
   it("hides call buttons until a peer is known (nobody to call yet)", async () => {
-    render(<App />);
+    await renderApp();
     await joinTestGroup();
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
@@ -446,7 +472,7 @@ describe("App navigation", () => {
 
 describe("connection status banner", () => {
   it("shows a reconnecting banner with the pending message count when the socket drops", async () => {
-    render(<App />);
+    await renderApp();
     await joinTestGroup();
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
@@ -469,8 +495,8 @@ describe("connection status banner", () => {
 });
 
 describe("server settings", () => {
-  it("is reachable from the splash screen and shows the current relay address", () => {
-    render(<App />);
+  it("is reachable from the splash screen and shows the current relay address", async () => {
+    await renderApp();
     const entry = screen.getByText("服务器设置");
     expect(entry).toBeInTheDocument();
 
@@ -479,7 +505,7 @@ describe("server settings", () => {
   });
 
   it("rejects an invalid address with an explanation instead of silently accepting it", async () => {
-    render(<App />);
+    await renderApp();
     fireEvent.click(screen.getByText("服务器设置"));
     const input = await screen.findByLabelText("中继服务器地址输入框");
 
@@ -490,7 +516,7 @@ describe("server settings", () => {
   });
 
   it("saves a valid address and confirms it", async () => {
-    render(<App />);
+    await renderApp();
     fireEvent.click(screen.getByText("服务器设置"));
     const input = await screen.findByLabelText("中继服务器地址输入框");
 
@@ -501,7 +527,7 @@ describe("server settings", () => {
   });
 
   it("going back returns to splash", async () => {
-    render(<App />);
+    await renderApp();
     fireEvent.click(screen.getByText("服务器设置"));
     await screen.findByLabelText("中继服务器地址输入框");
 
@@ -518,7 +544,7 @@ describe("older Android WebView compatibility", () => {
     const real = globalThis.crypto.randomUUID;
     Object.defineProperty(globalThis.crypto, "randomUUID", { value: undefined, configurable: true });
     try {
-      render(<App />);
+      await renderApp();
       const validCode = buildSic2Invite({
         serverJoinCode: "ABCD",
         groupId: "group-webview-compat",
@@ -540,7 +566,7 @@ describe("older Android WebView compatibility", () => {
     const real = globalThis.crypto.randomUUID;
     Object.defineProperty(globalThis.crypto, "randomUUID", { value: undefined, configurable: true });
     try {
-      render(<App />);
+      await renderApp();
       fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
       fireEvent.change(screen.getByLabelText("群聊名称输入框"), { target: { value: "兼容性测试群" } });
       fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
@@ -550,5 +576,66 @@ describe("older Android WebView compatibility", () => {
     } finally {
       Object.defineProperty(globalThis.crypto, "randomUUID", { value: real, configurable: true });
     }
+  });
+});
+
+describe("first-time profile setup", () => {
+  beforeEach(async () => {
+    await clearNickname(); // 这一组专门测"全新用户"路径
+  });
+
+  it("prompts for a nickname before the first join, then continues the join automatically", async () => {
+    await renderApp();
+    const validCode = buildSic2Invite({
+      serverJoinCode: "ABCD",
+      groupId: "group-profile",
+      keyMaterialB64Url: "abc123",
+      epoch: 0,
+      expiresAtMs: futureExpiry(),
+    });
+    fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
+    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+
+    // 被拦下来先设昵称
+    const input = await screen.findByLabelText("昵称输入框");
+    fireEvent.change(input, { target: { value: "张溪" } });
+    fireEvent.click(screen.getByRole("button", { name: "完成设置" }));
+
+    // 设完自动继续原来的动作，不需要用户重新点一次「加入群聊」
+    expect(await screen.findByRole("button", { name: "确认加入" })).toBeInTheDocument();
+  });
+
+  it("rejects an empty nickname", async () => {
+    await renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    await screen.findByLabelText("昵称输入框");
+    expect(screen.getByRole("button", { name: "完成设置" })).toBeDisabled();
+  });
+
+  it("does NOT prompt again once a nickname has been saved (spec: only once, ever)", async () => {
+    await saveNickname("已设置过的用户");
+    await renderApp();
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+
+    expect(await screen.findByLabelText("群聊名称输入框")).toBeInTheDocument();
+    expect(screen.queryByLabelText("昵称输入框")).not.toBeInTheDocument();
+  });
+
+  it("shows the nickname on outgoing messages instead of a raw device id", async () => {
+    await saveNickname("张溪");
+    await renderApp();
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "大家好" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    await screen.findByText("大家好");
+    // 自己发的消息不显示发送人名（气泡在右侧本来就是自己），
+    // 但「我的」tab 里应该能看到昵称
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    fireEvent.click(screen.getByText("我的"));
+    expect(screen.getByText("张溪")).toBeInTheDocument();
   });
 });

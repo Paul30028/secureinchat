@@ -506,13 +506,14 @@ export class RelayClient {
     this.notifyQueue();
   }
 
-  /** 发文本消息的便捷方法 */
-  async sendText(text: string): Promise<void> {
-    await this.sendEnvelope({
+  /** 发文本消息的便捷方法。senderName 随消息一起加密发出，中继看不到。 */
+  async sendText(text: string, senderName?: string): Promise<"sent" | "queued"> {
+    return this.sendEnvelope({
       kind: "text",
       id: randomUUID(),
       text,
       sentAtMs: Date.now(),
+      ...(senderName ? { senderName } : {}),
     });
   }
 
