@@ -75,6 +75,12 @@ type Screen =
  * 明确的映射，不要把协议层的内部错误码直接展示给用户。
  */
 /** 把过期时间戳转成"有效期剩 X 天 Y 小时"这种人话 */
+function mediaLabel(kind: "image" | "voice" | "file"): string {
+  if (kind === "image") return "图片";
+  if (kind === "voice") return "语音";
+  return "文件";
+}
+
 function formatExpiry(expiresAtMs: number): string {
   const remainMs = expiresAtMs - Date.now();
   if (remainMs <= 0) return "已过期";
@@ -166,7 +172,7 @@ export function App() {
       void saveMessages(
         store,
         groupId,
-        messages.map((m) => toStored(m, Date.now(), mediaBytesById?.get(m.id)))
+        messages.map((m) => toStored(m, mediaBytesById?.get(m.id)))
       );
     };
     persistRef.current = persist;
@@ -188,6 +194,9 @@ export function App() {
               text: env.text,
               isOwn: false,
               fromDeviceId: displayNameFor(env.senderName, msg.fromDeviceId),
+              // 用发送方带过来的时间，不是本机收到的时间——离线补发的消息
+              // 应该显示当初发出的时刻
+              sentAtMs: env.sentAtMs,
             },
           ];
           persistRef.current?.(messages);
@@ -229,6 +238,7 @@ export function App() {
                   id: receivedId,
                   isOwn: false,
                   fromDeviceId: displayNameFor(done.senderName, msg.fromDeviceId),
+                  sentAtMs: Date.now(),
                   media: {
                     mediaKind: done.mediaKind,
                     fileName: done.fileName,
@@ -413,7 +423,7 @@ export function App() {
       await client.sendText(text, nickname);
       setScreen((prev) => {
         if (prev.name !== "connected") return prev;
-        const messages = [...prev.messages, { id: `sent-${nextMessageId++}`, text, isOwn: true }];
+        const messages = [...prev.messages, { id: `sent-${nextMessageId++}`, text, isOwn: true, sentAtMs: Date.now() }];
         persistRef.current?.(messages);
         return { ...prev, messages };
       });
@@ -456,6 +466,7 @@ export function App() {
                 {
                   id: sentId,
                   isOwn: true,
+                  sentAtMs: Date.now(),
                   media: {
                     mediaKind,
                     fileName: file.name,
@@ -591,6 +602,12 @@ export function App() {
         deviceId={screen.deviceId}
         nickname={nickname}
         onlinePeers={screen.knownPeers}
+        lastMessage={(() => {
+          const last = screen.messages[screen.messages.length - 1];
+          if (!last) return undefined;
+          const preview = last.text ?? (last.media ? `[${mediaLabel(last.media.mediaKind)}] ${last.media.fileName}` : "");
+          return { preview, sentAtMs: last.sentAtMs };
+        })()}
       />
     );
   }

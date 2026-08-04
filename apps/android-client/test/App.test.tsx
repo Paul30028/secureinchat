@@ -41,9 +41,19 @@ beforeAll(() => {
   (globalThis as unknown as { WebSocket: unknown }).WebSocket = MockRelayWebSocket;
 });
 
-// 绝大多数测试关心的是加群之后的行为，不是首次设昵称。预置一个昵称让它们
-// 走"老用户"路径；首次设置流程本身由下面单独的 describe 覆盖。
+// 消息历史现在真的持久化到 IndexedDB，所以测试之间会互相污染——上一个测试
+// 发的消息会出现在下一个测试的列表预览里。每个测试前重置整个本地存储，
+// 相当于每次都是一台全新的设备。
+// 消息历史现在真的按 groupId 持久化，所以每个测试要用不同的群，否则上一个
+// 测试发的消息会出现在下一个测试的列表预览里。
+let groupSeq = 0;
+function nextGroupId(): string {
+  return `group-test-${groupSeq++}`;
+}
+
 beforeEach(async () => {
+  // 绝大多数测试关心的是加群之后的行为，不是首次设昵称。预置一个昵称让它们
+  // 走"老用户"路径；首次设置流程本身由下面单独的 describe 覆盖。
   await saveNickname("测试用户");
 });
 
@@ -73,7 +83,7 @@ async function completeProfileIfShown(nickname = "测试用户") {
 async function joinTestGroup() {
   const validCode = buildSic2Invite({
     serverJoinCode: "ABCD",
-    groupId: "group-1",
+    groupId: nextGroupId(),
     groupName: "同心同行",
     keyMaterialB64Url: "abc123",
     epoch: 0,
@@ -83,7 +93,7 @@ async function joinTestGroup() {
   fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
   await completeProfileIfShown();
   fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
-  await screen.findByText("欢迎加入！");
+  await screen.findByText("还没有消息");
 }
 
 describe("App navigation", () => {
@@ -97,7 +107,7 @@ describe("App navigation", () => {
     await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
-      groupId: "group-1",
+      groupId: nextGroupId(),
       groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
@@ -127,7 +137,7 @@ describe("App navigation", () => {
     await renderApp();
     const expiredCode = buildSic2Invite({
       serverJoinCode: "X",
-      groupId: "group-1",
+      groupId: nextGroupId(),
       groupName: "同心同行",
       keyMaterialB64Url: "abc",
       epoch: 0,
@@ -153,7 +163,7 @@ describe("App navigation", () => {
     await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
-      groupId: "group-1",
+      groupId: nextGroupId(),
       groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
@@ -163,7 +173,7 @@ describe("App navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
-    expect(await screen.findByText("欢迎加入！")).toBeInTheDocument();
+    expect(await screen.findByText("还没有消息")).toBeInTheDocument();
     expect(screen.getByText("同心同行")).toBeInTheDocument();
   });
 
@@ -171,7 +181,7 @@ describe("App navigation", () => {
     await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
-      groupId: "group-1",
+      groupId: nextGroupId(),
       groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
@@ -181,7 +191,7 @@ describe("App navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
-    await screen.findByText("欢迎加入！"); // wait for the async join to complete and screen to switch (unique to the message-list screen; the invite screen also shows the group name)
+    await screen.findByText("还没有消息"); // wait for the async join to complete and screen to switch (unique to the message-list screen; the invite screen also shows the group name)
     fireEvent.click(screen.getByText("我的"));
     expect(screen.getByText("本机身份")).toBeInTheDocument();
   });
@@ -195,7 +205,7 @@ describe("App navigation", () => {
     await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
-      groupId: "group-1",
+      groupId: nextGroupId(),
       groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
@@ -209,7 +219,7 @@ describe("App navigation", () => {
     // should already reflect the in-flight state (this is a real state transition,
     // not just a screen switch).
     expect(screen.getByText("正在加入...")).toBeInTheDocument();
-    await screen.findByText("欢迎加入！");
+    await screen.findByText("还没有消息");
   });
 
   it("shows a specific error message and stays on the invite screen for a SIC1 (no groupId) invite", async () => {
@@ -221,14 +231,14 @@ describe("App navigation", () => {
 
     expect(await screen.findByText("这个邀请是旧版兼容格式，暂不支持加密入群")).toBeInTheDocument();
     // Must NOT have navigated to the message list on failure.
-    expect(screen.queryByText("欢迎加入！")).not.toBeInTheDocument();
+    expect(screen.queryByText("还没有消息")).not.toBeInTheDocument();
   });
 
   it("opening the joined group from the message list navigates to a real chat screen", async () => {
     await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
-      groupId: "group-1",
+      groupId: nextGroupId(),
       groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
@@ -237,7 +247,7 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
-    await screen.findByText("欢迎加入！");
+    await screen.findByText("还没有消息");
 
     fireEvent.click(screen.getByText("同心同行")); // tap the message list item
     expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
@@ -248,7 +258,7 @@ describe("App navigation", () => {
     await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
-      groupId: "group-1",
+      groupId: nextGroupId(),
       groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
@@ -257,7 +267,7 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
-    await screen.findByText("欢迎加入！");
+    await screen.findByText("还没有消息");
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
@@ -272,7 +282,7 @@ describe("App navigation", () => {
     await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
-      groupId: "group-1",
+      groupId: nextGroupId(),
       groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
@@ -281,12 +291,13 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
-    await screen.findByText("欢迎加入！");
+    await screen.findByText("还没有消息");
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
-    expect(await screen.findByText("欢迎加入！")).toBeInTheDocument();
+    // 这个测试没发过消息，所以列表显示的是真实的空状态
+    expect(await screen.findByText("还没有消息")).toBeInTheDocument();
   });
 
   it("falls back to authenticate when register_device is rejected as already-registered", async () => {
@@ -326,7 +337,7 @@ describe("App navigation", () => {
       await renderApp();
       const validCode = buildSic2Invite({
         serverJoinCode: "ABCD",
-        groupId: "group-1",
+        groupId: nextGroupId(),
       groupName: "同心同行",
         keyMaterialB64Url: "abc123",
         epoch: 0,
@@ -336,7 +347,7 @@ describe("App navigation", () => {
       fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
       fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
-      expect(await screen.findByText("欢迎加入！")).toBeInTheDocument();
+      expect(await screen.findByText("还没有消息")).toBeInTheDocument();
     } finally {
       (globalThis as unknown as { WebSocket: unknown }).WebSocket = original;
     }
@@ -355,7 +366,7 @@ describe("App navigation", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "进入群聊" }));
     expect(await screen.findByText("周末爬山小队")).toBeInTheDocument();
-    expect(screen.getByText("欢迎加入！")).toBeInTheDocument();
+    expect(screen.getByText("还没有消息")).toBeInTheDocument();
   });
 
   it("the group name defaults to '新群聊' if left blank is prevented by the disabled create button", async () => {
@@ -375,7 +386,7 @@ describe("App navigation", () => {
     await renderApp();
     const validCode = buildSic2Invite({
       serverJoinCode: "ABCD",
-      groupId: "group-1",
+      groupId: nextGroupId(),
       groupName: "同心同行",
       keyMaterialB64Url: "abc123",
       epoch: 0,
@@ -384,7 +395,7 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
-    await screen.findByText("欢迎加入！");
+    await screen.findByText("还没有消息");
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
@@ -394,7 +405,7 @@ describe("App navigation", () => {
 
     // Navigate away (this used to unmount ChatScreen and lose its local state).
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
-    await screen.findByText("欢迎加入！");
+    await screen.findByText("第一条消息"); // 列表预览就是这条
 
     // Navigate back in — the earlier message must still be there.
     fireEvent.click(screen.getByText("同心同行"));
@@ -590,7 +601,7 @@ describe("older Android WebView compatibility", () => {
       fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
       fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
-      expect(await screen.findByText("欢迎加入！")).toBeInTheDocument();
+      expect(await screen.findByText("还没有消息")).toBeInTheDocument();
     } finally {
       Object.defineProperty(globalThis.crypto, "randomUUID", { value: real, configurable: true });
     }
@@ -677,9 +688,29 @@ describe("first-time profile setup", () => {
 
 describe("message history persistence", () => {
   it("restores previous messages after the app is restarted", async () => {
+    // 这个测试必须两次进同一个群，否则本来就不该看到历史
+    const sharedGroupId = nextGroupId();
+    const code = buildSic2Invite({
+      serverJoinCode: "ABCD",
+      groupId: sharedGroupId,
+      groupName: "同心同行",
+      keyMaterialB64Url: "abc123",
+      epoch: 0,
+      expiresAtMs: futureExpiry(),
+    });
+    const joinShared = async () => {
+      fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: code } });
+      fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+      await completeProfileIfShown();
+      fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
+      // 等真正进到消息列表。邀请页上也有群名，所以用底部导航（只有消息列表页才有）
+      // 作为判断依据。
+      await screen.findByText("公告");
+    };
+
     // 第一次会话：发一条消息
     await renderApp();
-    await joinTestGroup();
+    await joinShared();
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
     fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "重启前发的消息" } });
@@ -691,7 +722,7 @@ describe("message history persistence", () => {
     cleanup();
 
     await renderApp();
-    await joinTestGroup();
+    await joinShared();
     fireEvent.click(screen.getByText("同心同行"));
 
     expect(await screen.findByText("重启前发的消息")).toBeInTheDocument();
@@ -721,7 +752,7 @@ describe("message history persistence", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: otherCode } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
-    await screen.findByText("欢迎加入！");
+    await screen.findByText("还没有消息");
     // 这是另一个群，列表里显示的是它自己的名字
     fireEvent.click(screen.getByText("另一个群"));
     await screen.findByLabelText("消息输入框");

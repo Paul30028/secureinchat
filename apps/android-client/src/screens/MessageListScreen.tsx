@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { colors, MessageListItem, BottomNav, Button, touchTarget, type BottomNavKey } from "@secureinchat/ui";
 import { AnnouncementCard } from "./MediaBubbleContent";
+import { formatListTime } from "../timeFormat";
 import type { Announcement } from "./ChatScreen";
 
 export interface MessageListScreenProps {
@@ -12,6 +13,8 @@ export interface MessageListScreenProps {
   nickname?: string | undefined;
   /** 当前在线的其他成员（不含自己） */
   onlinePeers?: string[] | undefined;
+  /** 最后一条消息，用于列表预览——之前这里永远显示"欢迎加入！" */
+  lastMessage?: { preview: string; sentAtMs: number } | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -23,6 +26,7 @@ export function MessageListScreen({
   deviceId,
   nickname,
   onlinePeers,
+  lastMessage,
 }: MessageListScreenProps) {
   const [activeTab, setActiveTab] = useState<BottomNavKey>("messages");
   const [title, setTitle] = useState("");
@@ -63,8 +67,8 @@ export function MessageListScreen({
         {activeTab === "messages" ? (
           <MessageListItem
             name={joinedGroupName}
-            previewText={announcement ? announcement.title : "欢迎加入！"}
-            timeLabel="刚刚"
+            previewText={lastMessage ? lastMessage.preview : "还没有消息"}
+            timeLabel={lastMessage ? formatListTime(lastMessage.sentAtMs) : ""}
             onClick={onOpenChat}
           />
         ) : null}
@@ -126,8 +130,8 @@ export function MessageListScreen({
               {deviceId}
             </div>
             <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.6, marginTop: 8 }}>
-              试用版：设备身份和群密钥保存在本浏览器中，清除站点数据会丢失。
-              个人资料、隐私与安全、数据与存储等设置项尚未接入。
+              设备身份、群密钥和聊天记录都加密保存在本机。清除应用数据会全部丢失，
+              且无法从服务器恢复——中继按设计不保存任何聊天内容。
             </p>
           </div>
         )}

@@ -13,12 +13,14 @@ import type { DisplayMessage } from "./screens/ChatScreen";
  * 反过来读出来的时候要重新 createObjectURL 才能渲染。
  */
 
-export function toStored(msg: DisplayMessage, sentAtMs: number, mediaBytes?: Uint8Array): StoredMessage {
+export function toStored(msg: DisplayMessage, mediaBytes?: Uint8Array): StoredMessage {
   const base: StoredMessage = {
     id: msg.id,
     isOwn: msg.isOwn,
     senderLabel: msg.fromDeviceId,
-    sentAtMs,
+    // 用消息自己的时间，不是落盘那一刻——否则重启后所有历史消息
+    // 的时间都会变成最后一次保存的时间
+    sentAtMs: msg.sentAtMs,
     text: msg.text,
   };
   if (!msg.media) return base;
@@ -43,6 +45,7 @@ export function fromStored(stored: StoredMessage): DisplayMessage {
     id: stored.id,
     isOwn: stored.isOwn,
     fromDeviceId: stored.senderLabel,
+    sentAtMs: stored.sentAtMs,
     text: stored.text,
   };
   if (!stored.media) return base;

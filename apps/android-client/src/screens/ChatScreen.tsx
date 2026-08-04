@@ -1,11 +1,14 @@
 import { useRef, useState } from "react";
 import { colors, ChatBubble, Composer, touchTarget } from "@secureinchat/ui";
 import { MediaBubbleContent, AnnouncementCard, type MediaContent } from "./MediaBubbleContent";
+import { formatMessageTime } from "../timeFormat";
 
 export interface DisplayMessage {
   id: string;
   isOwn: boolean;
   fromDeviceId?: string | undefined;
+  /** 发送时间，用于显示真实时间而不是写死的"刚刚" */
+  sentAtMs: number;
   /** 文本消息 */
   text?: string | undefined;
   /** 媒体消息：图片/语音/文件——bytes 已经在本地解密组装好，用 objectUrl 渲染 */
@@ -180,7 +183,12 @@ export function ChatScreen({
           <p style={{ textAlign: "center", color: "#9A9A94", fontSize: 12, marginTop: 24 }}>还没有消息，说点什么吧</p>
         ) : (
           messages.map((m) => (
-            <ChatBubble key={m.id} isOwn={m.isOwn} timeLabel="刚刚" senderName={m.isOwn ? undefined : m.fromDeviceId}>
+            <ChatBubble
+              key={m.id}
+              isOwn={m.isOwn}
+              timeLabel={formatMessageTime(m.sentAtMs)}
+              senderName={m.isOwn ? undefined : m.fromDeviceId}
+            >
               {m.media ? <MediaBubbleContent media={m.media} isOwn={m.isOwn} /> : m.text}
             </ChatBubble>
           ))
