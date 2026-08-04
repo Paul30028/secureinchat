@@ -6,3 +6,4 @@ export * from "./relayClient";
 export * from "./messageEnvelope";
 export * from "./fileTransfer";
 export * from "./messageStore";
+export * from "./groupStore";
