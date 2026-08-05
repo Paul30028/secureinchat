@@ -77,7 +77,12 @@ describe("buildReplyExcerpt", () => {
 
 describe("copyToClipboard", () => {
   beforeEach(() => {
-    Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
+    // Node 21 以下没有全局 navigator（CI 跑的就是 Node 20），
+    // 所以不能假设它存在——需要时自己建一个。
+    if (typeof globalThis.navigator === "undefined") {
+      Object.defineProperty(globalThis, "navigator", { value: {}, configurable: true, writable: true });
+    }
+    Object.assign(globalThis.navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
   });
 
   it("returns true on success", async () => {
@@ -85,8 +90,26 @@ describe("copyToClipboard", () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith("hello");
   });
 
-  it("returns false instead of throwing when the clipboard is unavailable", async () => {
-    Object.assign(navigator, { clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) } });
+  it("returns false rather than throwing when there is no global navigator at all", async () => {
+    // CI 跑的 Node 20 就是这种情况——navigator 是 Node 21 才加的全局。
+    // 直接访问会抛 ReferenceError，catch 都接不住。
+    const saved = globalThis.navigator;
+    // @ts-expect-error deliberately removing the global
+    delete globalThis.navigator;
+    try {
+      expect(await copyToClipboard("x")).toBe(false);
+    } finally {
+      Object.defineProperty(globalThis, "navigator", { value: saved, configurable: true, writable: true });
+    }
+  });
+
+  it("returns false when there is no clipboard API at all (old WebView / insecure context)", async () => {
+    Object.defineProperty(globalThis, "navigator", { value: {}, configurable: true, writable: true });
+    expect(await copyToClipboard("hello")).toBe(false);
+  });
+
+  it("returns false instead of throwing when the clipboard write is rejected", async () => {
+    Object.assign(globalThis.navigator, { clipboard: { writeText: vi.fn().mockRejectedValue(new Error("denied")) } });
     expect(await copyToClipboard("hello")).toBe(false);
   });
 });

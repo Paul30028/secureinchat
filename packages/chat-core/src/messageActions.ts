@@ -52,8 +52,13 @@ export function buildReplyExcerpt(message: SearchableMessage): string {
 /** 复制到剪贴板。失败（权限被拒/不支持）返回 false 而不是抛错——
  *  调用方据此决定是否提示用户，不该因为复制失败让界面崩掉。 */
 export async function copyToClipboard(text: string): Promise<boolean> {
+  // navigator 在 Node 21 以下和某些运行时里根本不存在，剪贴板 API 在
+  // 非安全上下文里也可能缺失——直接访问会抛 ReferenceError，
+  // 而不是走进下面的 catch。
+  const nav = typeof navigator === "undefined" ? undefined : navigator;
+  if (!nav?.clipboard?.writeText) return false;
   try {
-    await navigator.clipboard.writeText(text);
+    await nav.clipboard.writeText(text);
     return true;
   } catch {
     return false;
