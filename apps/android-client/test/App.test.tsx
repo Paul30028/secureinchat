@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, waitForElementToBeRemoved, cleanup } from "@testing-library/react";
 import { buildSic1Invite, buildSic2Invite } from "@secureinchat/protocol";
 import { App } from "../src/App";
@@ -862,5 +862,95 @@ describe("multiple groups", () => {
     // 未读角标要能出现（此处直接断言列表仍然渲染该群且可点击进入）
     expect(screen.getByText("读书会")).toBeInTheDocument();
     expect(await screen.findByText("1 位成员在线")).toBeInTheDocument();
+  });
+});
+
+describe("message actions", () => {
+  async function openChatWithMessage(text: string) {
+    await renderApp();
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: text } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    return await screen.findByText(text);
+  }
+
+  it("long-pressing a message opens the action sheet", async () => {
+    const bubble = await openChatWithMessage("测试消息");
+    fireEvent.contextMenu(bubble);
+
+    expect(await screen.findByRole("dialog", { name: "消息操作" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "复制" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "回复" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "删除本机消息" })).toBeInTheDocument();
+  });
+
+  it("states plainly that deleting is local only", async () => {
+    const bubble = await openChatWithMessage("测试消息");
+    fireEvent.contextMenu(bubble);
+    expect(await screen.findByText("删除只影响这台设备，对方仍然能看到")).toBeInTheDocument();
+  });
+
+  it("copying a message writes it to the clipboard", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+
+    const bubble = await openChatWithMessage("要复制的内容");
+    fireEvent.contextMenu(bubble);
+    fireEvent.click(await screen.findByRole("button", { name: "复制" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("要复制的内容"));
+  });
+
+  it("deleting removes the message from the chat", async () => {
+    const bubble = await openChatWithMessage("要删除的消息");
+    fireEvent.contextMenu(bubble);
+    fireEvent.click(await screen.findByRole("button", { name: "删除本机消息" }));
+
+    await waitFor(() => expect(screen.queryByText("要删除的消息")).not.toBeInTheDocument());
+  });
+
+  it("choosing reply shows a reply banner above the composer, and it can be cancelled", async () => {
+    const bubble = await openChatWithMessage("被回复的消息");
+    fireEvent.contextMenu(bubble);
+    fireEvent.click(await screen.findByRole("button", { name: "回复" }));
+
+    // 取消回复按钮只在回复横幅里有，用它作为横幅出现的判据
+    expect(await screen.findByLabelText("取消回复")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("取消回复"));
+    await waitFor(() => expect(screen.queryByLabelText("取消回复")).not.toBeInTheDocument());
+  });
+});
+
+describe("message search", () => {
+  it("finds a message by keyword and reports nothing for a miss", async () => {
+    await renderApp();
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "今晚七点聚会" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    await screen.findByText("今晚七点聚会");
+
+    fireEvent.click(screen.getByLabelText("搜索消息"));
+    const input = await screen.findByLabelText("搜索关键词输入框");
+
+    fireEvent.change(input, { target: { value: "聚会" } });
+    expect(await screen.findByText("找到 1 条")).toBeInTheDocument();
+
+    fireEvent.change(input, { target: { value: "不存在的词" } });
+    expect(await screen.findByText(/没有找到包含/)).toBeInTheDocument();
+  });
+
+  it("shows a prompt before anything is typed rather than listing every message", async () => {
+    await renderApp();
+    await joinTestGroup();
+    fireEvent.click(screen.getByText("同心同行"));
+    await screen.findByLabelText("消息输入框");
+    fireEvent.click(screen.getByLabelText("搜索消息"));
+
+    expect(await screen.findByText("输入关键词搜索本群的消息")).toBeInTheDocument();
   });
 });

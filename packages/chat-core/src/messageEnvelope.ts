@@ -23,6 +23,14 @@ export interface TextEnvelope {
   /** 发送者昵称。在加密载荷内部，中继看不到。老版本客户端发的消息没有这个字段，
    *  接收方要能容忍缺失（回退到设备 ID 短前缀）。 */
   senderName?: string;
+  /** 回复的目标消息。整段在加密载荷里，中继看不到引用了什么。
+   *  存的是快照而不是消息 ID——对方可能已经把原消息删了，
+   *  或者根本没收到过（比如他是后来才加入的）。 */
+  replyTo?: {
+    senderName: string;
+    /** 被引用消息的摘要，最多截断到 60 字 */
+    excerpt: string;
+  };
 }
 
 export interface AnnouncementEnvelope {

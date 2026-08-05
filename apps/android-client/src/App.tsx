@@ -11,6 +11,8 @@ import {
   loadJoinedGroups,
   saveJoinedGroups,
   upsertGroup,
+  copyToClipboard,
+  buildReplyExcerpt,
   type ConnectionStatus,
 } from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
@@ -25,6 +27,7 @@ import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
 import { randomUUID } from "@secureinchat/crypto-core";
 import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
 import { ServerSettingsScreen } from "./screens/ServerSettingsScreen";
+import { MessageSearchScreen } from "./screens/MessageSearchScreen";
 import { loadSavedRelayUrl } from "./relayUrlSetting";
 import { ProfileSetupScreen } from "./screens/ProfileSetupScreen";
 import { loadNickname, saveNickname, displayNameFor } from "./profile";
@@ -65,7 +68,7 @@ type Screen =
       name: "connected";
       /** 当前打开的群；null 表示在群列表页 */
       activeGroupId: string | null;
-      view: "list" | "chat";
+      view: "list" | "chat" | "search";
       deviceId: string;
       call?: ActiveCall | undefined;
     };
@@ -108,6 +111,8 @@ export function App() {
   // 会话不放在 screen 里——导航到别的页面（比如去加入另一个群）不该断开
   // 已经连上的群。之前放在 screen 里时，回启动页会把所有连接一起丢掉。
   const [sessions, setSessions] = useState<GroupSessions>({});
+  /** 正在回复的消息（每个群独立） */
+  const [replyTarget, setReplyTarget] = useState<DisplayMessage | null>(null);
   const [nickname, setNickname] = useState<string | undefined>(undefined);
   // 设置完昵称后要重新执行用户原本的动作，但那个回调是设置之前创建的闭包，
   // 里面读到的还是旧的 nickname（undefined），会被再拦一次。用 ref 读当前值。
@@ -237,6 +242,7 @@ export function App() {
           // 用发送方带过来的时间，不是本机收到的时间——离线补发的消息
           // 应该显示当初发出的时刻
           sentAtMs: env.sentAtMs,
+          ...(env.replyTo ? { replyTo: env.replyTo } : {}),
         });
         return;
       }
@@ -402,6 +408,25 @@ export function App() {
     });
   }
 
+  function handleCopyMessage(message: DisplayMessage) {
+    if (!message.text) return;
+    void copyToClipboard(message.text);
+  }
+
+  /** 删除只影响本机——中继不存消息，也没有"撤回"这种协议动作 */
+  async function handleDeleteMessage(messageId: string) {
+    const session = activeSession();
+    if (!session) return;
+    const store = await getDeviceStore();
+    setSessions((prev) => {
+      const s = prev[session.groupId];
+      if (!s) return prev;
+      const messages = s.messages.filter((m) => m.id !== messageId);
+      void saveMessages(store, session.groupId, messages.map((m) => toStored(m)));
+      return patchSession(prev, session.groupId, { messages });
+    });
+  }
+
   async function handleSendMessage(text: string) {
     const session = activeSession();
     if (!session) return;
@@ -410,12 +435,33 @@ export function App() {
     try {
       // sendText 现在断线时会排队而不是抛错——排队也算"发出去了"，
       // 连接状态横幅会告诉用户还有几条在等待，不需要再报一次"发送失败"
-      await client.sendText(text, nickname);
+      const reply = replyTarget
+        ? {
+            senderName: replyTarget.isOwn ? (nickname ?? "我") : (replyTarget.fromDeviceId ?? "对方"),
+            excerpt: buildReplyExcerpt({
+              id: replyTarget.id,
+              text: replyTarget.text,
+              media: replyTarget.media ? { fileName: replyTarget.media.fileName } : undefined,
+              sentAtMs: replyTarget.sentAtMs,
+            }),
+          }
+        : undefined;
+
+      await client.sendEnvelope({
+        kind: "text",
+        id: randomUUID(),
+        text,
+        sentAtMs: Date.now(),
+        ...(nickname ? { senderName: nickname } : {}),
+        ...(reply ? { replyTo: reply } : {}),
+      });
+      setReplyTarget(null);
       await appendOwnMessage(groupId, {
         id: `sent-${nextMessageId++}`,
         text,
         isOwn: true,
         sentAtMs: Date.now(),
+        ...(reply ? { replyTo: reply } : {}),
       });
     } catch {
       setSessions((prev) => patchSession(prev, groupId, { sendError: "发送失败，请检查连接" }));
@@ -610,6 +656,16 @@ export function App() {
     );
   }
 
+  if (screen.view === "search") {
+    return (
+      <MessageSearchScreen
+        groupName={active.groupName}
+        messages={active.messages}
+        onBack={() => setScreen({ ...screen, view: "chat" })}
+      />
+    );
+  }
+
   return (
     <ChatScreen
       groupName={active.groupName}
@@ -623,7 +679,15 @@ export function App() {
       onStartCall={(kind, peer) => void handleStartCall(kind, peer)}
       onSend={handleSendMessage}
       onSendFile={handleSendFile}
-      onBack={() => setScreen({ ...screen, view: "list" })}
+      onCopyMessage={handleCopyMessage}
+      onDeleteMessage={(id) => void handleDeleteMessage(id)}
+      onSetReplyTarget={setReplyTarget}
+      replyTarget={replyTarget}
+      onOpenSearch={() => setScreen({ ...screen, view: "search" })}
+      onBack={() => {
+        setReplyTarget(null);
+        setScreen({ ...screen, view: "list" });
+      }}
     />
   );
 }

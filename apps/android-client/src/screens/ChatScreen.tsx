@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { colors, ChatBubble, Composer, touchTarget } from "@secureinchat/ui";
 import { MediaBubbleContent, AnnouncementCard, type MediaContent } from "./MediaBubbleContent";
 import { formatMessageTime } from "../timeFormat";
+import { MessageActionSheet, type MessageAction } from "./MessageActionSheet";
 
 export interface DisplayMessage {
   id: string;
@@ -13,6 +14,8 @@ export interface DisplayMessage {
   text?: string | undefined;
   /** 媒体消息：图片/语音/文件——bytes 已经在本地解密组装好，用 objectUrl 渲染 */
   media?: MediaContent | undefined;
+  /** 引用的消息（快照，不是 ID——对方可能已经删了原消息） */
+  replyTo?: { senderName: string; excerpt: string } | undefined;
 }
 
 export interface Announcement {
@@ -26,6 +29,12 @@ export interface ChatScreenProps {
   messages: DisplayMessage[];
   announcement?: Announcement | undefined;
   onSend: (text: string) => Promise<void>;
+  onCopyMessage: (message: DisplayMessage) => void;
+  onDeleteMessage: (messageId: string) => void;
+  /** 选中要回复的消息；传 null 取消回复 */
+  onSetReplyTarget: (message: DisplayMessage | null) => void;
+  replyTarget?: DisplayMessage | null | undefined;
+  onOpenSearch: () => void;
   onSendFile: (file: File, mediaKind: "image" | "voice" | "file") => Promise<void>;
   sendError?: string | undefined;
   connectionStatus?: "connecting" | "connected" | "reconnecting" | "disconnected" | undefined;
@@ -81,6 +90,11 @@ export function ChatScreen({
   announcement,
   onSend,
   onSendFile,
+  onCopyMessage,
+  onDeleteMessage,
+  onSetReplyTarget,
+  replyTarget,
+  onOpenSearch,
   sendError,
   connectionStatus,
   pendingCount,
@@ -92,6 +106,8 @@ export function ChatScreen({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isRecording, setIsRecording] = useState(false);
+  /** 长按选中的消息，弹出操作面板 */
+  const [actionTarget, setActionTarget] = useState<DisplayMessage | null>(null);
   const [recordError, setRecordError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
 
@@ -134,6 +150,13 @@ export function ChatScreen({
           ←
         </button>
         <span style={{ fontSize: 16, fontWeight: 500, color: colors.deepInkGreen, flex: 1 }}>{groupName}</span>
+        <button
+          onClick={onOpenSearch}
+          aria-label="搜索消息"
+          style={{ ...callBtnStyle, fontSize: 16 }}
+        >
+          🔍
+        </button>
         {/* 通话按钮常驻显示。之前是"没有在线成员就整个隐藏"，结果用户
             以为功能不存在——现在改成禁用+说明，一眼能看出为什么点不了。 */}
         <button
@@ -183,14 +206,36 @@ export function ChatScreen({
           <p style={{ textAlign: "center", color: "#9A9A94", fontSize: 12, marginTop: 24 }}>还没有消息，说点什么吧</p>
         ) : (
           messages.map((m) => (
-            <ChatBubble
+            <div
               key={m.id}
-              isOwn={m.isOwn}
-              timeLabel={formatMessageTime(m.sentAtMs)}
-              senderName={m.isOwn ? undefined : m.fromDeviceId}
+              onContextMenu={(e) => {
+                // 长按在移动端触发 contextmenu；桌面端右键也走这里
+                e.preventDefault();
+                setActionTarget(m);
+              }}
             >
-              {m.media ? <MediaBubbleContent media={m.media} isOwn={m.isOwn} /> : m.text}
-            </ChatBubble>
+              <ChatBubble
+                isOwn={m.isOwn}
+                timeLabel={formatMessageTime(m.sentAtMs)}
+                senderName={m.isOwn ? undefined : m.fromDeviceId}
+              >
+                {m.replyTo ? (
+                  <div
+                    style={{
+                      borderLeft: `2px solid ${m.isOwn ? "rgba(235,236,229,0.5)" : colors.sageMint}`,
+                      paddingLeft: 8,
+                      marginBottom: 6,
+                      fontSize: 12,
+                      opacity: 0.75,
+                    }}
+                  >
+                    <div style={{ fontWeight: 500 }}>{m.replyTo.senderName}</div>
+                    <div>{m.replyTo.excerpt}</div>
+                  </div>
+                ) : null}
+                {m.media ? <MediaBubbleContent media={m.media} isOwn={m.isOwn} /> : m.text}
+              </ChatBubble>
+            </div>
           ))
         )}
 
@@ -239,6 +284,52 @@ export function ChatScreen({
           }}
         />
 
+        {replyTarget ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              margin: "6px 10px 0",
+              padding: "6px 10px",
+              background: `${colors.sageMint}44`,
+              borderRadius: 10,
+              fontSize: 12,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: colors.deepInkGreen, fontWeight: 500 }}>
+                回复 {replyTarget.isOwn ? "自己" : (replyTarget.fromDeviceId ?? "对方")}
+              </div>
+              <div
+                style={{
+                  color: "#8A8A82",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {replyTarget.text ?? replyTarget.media?.fileName ?? ""}
+              </div>
+            </div>
+            <button
+              onClick={() => onSetReplyTarget(null)}
+              aria-label="取消回复"
+              style={{
+                minHeight: touchTarget.minDp,
+                minWidth: touchTarget.minDp,
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+                color: "#8A8A82",
+                cursor: "pointer",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
+
         <div style={{ padding: "6px 10px 0" }}>
           <Composer onSend={onSend} />
         </div>
@@ -270,6 +361,21 @@ export function ChatScreen({
           </button>
         </div>
       </div>
+
+      {actionTarget ? (
+        <MessageActionSheet
+          excerpt={actionTarget.text ?? actionTarget.media?.fileName ?? ""}
+          canCopy={Boolean(actionTarget.text)}
+          onCancel={() => setActionTarget(null)}
+          onAction={(action: MessageAction) => {
+            const target = actionTarget;
+            setActionTarget(null);
+            if (action === "copy") onCopyMessage(target);
+            else if (action === "delete") onDeleteMessage(target.id);
+            else onSetReplyTarget(target);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
