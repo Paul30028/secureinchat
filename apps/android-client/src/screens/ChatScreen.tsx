@@ -336,7 +336,7 @@ export function ChatScreen({
         <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px 0" }}>
           <button
             onClick={() => setAttachOpen((v) => !v)}
-            aria-label={attachOpen ? "收起附件选项" : "添加图片、文件或语音"}
+            aria-label={attachOpen ? "收起附件选项" : "添加图片或文件"}
             style={{
               minHeight: touchTarget.minDp,
               minWidth: touchTarget.minDp,
@@ -353,7 +353,7 @@ export function ChatScreen({
             ＋
           </button>
           <div style={{ flex: 1 }}>
-            <Composer onSend={onSend} />
+            <Composer onSend={onSend} onStartVoice={() => void startRecording()} />
           </div>
         </div>
 
@@ -380,17 +380,6 @@ export function ChatScreen({
             >
               📎
               <span style={toolbarLabelStyle}>文件</span>
-            </button>
-            <button
-              onClick={() => {
-                setAttachOpen(false);
-                void startRecording();
-              }}
-              aria-label="录制语音"
-              style={toolbarButtonStyle(colors.deepInkGreen)}
-            >
-              🎤
-              <span style={toolbarLabelStyle}>语音</span>
             </button>
           </div>
         ) : null}

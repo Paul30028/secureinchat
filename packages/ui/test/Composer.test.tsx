@@ -66,3 +66,47 @@ describe("Composer", () => {
     expect(btn.style.minWidth).toBe("48px");
   });
 });
+
+describe("Composer mic/send slot swap", () => {
+  it("shows 录制语音 in the send slot while the input is empty", () => {
+    render(<Composer onSend={() => {}} onStartVoice={() => {}} />);
+    expect(screen.getByLabelText("录制语音")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "发送" })).not.toBeInTheDocument();
+  });
+
+  it("swaps to 发送 as soon as something is typed", () => {
+    render(<Composer onSend={() => {}} onStartVoice={() => {}} />);
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "你好" } });
+
+    expect(screen.getByRole("button", { name: "发送" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("录制语音")).not.toBeInTheDocument();
+  });
+
+  it("swaps back to the mic when the text is cleared", () => {
+    render(<Composer onSend={() => {}} onStartVoice={() => {}} />);
+    const input = screen.getByLabelText("消息输入框");
+    fireEvent.change(input, { target: { value: "你好" } });
+    fireEvent.change(input, { target: { value: "" } });
+
+    expect(screen.getByLabelText("录制语音")).toBeInTheDocument();
+  });
+
+  it("treats whitespace-only input as empty (still shows the mic)", () => {
+    render(<Composer onSend={() => {}} onStartVoice={() => {}} />);
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "   " } });
+    expect(screen.getByLabelText("录制语音")).toBeInTheDocument();
+  });
+
+  it("calls onStartVoice when the mic is tapped", () => {
+    const onStartVoice = vi.fn();
+    render(<Composer onSend={() => {}} onStartVoice={onStartVoice} />);
+    fireEvent.click(screen.getByLabelText("录制语音"));
+    expect(onStartVoice).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to a permanently disabled 发送 button when no voice handler is given", () => {
+    render(<Composer onSend={() => {}} />);
+    expect(screen.getByRole("button", { name: "发送" })).toBeDisabled();
+    expect(screen.queryByLabelText("录制语音")).not.toBeInTheDocument();
+  });
+});
