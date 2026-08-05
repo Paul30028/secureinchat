@@ -16,7 +16,7 @@ import {
   type ConnectionStatus,
 } from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
-import { SplashScreen } from "./screens/SplashScreen";
+import { JoinGroupScreen } from "./screens/JoinGroupScreen";
 import { InviteScreen } from "./screens/InviteScreen";
 import { CreateGroupScreen } from "./screens/CreateGroupScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
@@ -52,7 +52,7 @@ interface ActiveCall {
 }
 
 type Screen =
-  | { name: "splash" }
+  | { name: "join" }
   | { name: "createGroup" }
   | { name: "serverSettings" }
   | {
@@ -105,7 +105,7 @@ function mapParseErrorReason(reason: InviteParseError["reason"]): "expired" | "e
 let nextMessageId = 0;
 
 export function App() {
-  const [screen, setScreen] = useState<Screen>({ name: "splash" });
+  const [screen, setScreen] = useState<Screen>({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
   // 应用内配置的中继地址优先于构建时注入的默认值——换服务器不用重新打包
   const [relayUrl, setRelayUrl] = useState<string>(RELAY_URL);
   // 会话不放在 screen 里——导航到别的页面（比如去加入另一个群）不该断开
@@ -558,16 +558,15 @@ export function App() {
     return <ProfileSetupScreen onDone={handleProfileDone} />;
   }
 
-  if (screen.name === "splash") {
+  if (screen.name === "join") {
     return (
-      <SplashScreen
+      <JoinGroupScreen
         onSubmitInviteCode={handleSubmitInviteCode}
         onCreateGroup={() => {
           const go = () => setScreen({ name: "createGroup" });
           if (!requireProfile(go)) go();
         }}
-        onOpenServerSettings={() => setScreen({ name: "serverSettings" })}
-        relayUrl={relayUrl}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
       />
     );
   }
@@ -577,13 +576,13 @@ export function App() {
       <ServerSettingsScreen
         defaultUrl={RELAY_URL}
         onSaved={(url) => setRelayUrl(url)}
-        onBack={() => setScreen({ name: "splash" })}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
       />
     );
   }
 
   if (screen.name === "createGroup") {
-    return <CreateGroupScreen onBack={() => setScreen({ name: "splash" })} onCreated={handleGroupCreated} />;
+    return <CreateGroupScreen onBack={() => setScreen({ name: "join" })} onCreated={handleGroupCreated} />;
   }
 
   if (screen.name === "invite") {
@@ -592,14 +591,14 @@ export function App() {
         invite={screen.invite}
         isConfirming={screen.isConfirming}
         errorMessage={screen.errorMessage}
-        onBack={() => setScreen({ name: "splash" })}
+        onBack={() => setScreen({ name: "join" })}
         onConfirm={handleConfirmJoin}
       />
     );
   }
 
   // 有通话时，通话界面优先于消息列表/聊天页显示
-  if (screen.call) {
+  if (screen.name === "connected" && screen.call) {
     const call = screen.call;
     const callSession = activeSession();
     return (
@@ -643,7 +642,7 @@ export function App() {
             prev.name === "connected" ? { ...prev, activeGroupId: groupId, view: "chat" } : prev
           );
         }}
-        onJoinAnotherGroup={() => setScreen({ name: "splash" })}
+        onJoinAnotherGroup={() => setScreen({ name: "join" })}
         announcement={
           // 在列表页时没有"当前打开的群"，所以显示任意一个有公告的群的公告。
           // 多群场景下公告应该按群分开展示，那是后续的事。
@@ -652,6 +651,8 @@ export function App() {
         onPublishAnnouncement={handlePublishAnnouncement}
         deviceId={screen.deviceId}
         nickname={nickname}
+        onOpenServerSettings={() => setScreen({ name: "serverSettings" })}
+        relayUrl={relayUrl}
       />
     );
   }

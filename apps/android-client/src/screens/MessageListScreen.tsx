@@ -21,6 +21,8 @@ export interface MessageListScreenProps {
   onPublishAnnouncement: (title: string, body: string) => Promise<void>;
   deviceId: string;
   nickname?: string | undefined;
+  onOpenServerSettings: () => void;
+  relayUrl: string;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -32,6 +34,8 @@ export function MessageListScreen({
   onPublishAnnouncement,
   deviceId,
   nickname,
+  onOpenServerSettings,
+  relayUrl,
 }: MessageListScreenProps) {
   const [activeTab, setActiveTab] = useState<BottomNavKey>("messages");
   const [title, setTitle] = useState("");
@@ -71,6 +75,16 @@ export function MessageListScreen({
       <div style={{ flex: 1, padding: "0 12px" }}>
         {activeTab === "messages" ? (
           <div style={{ display: "flex", flexDirection: "column" }}>
+            {groups.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "48px 16px 24px" }}>
+                <div style={{ fontSize: 15, color: colors.textPrimary, marginBottom: 6 }}>还没有加入任何群聊</div>
+                <div style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7 }}>
+                  这个应用只能通过邀请码加入，
+                  <br />
+                  没有搜索、没有好友列表、也不需要手机号。
+                </div>
+              </div>
+            ) : null}
             {groups.map((g) => (
               <div key={g.groupId}>
                 <MessageListItem
@@ -153,6 +167,25 @@ export function MessageListScreen({
             <div style={{ fontSize: 11, color: "#8A8A82", wordBreak: "break-all", fontFamily: "monospace" }}>
               {deviceId}
             </div>
+            <button
+              onClick={onOpenServerSettings}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 12,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>服务器设置</div>
+              <div style={{ fontSize: 11, color: "#9A9A94", fontFamily: "monospace", wordBreak: "break-all" }}>
+                {relayUrl}
+              </div>
+            </button>
+
             <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.6, marginTop: 8 }}>
               设备身份、群密钥和聊天记录都加密保存在本机。清除应用数据会全部丢失，
               且无法从服务器恢复——中继按设计不保存任何聊天内容。
