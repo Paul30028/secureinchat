@@ -108,6 +108,9 @@ export function ChatScreen({
   const [isRecording, setIsRecording] = useState(false);
   /** 长按选中的消息，弹出操作面板 */
   const [actionTarget, setActionTarget] = useState<DisplayMessage | null>(null);
+  /** 附件面板是否展开。默认收起，让"发送"是这一屏唯一突出的主按钮
+   *  （对应需求第六节"每页只有一个突出主按钮"）。 */
+  const [attachOpen, setAttachOpen] = useState(false);
   const [recordError, setRecordError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
 
@@ -330,36 +333,89 @@ export function ChatScreen({
           </div>
         ) : null}
 
-        <div style={{ padding: "6px 10px 0" }}>
-          <Composer onSend={onSend} />
+        <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px 0" }}>
+          <button
+            onClick={() => setAttachOpen((v) => !v)}
+            aria-label={attachOpen ? "收起附件选项" : "添加图片、文件或语音"}
+            style={{
+              minHeight: touchTarget.minDp,
+              minWidth: touchTarget.minDp,
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+              color: colors.deepInkGreen,
+              fontSize: 22,
+              cursor: "pointer",
+              transform: attachOpen ? "rotate(45deg)" : "none",
+              transition: "transform 120ms",
+            }}
+          >
+            ＋
+          </button>
+          <div style={{ flex: 1 }}>
+            <Composer onSend={onSend} />
+          </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "stretch", padding: "0 6px 4px" }}>
-          <button
-            onClick={() => imageInputRef.current?.click()}
-            aria-label="发送图片"
-            style={toolbarButtonStyle(colors.deepInkGreen)}
-          >
-            🖼️
-            <span style={toolbarLabelStyle}>图片</span>
-          </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="发送文件"
-            style={toolbarButtonStyle(colors.deepInkGreen)}
-          >
-            📎
-            <span style={toolbarLabelStyle}>文件</span>
-          </button>
-          <button
-            onClick={isRecording ? stopRecording : startRecording}
-            aria-label={isRecording ? "停止录音并发送" : "录制语音"}
-            style={toolbarButtonStyle(isRecording ? "#A33" : colors.deepInkGreen)}
-          >
-            {isRecording ? "⏹" : "🎤"}
-            <span style={toolbarLabelStyle}>{isRecording ? "停止" : "语音"}</span>
-          </button>
-        </div>
+        {attachOpen ? (
+          <div style={{ display: "flex", alignItems: "stretch", padding: "0 6px 4px" }}>
+            <button
+              onClick={() => {
+                setAttachOpen(false);
+                imageInputRef.current?.click();
+              }}
+              aria-label="发送图片"
+              style={toolbarButtonStyle(colors.deepInkGreen)}
+            >
+              🖼️
+              <span style={toolbarLabelStyle}>图片</span>
+            </button>
+            <button
+              onClick={() => {
+                setAttachOpen(false);
+                fileInputRef.current?.click();
+              }}
+              aria-label="发送文件"
+              style={toolbarButtonStyle(colors.deepInkGreen)}
+            >
+              📎
+              <span style={toolbarLabelStyle}>文件</span>
+            </button>
+            <button
+              onClick={() => {
+                setAttachOpen(false);
+                void startRecording();
+              }}
+              aria-label="录制语音"
+              style={toolbarButtonStyle(colors.deepInkGreen)}
+            >
+              🎤
+              <span style={toolbarLabelStyle}>语音</span>
+            </button>
+          </div>
+        ) : null}
+
+        {isRecording ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px 6px" }}>
+            <button
+              onClick={stopRecording}
+              aria-label="停止录音并发送"
+              style={{
+                minHeight: touchTarget.minDp,
+                width: "100%",
+                background: "#A33",
+                color: colors.ivory,
+                border: "none",
+                borderRadius: 12,
+                fontSize: 14,
+                cursor: "pointer",
+                boxShadow: "none",
+              }}
+            >
+              ⏹ 录音中，点击结束并发送
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {actionTarget ? (

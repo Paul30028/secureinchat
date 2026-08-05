@@ -389,12 +389,15 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("群聊名称输入框"), { target: { value: "周末爬山小队" } });
     fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
 
-    // A SIC2 invite code should now be displayed for sharing.
+    // 邀请码现在呈现为一张可截图分享的卡片（群名 + 二维码 + 邀请码）
+    expect(await screen.findByLabelText("邀请二维码")).toBeInTheDocument();
     const codeEl = await screen.findByText(/^SIC2\./);
     expect(codeEl.textContent).toMatch(/^SIC2\./);
 
     fireEvent.click(screen.getByRole("button", { name: "进入群聊" }));
-    expect(await screen.findByText("周末爬山小队")).toBeInTheDocument();
+    // 群名在卡片上也有，用只有群列表才有的底部导航判断是否真的进去了
+    await screen.findByText("我的");
+    expect(screen.getByText("周末爬山小队")).toBeInTheDocument();
     expect(screen.getByText("还没有消息")).toBeInTheDocument();
   });
 
@@ -503,15 +506,26 @@ describe("App navigation", () => {
     expect(screen.getByText(/2\.0 KB · 已加密/)).toBeInTheDocument();
   });
 
-  it("the chat screen exposes image, file, and voice controls", async () => {
+  it("keeps 发送 as the only prominent action, with attachments behind a + toggle", async () => {
     await renderApp();
     await joinTestGroup();
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
-    expect(screen.getByLabelText("发送图片")).toBeInTheDocument();
+    // 默认收起：这一屏只有"发送"一个突出按钮（需求第六节）
+    expect(screen.queryByLabelText("发送图片")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("发送文件")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("录制语音")).not.toBeInTheDocument();
+
+    // 展开后三个附件选项才出现
+    fireEvent.click(screen.getByLabelText("添加图片、文件或语音"));
+    expect(await screen.findByLabelText("发送图片")).toBeInTheDocument();
     expect(screen.getByLabelText("发送文件")).toBeInTheDocument();
     expect(screen.getByLabelText("录制语音")).toBeInTheDocument();
+
+    // 再点收起
+    fireEvent.click(screen.getByLabelText("收起附件选项"));
+    expect(screen.queryByLabelText("发送图片")).not.toBeInTheDocument();
   });
 
   it("disables (rather than hides) call buttons when nobody else is online", async () => {

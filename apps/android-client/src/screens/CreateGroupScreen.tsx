@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { colors, touchTarget, Button, CopyableCode } from "@secureinchat/ui";
+import { colors, touchTarget, Button, InviteShareCard } from "@secureinchat/ui";
 import { buildSic2Invite } from "@secureinchat/protocol";
-import { randomUUID } from "@secureinchat/crypto-core";
+import { randomUUID, } from "@secureinchat/crypto-core";
+import { copyToClipboard } from "@secureinchat/chat-core";
 
 export interface CreateGroupScreenProps {
   onCreated: (input: {
@@ -113,10 +114,14 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <p style={{ fontSize: 13, color: "#8A8A82" }}>
-            {groupName} 已创建。把下面的邀请码发给你想邀请的人，他们粘贴进"输入邀请码"就能加入。
+          <p style={{ fontSize: 12, color: "#8A8A82", textAlign: "center" }}>
+            截图这张卡片发出去，或让对方扫码加入
           </p>
-          <CopyableCode value={inviteCode} label="邀请码" />
+          <InviteShareCard
+            groupName={groupName || "新群聊"}
+            inviteCode={inviteCode}
+            onCopy={() => void copyToClipboard(inviteCode)}
+          />
           <Button variant="primary" onClick={handleEnter} disabled={isEntering}>
             {isEntering ? "正在进入..." : "进入群聊"}
           </Button>
