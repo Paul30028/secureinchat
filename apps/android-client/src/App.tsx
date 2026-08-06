@@ -114,6 +114,10 @@ export function App() {
   // setSessions 是异步的，而"这是不是第一个群"要在下一次 connect 前就准确——
   // 用 ref 镜像一份当前值供同步判断
   const sessionsRef = useRef<GroupSessions>({});
+  // 启动时的自动重连期间为 true，用来区分"用户主动加入"和"后台恢复"
+  const isAutoReconnectRef = useRef(false);
+  // 从聊天页返回时要落在消息 tab，而不是默认的公告 tab
+  const cameFromChatRef = useRef(false);
   /** 正在回复的消息（每个群独立） */
   const [replyTarget, setReplyTarget] = useState<DisplayMessage | null>(null);
   const [nickname, setNickname] = useState<string | undefined>(undefined);
@@ -147,6 +151,7 @@ export function App() {
     void (async () => {
       const store = await getDeviceStore();
       const groups = await loadJoinedGroups(store);
+      isAutoReconnectRef.current = true;
       for (const g of groups) {
         try {
           await connectToGroup(
@@ -164,6 +169,7 @@ export function App() {
           // 这个群连不上就跳过，继续连下一个
         }
       }
+      isAutoReconnectRef.current = false;
     })();
   }, []);
   // 信令回调是在 connectToGroup 里一次性注册的闭包，拿不到最新的 screen——
@@ -321,10 +327,12 @@ export function App() {
     // 是不是第一个群，要在调用 setSessions 之前判断——不能把 setScreen 放进
     // updater 里，React 会重复调用 updater，在里面做副作用不可靠。
     const isFirstGroup = Object.keys(sessionsRef.current).length === 0;
+    // 启动时自动重连不该抢走界面——只有用户主动加入才跳进聊天
+    const shouldOpenChat = isFirstGroup && !isAutoReconnectRef.current;
     sessionsRef.current = { ...sessionsRef.current, [groupId]: session };
     setSessions(sessionsRef.current);
 
-    if (isFirstGroup) {
+    if (shouldOpenChat) {
       // 唯一一个群时直接进聊天——小团体绝大多数只有一个群，先显示一个只有
       // 一行的列表再让用户点一下，那一下是白点的。从聊天页"返回"仍能看到列表，
       // 所以加入别的群的入口没有丢。
@@ -646,6 +654,7 @@ export function App() {
   if (screen.view === "list" || !active) {
     return (
       <MessageListScreen
+        initialTab={screen.activeGroupId === null && cameFromChatRef.current ? "messages" : undefined}
         groups={sortSessions(sessions).map((s) => ({
           groupId: s.groupId,
           groupName: s.groupName,
@@ -705,8 +714,8 @@ export function App() {
       onOpenSearch={() => setScreen({ ...screen, view: "search" })}
       onBack={() => {
         setReplyTarget(null);
-        // 单群时"返回"要能看到列表（否则没有入口去加入别的群），
-        // 所以用 activeGroupId=null 明确表示"我要看列表"
+        // 从聊天返回应该看到消息列表，而不是默认的公告 tab
+        cameFromChatRef.current = true;
         setScreen({ ...screen, view: "list", activeGroupId: null });
       }}
     />

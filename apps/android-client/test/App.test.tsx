@@ -84,14 +84,20 @@ async function goToGroupList() {
     if (back) fireEvent.click(back);
   }
   await screen.findByText("我的");
+  // 默认 tab 是公告，切到消息才看得到群列表
+  const messagesTab = screen.queryByText("消息");
+  if (messagesTab) fireEvent.click(messagesTab);
 }
 
 /** 启动页删掉之后，首页是群列表；输入邀请码要先进"加入群聊"页。 */
 async function openJoinScreen() {
-  // 加入第一个群后会直接进聊天，所以可能要先返回到列表才能看到这个入口
+  // 应用默认落在公告 tab（公告每天更新，是主要入口），
+  // 而且加入群之后会直接进聊天——两种情况都要先回到消息列表。
   if (!screen.queryByRole("button", { name: "+ 加入或创建其他群聊" })) {
     const back = screen.queryByRole("button", { name: "返回" });
     if (back) fireEvent.click(back);
+    const messagesTab = screen.queryByText("消息");
+    if (messagesTab) fireEvent.click(messagesTab);
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "+ 加入或创建其他群聊" })).not.toBeNull()
     );
@@ -130,8 +136,16 @@ async function joinTestGroup() {
 }
 
 describe("App navigation", () => {
-  it("starts on the group list, which explains the invite-only model when empty", async () => {
+  it("opens on today's announcement, not a conversation list", async () => {
     await renderApp();
+    // 公告每天更新，是打开这个应用的主要理由——所以它是首屏
+    expect(await screen.findByText("今天还没有公告")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "发布今日公告" })).toBeInTheDocument();
+  });
+
+  it("the message list explains the invite-only model when empty", async () => {
+    await renderApp();
+    fireEvent.click(screen.getByText("消息"));
     expect(await screen.findByText("还没有加入任何群聊")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+ 加入或创建其他群聊" })).toBeInTheDocument();
   });
@@ -473,11 +487,13 @@ describe("App navigation", () => {
 
     await goToGroupList();
     fireEvent.click(screen.getByText("公告"));
-    expect(screen.getByText("还没有公告")).toBeInTheDocument();
+    expect(screen.getByText("今天还没有公告")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("公告标题输入框"), { target: { value: "每日宣言" } });
+    // 发布表单默认收起——大多数人是来看的，不是来发的
+    fireEvent.click(screen.getByRole("button", { name: "发布今日公告" }));
+    fireEvent.change(await screen.findByLabelText("公告标题输入框"), { target: { value: "每日宣言" } });
     fireEvent.change(screen.getByLabelText("公告内容输入框"), { target: { value: "今晚七点线上交流" } });
-    fireEvent.click(screen.getByRole("button", { name: "发布公告" }));
+    fireEvent.click(screen.getByRole("button", { name: "发布" }));
 
     expect(await screen.findByText("每日宣言")).toBeInTheDocument();
     expect(screen.getByText("今晚七点线上交流")).toBeInTheDocument();
@@ -494,12 +510,13 @@ describe("App navigation", () => {
     await goToGroupList();
     await goToGroupList();
     fireEvent.click(screen.getByText("公告"));
+    fireEvent.click(screen.getByRole("button", { name: "发布今日公告" }));
 
-    expect(screen.getByRole("button", { name: "发布公告" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "发布" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("公告标题输入框"), { target: { value: "只有标题" } });
-    expect(screen.getByRole("button", { name: "发布公告" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "发布" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("公告内容输入框"), { target: { value: "有内容了" } });
-    expect(screen.getByRole("button", { name: "发布公告" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "发布" })).toBeEnabled();
   });
 
   it("sending an image renders it as a media bubble in the chat", async () => {
@@ -809,7 +826,9 @@ describe("message history persistence", () => {
 
     await renderApp();
     await joinShared();
-    // 单群直接进聊天，不需要再点一次群名
+    // 重连之后落在公告 tab，要切到消息并进群才看得到历史
+    await goToGroupList();
+    fireEvent.click(screen.getByText("同心同行"));
     expect(await screen.findByText("重启前发的消息")).toBeInTheDocument();
   });
 

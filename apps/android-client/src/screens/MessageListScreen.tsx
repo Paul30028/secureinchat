@@ -23,6 +23,8 @@ export interface MessageListScreenProps {
   nickname?: string | undefined;
   onOpenServerSettings: () => void;
   relayUrl: string;
+  /** 默认打开哪个 tab，不传就是公告 */
+  initialTab?: BottomNavKey | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -36,8 +38,12 @@ export function MessageListScreen({
   nickname,
   onOpenServerSettings,
   relayUrl,
+  initialTab,
 }: MessageListScreenProps) {
-  const [activeTab, setActiveTab] = useState<BottomNavKey>("messages");
+  // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
+  // 而不是像通用 IM 那样落在会话列表。
+  const [activeTab, setActiveTab] = useState<BottomNavKey>(initialTab ?? "announcements");
+  const [showComposer, setShowComposer] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
@@ -48,6 +54,7 @@ export function MessageListScreen({
       await onPublishAnnouncement(title.trim(), body.trim());
       setTitle("");
       setBody("");
+      setShowComposer(false);
     } finally {
       setIsPublishing(false);
     }
@@ -121,39 +128,72 @@ export function MessageListScreen({
             {announcement ? (
               <AnnouncementCard title={announcement.title} body={announcement.body} />
             ) : (
-              <p style={{ fontSize: 12, color: "#9A9A94", textAlign: "center", padding: "16px 0" }}>
-                还没有公告
-              </p>
+              <div style={{ textAlign: "center", padding: "40px 16px" }}>
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>今天还没有公告</div>
+                <div style={{ fontSize: 12, color: "#8A8A82", marginTop: 6 }}>发布后群里所有人都会看到</div>
+              </div>
             )}
 
-            <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, paddingTop: 12 }}>
-              <div style={{ fontSize: 12, color: "#8A8A82", marginBottom: 8 }}>发布每日公告</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="公告标题"
-                  aria-label="公告标题输入框"
-                  style={inputStyle}
-                />
-                <textarea
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder="公告内容"
-                  aria-label="公告内容输入框"
-                  rows={3}
-                  style={{ ...inputStyle, resize: "vertical" }}
-                />
-                <Button
-                  variant="primary"
-                  onClick={handlePublish}
-                  disabled={isPublishing || title.trim().length === 0 || body.trim().length === 0}
-                >
-                  {isPublishing ? "发布中..." : "发布公告"}
-                </Button>
+            {/* 发布表单默认收起。绝大多数人是来看的，不是来发的——
+                把表单常驻展开会让这一页看起来像个后台管理页。 */}
+            {!showComposer ? (
+              <button
+                onClick={() => setShowComposer(true)}
+                style={{
+                  minHeight: touchTarget.minDp,
+                  background: "transparent",
+                  border: `0.5px dashed ${colors.sageMint}`,
+                  borderRadius: 14,
+                  color: colors.deepInkGreen,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                发布今日公告
+              </button>
+            ) : (
+              <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, paddingTop: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="标题，例如「今日经文」"
+                    aria-label="公告标题输入框"
+                    style={inputStyle}
+                  />
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder="内容"
+                    aria-label="公告内容输入框"
+                    rows={4}
+                    style={{ ...inputStyle, resize: "vertical" }}
+                  />
+                  <Button
+                    variant="primary"
+                    onClick={handlePublish}
+                    disabled={isPublishing || title.trim().length === 0 || body.trim().length === 0}
+                  >
+                    {isPublishing ? "发布中..." : "发布"}
+                  </Button>
+                  <button
+                    onClick={() => setShowComposer(false)}
+                    style={{
+                      minHeight: touchTarget.minDp,
+                      background: "transparent",
+                      border: "none",
+                      boxShadow: "none",
+                      color: "#8A8A82",
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                  >
+                    取消
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ) : (
           <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
