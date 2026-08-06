@@ -77,9 +77,26 @@ async function renderApp() {
   await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeNull());
 }
 
+/** 单群时加入后直接进聊天，要看列表得先返回一次。 */
+async function goToGroupList() {
+  if (!screen.queryByText("我的")) {
+    const back = screen.queryByRole("button", { name: "返回" });
+    if (back) fireEvent.click(back);
+  }
+  await screen.findByText("我的");
+}
+
 /** 启动页删掉之后，首页是群列表；输入邀请码要先进"加入群聊"页。 */
 async function openJoinScreen() {
-  fireEvent.click(await screen.findByRole("button", { name: "+ 加入或创建其他群聊" }));
+  // 加入第一个群后会直接进聊天，所以可能要先返回到列表才能看到这个入口
+  if (!screen.queryByRole("button", { name: "+ 加入或创建其他群聊" })) {
+    const back = screen.queryByRole("button", { name: "返回" });
+    if (back) fireEvent.click(back);
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "+ 加入或创建其他群聊" })).not.toBeNull()
+    );
+  }
+  fireEvent.click(screen.getByRole("button", { name: "+ 加入或创建其他群聊" }));
   await screen.findByLabelText("邀请码输入框");
 }
 
@@ -108,7 +125,8 @@ async function joinTestGroup() {
   fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
   await completeProfileIfShown();
   fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
-  await screen.findByText("还没有消息");
+  // 加入第一个群后直接进聊天（单群不再先经过只有一行的列表）
+  await screen.findByLabelText("消息输入框");
 }
 
 describe("App navigation", () => {
@@ -178,7 +196,7 @@ describe("App navigation", () => {
     expect(screen.getByLabelText("邀请码输入框")).toBeInTheDocument();
   });
 
-  it("confirming a valid invite navigates to the message list screen with the group visible", async () => {
+  it("joining your only group opens the chat directly, skipping a one-row list", async () => {
     await renderApp();
     await openJoinScreen();
     const validCode = buildSic2Invite({
@@ -193,8 +211,13 @@ describe("App navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
-    expect(await screen.findByText("还没有消息")).toBeInTheDocument();
+    // 直接进聊天：输入框在，说明没停在只有一行的列表页
+    expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
     expect(screen.getByText("同心同行")).toBeInTheDocument();
+
+    // 返回仍能看到列表（否则就没有入口加入别的群了）
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    expect(await screen.findByText("还没有消息")).toBeInTheDocument();
   });
 
   it("the message list screen's bottom nav switches tabs", async () => {
@@ -212,7 +235,8 @@ describe("App navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
-    await screen.findByText("还没有消息"); // wait for the async join to complete and screen to switch (unique to the message-list screen; the invite screen also shows the group name)
+    await screen.findByLabelText("消息输入框");
+    await goToGroupList(); // wait for the async join to complete and screen to switch (unique to the message-list screen; the invite screen also shows the group name)
     fireEvent.click(screen.getByText("我的"));
     expect(screen.getByText("本机身份")).toBeInTheDocument();
   });
@@ -242,7 +266,8 @@ describe("App navigation", () => {
     // should already reflect the in-flight state (this is a real state transition,
     // not just a screen switch).
     expect(screen.getByText("正在加入...")).toBeInTheDocument();
-    await screen.findByText("还没有消息");
+    await screen.findByLabelText("消息输入框");
+    await goToGroupList();
   });
 
   it("shows a specific error message and stays on the invite screen for a SIC1 (no groupId) invite", async () => {
@@ -272,7 +297,7 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
-    await screen.findByText("还没有消息");
+    await screen.findByLabelText("消息输入框");
 
     fireEvent.click(screen.getByText("同心同行")); // tap the message list item
     expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
@@ -293,8 +318,6 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
-    await screen.findByText("还没有消息");
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "大家好" } });
@@ -318,8 +341,6 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
-    await screen.findByText("还没有消息");
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
@@ -375,7 +396,9 @@ describe("App navigation", () => {
       fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
       fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
-      expect(await screen.findByText("还没有消息")).toBeInTheDocument();
+      await screen.findByLabelText("消息输入框");
+    await goToGroupList();
+    expect(screen.getByText("还没有消息")).toBeInTheDocument();
     } finally {
       (globalThis as unknown as { WebSocket: unknown }).WebSocket = original;
     }
@@ -395,10 +418,9 @@ describe("App navigation", () => {
     expect(codeEl.textContent).toMatch(/^SIC2\./);
 
     fireEvent.click(screen.getByRole("button", { name: "进入群聊" }));
-    // 群名在卡片上也有，用只有群列表才有的底部导航判断是否真的进去了
-    await screen.findByText("我的");
+    // 创建的是第一个群，所以直接进聊天
+    expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
     expect(screen.getByText("周末爬山小队")).toBeInTheDocument();
-    expect(screen.getByText("还没有消息")).toBeInTheDocument();
   });
 
   it("the group name defaults to '新群聊' if left blank is prevented by the disabled create button", async () => {
@@ -430,8 +452,6 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
-    await screen.findByText("还没有消息");
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "第一条消息" } });
@@ -451,6 +471,7 @@ describe("App navigation", () => {
     await renderApp();
     await joinTestGroup();
 
+    await goToGroupList();
     fireEvent.click(screen.getByText("公告"));
     expect(screen.getByText("还没有公告")).toBeInTheDocument();
 
@@ -470,6 +491,8 @@ describe("App navigation", () => {
   it("the publish button is disabled until both title and body are filled in", async () => {
     await renderApp();
     await joinTestGroup();
+    await goToGroupList();
+    await goToGroupList();
     fireEvent.click(screen.getByText("公告"));
 
     expect(screen.getByRole("button", { name: "发布公告" })).toBeDisabled();
@@ -482,7 +505,6 @@ describe("App navigation", () => {
   it("sending an image renders it as a media bubble in the chat", async () => {
     await renderApp();
     await joinTestGroup();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     const file = new File([new Uint8Array([1, 2, 3, 4])], "photo.jpg", { type: "image/jpeg" });
@@ -496,7 +518,6 @@ describe("App navigation", () => {
   it("sending a generic file renders a downloadable file bubble", async () => {
     await renderApp();
     await joinTestGroup();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     const file = new File([new Uint8Array(2048)], "提纲.pdf", { type: "application/pdf" });
@@ -509,7 +530,6 @@ describe("App navigation", () => {
   it("keeps 发送 as the only prominent action, with attachments behind a + toggle", async () => {
     await renderApp();
     await joinTestGroup();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     // 默认收起：图片/文件藏在 + 里
@@ -537,7 +557,6 @@ describe("App navigation", () => {
   it("disables (rather than hides) call buttons when nobody else is online", async () => {
     await renderApp();
     await joinTestGroup();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     // 按钮要看得见（否则用户以为没有通话功能），但点不了，
@@ -555,9 +574,11 @@ describe("App navigation", () => {
     MockRelayWebSocket.lastInstance?.onmessage?.({
       data: JSON.stringify({ type: "peer_joined", deviceId: "alice" }),
     });
-    // presence 是异步处理的，等它落到界面上
+    // presence 是异步处理的，先到列表确认它已经落地
+    await goToGroupList();
     await screen.findByText("1 位成员在线");
 
+    // 再回到聊天页看通话按钮
     fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
@@ -570,7 +591,6 @@ describe("connection status banner", () => {
   it("shows a reconnecting banner with the pending message count when the socket drops", async () => {
     await renderApp();
     await joinTestGroup();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     // 正常连接时不该有横幅打扰用户
@@ -658,7 +678,9 @@ describe("older Android WebView compatibility", () => {
       fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
       fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
-      expect(await screen.findByText("还没有消息")).toBeInTheDocument();
+      await screen.findByLabelText("消息输入框");
+    await goToGroupList();
+    expect(screen.getByText("还没有消息")).toBeInTheDocument();
     } finally {
       Object.defineProperty(globalThis.crypto, "randomUUID", { value: real, configurable: true });
     }
@@ -732,7 +754,6 @@ describe("first-time profile setup", () => {
     await saveNickname("张溪");
     await renderApp();
     await joinTestGroup();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "大家好" } });
@@ -766,14 +787,17 @@ describe("message history persistence", () => {
       await completeProfileIfShown();
       fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
       // 等真正进到消息列表。邀请页上也有群名，所以用底部导航（只有消息列表页才有）
-      // 作为判断依据。
-      await screen.findByText("公告");
+      // 作为判断依据。第一个群会直接进聊天，所以两种落点都接受。
+      await waitFor(() => {
+        const inChat = screen.queryByLabelText("消息输入框");
+        const inList = screen.queryByText("公告");
+        expect(inChat ?? inList).not.toBeNull();
+      });
     };
 
     // 第一次会话：发一条消息
     await renderApp();
     await joinShared();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
     fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "重启前发的消息" } });
     fireEvent.click(screen.getByRole("button", { name: "发送" }));
@@ -785,8 +809,7 @@ describe("message history persistence", () => {
 
     await renderApp();
     await joinShared();
-    fireEvent.click(screen.getByText("同心同行"));
-
+    // 单群直接进聊天，不需要再点一次群名
     expect(await screen.findByText("重启前发的消息")).toBeInTheDocument();
   });
 
@@ -801,12 +824,14 @@ describe("online presence", () => {
   it("shows nobody online before any peer connects", async () => {
     await renderApp();
     await joinTestGroup();
+    await goToGroupList();
     expect(screen.getByText("群里暂时只有你在线")).toBeInTheDocument();
   });
 
   it("reflects the roster the relay pushes on connect", async () => {
     await renderApp();
     await joinTestGroup();
+    await goToGroupList();
 
     MockRelayWebSocket.lastInstance?.onmessage?.({
       data: JSON.stringify({ type: "presence", deviceIds: ["alice", "bob"] }),
@@ -821,6 +846,7 @@ describe("online presence", () => {
     const socket = MockRelayWebSocket.lastInstance!;
 
     socket.onmessage?.({ data: JSON.stringify({ type: "peer_joined", deviceId: "alice" }) });
+    await goToGroupList();
     expect(await screen.findByText("1 位成员在线")).toBeInTheDocument();
 
     socket.onmessage?.({ data: JSON.stringify({ type: "peer_left", deviceId: "alice" }) });
@@ -843,8 +869,12 @@ describe("multiple groups", () => {
     fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
     await completeProfileIfShown();
     fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
-    // 群名在邀请页上也有，所以用只有群列表才有的按钮判断是否真的进去了
-    await screen.findByRole("button", { name: "+ 加入或创建其他群聊" });
+    // 第一个群直接进聊天，之后的群回到列表——两种都等到再继续
+    await waitFor(() => {
+      const inChat = screen.queryByLabelText("消息输入框");
+      const inList = screen.queryByRole("button", { name: "+ 加入或创建其他群聊" });
+      expect(inChat ?? inList).not.toBeNull();
+    });
   }
 
   it("lists every joined group, not just the most recent one", async () => {
@@ -887,6 +917,7 @@ describe("multiple groups", () => {
 
     // 未读角标要能出现（此处直接断言列表仍然渲染该群且可点击进入）
     expect(screen.getByText("读书会")).toBeInTheDocument();
+    await goToGroupList();
     expect(await screen.findByText("1 位成员在线")).toBeInTheDocument();
   });
 });
@@ -895,7 +926,6 @@ describe("message actions", () => {
   async function openChatWithMessage(text: string) {
     await renderApp();
     await joinTestGroup();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
     fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: text } });
     fireEvent.click(screen.getByRole("button", { name: "发送" }));
@@ -953,7 +983,6 @@ describe("message search", () => {
   it("finds a message by keyword and reports nothing for a miss", async () => {
     await renderApp();
     await joinTestGroup();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
 
     fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "今晚七点聚会" } });
@@ -973,7 +1002,6 @@ describe("message search", () => {
   it("shows a prompt before anything is typed rather than listing every message", async () => {
     await renderApp();
     await joinTestGroup();
-    fireEvent.click(screen.getByText("同心同行"));
     await screen.findByLabelText("消息输入框");
     fireEvent.click(screen.getByLabelText("搜索消息"));
 

@@ -111,6 +111,9 @@ export function App() {
   // 会话不放在 screen 里——导航到别的页面（比如去加入另一个群）不该断开
   // 已经连上的群。之前放在 screen 里时，回启动页会把所有连接一起丢掉。
   const [sessions, setSessions] = useState<GroupSessions>({});
+  // setSessions 是异步的，而"这是不是第一个群"要在下一次 connect 前就准确——
+  // 用 ref 镜像一份当前值供同步判断
+  const sessionsRef = useRef<GroupSessions>({});
   /** 正在回复的消息（每个群独立） */
   const [replyTarget, setReplyTarget] = useState<DisplayMessage | null>(null);
   const [nickname, setNickname] = useState<string | undefined>(undefined);
@@ -214,7 +217,11 @@ export function App() {
 
     /** 更新这个群的会话状态——不影响其他群 */
     const patch = (p: Partial<GroupSession>) => {
-      setSessions((prev) => patchSession(prev, groupId, p));
+      setSessions((prev) => {
+        const next = patchSession(prev, groupId, p);
+        sessionsRef.current = next;
+        return next;
+      });
     };
 
     /** 往这个群追加消息并落盘 */
@@ -311,12 +318,22 @@ export function App() {
     });
     await saveJoinedGroups(store, groups);
 
-    setSessions((prev) => ({ ...prev, [groupId]: session }));
-    setScreen((prev) =>
-      prev.name === "connected"
-        ? prev
-        : { name: "connected", activeGroupId: null, view: "list", deviceId: identity.deviceId }
-    );
+    // 是不是第一个群，要在调用 setSessions 之前判断——不能把 setScreen 放进
+    // updater 里，React 会重复调用 updater，在里面做副作用不可靠。
+    const isFirstGroup = Object.keys(sessionsRef.current).length === 0;
+    sessionsRef.current = { ...sessionsRef.current, [groupId]: session };
+    setSessions(sessionsRef.current);
+
+    if (isFirstGroup) {
+      // 唯一一个群时直接进聊天——小团体绝大多数只有一个群，先显示一个只有
+      // 一行的列表再让用户点一下，那一下是白点的。从聊天页"返回"仍能看到列表，
+      // 所以加入别的群的入口没有丢。
+      setScreen({ name: "connected", activeGroupId: groupId, view: "chat", deviceId: identity.deviceId });
+    } else {
+      setScreen((s) =>
+        s.name === "connected" ? s : { name: "connected", activeGroupId: null, view: "list", deviceId: identity.deviceId }
+      );
+    }
   }
 
   /** 还没设昵称就先去设置，设完自动继续原来的动作——不打断用户的意图 */
@@ -623,6 +640,7 @@ export function App() {
     );
   }
 
+  const allSessions = sortSessions(sessions);
   const active = activeSession();
 
   if (screen.view === "list" || !active) {
@@ -687,7 +705,9 @@ export function App() {
       onOpenSearch={() => setScreen({ ...screen, view: "search" })}
       onBack={() => {
         setReplyTarget(null);
-        setScreen({ ...screen, view: "list" });
+        // 单群时"返回"要能看到列表（否则没有入口去加入别的群），
+        // 所以用 activeGroupId=null 明确表示"我要看列表"
+        setScreen({ ...screen, view: "list", activeGroupId: null });
       }}
     />
   );
