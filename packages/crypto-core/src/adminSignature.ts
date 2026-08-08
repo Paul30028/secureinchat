@@ -33,12 +33,70 @@ function fromBase64Url(s: string): Uint8Array {
   return bytes;
 }
 
-/** 建群时调用一次。私钥不可导出——只有建群的这台设备能签名，
- *  连它自己的业务代码也拿不到原始私钥字节。 */
-export async function generateAdminKeyPair(): Promise<AdminKeyPair> {
-  const pair = (await crypto.subtle.generateKey(ALGO, false, ["sign", "verify"])) as CryptoKeyPair;
+/**
+ * 建群时调用一次。
+ *
+ * 私钥先以可导出方式生成，立刻导出成一串恢复码交给建群者抄写，然后**重新以
+ * 不可导出的方式导入**用于日常签名，可导出的那个句柄随即丢弃。
+ *
+ * 为什么必须这样：管理员私钥只存在建群那一台设备上，手机丢了这个群就永远
+ * 发不了公告。没有恢复码就没有任何补救办法。代价是恢复码本身等同于管理员
+ * 身份，抄下来之后要妥善保管。
+ */
+export async function generateAdminKeyPair(): Promise<AdminKeyPair & { recoveryCode: string }> {
+  const pair = (await crypto.subtle.generateKey(ALGO, true, ["sign", "verify"])) as CryptoKeyPair;
   const raw = await crypto.subtle.exportKey("raw", pair.publicKey);
-  return { privateKey: pair.privateKey, publicKeyRawB64Url: toBase64Url(new Uint8Array(raw)) };
+  const jwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
+  const recoveryCode = encodeRecoveryCode(jwk);
+
+  // 重新导入为不可导出——之后连这个应用自己的代码也拿不到私钥字节
+  const privateKey = await crypto.subtle.importKey("jwk", jwk, ALGO, false, ["sign"]);
+
+  return { privateKey, publicKeyRawB64Url: toBase64Url(new Uint8Array(raw)), recoveryCode };
+}
+
+const RECOVERY_PREFIX = "SICADMIN1.";
+
+function encodeRecoveryCode(jwk: JsonWebKey): string {
+  // 只保留恢复私钥必需的字段，让码尽量短——抄写体验很重要
+  const minimal = { crv: jwk.crv, d: jwk.d, x: jwk.x, y: jwk.y, kty: jwk.kty };
+  const json = new TextEncoder().encode(JSON.stringify(minimal));
+  return RECOVERY_PREFIX + toBase64Url(json);
+}
+
+export class AdminRecoveryError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AdminRecoveryError";
+  }
+}
+
+/** 用恢复码还原管理员私钥。恢复出来的同样是不可导出的。 */
+export async function restoreAdminKeyFromRecoveryCode(code: string): Promise<AdminKeyPair> {
+  const trimmed = code.trim();
+  if (!trimmed.startsWith(RECOVERY_PREFIX)) {
+    throw new AdminRecoveryError("这不是管理员恢复码");
+  }
+  let jwk: JsonWebKey;
+  try {
+    jwk = JSON.parse(new TextDecoder().decode(fromBase64Url(trimmed.slice(RECOVERY_PREFIX.length)))) as JsonWebKey;
+  } catch {
+    throw new AdminRecoveryError("恢复码格式不正确，请检查是否抄写完整");
+  }
+  try {
+    const privateKey = await crypto.subtle.importKey("jwk", { ...jwk, key_ops: ["sign"] }, ALGO, false, ["sign"]);
+    // 公钥可以从 JWK 的 x/y 直接拼出未压缩点，不需要额外信息
+    if (!jwk.x || !jwk.y) throw new Error("missing point");
+    const x = fromBase64Url(jwk.x);
+    const y = fromBase64Url(jwk.y);
+    const raw = new Uint8Array(65);
+    raw[0] = 0x04;
+    raw.set(x, 1);
+    raw.set(y, 33);
+    return { privateKey, publicKeyRawB64Url: toBase64Url(raw) };
+  } catch {
+    throw new AdminRecoveryError("恢复码无效");
+  }
 }
 
 /**

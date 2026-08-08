@@ -436,7 +436,13 @@ describe("App navigation", () => {
     const codeEl = await screen.findByText(/^SIC2\./);
     expect(codeEl.textContent).toMatch(/^SIC2\./);
 
-    fireEvent.click(screen.getByRole("button", { name: "进入群聊" }));
+    // 管理员恢复码只显示这一次，必须确认保存后才能继续
+    expect(screen.getByText("管理员恢复码")).toBeInTheDocument();
+    expect(screen.getByText(/^SICADMIN1\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "请先保存恢复码" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "我已保存" }));
+    fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
     // 创建的是第一个群，所以直接进聊天
     expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
     expect(screen.getByText("周末爬山小队")).toBeInTheDocument();
@@ -493,6 +499,8 @@ describe("App navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
     fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: name } });
     fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    // 必须先确认保存管理员恢复码——丢了就再也发不了公告
+    fireEvent.click(await screen.findByRole("button", { name: "我已保存" }));
     fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
     await screen.findByLabelText("消息输入框");
   }

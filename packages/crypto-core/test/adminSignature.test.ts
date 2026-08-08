@@ -4,6 +4,8 @@ import {
   signAnnouncement,
   verifyAnnouncement,
   announcementSigningInput,
+  restoreAdminKeyFromRecoveryCode,
+  AdminRecoveryError,
 } from "../src/adminSignature";
 
 const base = {
@@ -71,5 +73,57 @@ describe("admin announcement signatures", () => {
     const a = announcementSigningInput(base);
     const b = announcementSigningInput({ ...base });
     expect(new TextDecoder().decode(a)).toBe(new TextDecoder().decode(b));
+  });
+});
+
+describe("admin recovery code", () => {
+  it("a restored key produces signatures the original public key still verifies", async () => {
+    const admin = await generateAdminKeyPair();
+    const restored = await restoreAdminKeyFromRecoveryCode(admin.recoveryCode);
+
+    const sig = await signAnnouncement(restored.privateKey, base);
+    expect(await verifyAnnouncement(admin.publicKeyRawB64Url, sig, base)).toBe(true);
+  });
+
+  it("recovers the same public key, so existing invites keep working", async () => {
+    const admin = await generateAdminKeyPair();
+    const restored = await restoreAdminKeyFromRecoveryCode(admin.recoveryCode);
+    expect(restored.publicKeyRawB64Url).toBe(admin.publicKeyRawB64Url);
+  });
+
+  it("the restored key is non-extractable — recovering doesn't leak it further", async () => {
+    const admin = await generateAdminKeyPair();
+    const restored = await restoreAdminKeyFromRecoveryCode(admin.recoveryCode);
+    expect(restored.privateKey.extractable).toBe(false);
+  });
+
+  it("the key kept for daily use is non-extractable even though a code was produced", async () => {
+    const admin = await generateAdminKeyPair();
+    expect(admin.privateKey.extractable).toBe(false);
+  });
+
+  it("rejects a code with the wrong prefix", async () => {
+    await expect(restoreAdminKeyFromRecoveryCode("SIC2.something")).rejects.toThrow(AdminRecoveryError);
+  });
+
+  it("rejects a truncated or garbled code rather than failing silently", async () => {
+    const admin = await generateAdminKeyPair();
+    const truncated = admin.recoveryCode.slice(0, admin.recoveryCode.length - 12);
+    await expect(restoreAdminKeyFromRecoveryCode(truncated)).rejects.toThrow(AdminRecoveryError);
+  });
+
+  it("tolerates surrounding whitespace from copying", async () => {
+    const admin = await generateAdminKeyPair();
+    const restored = await restoreAdminKeyFromRecoveryCode(`  ${admin.recoveryCode}\n`);
+    expect(restored.publicKeyRawB64Url).toBe(admin.publicKeyRawB64Url);
+  });
+
+  it("a code from a different group's admin does not verify against this group's public key", async () => {
+    const groupA = await generateAdminKeyPair();
+    const groupB = await generateAdminKeyPair();
+    const restoredB = await restoreAdminKeyFromRecoveryCode(groupB.recoveryCode);
+
+    const sig = await signAnnouncement(restoredB.privateKey, base);
+    expect(await verifyAnnouncement(groupA.publicKeyRawB64Url, sig, base)).toBe(false);
   });
 });

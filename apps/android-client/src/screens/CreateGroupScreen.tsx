@@ -36,6 +36,8 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
   const [pendingGroupId, setPendingGroupId] = useState<string | null>(null);
   const [pendingKeyMaterial, setPendingKeyMaterial] = useState<string | null>(null);
   const [adminKey, setAdminKey] = useState<CryptoKey | null>(null);
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
+  const [recoverySaved, setRecoverySaved] = useState(false);
   const [isEntering, setIsEntering] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -55,6 +57,7 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
     setPendingGroupId(groupId);
     setPendingKeyMaterial(keyMaterialB64Url);
     setAdminKey(admin.privateKey);
+    setRecoveryCode(admin.recoveryCode);
     setInviteCode(code);
   }
 
@@ -125,13 +128,59 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
           <p style={{ fontSize: 12, color: "#8A8A82", textAlign: "center" }}>
             截图这张卡片发出去，或让对方扫码加入
           </p>
+          {recoveryCode && !recoverySaved ? (
+            <div
+              style={{
+                border: `1px solid ${colors.wheatGold}`,
+                borderRadius: 14,
+                padding: "14px 16px",
+                background: `${colors.sageMint}22`,
+              }}
+            >
+              <div style={{ fontSize: 14, fontWeight: 500, color: colors.textPrimary, marginBottom: 6 }}>
+                管理员恢复码
+              </div>
+              <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "0 0 10px" }}>
+                只有你能发布这个群的每日内容，凭据就保存在这台手机上。
+                <strong style={{ fontWeight: 500, color: colors.textPrimary }}>
+                  换手机或手机丢失后，只有这串码能恢复
+                </strong>
+                ，请抄下来收好。它只显示这一次。
+              </p>
+              <code
+                style={{
+                  display: "block",
+                  fontSize: 11,
+                  fontFamily: "monospace",
+                  color: colors.textPrimary,
+                  wordBreak: "break-all",
+                  background: colors.ivory,
+                  border: `0.5px solid ${colors.sageMint}`,
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  marginBottom: 10,
+                }}
+              >
+                {recoveryCode}
+              </code>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button variant="secondary" onClick={() => void copyToClipboard(recoveryCode)} style={{ flex: 1 }}>
+                  复制
+                </Button>
+                <Button variant="primary" onClick={() => setRecoverySaved(true)} style={{ flex: 1 }}>
+                  我已保存
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
           <InviteShareCard
             groupName={groupName || "新群聊"}
             inviteCode={inviteCode}
             onCopy={() => void copyToClipboard(inviteCode)}
           />
-          <Button variant="primary" onClick={handleEnter} disabled={isEntering}>
-            {isEntering ? "正在进入..." : "进入群聊"}
+          <Button variant="primary" onClick={handleEnter} disabled={isEntering || !recoverySaved}>
+            {isEntering ? "正在进入..." : recoverySaved ? "进入群聊" : "请先保存恢复码"}
           </Button>
           {errorMessage ? (
             <p role="alert" style={{ color: "#A33", fontSize: 12, textAlign: "center" }}>
