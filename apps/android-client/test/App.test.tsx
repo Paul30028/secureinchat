@@ -128,7 +128,7 @@ async function joinTestGroup() {
     expiresAtMs: futureExpiry(),
   });
   fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-  fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+  fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
   await completeProfileIfShown();
   fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
   // 加入第一个群后直接进聊天（单群不再先经过只有一行的列表）
@@ -168,7 +168,7 @@ describe("App navigation", () => {
     });
 
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
 
     expect(screen.getByText("确认加入")).toBeInTheDocument();
     // 群名来自邀请串本身（创建者写进去的），不是占位数据
@@ -181,7 +181,7 @@ describe("App navigation", () => {
     await renderApp();
     await openJoinScreen();
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: "not-a-real-invite-code" } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
 
     expect(screen.getByText("邀请已失效")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "确认加入" })).not.toBeInTheDocument();
@@ -199,7 +199,7 @@ describe("App navigation", () => {
       expiresAtMs: Date.now() - 1000,
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: expiredCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
 
     expect(screen.getByText(/已过期或已被撤销/)).toBeInTheDocument();
   });
@@ -208,7 +208,7 @@ describe("App navigation", () => {
     await renderApp();
     await openJoinScreen();
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: "bad-code" } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     expect(screen.getByText("邀请已失效")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
@@ -227,7 +227,7 @@ describe("App navigation", () => {
       expiresAtMs: futureExpiry(),
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
     // 直接进聊天：输入框在，说明没停在只有一行的列表页
@@ -251,7 +251,7 @@ describe("App navigation", () => {
       expiresAtMs: futureExpiry(),
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
     await screen.findByLabelText("消息输入框");
@@ -263,7 +263,7 @@ describe("App navigation", () => {
   it("the invite-code submit button is disabled for empty input", async () => {
     await renderApp();
     await openJoinScreen();
-    expect(screen.getByRole("button", { name: "加入群聊" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "用邀请码加入" })).toBeDisabled();
   });
 
   it("shows the loading label while the join (key derivation + storage) is in flight", async () => {
@@ -278,7 +278,7 @@ describe("App navigation", () => {
       expiresAtMs: futureExpiry(),
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
     // Immediately after the click, before the async derivation resolves, the button
@@ -294,7 +294,7 @@ describe("App navigation", () => {
     await openJoinScreen();
     const sic1Code = buildSic1Invite({ serverJoinCode: "ABCD", keyMaterialB64Url: "abc123" });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: sic1Code } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
     expect(await screen.findByText("这个邀请是旧版兼容格式，暂不支持加密入群")).toBeInTheDocument();
@@ -314,7 +314,7 @@ describe("App navigation", () => {
       expiresAtMs: futureExpiry(),
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
     await screen.findByLabelText("消息输入框");
 
@@ -335,7 +335,7 @@ describe("App navigation", () => {
       expiresAtMs: futureExpiry(),
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
     await screen.findByLabelText("消息输入框");
 
@@ -358,7 +358,7 @@ describe("App navigation", () => {
       expiresAtMs: futureExpiry(),
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
     await screen.findByLabelText("消息输入框");
 
@@ -412,7 +412,7 @@ describe("App navigation", () => {
         expiresAtMs: futureExpiry(),
       });
       fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-      fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+      fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
       fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
       await screen.findByLabelText("消息输入框");
@@ -469,7 +469,7 @@ describe("App navigation", () => {
       expiresAtMs: futureExpiry(),
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
     await screen.findByLabelText("消息输入框");
 
@@ -732,7 +732,7 @@ describe("older Android WebView compatibility", () => {
         expiresAtMs: futureExpiry(),
       });
       fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-      fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+      fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
       fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
 
       await screen.findByLabelText("消息输入框");
@@ -778,7 +778,7 @@ describe("first-time profile setup", () => {
       expiresAtMs: futureExpiry(),
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
 
     // 被拦下来先设昵称
     const input = await screen.findByLabelText("昵称输入框");
@@ -840,7 +840,7 @@ describe("message history persistence", () => {
     const joinShared = async () => {
       await openJoinScreen();
       fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: code } });
-      fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+      fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
       await completeProfileIfShown();
       fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
       // 等真正进到消息列表。邀请页上也有群名，所以用底部导航（只有消息列表页才有）
@@ -925,7 +925,7 @@ describe("multiple groups", () => {
       expiresAtMs: futureExpiry(),
     });
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: code } });
-    fireEvent.click(screen.getByRole("button", { name: "加入群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     await completeProfileIfShown();
     fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
     // 第一个群直接进聊天，之后的群回到列表——两种都等到再继续
@@ -1065,5 +1065,48 @@ describe("message search", () => {
     fireEvent.click(screen.getByLabelText("搜索消息"));
 
     expect(await screen.findByText("输入关键词搜索本群的消息")).toBeInTheDocument();
+  });
+});
+
+describe("QR scanning", () => {
+  it("offers scanning as the primary way to join", async () => {
+    await renderApp();
+    await openJoinScreen();
+
+    // 小团体多半当面加入，扫码比粘贴一长串快——所以它是主按钮
+    expect(screen.getByRole("button", { name: "扫描二维码加入" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "用邀请码加入" })).toBeInTheDocument();
+  });
+
+  it("explains what to do when the camera is unavailable instead of showing a dead screen", async () => {
+    // jsdom 没有摄像头；getUserMedia 会失败，正是要覆盖的真实情况
+    // （权限被拒、设备没有摄像头、非安全上下文都会走到这里）
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: () => Promise.reject(new Error("no camera")) },
+      configurable: true,
+    });
+
+    await renderApp();
+    await openJoinScreen();
+    fireEvent.click(screen.getByRole("button", { name: "扫描二维码加入" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("相机权限");
+    // 仍然留了一条退路：返回去手动粘贴
+    expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
+  });
+
+  it("going back from the scanner returns to the join screen", async () => {
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: () => Promise.reject(new Error("no camera")) },
+      configurable: true,
+    });
+
+    await renderApp();
+    await openJoinScreen();
+    fireEvent.click(screen.getByRole("button", { name: "扫描二维码加入" }));
+    await screen.findByRole("alert");
+
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    expect(await screen.findByLabelText("邀请码输入框")).toBeInTheDocument();
   });
 });

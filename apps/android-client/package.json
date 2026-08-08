@@ -18,6 +18,7 @@
     "@secureinchat/crypto-core": "0.1.0",
     "@secureinchat/secure-storage": "0.1.0",
     "@secureinchat/chat-core": "0.1.0",
+    "jsqr": "^1.4.0",
     "@secureinchat/webrtc": "0.1.0"
   },
   "devDependencies": {

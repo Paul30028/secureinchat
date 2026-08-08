@@ -5,11 +5,12 @@ export interface JoinGroupScreenProps {
   onSubmitInviteCode: (raw: string) => void;
   onCreateGroup: () => void;
   onBack: () => void;
+  onScanQr: () => void;
 }
 
 /** 启动页。对应设计稿"01 启动"+"02 公告与进入"的简化合并——公告卡片、
  *  今日经文这些内容型模块不在这次范围内，先把"输入邀请码进群"这条主干打通。 */
-export function JoinGroupScreen({ onSubmitInviteCode, onCreateGroup, onBack }: JoinGroupScreenProps) {
+export function JoinGroupScreen({ onSubmitInviteCode, onCreateGroup, onBack, onScanQr }: JoinGroupScreenProps) {
   const [code, setCode] = useState("");
 
   return (
@@ -63,13 +64,18 @@ export function JoinGroupScreen({ onSubmitInviteCode, onCreateGroup, onBack }: J
             boxShadow: "none",
           }}
         />
+        {/* 扫码是主路径——小团体多半是当面加入，扫一下比手动粘贴一长串快得多 */}
+        <Button variant="primary" onClick={onScanQr} style={{ width: "100%" }}>
+          扫描二维码加入
+        </Button>
+
         <Button
-          variant="primary"
+          variant="secondary"
           onClick={() => onSubmitInviteCode(code)}
           disabled={code.trim().length === 0}
           style={{ width: "100%" }}
         >
-          加入群聊
+          用邀请码加入
         </Button>
         <Button variant="secondary" onClick={onCreateGroup} style={{ width: "100%" }}>
           创建群聊

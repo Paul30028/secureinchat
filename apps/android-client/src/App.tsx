@@ -24,6 +24,7 @@ import { MessageListScreen } from "./screens/MessageListScreen";
 import { ChatScreen, type DisplayMessage } from "./screens/ChatScreen";
 import { TodayScreen, type TodayContent } from "./screens/TodayScreen";
 import { AdminPublishScreen } from "./screens/AdminPublishScreen";
+import { QrScanScreen } from "./screens/QrScanScreen";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { saveAdminKey, loadAdminKey } from "./adminKeys";
 import { CallScreen } from "./screens/CallScreen";
@@ -61,6 +62,7 @@ type Screen =
   | { name: "createGroup" }
   | { name: "serverSettings" }
   | { name: "adminPublish" }
+  | { name: "scanQr" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -664,6 +666,10 @@ export function App() {
           const go = () => setScreen({ name: "createGroup" });
           if (!requireProfile(go)) go();
         }}
+        onScanQr={() => {
+          const go = () => setScreen({ name: "scanQr" });
+          if (!requireProfile(go)) go();
+        }}
         onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
       />
     );
@@ -690,6 +696,15 @@ export function App() {
           setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
         }}
         onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "scanQr") {
+    return (
+      <QrScanScreen
+        onScanned={(text) => handleSubmitInviteCode(text)}
+        onBack={() => setScreen({ name: "join" })}
       />
     );
   }
