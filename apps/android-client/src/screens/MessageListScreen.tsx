@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { colors, MessageListItem, BottomNav, Button, touchTarget, type BottomNavKey } from "@secureinchat/ui";
-import { AnnouncementCard } from "./MediaBubbleContent";
+import { TodayScreen, type TodayContent } from "./TodayScreen";
+import { registerTap, INITIAL_TAP_STATE, type TapState } from "../adminAccess";
 import { formatListTime } from "../timeFormat";
-import type { Announcement } from "./ChatScreen";
+import { APP_VERSION } from "../version";
 
 export interface GroupListItem {
   groupId: string;
@@ -17,8 +18,11 @@ export interface MessageListScreenProps {
   onOpenGroup: (groupId: string) => void;
   /** 去加入/创建另一个群 */
   onJoinAnotherGroup: () => void;
-  announcement?: Announcement | undefined;
-  onPublishAnnouncement: (title: string, body: string) => Promise<void>;
+  todayContent: TodayContent;
+  isAdmin: boolean;
+  onOpenAdmin: () => void;
+  /** 版本号连点 7 次后触发 */
+  onAdminUnlocked: () => void;
   deviceId: string;
   nickname?: string | undefined;
   onOpenServerSettings: () => void;
@@ -32,8 +36,10 @@ export function MessageListScreen({
   groups,
   onOpenGroup,
   onJoinAnotherGroup,
-  announcement,
-  onPublishAnnouncement,
+  todayContent,
+  isAdmin,
+  onOpenAdmin,
+  onAdminUnlocked,
   deviceId,
   nickname,
   onOpenServerSettings,
@@ -43,22 +49,8 @@ export function MessageListScreen({
   // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
   // 而不是像通用 IM 那样落在会话列表。
   const [activeTab, setActiveTab] = useState<BottomNavKey>(initialTab ?? "announcements");
-  const [showComposer, setShowComposer] = useState(false);
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [isPublishing, setIsPublishing] = useState(false);
-
-  async function handlePublish() {
-    setIsPublishing(true);
-    try {
-      await onPublishAnnouncement(title.trim(), body.trim());
-      setTitle("");
-      setBody("");
-      setShowComposer(false);
-    } finally {
-      setIsPublishing(false);
-    }
-  }
+  const [tapState, setTapState] = useState<TapState>(INITIAL_TAP_STATE);
+  const [tapHint, setTapHint] = useState<string | null>(null);
 
   const inputStyle = {
     minHeight: touchTarget.minDp,
@@ -124,77 +116,7 @@ export function MessageListScreen({
             </button>
           </div>
         ) : activeTab === "announcements" ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingTop: 8 }}>
-            {announcement ? (
-              <AnnouncementCard title={announcement.title} body={announcement.body} />
-            ) : (
-              <div style={{ textAlign: "center", padding: "40px 16px" }}>
-                <div style={{ fontSize: 14, color: colors.textPrimary }}>今天还没有公告</div>
-                <div style={{ fontSize: 12, color: "#8A8A82", marginTop: 6 }}>发布后群里所有人都会看到</div>
-              </div>
-            )}
-
-            {/* 发布表单默认收起。绝大多数人是来看的，不是来发的——
-                把表单常驻展开会让这一页看起来像个后台管理页。 */}
-            {!showComposer ? (
-              <button
-                onClick={() => setShowComposer(true)}
-                style={{
-                  minHeight: touchTarget.minDp,
-                  background: "transparent",
-                  border: `0.5px dashed ${colors.sageMint}`,
-                  borderRadius: 14,
-                  color: colors.deepInkGreen,
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                发布今日公告
-              </button>
-            ) : (
-              <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, paddingTop: 12 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="标题，例如「今日经文」"
-                    aria-label="公告标题输入框"
-                    style={inputStyle}
-                  />
-                  <textarea
-                    value={body}
-                    onChange={(e) => setBody(e.target.value)}
-                    placeholder="内容"
-                    aria-label="公告内容输入框"
-                    rows={4}
-                    style={{ ...inputStyle, resize: "vertical" }}
-                  />
-                  <Button
-                    variant="primary"
-                    onClick={handlePublish}
-                    disabled={isPublishing || title.trim().length === 0 || body.trim().length === 0}
-                  >
-                    {isPublishing ? "发布中..." : "发布"}
-                  </Button>
-                  <button
-                    onClick={() => setShowComposer(false)}
-                    style={{
-                      minHeight: touchTarget.minDp,
-                      background: "transparent",
-                      border: "none",
-                      boxShadow: "none",
-                      color: "#8A8A82",
-                      fontSize: 12,
-                      cursor: "pointer",
-                    }}
-                  >
-                    取消
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <TodayScreen content={todayContent} isAdmin={isAdmin} onOpenAdmin={onOpenAdmin} />
         ) : (
           <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
             {nickname ? (
@@ -224,6 +146,36 @@ export function MessageListScreen({
               <div style={{ fontSize: 11, color: "#9A9A94", fontFamily: "monospace", wordBreak: "break-all" }}>
                 {relayUrl}
               </div>
+            </button>
+
+            <button
+              onClick={() => {
+                const result = registerTap(tapState);
+                setTapState(result.state);
+                if (result.unlocked) {
+                  setTapHint("管理员入口已开启");
+                  onAdminUnlocked();
+                } else if (result.remaining <= 3) {
+                  // 到最后三次才给提示——否则误触也会看到莫名其妙的倒数
+                  setTapHint(`还差 ${result.remaining} 次`);
+                } else {
+                  setTapHint(null);
+                }
+              }}
+              style={{
+                minHeight: touchTarget.minDp,
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+                color: "#9A9A94",
+                fontSize: 11,
+                cursor: "default",
+                marginTop: 12,
+              }}
+            >
+              版本 {APP_VERSION}
+              {tapHint ? <span style={{ marginLeft: 8, color: colors.wheatGold }}>{tapHint}</span> : null}
             </button>
 
             <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.6, marginTop: 8 }}>

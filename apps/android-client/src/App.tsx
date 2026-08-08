@@ -14,13 +14,17 @@ import {
   copyToClipboard,
   buildReplyExcerpt,
   type ConnectionStatus,
+  type AnnouncementCategory,
 } from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
 import { JoinGroupScreen } from "./screens/JoinGroupScreen";
 import { InviteScreen } from "./screens/InviteScreen";
 import { CreateGroupScreen } from "./screens/CreateGroupScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
-import { ChatScreen, type DisplayMessage, type Announcement } from "./screens/ChatScreen";
+import { ChatScreen, type DisplayMessage } from "./screens/ChatScreen";
+import { TodayScreen, type TodayContent } from "./screens/TodayScreen";
+import { AdminPublishScreen } from "./screens/AdminPublishScreen";
+import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { CallScreen } from "./screens/CallScreen";
 import { CallSession, type CallKind, type CallStateInfo } from "@secureinchat/webrtc";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
@@ -55,6 +59,7 @@ type Screen =
   | { name: "join" }
   | { name: "createGroup" }
   | { name: "serverSettings" }
+  | { name: "adminPublish" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -118,6 +123,11 @@ export function App() {
   const isAutoReconnectRef = useRef(false);
   // 从聊天页返回时要落在消息 tab，而不是默认的公告 tab
   const cameFromChatRef = useRef(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    void isAdminUnlocked().then(setIsAdmin);
+  }, []);
   /** 正在回复的消息（每个群独立） */
   const [replyTarget, setReplyTarget] = useState<DisplayMessage | null>(null);
   const [nickname, setNickname] = useState<string | undefined>(undefined);
@@ -261,8 +271,16 @@ export function App() {
       }
 
       if (env.kind === "announcement") {
-        // 公告是"当前生效的那一条"，新的覆盖旧的，不堆成列表
-        patch({ announcement: { id: env.id, title: env.title, body: env.body } });
+        // 每个栏目只保留今天这一条，新的覆盖旧的。老客户端发的公告没有
+        // category，归到"通知"栏而不是丢掉。
+        const category: AnnouncementCategory = env.category ?? "notice";
+        setSessions((prev) => {
+          const s = prev[groupId];
+          if (!s) return prev;
+          return patchSession(prev, groupId, {
+            today: { ...s.today, [category]: { title: env.title, body: env.body } },
+          });
+        });
         return;
       }
 
@@ -310,6 +328,7 @@ export function App() {
       connectionStatus: client.connectionStatus,
       pendingCount: client.pendingMessageCount,
       onlinePeers: client.onlinePeers,
+      today: {},
       lastReadAtMs: Date.now(),
     };
 
@@ -539,21 +558,28 @@ export function App() {
     }
   }
 
-  async function handlePublishAnnouncement(title: string, body: string) {
-    const session = activeSession() ?? (sortSessions(sessions)[0]);
+  async function handlePublishAnnouncement(category: AnnouncementCategory, title: string, body: string) {
+    const session = activeSession() ?? sortSessions(sessions)[0];
     if (!session) return;
-    const announcement = { id: randomUUID(), title, body };
-    // 公告走和普通消息完全一样的加密通道——中继不知道这是一条公告。
-    // 注意：目前任何成员都能发公告，没有管理员权限校验（管理员体系还没做）。
     await session.client.sendEnvelope({
       kind: "announcement",
-      id: announcement.id,
+      id: randomUUID(),
+      category,
       title,
       body,
       sentAtMs: Date.now(),
       ...(nickname ? { senderName: nickname } : {}),
     });
-    setSessions((prev) => patchSession(prev, session.groupId, { announcement }));
+    setSessions((prev) => {
+      const s = prev[session.groupId];
+      if (!s) return prev;
+      return patchSession(prev, session.groupId, { today: { ...s.today, [category]: { title, body } } });
+    });
+  }
+
+  /** 各群的今日内容合并显示——小团体通常只有一个群，多群时后加入的覆盖先加入的 */
+  function mergedToday(): TodayContent {
+    return sortSessions(sessions).reduce<TodayContent>((acc, s) => ({ ...acc, ...s.today }), {});
   }
 
   async function handleStartCall(kind: CallKind, peerDeviceId: string) {
@@ -601,6 +627,21 @@ export function App() {
       <ServerSettingsScreen
         defaultUrl={RELAY_URL}
         onSaved={(url) => setRelayUrl(url)}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "adminPublish") {
+    return (
+      <AdminPublishScreen
+        content={mergedToday()}
+        onPublish={handlePublishAnnouncement}
+        onLockAdmin={() => {
+          void setAdminUnlocked(false);
+          setIsAdmin(false);
+          setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+        }}
         onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
       />
     );
@@ -670,12 +711,13 @@ export function App() {
           );
         }}
         onJoinAnotherGroup={() => setScreen({ name: "join" })}
-        announcement={
-          // 在列表页时没有"当前打开的群"，所以显示任意一个有公告的群的公告。
-          // 多群场景下公告应该按群分开展示，那是后续的事。
-          active?.announcement ?? sortSessions(sessions).find((s) => s.announcement)?.announcement
-        }
-        onPublishAnnouncement={handlePublishAnnouncement}
+        todayContent={mergedToday()}
+        isAdmin={isAdmin}
+        onOpenAdmin={() => setScreen({ name: "adminPublish" })}
+        onAdminUnlocked={() => {
+          void setAdminUnlocked(true);
+          setIsAdmin(true);
+        }}
         deviceId={screen.deviceId}
         nickname={nickname}
         onOpenServerSettings={() => setScreen({ name: "serverSettings" })}
@@ -698,7 +740,6 @@ export function App() {
     <ChatScreen
       groupName={active.groupName}
       messages={active.messages}
-      announcement={active.announcement}
       incomingProgress={active.incomingProgress}
       sendError={active.sendError}
       connectionStatus={active.connectionStatus}

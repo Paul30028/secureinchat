@@ -136,11 +136,16 @@ async function joinTestGroup() {
 }
 
 describe("App navigation", () => {
-  it("opens on today's announcement, not a conversation list", async () => {
+  it("opens on today's content, not a conversation list", async () => {
     await renderApp();
     // 公告每天更新，是打开这个应用的主要理由——所以它是首屏
-    expect(await screen.findByText("今天还没有公告")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "发布今日公告" })).toBeInTheDocument();
+    expect(await screen.findByText("今天还没有内容")).toBeInTheDocument();
+  });
+
+  it("does not show a publish entry to ordinary members", async () => {
+    await renderApp();
+    await screen.findByText("今天还没有内容");
+    expect(screen.queryByRole("button", { name: "发布今日内容" })).not.toBeInTheDocument();
   });
 
   it("the message list explains the invite-only model when empty", async () => {
@@ -481,42 +486,58 @@ describe("App navigation", () => {
     expect(await screen.findByText("第一条消息")).toBeInTheDocument();
   });
 
-  it("publishing an announcement shows it in the announcements tab and in the chat", async () => {
+  it("seven taps on the version number reveals the admin publish entry", async () => {
     await renderApp();
     await joinTestGroup();
-
     await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+
+    const version = screen.getByText(/版本 /);
+    for (let i = 0; i < 7; i++) fireEvent.click(version);
+
     fireEvent.click(screen.getByText("公告"));
-    expect(screen.getByText("今天还没有公告")).toBeInTheDocument();
-
-    // 发布表单默认收起——大多数人是来看的，不是来发的
-    fireEvent.click(screen.getByRole("button", { name: "发布今日公告" }));
-    fireEvent.change(await screen.findByLabelText("公告标题输入框"), { target: { value: "每日宣言" } });
-    fireEvent.change(screen.getByLabelText("公告内容输入框"), { target: { value: "今晚七点线上交流" } });
-    fireEvent.click(screen.getByRole("button", { name: "发布" }));
-
-    expect(await screen.findByText("每日宣言")).toBeInTheDocument();
-    expect(screen.getByText("今晚七点线上交流")).toBeInTheDocument();
-
-    // It should also appear at the top of the chat screen.
-    fireEvent.click(screen.getByText("消息"));
-    fireEvent.click(screen.getByText("同心同行"));
-    expect(await screen.findByText("每日宣言")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "发布今日内容" })).toBeInTheDocument();
   });
 
-  it("the publish button is disabled until both title and body are filled in", async () => {
+  it("an admin can publish to a category and everyone sees it under that column", async () => {
     await renderApp();
     await joinTestGroup();
     await goToGroupList();
-    await goToGroupList();
-    fireEvent.click(screen.getByText("公告"));
-    fireEvent.click(screen.getByRole("button", { name: "发布今日公告" }));
+    fireEvent.click(screen.getByText("我的"));
+    const version = screen.getByText(/版本 /);
+    for (let i = 0; i < 7; i++) fireEvent.click(version);
 
-    expect(await screen.findByRole("button", { name: "发布" })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("公告标题输入框"), { target: { value: "只有标题" } });
-    expect(screen.getByRole("button", { name: "发布" })).toBeDisabled();
+    fireEvent.click(screen.getByText("公告"));
+    fireEvent.click(await screen.findByRole("button", { name: "发布今日内容" }));
+
+    // 默认选中「今日经文」
+    fireEvent.change(await screen.findByLabelText("公告标题输入框"), { target: { value: "诗篇 133:1" } });
+    fireEvent.change(screen.getByLabelText("公告内容输入框"), { target: { value: "弟兄和睦同居" } });
+    fireEvent.click(screen.getByRole("button", { name: "发布到「今日经文」" }));
+
+    expect(await screen.findByText("今日经文 已发布")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    fireEvent.click(await screen.findByText("公告"));
+    expect(await screen.findByText("诗篇 133:1")).toBeInTheDocument();
+    expect(screen.getByText("弟兄和睦同居")).toBeInTheDocument();
+    expect(screen.getByText("今日经文")).toBeInTheDocument();
+  });
+
+  it("publishing requires content, not just a title", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    const version = screen.getByText(/版本 /);
+    for (let i = 0; i < 7; i++) fireEvent.click(version);
+
+    fireEvent.click(screen.getByText("公告"));
+    fireEvent.click(await screen.findByRole("button", { name: "发布今日内容" }));
+
+    expect(screen.getByRole("button", { name: "发布到「今日经文」" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("公告内容输入框"), { target: { value: "有内容了" } });
-    expect(screen.getByRole("button", { name: "发布" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "发布到「今日经文」" })).toBeEnabled();
   });
 
   it("sending an image renders it as a media bubble in the chat", async () => {

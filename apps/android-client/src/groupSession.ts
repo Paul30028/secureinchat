@@ -1,5 +1,6 @@
 import type { RelayClient, ConnectionStatus } from "@secureinchat/chat-core";
-import type { DisplayMessage, Announcement } from "./screens/ChatScreen";
+import type { DisplayMessage } from "./screens/ChatScreen";
+import type { TodayContent } from "./screens/TodayScreen";
 
 /**
  * 一个群的会话状态。
@@ -19,7 +20,8 @@ export interface GroupSession {
   pendingCount: number;
   /** 同群在线的其他设备（中继推送的） */
   onlinePeers: string[];
-  announcement?: Announcement | undefined;
+  /** 每个栏目今天的内容。不需要历史，所以新的直接覆盖旧的。 */
+  today: TodayContent;
   sendError?: string | undefined;
   incomingProgress?: { fileId: string; fileName: string; receivedChunks: number; totalChunks: number }[];
   /** 上次查看这个群的时间，用来算未读 */

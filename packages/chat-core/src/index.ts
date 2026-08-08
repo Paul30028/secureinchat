@@ -8,3 +8,4 @@ export * from "./fileTransfer";
 export * from "./messageStore";
 export * from "./groupStore";
 export * from "./messageActions";
+export * from "./announcementCategories";

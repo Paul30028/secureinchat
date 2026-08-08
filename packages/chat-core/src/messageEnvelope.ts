@@ -1,3 +1,5 @@
+import type { AnnouncementCategory } from "./announcementCategories";
+
 /**
  * 消息信封——放在**加密之后的载荷内部**，中继看不到。
  *
@@ -36,6 +38,11 @@ export interface TextEnvelope {
 export interface AnnouncementEnvelope {
   kind: "announcement";
   id: string;
+  /**
+   * 栏目。老版本客户端发的公告没有这个字段，接收方要能容忍缺失
+   * （回退到"通知"栏），不能因此丢掉整条公告。
+   */
+  category?: AnnouncementCategory;
   title: string;
   body: string;
   sentAtMs: number;
