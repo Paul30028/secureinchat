@@ -47,6 +47,11 @@ export interface AnnouncementEnvelope {
   body: string;
   sentAtMs: number;
   senderName?: string;
+  /**
+   * 管理员签名（base64url）。收到方用邀请串里的管理员公钥验证——验不过
+   * 就不当公告，因为发送者没有管理员私钥。没有签名的公告同样不被接受。
+   */
+  adminSignature?: string;
 }
 
 /** 文件传输的第一帧：告诉接收方接下来会有多少个分片、原始文件名是什么。

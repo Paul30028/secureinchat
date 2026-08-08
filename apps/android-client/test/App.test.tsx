@@ -486,26 +486,48 @@ describe("App navigation", () => {
     expect(await screen.findByText("第一条消息")).toBeInTheDocument();
   });
 
-  it("seven taps on the version number reveals the admin publish entry", async () => {
-    await renderApp();
-    await joinTestGroup();
+
+  /** 创建一个群——只有建群者持有管理员私钥，所以测发布必须走这条路。 */
+  async function createGroupAsAdmin(name = "测试群") {
+    await openJoinScreen();
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: name } });
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
+    await screen.findByLabelText("消息输入框");
+  }
+
+  /** 连点版本号 7 次开启管理员入口 */
+  async function unlockAdmin() {
     await goToGroupList();
     fireEvent.click(screen.getByText("我的"));
-
     const version = screen.getByText(/版本 /);
     for (let i = 0; i < 7; i++) fireEvent.click(version);
+  }
+
+  it("seven taps on the version number reveals the admin publish entry", async () => {
+    await renderApp();
+    await createGroupAsAdmin();
+    await unlockAdmin();
 
     fireEvent.click(screen.getByText("公告"));
     expect(await screen.findByRole("button", { name: "发布今日内容" })).toBeInTheDocument();
   });
 
+  it("unlocking without holding the group's admin key shows no publish entry", async () => {
+    await renderApp();
+    await joinTestGroup(); // 加入别人的群 —— 没有管理员私钥
+    await unlockAdmin();
+
+    fireEvent.click(screen.getByText("公告"));
+    // 界面解锁了，但这台设备不是这个群的管理员，所以发布入口不出现
+    expect(screen.queryByRole("button", { name: "发布今日内容" })).not.toBeInTheDocument();
+  });
+
   it("an admin can publish to a category and everyone sees it under that column", async () => {
     await renderApp();
-    await joinTestGroup();
-    await goToGroupList();
-    fireEvent.click(screen.getByText("我的"));
-    const version = screen.getByText(/版本 /);
-    for (let i = 0; i < 7; i++) fireEvent.click(version);
+    await createGroupAsAdmin();
+    await unlockAdmin();
 
     fireEvent.click(screen.getByText("公告"));
     fireEvent.click(await screen.findByRole("button", { name: "发布今日内容" }));
@@ -526,11 +548,8 @@ describe("App navigation", () => {
 
   it("publishing requires content, not just a title", async () => {
     await renderApp();
-    await joinTestGroup();
-    await goToGroupList();
-    fireEvent.click(screen.getByText("我的"));
-    const version = screen.getByText(/版本 /);
-    for (let i = 0; i < 7; i++) fireEvent.click(version);
+    await createGroupAsAdmin();
+    await unlockAdmin();
 
     fireEvent.click(screen.getByText("公告"));
     fireEvent.click(await screen.findByRole("button", { name: "发布今日内容" }));

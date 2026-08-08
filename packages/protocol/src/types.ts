@@ -25,6 +25,11 @@ export interface ParsedInvite {
    * SIC1（旧协议）没有这个字段。
    */
   readonly groupName?: string;
+  /**
+   * 管理员公钥。建群者生成，写进邀请串让所有成员都能验证公告签名。
+   * 没有这个字段的群（旧邀请串）无法验证公告，客户端会当作"不可验证"处理。
+   */
+  readonly adminPublicKeyRawB64Url?: string;
   /** 客户端本地派生群密钥所需的原始材料（未解密前的 opaque bytes，base64url 编码） */
   readonly keyMaterialB64Url: string;
   /** SIC2 起才有：群 epoch，用于密钥轮换与重放校验 */
@@ -70,6 +75,8 @@ export interface BuildInviteInput {
   groupId?: string;
   /** 群名，会明文放进邀请串（拿到邀请串的人本来就要加入这个群） */
   groupName?: string;
+  /** 管理员公钥，用于验证公告签名 */
+  adminPublicKeyRawB64Url?: string;
   epoch?: number;
   expiresAtMs?: number;
   remainingUses?: number;

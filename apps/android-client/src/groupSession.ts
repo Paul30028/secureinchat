@@ -22,6 +22,8 @@ export interface GroupSession {
   onlinePeers: string[];
   /** 每个栏目今天的内容。不需要历史，所以新的直接覆盖旧的。 */
   today: TodayContent;
+  /** 这个群的管理员公钥（来自邀请串），用于验证公告签名 */
+  adminPublicKey?: string | undefined;
   sendError?: string | undefined;
   incomingProgress?: { fileId: string; fileName: string; receivedChunks: number; totalChunks: number }[];
   /** 上次查看这个群的时间，用来算未读 */

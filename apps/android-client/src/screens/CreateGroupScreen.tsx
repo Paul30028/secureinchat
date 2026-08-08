@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { colors, touchTarget, Button, InviteShareCard } from "@secureinchat/ui";
 import { buildSic2Invite } from "@secureinchat/protocol";
-import { randomUUID, } from "@secureinchat/crypto-core";
+import { randomUUID, generateAdminKeyPair } from "@secureinchat/crypto-core";
 import { copyToClipboard } from "@secureinchat/chat-core";
 
 export interface CreateGroupScreenProps {
@@ -10,6 +10,8 @@ export interface CreateGroupScreenProps {
     groupName: string;
     keyMaterialB64Url: string;
     inviteCode: string;
+    /** 建群者保留的管理员私钥——只有它能签发这个群的公告 */
+    adminPrivateKey: CryptoKey;
   }) => Promise<void>;
   onBack: () => void;
 }
@@ -33,26 +35,31 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [pendingGroupId, setPendingGroupId] = useState<string | null>(null);
   const [pendingKeyMaterial, setPendingKeyMaterial] = useState<string | null>(null);
+  const [adminKey, setAdminKey] = useState<CryptoKey | null>(null);
   const [isEntering, setIsEntering] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  function handleCreate() {
+  async function handleCreate() {
     const groupId = `group-${randomUUID()}`;
     const keyMaterialB64Url = randomBase64UrlKeyMaterial();
+    // 建群时生成管理员密钥：公钥进邀请串（人人可验证），私钥只留在本机
+    const admin = await generateAdminKeyPair();
     const code = buildSic2Invite({
       serverJoinCode: randomUUID().slice(0, 8).toUpperCase(),
       groupId,
       groupName: groupName.trim(),
+      adminPublicKeyRawB64Url: admin.publicKeyRawB64Url,
       keyMaterialB64Url,
       epoch: 0,
     });
     setPendingGroupId(groupId);
     setPendingKeyMaterial(keyMaterialB64Url);
+    setAdminKey(admin.privateKey);
     setInviteCode(code);
   }
 
   async function handleEnter() {
-    if (!pendingGroupId || !pendingKeyMaterial || !inviteCode) return;
+    if (!pendingGroupId || !pendingKeyMaterial || !inviteCode || !adminKey) return;
     setIsEntering(true);
     setErrorMessage(null);
     try {
@@ -61,6 +68,7 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
         groupName: groupName || "新群聊",
         keyMaterialB64Url: pendingKeyMaterial,
         inviteCode,
+        adminPrivateKey: adminKey,
       });
     } catch (err) {
       setIsEntering(false);
@@ -108,7 +116,7 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
               boxShadow: "none",
             }}
           />
-          <Button variant="primary" onClick={handleCreate} disabled={groupName.trim().length === 0}>
+          <Button variant="primary" onClick={() => void handleCreate()} disabled={groupName.trim().length === 0}>
             创建群聊
           </Button>
         </div>

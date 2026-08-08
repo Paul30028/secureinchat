@@ -26,6 +26,7 @@ interface Sic2Payload {
   sjc: string;
   gid: string;
   gn?: string;
+  apk?: string;
   km: string;
   epoch: number;
   exp?: number;
@@ -72,6 +73,7 @@ export function parseSic2Invite(raw: string, now: number = Date.now()): ParsedIn
     serverJoinCode: payload.sjc,
     groupId: payload.gid,
     ...(payload.gn !== undefined ? { groupName: payload.gn } : {}),
+    ...(payload.apk !== undefined ? { adminPublicKeyRawB64Url: payload.apk } : {}),
     keyMaterialB64Url: payload.km,
     epoch: payload.epoch,
     ...(payload.exp !== undefined ? { expiresAtMs: payload.exp } : {}),
@@ -87,6 +89,7 @@ export function buildSic2Invite(input: BuildInviteInput): string {
     epoch: input.epoch ?? 0,
     ...(input.groupId !== undefined ? { gid: input.groupId } : {}),
     ...(input.groupName !== undefined ? { gn: input.groupName } : {}),
+    ...(input.adminPublicKeyRawB64Url !== undefined ? { apk: input.adminPublicKeyRawB64Url } : {}),
     ...(input.expiresAtMs !== undefined ? { exp: input.expiresAtMs } : {}),
     ...(input.remainingUses !== undefined ? { uses: input.remainingUses } : {}),
   };

@@ -25,10 +25,11 @@ import { ChatScreen, type DisplayMessage } from "./screens/ChatScreen";
 import { TodayScreen, type TodayContent } from "./screens/TodayScreen";
 import { AdminPublishScreen } from "./screens/AdminPublishScreen";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
+import { saveAdminKey, loadAdminKey } from "./adminKeys";
 import { CallScreen } from "./screens/CallScreen";
 import { CallSession, type CallKind, type CallStateInfo } from "@secureinchat/webrtc";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
-import { randomUUID } from "@secureinchat/crypto-core";
+import { randomUUID, signAnnouncement, verifyAnnouncement } from "@secureinchat/crypto-core";
 import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
 import { ServerSettingsScreen } from "./screens/ServerSettingsScreen";
 import { MessageSearchScreen } from "./screens/MessageSearchScreen";
@@ -128,6 +129,19 @@ export function App() {
   useEffect(() => {
     void isAdminUnlocked().then(setIsAdmin);
   }, []);
+
+  /** 界面上是否显示发布入口：既要解锁过，也要真的持有某个群的管理员私钥 */
+  const [holdsAdminKey, setHoldsAdminKey] = useState(false);
+  useEffect(() => {
+    const groupIds = Object.keys(sessions);
+    if (groupIds.length === 0) {
+      setHoldsAdminKey(false);
+      return;
+    }
+    void Promise.all(groupIds.map((id) => loadAdminKey(id))).then((keys) =>
+      setHoldsAdminKey(keys.some(Boolean))
+    );
+  }, [sessions]);
   /** 正在回复的消息（每个群独立） */
   const [replyTarget, setReplyTarget] = useState<DisplayMessage | null>(null);
   const [nickname, setNickname] = useState<string | undefined>(undefined);
@@ -271,16 +285,29 @@ export function App() {
       }
 
       if (env.kind === "announcement") {
-        // 每个栏目只保留今天这一条，新的覆盖旧的。老客户端发的公告没有
-        // category，归到"通知"栏而不是丢掉。
         const category: AnnouncementCategory = env.category ?? "notice";
-        setSessions((prev) => {
-          const s = prev[groupId];
-          if (!s) return prev;
-          return patchSession(prev, groupId, {
-            today: { ...s.today, [category]: { title: env.title, body: env.body } },
+
+        // 验签：没有管理员公钥、没有签名、或者验不过，都不当公告。
+        // 这是"管理员"真正生效的地方——本地解锁界面骗不过别人的客户端。
+        void (async () => {
+          const adminPublicKey = parsed.adminPublicKeyRawB64Url;
+          if (!adminPublicKey || !env.adminSignature) return;
+          const ok = await verifyAnnouncement(adminPublicKey, env.adminSignature, {
+            groupId,
+            category,
+            title: env.title,
+            body: env.body,
+            sentAtMs: env.sentAtMs,
           });
-        });
+          if (!ok) return;
+          setSessions((prev) => {
+            const s = prev[groupId];
+            if (!s) return prev;
+            return patchSession(prev, groupId, {
+              today: { ...s.today, [category]: { title: env.title, body: env.body } },
+            });
+          });
+        })();
         return;
       }
 
@@ -328,6 +355,7 @@ export function App() {
       connectionStatus: client.connectionStatus,
       pendingCount: client.pendingMessageCount,
       onlinePeers: client.onlinePeers,
+      adminPublicKey: parsed.adminPublicKeyRawB64Url,
       today: {},
       lastReadAtMs: Date.now(),
     };
@@ -429,7 +457,10 @@ export function App() {
     groupName: string;
     keyMaterialB64Url: string;
     inviteCode: string;
+    adminPrivateKey: CryptoKey;
   }) {
+    // 建群者保存管理员私钥——这是他能发公告的唯一凭据
+    await saveAdminKey(input.groupId, input.adminPrivateKey);
     const parsed = parseInviteAuto(input.inviteCode); // 复用解析路径，不手搓一份 ParsedInvite
     await connectToGroup(parsed, input.groupName);
   }
@@ -561,13 +592,29 @@ export function App() {
   async function handlePublishAnnouncement(category: AnnouncementCategory, title: string, body: string) {
     const session = activeSession() ?? sortSessions(sessions)[0];
     if (!session) return;
+
+    // 只有持有这个群管理员私钥的设备才能签发公告。没有私钥就发不出去——
+    // 本地解锁界面不构成权限。
+    const adminKey = await loadAdminKey(session.groupId);
+    if (!adminKey) throw new Error("这台设备没有该群的管理员密钥，无法发布公告");
+
+    const sentAtMs = Date.now();
+    const adminSignature = await signAnnouncement(adminKey, {
+      groupId: session.groupId,
+      category,
+      title,
+      body,
+      sentAtMs,
+    });
+
     await session.client.sendEnvelope({
       kind: "announcement",
       id: randomUUID(),
       category,
       title,
       body,
-      sentAtMs: Date.now(),
+      sentAtMs,
+      adminSignature,
       ...(nickname ? { senderName: nickname } : {}),
     });
     setSessions((prev) => {
@@ -712,7 +759,7 @@ export function App() {
         }}
         onJoinAnotherGroup={() => setScreen({ name: "join" })}
         todayContent={mergedToday()}
-        isAdmin={isAdmin}
+        isAdmin={isAdmin && holdsAdminKey}
         onOpenAdmin={() => setScreen({ name: "adminPublish" })}
         onAdminUnlocked={() => {
           void setAdminUnlocked(true);
