@@ -4,6 +4,10 @@ import { CATEGORY_ORDER, CATEGORY_META, type AnnouncementCategory } from "@secur
 export interface CategoryEntry {
   title: string;
   body: string;
+  /** 音频已经解密组装好之后的本地播放地址（赞美圣诗用） */
+  audioUrl?: string | undefined;
+  /** 音频还在接收中时的进度文案 */
+  audioPending?: string | undefined;
 }
 
 export type TodayContent = Partial<Record<AnnouncementCategory, CategoryEntry>>;
@@ -36,6 +40,16 @@ function ColumnCard({ label, entry }: { label: string; entry?: CategoryEntry | u
           <div style={{ fontSize: 14, color: colors.textPrimary, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
             {entry.body}
           </div>
+          {entry.audioUrl ? (
+            <audio
+              controls
+              src={entry.audioUrl}
+              aria-label="播放圣诗"
+              style={{ width: "100%", marginTop: 10, height: 36 }}
+            />
+          ) : entry.audioPending ? (
+            <div style={{ fontSize: 12, color: "#9A9A94", marginTop: 8 }}>{entry.audioPending}</div>
+          ) : null}
         </>
       ) : (
         <div style={{ fontSize: 12, color: "#9A9A94", marginTop: 6 }}>今天还没有内容</div>

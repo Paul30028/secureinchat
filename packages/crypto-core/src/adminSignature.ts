@@ -109,8 +109,17 @@ export function announcementSigningInput(input: {
   title: string;
   body: string;
   sentAtMs: number;
+  /** 关联音频的 ID 也要签，否则可以把公告的音频替换成别的 */
+  audioFileId?: string | undefined;
 }): Uint8Array {
-  const canonical = JSON.stringify([input.groupId, input.category, input.title, input.body, input.sentAtMs]);
+  const canonical = JSON.stringify([
+    input.groupId,
+    input.category,
+    input.title,
+    input.body,
+    input.sentAtMs,
+    input.audioFileId ?? "",
+  ]);
   return new TextEncoder().encode(canonical);
 }
 

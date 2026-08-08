@@ -48,6 +48,12 @@ export interface AnnouncementEnvelope {
   sentAtMs: number;
   senderName?: string;
   /**
+   * 关联的音频文件 ID（赞美圣诗用）。音频本身走已有的分片加密传输
+   * （file-meta/file-chunk），这里只带一个引用——公告帧不适合塞几 MB 的内容。
+   * 这个字段也在签名范围内，否则别人可以把音频换掉。
+   */
+  audioFileId?: string;
+  /**
    * 管理员签名（base64url）。收到方用邀请串里的管理员公钥验证——验不过
    * 就不当公告，因为发送者没有管理员私钥。没有签名的公告同样不被接受。
    */

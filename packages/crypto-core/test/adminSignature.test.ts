@@ -127,3 +127,30 @@ describe("admin recovery code", () => {
     expect(await verifyAnnouncement(groupA.publicKeyRawB64Url, sig, base)).toBe(false);
   });
 });
+
+describe("audio attachment is covered by the signature", () => {
+  it("verifies when the audio id matches", async () => {
+    const admin = await generateAdminKeyPair();
+    const withAudio = { ...base, category: "hymn", audioFileId: "file-1" };
+    const sig = await signAnnouncement(admin.privateKey, withAudio);
+    expect(await verifyAnnouncement(admin.publicKeyRawB64Url, sig, withAudio)).toBe(true);
+  });
+
+  it("rejects swapping the audio for a different file", async () => {
+    const admin = await generateAdminKeyPair();
+    const withAudio = { ...base, category: "hymn", audioFileId: "file-1" };
+    const sig = await signAnnouncement(admin.privateKey, withAudio);
+    expect(
+      await verifyAnnouncement(admin.publicKeyRawB64Url, sig, { ...withAudio, audioFileId: "file-evil" })
+    ).toBe(false);
+  });
+
+  it("rejects stripping the audio off a signed announcement", async () => {
+    const admin = await generateAdminKeyPair();
+    const withAudio = { ...base, category: "hymn", audioFileId: "file-1" };
+    const sig = await signAnnouncement(admin.privateKey, withAudio);
+    expect(await verifyAnnouncement(admin.publicKeyRawB64Url, sig, { ...withAudio, audioFileId: undefined })).toBe(
+      false
+    );
+  });
+});

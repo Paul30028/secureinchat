@@ -89,6 +89,26 @@ async function goToGroupList() {
   if (messagesTab) fireEvent.click(messagesTab);
 }
 
+/** 创建一个群——只有建群者持有管理员私钥，所以测发布必须走这条路。 */
+async function createGroupAsAdmin(name = "测试群") {
+  await openJoinScreen();
+  fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+  fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: name } });
+  fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+  // 必须先确认保存管理员恢复码——丢了就再也发不了公告
+  fireEvent.click(await screen.findByRole("button", { name: "我已保存" }));
+  fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
+  await screen.findByLabelText("消息输入框");
+}
+
+/** 连点版本号 7 次开启管理员入口 */
+async function unlockAdmin() {
+  await goToGroupList();
+  fireEvent.click(screen.getByText("我的"));
+  const version = screen.getByText(/版本 /);
+  for (let i = 0; i < 7; i++) fireEvent.click(version);
+}
+
 /** 启动页删掉之后，首页是群列表；输入邀请码要先进"加入群聊"页。 */
 async function openJoinScreen() {
   // 应用默认落在公告 tab（公告每天更新，是主要入口），
@@ -492,26 +512,6 @@ describe("App navigation", () => {
     expect(await screen.findByText("第一条消息")).toBeInTheDocument();
   });
 
-
-  /** 创建一个群——只有建群者持有管理员私钥，所以测发布必须走这条路。 */
-  async function createGroupAsAdmin(name = "测试群") {
-    await openJoinScreen();
-    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
-    fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: name } });
-    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
-    // 必须先确认保存管理员恢复码——丢了就再也发不了公告
-    fireEvent.click(await screen.findByRole("button", { name: "我已保存" }));
-    fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
-    await screen.findByLabelText("消息输入框");
-  }
-
-  /** 连点版本号 7 次开启管理员入口 */
-  async function unlockAdmin() {
-    await goToGroupList();
-    fireEvent.click(screen.getByText("我的"));
-    const version = screen.getByText(/版本 /);
-    for (let i = 0; i < 7; i++) fireEvent.click(version);
-  }
 
   it("seven taps on the version number reveals the admin publish entry", async () => {
     await renderApp();
@@ -1116,5 +1116,74 @@ describe("QR scanning", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
     expect(await screen.findByLabelText("邀请码输入框")).toBeInTheDocument();
+  });
+});
+
+describe("hymn audio", () => {
+  async function openAdminPublish() {
+    await createGroupAsAdmin();
+    await unlockAdmin();
+    fireEvent.click(screen.getByText("公告"));
+    fireEvent.click(await screen.findByRole("button", { name: "发布今日内容" }));
+  }
+
+  it("offers an audio picker only for 赞美圣诗", async () => {
+    await renderApp();
+    await openAdminPublish();
+
+    // 默认是今日经文——不该有音频选择器
+    expect(screen.queryByLabelText("选择圣诗音频")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "赞美圣诗" }));
+    expect(await screen.findByLabelText("选择圣诗音频")).toBeInTheDocument();
+
+    // 切回去又该消失
+    fireEvent.click(screen.getByRole("button", { name: "今日经文" }));
+    expect(screen.queryByLabelText("选择圣诗音频")).not.toBeInTheDocument();
+  });
+
+  it("shows the chosen file name before publishing", async () => {
+    await renderApp();
+    await openAdminPublish();
+    fireEvent.click(screen.getByRole("button", { name: "赞美圣诗" }));
+
+    const file = new File([new Uint8Array([1, 2, 3])], "奇异恩典.mp3", { type: "audio/mpeg" });
+    fireEvent.change(await screen.findByLabelText("选择圣诗音频"), { target: { files: [file] } });
+
+    expect(await screen.findByText("已选择：奇异恩典.mp3")).toBeInTheDocument();
+  });
+
+  it("publishing a hymn with audio shows a player on the today screen", async () => {
+    await renderApp();
+    await openAdminPublish();
+    fireEvent.click(screen.getByRole("button", { name: "赞美圣诗" }));
+
+    const file = new File([new Uint8Array([1, 2, 3, 4])], "奇异恩典.mp3", { type: "audio/mpeg" });
+    fireEvent.change(await screen.findByLabelText("选择圣诗音频"), { target: { files: [file] } });
+    fireEvent.change(screen.getByLabelText("公告标题输入框"), { target: { value: "奇异恩典" } });
+    fireEvent.change(screen.getByLabelText("公告内容输入框"), { target: { value: "第 1-3 节" } });
+    fireEvent.click(screen.getByRole("button", { name: "发布到「赞美圣诗」" }));
+
+    await screen.findByText("赞美圣诗 已发布");
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    fireEvent.click(await screen.findByText("公告"));
+
+    expect(await screen.findByLabelText("播放圣诗")).toBeInTheDocument();
+    expect(screen.getByText("奇异恩典")).toBeInTheDocument();
+  });
+
+  it("a hymn published without audio has no player", async () => {
+    await renderApp();
+    await openAdminPublish();
+    fireEvent.click(screen.getByRole("button", { name: "赞美圣诗" }));
+    fireEvent.change(screen.getByLabelText("公告内容输入框"), { target: { value: "只有歌词" } });
+    fireEvent.click(screen.getByRole("button", { name: "发布到「赞美圣诗」" }));
+
+    await screen.findByText("赞美圣诗 已发布");
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    fireEvent.click(await screen.findByText("公告"));
+
+    expect(await screen.findByText("只有歌词")).toBeInTheDocument();
+    expect(screen.queryByLabelText("播放圣诗")).not.toBeInTheDocument();
   });
 });

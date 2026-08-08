@@ -6,7 +6,12 @@ import type { TodayContent } from "./TodayScreen";
 export interface AdminPublishScreenProps {
   /** 当前已发布的内容，用来预填——改一条不用重打其他几条 */
   content: TodayContent;
-  onPublish: (category: AnnouncementCategory, title: string, body: string) => Promise<void>;
+  onPublish: (
+    category: AnnouncementCategory,
+    title: string,
+    body: string,
+    audioFile?: File | undefined
+  ) => Promise<void>;
   onLockAdmin: () => void;
   onBack: () => void;
 }
@@ -25,18 +30,21 @@ export function AdminPublishScreen({ content, onPublish, onLockAdmin, onBack }: 
   const [body, setBody] = useState(content.scripture?.body ?? "");
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedNotice, setPublishedNotice] = useState<string | null>(null);
+  const [audioFile, setAudioFile] = useState<File | null>(null);
 
   function switchCategory(next: AnnouncementCategory) {
     setCategory(next);
     setTitle(content[next]?.title ?? "");
     setBody(content[next]?.body ?? "");
     setPublishedNotice(null);
+    setAudioFile(null);
   }
 
   async function handlePublish() {
     setIsPublishing(true);
     try {
-      await onPublish(category, title.trim(), body.trim());
+      await onPublish(category, title.trim(), body.trim(), audioFile ?? undefined);
+      setAudioFile(null);
       setPublishedNotice(`${CATEGORY_META[category].label} 已发布`);
     } finally {
       setIsPublishing(false);
@@ -125,6 +133,43 @@ export function AdminPublishScreen({ content, onPublish, onLockAdmin, onBack }: 
           rows={6}
           style={{ ...inputStyle, resize: "vertical" }}
         />
+
+        {/* 只有赞美圣诗需要配音频——其他栏目放这个输入会是干扰 */}
+        {category === "hymn" ? (
+          <div>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                minHeight: touchTarget.minDp,
+                border: `0.5px dashed ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "0 14px",
+                fontSize: 13,
+                color: colors.deepInkGreen,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="file"
+                accept="audio/*"
+                aria-label="选择圣诗音频"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  setAudioFile(e.target.files?.[0] ?? null);
+                  setPublishedNotice(null);
+                }}
+              />
+              {audioFile ? `已选择：${audioFile.name}` : "添加音频（可选）"}
+            </label>
+            {audioFile ? (
+              <div style={{ fontSize: 11, color: "#9A9A94", marginTop: 4 }}>
+                音频会和消息一样加密后发送，中继看不到内容
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         {publishedNotice ? (
           <p role="status" style={{ fontSize: 12, color: colors.deepInkGreen, margin: 0 }}>

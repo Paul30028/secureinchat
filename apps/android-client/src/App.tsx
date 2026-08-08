@@ -126,6 +126,9 @@ export function App() {
   const isAutoReconnectRef = useRef(false);
   // 从聊天页返回时要落在消息 tab，而不是默认的公告 tab
   const cameFromChatRef = useRef(false);
+  // 公告音频的分片和公告本身谁先到都有可能，两边各记一份等对上
+  const pendingAudioRef = useRef<Map<string, AnnouncementCategory>>(new Map());
+  const arrivedAudioRef = useRef<Map<string, string>>(new Map());
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -300,13 +303,28 @@ export function App() {
             title: env.title,
             body: env.body,
             sentAtMs: env.sentAtMs,
+            audioFileId: env.audioFileId,
           });
           if (!ok) return;
+
+          // 音频可能还在传输中（分片先到或后到都有可能）——先记下引用，
+          // 等文件组装完再补上播放地址
+          if (env.audioFileId) pendingAudioRef.current.set(env.audioFileId, category);
+          const readyUrl = env.audioFileId ? arrivedAudioRef.current.get(env.audioFileId) : undefined;
+
           setSessions((prev) => {
             const s = prev[groupId];
             if (!s) return prev;
             return patchSession(prev, groupId, {
-              today: { ...s.today, [category]: { title: env.title, body: env.body } },
+              today: {
+                ...s.today,
+                [category]: {
+                  title: env.title,
+                  body: env.body,
+                  audioUrl: readyUrl,
+                  audioPending: env.audioFileId && !readyUrl ? "音频接收中..." : undefined,
+                },
+              },
             });
           });
         })();
@@ -327,6 +345,26 @@ export function App() {
       }
       const objectUrl = URL.createObjectURL(new Blob([done.bytes as BlobPart], { type: done.mimeType }));
       patch({ incomingProgress: assembler.progress() });
+
+      // 公告配的音频不进聊天记录——它属于「今日」的栏目
+      arrivedAudioRef.current.set(done.fileId, objectUrl);
+      const pendingCategory = pendingAudioRef.current.get(done.fileId);
+      if (pendingCategory) {
+        pendingAudioRef.current.delete(done.fileId);
+        setSessions((prev) => {
+          const s = prev[groupId];
+          if (!s) return prev;
+          const existing = s.today[pendingCategory];
+          if (!existing) return prev;
+          return patchSession(prev, groupId, {
+            today: {
+              ...s.today,
+              [pendingCategory]: { ...existing, audioUrl: objectUrl, audioPending: undefined },
+            },
+          });
+        });
+        return;
+      }
       appendMessage(
         {
           id: `recv-${nextMessageId++}`,
@@ -591,7 +629,12 @@ export function App() {
     }
   }
 
-  async function handlePublishAnnouncement(category: AnnouncementCategory, title: string, body: string) {
+  async function handlePublishAnnouncement(
+    category: AnnouncementCategory,
+    title: string,
+    body: string,
+    audioFile?: File | undefined
+  ) {
     const session = activeSession() ?? sortSessions(sessions)[0];
     if (!session) return;
 
@@ -600,6 +643,32 @@ export function App() {
     const adminKey = await loadAdminKey(session.groupId);
     if (!adminKey) throw new Error("这台设备没有该群的管理员密钥，无法发布公告");
 
+    // 音频走已有的分片加密传输，公告只带一个引用——公告帧不适合塞几 MB
+    let audioFileId: string | undefined;
+    if (audioFile) {
+      audioFileId = randomUUID();
+      const bytes = new Uint8Array(await audioFile.arrayBuffer());
+      const { meta, chunks } = buildFileEnvelopes({
+        fileId: audioFileId,
+        fileName: audioFile.name,
+        mimeType: audioFile.type || "audio/mpeg",
+        mediaKind: "voice",
+        bytes,
+      });
+      await session.client.sendEnvelope(meta);
+      for (const chunk of chunks) await session.client.sendEnvelope(chunk);
+      // 本机也要能播——不然发布者自己看不到播放器
+      const localUrl = URL.createObjectURL(audioFile);
+      setSessions((prev) => {
+        const s = prev[session.groupId];
+        if (!s) return prev;
+        const existing = s.today[category];
+        return patchSession(prev, session.groupId, {
+          today: { ...s.today, [category]: { title, body, ...existing, audioUrl: localUrl } },
+        });
+      });
+    }
+
     const sentAtMs = Date.now();
     const adminSignature = await signAnnouncement(adminKey, {
       groupId: session.groupId,
@@ -607,6 +676,7 @@ export function App() {
       title,
       body,
       sentAtMs,
+      audioFileId,
     });
 
     await session.client.sendEnvelope({
@@ -617,12 +687,16 @@ export function App() {
       body,
       sentAtMs,
       adminSignature,
+      ...(audioFileId ? { audioFileId } : {}),
       ...(nickname ? { senderName: nickname } : {}),
     });
     setSessions((prev) => {
       const s = prev[session.groupId];
       if (!s) return prev;
-      return patchSession(prev, session.groupId, { today: { ...s.today, [category]: { title, body } } });
+      const existing = s.today[category];
+      return patchSession(prev, session.groupId, {
+        today: { ...s.today, [category]: { title, body, audioUrl: existing?.audioUrl } },
+      });
     });
   }
 
