@@ -28,6 +28,8 @@ import { TodayScreen, type TodayContent } from "./screens/TodayScreen";
 import { AdminPublishScreen } from "./screens/AdminPublishScreen";
 import { QrScanScreen } from "./screens/QrScanScreen";
 import { AdminRecoveryScreen } from "./screens/AdminRecoveryScreen";
+import { LockScreen } from "./screens/LockScreen";
+import { isLockEnabled, disableLock } from "./appLock";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { saveAdminKey, loadAdminKey } from "./adminKeys";
 import { CallScreen } from "./screens/CallScreen";
@@ -134,6 +136,13 @@ export function App() {
   const pendingAudioRef = useRef<Map<string, AnnouncementCategory>>(new Map());
   const arrivedAudioRef = useRef<Map<string, string>>(new Map());
   const [isAdmin, setIsAdmin] = useState(false);
+  /** null = 还没查完是否启用了应用锁 */
+  const [locked, setLocked] = useState<boolean | null>(null);
+  const [showLockSetup, setShowLockSetup] = useState(false);
+
+  useEffect(() => {
+    void isLockEnabled().then((enabled) => setLocked(enabled));
+  }, []);
   /** 发布圣诗音频时的进度文案 */
   const [publishProgress, setPublishProgress] = useState<string | null>(null);
 
@@ -741,6 +750,38 @@ export function App() {
     return <InsecureContextNotice />;
   }
 
+  // 应用锁在最前面——手机被别人拿到时，连群名都不该看到
+  if (locked === null) {
+    return <div style={{ minHeight: "100%", background: "#EBECE5" }} aria-busy="true" />;
+  }
+  if (locked) {
+    return (
+      <LockScreen
+        mode="unlock"
+        onUnlocked={() => setLocked(false)}
+        onAttemptsExhausted={() => {
+          // 次数用尽就清空本机数据。中继不存任何内容，所以这里删掉就是真的没了。
+          void (async () => {
+            await disableLock();
+            indexedDB.deleteDatabase("secureinchat-storage");
+            indexedDB.deleteDatabase("secureinchat-keystore");
+            indexedDB.deleteDatabase("secureinchat-master-key");
+            indexedDB.deleteDatabase("secureinchat-admin-keys");
+          })();
+        }}
+      />
+    );
+  }
+  if (showLockSetup) {
+    return (
+      <LockScreen
+        mode="setup"
+        onUnlocked={() => setShowLockSetup(false)}
+        onCancel={() => setShowLockSetup(false)}
+      />
+    );
+  }
+
   // 昵称是异步从 IndexedDB 读的。读完之前不渲染主界面——否则会出现竞态：
   // 读得慢时老用户被重复要求设昵称，或者新用户点得快就绕过了设置。
   // 这一步通常是几十毫秒，用户几乎察觉不到。
@@ -891,6 +932,7 @@ export function App() {
         isAdmin={isAdmin && holdsAdminKey}
         onOpenAdmin={() => setScreen({ name: "adminPublish" })}
         onOpenAdminRecovery={() => setScreen({ name: "adminRecovery" })}
+        onOpenLockSetup={() => setShowLockSetup(true)}
         onAdminUnlocked={() => {
           void setAdminUnlocked(true);
           setIsAdmin(true);

@@ -24,6 +24,7 @@ export interface MessageListScreenProps {
   /** 版本号连点 7 次后触发 */
   onAdminUnlocked: () => void;
   onOpenAdminRecovery: () => void;
+  onOpenLockSetup: () => void;
   deviceId: string;
   nickname?: string | undefined;
   onOpenServerSettings: () => void;
@@ -42,6 +43,7 @@ export function MessageListScreen({
   onOpenAdmin,
   onAdminUnlocked,
   onOpenAdminRecovery,
+  onOpenLockSetup,
   deviceId,
   nickname,
   onOpenServerSettings,
@@ -178,6 +180,23 @@ export function MessageListScreen({
             >
               版本 {APP_VERSION}
               {tapHint ? <span style={{ marginLeft: 8, color: colors.wheatGold }}>{tapHint}</span> : null}
+            </button>
+
+            <button
+              onClick={onOpenLockSetup}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>应用密码</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>打开应用前需要输入密码</div>
             </button>
 
             <button

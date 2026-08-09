@@ -5,6 +5,7 @@ import { App } from "../src/App";
 import { saveNickname, clearNickname } from "../src/profile";
 import { __resetForTests } from "../src/deviceIdentity";
 import { generateAdminKeyPair } from "@secureinchat/crypto-core";
+import { enableLock, disableLock } from "../src/appLock";
 
 /**
  * jsdom 没有真的网络，App 里的 RelayClient 连不上真的服务器——这里用一个假的
@@ -60,6 +61,7 @@ beforeEach(async () => {
   const { IDBFactory } = await import("fake-indexeddb");
   (globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
   __resetForTests();
+  await disableLock();
 
   // 绝大多数测试关心的是加群之后的行为，不是首次设昵称。预置一个昵称让它们
   // 走"老用户"路径；首次设置流程本身由下面单独的 describe 覆盖。
@@ -1303,5 +1305,62 @@ describe("send progress", () => {
 
     await screen.findByAltText("小图.jpg");
     await waitFor(() => expect(screen.queryByText(/正在发送/)).not.toBeInTheDocument());
+  });
+});
+
+describe("app lock", () => {
+  it("is reachable from 我的 and can be enabled", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByText("应用密码"));
+
+    fireEvent.change(await screen.findByLabelText("设置密码输入框"), { target: { value: "2846" } });
+    fireEvent.change(screen.getByLabelText("再次输入密码"), { target: { value: "2846" } });
+    fireEvent.click(screen.getByRole("button", { name: "启用" }));
+
+    // 启用后回到正常界面
+    expect(await screen.findByText("我的")).toBeInTheDocument();
+  });
+
+  it("refuses a PIN that doesn't match its confirmation", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByText("应用密码"));
+
+    fireEvent.change(await screen.findByLabelText("设置密码输入框"), { target: { value: "2846" } });
+    fireEvent.change(screen.getByLabelText("再次输入密码"), { target: { value: "1357" } });
+    fireEvent.click(screen.getByRole("button", { name: "启用" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("两次输入的密码不一致");
+  });
+
+  it("blocks the whole app on next launch until the PIN is entered", async () => {
+    await enableLock("2846");
+    await renderApp();
+
+    // 连群名都不该看到
+    expect(await screen.findByLabelText("应用密码输入框")).toBeInTheDocument();
+    expect(screen.queryByText("公告")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("应用密码输入框"), { target: { value: "2846" } });
+    fireEvent.click(screen.getByRole("button", { name: "解锁" }));
+
+    expect(await screen.findByText("公告")).toBeInTheDocument();
+  });
+
+  it("tells you how many attempts remain after a wrong PIN", async () => {
+    await enableLock("2846");
+    await renderApp();
+
+    fireEvent.change(await screen.findByLabelText("应用密码输入框"), { target: { value: "0001" } });
+    fireEvent.click(screen.getByRole("button", { name: "解锁" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("还可以尝试");
+    // 仍然锁着
+    expect(screen.queryByText("公告")).not.toBeInTheDocument();
   });
 });
