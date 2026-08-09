@@ -23,6 +23,7 @@ export interface MessageListScreenProps {
   onOpenAdmin: () => void;
   /** 版本号连点 7 次后触发 */
   onAdminUnlocked: () => void;
+  onOpenAdminRecovery: () => void;
   deviceId: string;
   nickname?: string | undefined;
   onOpenServerSettings: () => void;
@@ -40,6 +41,7 @@ export function MessageListScreen({
   isAdmin,
   onOpenAdmin,
   onAdminUnlocked,
+  onOpenAdminRecovery,
   deviceId,
   nickname,
   onOpenServerSettings,
@@ -176,6 +178,23 @@ export function MessageListScreen({
             >
               版本 {APP_VERSION}
               {tapHint ? <span style={{ marginLeft: 8, color: colors.wheatGold }}>{tapHint}</span> : null}
+            </button>
+
+            <button
+              onClick={onOpenAdminRecovery}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>恢复管理员权限</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>换手机后用恢复码找回发布权限</div>
             </button>
 
             <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.6, marginTop: 8 }}>

@@ -25,6 +25,7 @@ import { ChatScreen, type DisplayMessage } from "./screens/ChatScreen";
 import { TodayScreen, type TodayContent } from "./screens/TodayScreen";
 import { AdminPublishScreen } from "./screens/AdminPublishScreen";
 import { QrScanScreen } from "./screens/QrScanScreen";
+import { AdminRecoveryScreen } from "./screens/AdminRecoveryScreen";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { saveAdminKey, loadAdminKey } from "./adminKeys";
 import { CallScreen } from "./screens/CallScreen";
@@ -63,6 +64,7 @@ type Screen =
   | { name: "serverSettings" }
   | { name: "adminPublish" }
   | { name: "scanQr" }
+  | { name: "adminRecovery" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -774,6 +776,25 @@ export function App() {
     );
   }
 
+  if (screen.name === "adminRecovery") {
+    return (
+      <AdminRecoveryScreen
+        groups={sortSessions(sessions).map((s) => ({
+          groupId: s.groupId,
+          groupName: s.groupName,
+          adminPublicKey: s.adminPublicKey,
+        }))}
+        onRecovered={() => {
+          setHoldsAdminKey(true);
+          setIsAdmin(true);
+          void setAdminUnlocked(true);
+          setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+        }}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
   if (screen.name === "scanQr") {
     return (
       <QrScanScreen
@@ -850,6 +871,7 @@ export function App() {
         todayContent={mergedToday()}
         isAdmin={isAdmin && holdsAdminKey}
         onOpenAdmin={() => setScreen({ name: "adminPublish" })}
+        onOpenAdminRecovery={() => setScreen({ name: "adminRecovery" })}
         onAdminUnlocked={() => {
           void setAdminUnlocked(true);
           setIsAdmin(true);

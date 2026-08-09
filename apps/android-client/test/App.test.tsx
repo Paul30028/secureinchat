@@ -4,6 +4,7 @@ import { buildSic1Invite, buildSic2Invite } from "@secureinchat/protocol";
 import { App } from "../src/App";
 import { saveNickname, clearNickname } from "../src/profile";
 import { __resetForTests } from "../src/deviceIdentity";
+import { generateAdminKeyPair } from "@secureinchat/crypto-core";
 
 /**
  * jsdom 没有真的网络，App 里的 RelayClient 连不上真的服务器——这里用一个假的
@@ -1185,5 +1186,93 @@ describe("hymn audio", () => {
 
     expect(await screen.findByText("只有歌词")).toBeInTheDocument();
     expect(screen.queryByLabelText("播放圣诗")).not.toBeInTheDocument();
+  });
+});
+
+describe("admin recovery", () => {
+  it("is reachable from 我的 and explains what it's for", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByText("恢复管理员权限"));
+
+    expect(await screen.findByLabelText("管理员恢复码输入框")).toBeInTheDocument();
+    expect(screen.getByText(/恢复码等同于管理员身份/)).toBeInTheDocument();
+  });
+
+  it("rejects a code that doesn't belong to any joined group", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByText("恢复管理员权限"));
+
+    // 一串格式合法但属于别的群的恢复码
+    const other = await generateAdminKeyPair();
+    fireEvent.change(await screen.findByLabelText("管理员恢复码输入框"), {
+      target: { value: other.recoveryCode },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "恢复" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("不属于你已加入的任何群聊");
+  });
+
+  it("rejects a garbled code with a readable message", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByText("恢复管理员权限"));
+
+    fireEvent.change(await screen.findByLabelText("管理员恢复码输入框"), {
+      target: { value: "SICADMIN1.这不是有效内容" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "恢复" }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  it("restoring on a device that lost the key brings publishing back", async () => {
+    await renderApp();
+    // 建群拿到恢复码
+    await openJoinScreen();
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: "恢复测试群" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    const recoveryCode = (await screen.findByText(/^SICADMIN1\./)).textContent!;
+    const inviteCode = (await screen.findByText(/^SIC2\./)).textContent!;
+    fireEvent.click(screen.getByRole("button", { name: "我已保存" }));
+    fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
+    await screen.findByLabelText("消息输入框");
+
+    // 模拟换手机：清空本机存储后重新加入同一个群（此时没有管理员私钥）
+    cleanup();
+    const { IDBFactory } = await import("fake-indexeddb");
+    (globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
+    __resetForTests();
+    await saveNickname("测试用户");
+
+    await renderApp();
+    await openJoinScreen();
+    fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: inviteCode } });
+    fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
+    fireEvent.click(await screen.findByRole("button", { name: "确认加入" }));
+    await screen.findByLabelText("消息输入框");
+
+    // 解锁界面也发不了——没有私钥
+    await unlockAdmin();
+    fireEvent.click(screen.getByText("公告"));
+    expect(screen.queryByRole("button", { name: "发布今日内容" })).not.toBeInTheDocument();
+
+    // 用恢复码找回
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByText("恢复管理员权限"));
+    fireEvent.change(await screen.findByLabelText("管理员恢复码输入框"), { target: { value: recoveryCode } });
+    fireEvent.click(screen.getByRole("button", { name: "恢复" }));
+
+    await screen.findByText("我的");
+    fireEvent.click(screen.getByText("公告"));
+    expect(await screen.findByRole("button", { name: "发布今日内容" })).toBeInTheDocument();
   });
 });
