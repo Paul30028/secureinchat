@@ -14,6 +14,8 @@ export interface AdminPublishScreenProps {
   ) => Promise<void>;
   /** 音频发送进度文案，没有就是没在发 */
   progress?: string | null | undefined;
+  /** 轮换群密钥，返回新的邀请码 */
+  onRotateKey: () => Promise<string>;
   onLockAdmin: () => void;
   onBack: () => void;
 }
@@ -26,13 +28,24 @@ export interface AdminPublishScreenProps {
  * 公告，群里所有客户端都会照单接收。真正的管理员体系（服务端校验、成员审批、
  * 权限撤销）还没有实现。
  */
-export function AdminPublishScreen({ content, onPublish, progress, onLockAdmin, onBack }: AdminPublishScreenProps) {
+export function AdminPublishScreen({
+  content,
+  onPublish,
+  progress,
+  onRotateKey,
+  onLockAdmin,
+  onBack,
+}: AdminPublishScreenProps) {
   const [category, setCategory] = useState<AnnouncementCategory>("scripture");
   const [title, setTitle] = useState(content.scripture?.title ?? "");
   const [body, setBody] = useState(content.scripture?.body ?? "");
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedNotice, setPublishedNotice] = useState<string | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [rotateConfirm, setRotateConfirm] = useState(false);
+  const [rotatedCode, setRotatedCode] = useState<string | null>(null);
+  const [isRotating, setIsRotating] = useState(false);
+  const [rotateError, setRotateError] = useState<string | null>(null);
 
   function switchCategory(next: AnnouncementCategory) {
     setCategory(next);
@@ -190,7 +203,77 @@ export function AdminPublishScreen({ content, onPublish, progress, onLockAdmin, 
         </Button>
       </div>
 
-      <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, marginTop: 24, paddingTop: 12 }}>
+      <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, marginTop: 24, paddingTop: 16 }}>
+        <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>移出成员</div>
+        <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "0 0 10px" }}>
+          有人离开、或者手机丢失时，更换群密钥并把新邀请码只发给留下的人。
+          之后的消息拿旧密钥的人再也读不到——但他<strong style={{ fontWeight: 500 }}>已经收到的消息还在他手机上</strong>，
+          换密钥追不回来。
+        </p>
+
+        {rotateError ? (
+          <p role="alert" style={{ fontSize: 12, color: "#A33", margin: "0 0 8px" }}>
+            {rotateError}
+          </p>
+        ) : null}
+
+        {rotatedCode ? (
+          <div style={{ marginBottom: 12 }}>
+            <p role="status" style={{ fontSize: 12, color: colors.deepInkGreen, margin: "0 0 8px" }}>
+              已更换群密钥。把下面的新邀请码发给留下的成员，他们需要重新加入一次。
+            </p>
+            <code
+              style={{
+                display: "block",
+                fontSize: 10,
+                fontFamily: "monospace",
+                color: colors.textPrimary,
+                wordBreak: "break-all",
+                background: colors.ivory,
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 8,
+                padding: "10px 12px",
+              }}
+            >
+              {rotatedCode}
+            </code>
+          </div>
+        ) : !rotateConfirm ? (
+          <Button variant="secondary" onClick={() => setRotateConfirm(true)}>
+            更换群密钥
+          </Button>
+        ) : (
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button variant="secondary" onClick={() => setRotateConfirm(false)} style={{ flex: 1 }}>
+              取消
+            </Button>
+            <Button
+              variant="danger"
+              disabled={isRotating}
+              onClick={() => {
+                setIsRotating(true);
+                setRotateError(null);
+                void onRotateKey()
+                  .then((code) => {
+                    setRotatedCode(code);
+                    setRotateConfirm(false);
+                  })
+                  .catch((err: unknown) => {
+                    // 轮换失败必须说出来——静默失败会让管理员以为已经换过了，
+                    // 而实际上被移除的人还能读到新消息
+                    setRotateError(err instanceof Error ? err.message : "更换失败，请重试");
+                  })
+                  .finally(() => setIsRotating(false));
+              }}
+              style={{ flex: 1 }}
+            >
+              {isRotating ? "更换中..." : "确认更换"}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, marginTop: 20, paddingTop: 12 }}>
         <button
           onClick={onLockAdmin}
           style={{

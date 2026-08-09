@@ -24,6 +24,8 @@ export interface GroupSession {
   today: TodayContent;
   /** 这个群的管理员公钥（来自邀请串），用于验证公告签名 */
   adminPublicKey?: string | undefined;
+  /** 当前群密钥的 epoch，轮换时加一 */
+  epoch: number;
   sendError?: string | undefined;
   /** 正在发送的大文件进度文案 */
   sendProgress?: string | undefined;

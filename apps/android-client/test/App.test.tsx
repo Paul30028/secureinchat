@@ -1364,3 +1364,51 @@ describe("app lock", () => {
     expect(screen.queryByText("公告")).not.toBeInTheDocument();
   });
 });
+
+describe("member removal via key rotation", () => {
+  async function openAdmin() {
+    await createGroupAsAdmin("轮换测试群");
+    await unlockAdmin();
+    fireEvent.click(screen.getByText("公告"));
+    fireEvent.click(await screen.findByRole("button", { name: "发布今日内容" }));
+  }
+
+  it("explains what rotation can and cannot do", async () => {
+    await renderApp();
+    await openAdmin();
+
+    expect(screen.getByText("移出成员")).toBeInTheDocument();
+    // 必须说清楚：换密钥追不回对方已经收到的消息
+    expect(screen.getByText(/已经收到的消息还在他手机上/)).toBeInTheDocument();
+  });
+
+  it("asks for confirmation before rotating", async () => {
+    await renderApp();
+    await openAdmin();
+
+    fireEvent.click(screen.getByRole("button", { name: "更换群密钥" }));
+    expect(await screen.findByRole("button", { name: "确认更换" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取消" })).toBeInTheDocument();
+  });
+
+  it("cancelling leaves the key alone", async () => {
+    await renderApp();
+    await openAdmin();
+
+    fireEvent.click(screen.getByRole("button", { name: "更换群密钥" }));
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    expect(await screen.findByRole("button", { name: "更换群密钥" })).toBeInTheDocument();
+  });
+
+  it("rotating issues a new invite code to share with remaining members", async () => {
+    await renderApp();
+    await openAdmin();
+
+    fireEvent.click(screen.getByRole("button", { name: "更换群密钥" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认更换" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("已更换群密钥");
+    const code = await screen.findByText(/^SIC2\./);
+    expect(code.textContent).toMatch(/^SIC2\./);
+  });
+});

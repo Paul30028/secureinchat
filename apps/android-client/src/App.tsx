@@ -6,6 +6,7 @@ import {
   RelayClient,
   FileAssembler,
   buildFileEnvelopes,
+  rotateGroupKey,
   sendFileEnvelopes,
   describeSendProgress,
   loadMessages,
@@ -228,7 +229,11 @@ export function App() {
    * 这里做一次，不放在 ChatScreen 里——ChatScreen 会被卸载/重新挂载（切到消息
    * 列表再切回来），但这个订阅只应该建立一次，跟连接本身的生命周期绑定。
    */
-  async function connectToGroup(parsed: ParsedInvite, groupName: string): Promise<void> {
+  /**
+   * @param keepScreen 轮换密钥时用——重连不该把管理员从发布页拽走，
+   *   否则他看不到刚生成的新邀请码。
+   */
+  async function connectToGroup(parsed: ParsedInvite, groupName: string, keepScreen = false): Promise<void> {
     const store = await getDeviceStore();
     const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
     const identity = await getDeviceIdentity();
@@ -411,6 +416,7 @@ export function App() {
       pendingCount: client.pendingMessageCount,
       onlinePeers: client.onlinePeers,
       adminPublicKey: parsed.adminPublicKeyRawB64Url,
+      epoch,
       today: {},
       lastReadAtMs: Date.now(),
     };
@@ -434,7 +440,9 @@ export function App() {
     sessionsRef.current = { ...sessionsRef.current, [groupId]: session };
     setSessions(sessionsRef.current);
 
-    if (shouldOpenChat) {
+    if (keepScreen) {
+      // 保持当前界面不动
+    } else if (shouldOpenChat) {
       // 唯一一个群时直接进聊天——小团体绝大多数只有一个群，先显示一个只有
       // 一行的列表再让用户点一下，那一下是白点的。从聊天页"返回"仍能看到列表，
       // 所以加入别的群的入口没有丢。
@@ -729,6 +737,28 @@ export function App() {
     });
   }
 
+  /**
+   * 更换群密钥。生成新的密钥材料、epoch 加一，返回新邀请码给管理员分发。
+   * 本机随即用新密钥重连——不然管理员自己反而读不到轮换后的消息。
+   */
+  async function handleRotateKey(): Promise<string> {
+    const session = activeSession() ?? sortSessions(sessions)[0];
+    if (!session) throw new Error("没有可以更换密钥的群");
+
+    const rotated = rotateGroupKey({
+      groupId: session.groupId,
+      groupName: session.groupName,
+      currentEpoch: session.epoch,
+      adminPublicKeyRawB64Url: session.adminPublicKey,
+      serverJoinCode: randomUUID().slice(0, 8).toUpperCase(),
+    });
+
+    // 旧连接用的是旧密钥，必须断掉重连
+    session.client.close();
+    await connectToGroup(parseInviteAuto(rotated.inviteCode), session.groupName, true);
+    return rotated.inviteCode;
+  }
+
   /** 各群的今日内容合并显示——小团体通常只有一个群，多群时后加入的覆盖先加入的 */
   function mergedToday(): TodayContent {
     return sortSessions(sessions).reduce<TodayContent>((acc, s) => ({ ...acc, ...s.today }), {});
@@ -825,6 +855,7 @@ export function App() {
       <AdminPublishScreen
         content={mergedToday()}
         onPublish={handlePublishAnnouncement}
+        onRotateKey={handleRotateKey}
         progress={publishProgress}
         onLockAdmin={() => {
           void setAdminUnlocked(false);
