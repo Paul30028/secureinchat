@@ -6,6 +6,8 @@ import {
   RelayClient,
   FileAssembler,
   buildFileEnvelopes,
+  sendFileEnvelopes,
+  describeSendProgress,
   loadMessages,
   saveMessages,
   loadJoinedGroups,
@@ -132,6 +134,8 @@ export function App() {
   const pendingAudioRef = useRef<Map<string, AnnouncementCategory>>(new Map());
   const arrivedAudioRef = useRef<Map<string, string>>(new Map());
   const [isAdmin, setIsAdmin] = useState(false);
+  /** 发布圣诗音频时的进度文案 */
+  const [publishProgress, setPublishProgress] = useState<string | null>(null);
 
   useEffect(() => {
     void isAdminUnlocked().then(setIsAdmin);
@@ -603,11 +607,19 @@ export function App() {
         bytes,
       });
 
-      // meta 必须先到，接收方才知道总共有多少片
-      await client.sendEnvelope(meta);
-      for (const chunk of chunks) {
-        await client.sendEnvelope(chunk);
-      }
+      // meta 必须先到，接收方才知道总共有多少片。
+      // 大文件要好几秒，没有进度显示发送方会以为卡住了。
+      await sendFileEnvelopes(
+        { fileName: file.name },
+        meta,
+        chunks,
+        (env) => client.sendEnvelope(env as Parameters<typeof client.sendEnvelope>[0]),
+        {
+          onProgress: (p) =>
+            setSessions((prev) => patchSession(prev, groupId, { sendProgress: describeSendProgress(p) })),
+        }
+      );
+      setSessions((prev) => patchSession(prev, groupId, { sendProgress: undefined }));
 
       // 自己发的媒体本地直接显示（中继不会把自己发的消息转发回来）
       await appendOwnMessage(
@@ -657,8 +669,14 @@ export function App() {
         mediaKind: "voice",
         bytes,
       });
-      await session.client.sendEnvelope(meta);
-      for (const chunk of chunks) await session.client.sendEnvelope(chunk);
+      await sendFileEnvelopes(
+        { fileName: audioFile.name },
+        meta,
+        chunks,
+        (env) => session.client.sendEnvelope(env as Parameters<typeof session.client.sendEnvelope>[0]),
+        { onProgress: (p) => setPublishProgress(describeSendProgress(p)) }
+      );
+      setPublishProgress(null);
       // 本机也要能播——不然发布者自己看不到播放器
       const localUrl = URL.createObjectURL(audioFile);
       setSessions((prev) => {
@@ -766,6 +784,7 @@ export function App() {
       <AdminPublishScreen
         content={mergedToday()}
         onPublish={handlePublishAnnouncement}
+        progress={publishProgress}
         onLockAdmin={() => {
           void setAdminUnlocked(false);
           setIsAdmin(false);
@@ -900,6 +919,7 @@ export function App() {
       messages={active.messages}
       incomingProgress={active.incomingProgress}
       sendError={active.sendError}
+      sendProgress={active.sendProgress}
       connectionStatus={active.connectionStatus}
       pendingCount={active.pendingCount}
       knownPeers={active.onlinePeers}

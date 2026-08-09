@@ -40,6 +40,8 @@ export interface ChatScreenProps {
   connectionStatus?: "connecting" | "connected" | "reconnecting" | "disconnected" | undefined;
   /** 断线期间排队等待发送的消息条数 */
   pendingCount?: number | undefined;
+  /** 大文件发送进度 */
+  sendProgress?: string | undefined;
   /** 正在接收中的文件进度，例如 "photo.jpg 3/12" */
   incomingProgress?: { fileId: string; fileName: string; receivedChunks: number; totalChunks: number }[] | undefined;
   /** 同群里已知的其他设备——没有服务端成员列表，只能从收到过的消息里推断 */
@@ -98,6 +100,7 @@ export function ChatScreen({
   sendError,
   connectionStatus,
   pendingCount,
+  sendProgress,
   incomingProgress,
   knownPeers,
   onStartCall,
@@ -249,6 +252,11 @@ export function ChatScreen({
         ))}
       </div>
 
+      {sendProgress ? (
+        <p role="status" style={{ color: colors.wheatGold, fontSize: 12, textAlign: "center", margin: "0 0 4px" }}>
+          {sendProgress}
+        </p>
+      ) : null}
       {sendError ? (
         <p role="alert" style={{ color: "#A33", fontSize: 12, textAlign: "center", margin: "0 0 4px" }}>
           {sendError}

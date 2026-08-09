@@ -12,6 +12,8 @@ export interface AdminPublishScreenProps {
     body: string,
     audioFile?: File | undefined
   ) => Promise<void>;
+  /** 音频发送进度文案，没有就是没在发 */
+  progress?: string | null | undefined;
   onLockAdmin: () => void;
   onBack: () => void;
 }
@@ -24,7 +26,7 @@ export interface AdminPublishScreenProps {
  * 公告，群里所有客户端都会照单接收。真正的管理员体系（服务端校验、成员审批、
  * 权限撤销）还没有实现。
  */
-export function AdminPublishScreen({ content, onPublish, onLockAdmin, onBack }: AdminPublishScreenProps) {
+export function AdminPublishScreen({ content, onPublish, progress, onLockAdmin, onBack }: AdminPublishScreenProps) {
   const [category, setCategory] = useState<AnnouncementCategory>("scripture");
   const [title, setTitle] = useState(content.scripture?.title ?? "");
   const [body, setBody] = useState(content.scripture?.body ?? "");
@@ -169,6 +171,12 @@ export function AdminPublishScreen({ content, onPublish, onLockAdmin, onBack }: 
               </div>
             ) : null}
           </div>
+        ) : null}
+
+        {progress ? (
+          <p role="status" style={{ fontSize: 12, color: colors.wheatGold, margin: 0 }}>
+            {progress}
+          </p>
         ) : null}
 
         {publishedNotice ? (

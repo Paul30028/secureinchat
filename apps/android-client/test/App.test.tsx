@@ -1276,3 +1276,32 @@ describe("admin recovery", () => {
     expect(await screen.findByRole("button", { name: "发布今日内容" })).toBeInTheDocument();
   });
 });
+
+describe("send progress", () => {
+  it("names the file being sent so a slow upload doesn't look like a hang", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    // 一个够大的文件，会被切成多个分片
+    const big = new File([new Uint8Array(200_000)], "讲道录音.mp3", { type: "audio/mpeg" });
+    fireEvent.click(screen.getByLabelText("添加图片或文件"));
+    fireEvent.change(await screen.findByLabelText("选择文件"), { target: { files: [big] } });
+
+    // 发送过程中应该出现进度提示；发完之后消息本身出现
+    expect(await screen.findByText("讲道录音.mp3")).toBeInTheDocument();
+  });
+
+  it("clears the progress line once the transfer finishes", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    const small = new File([new Uint8Array(64)], "小图.jpg", { type: "image/jpeg" });
+    fireEvent.click(screen.getByLabelText("添加图片或文件"));
+    fireEvent.change(await screen.findByLabelText("选择图片"), { target: { files: [small] } });
+
+    await screen.findByAltText("小图.jpg");
+    await waitFor(() => expect(screen.queryByText(/正在发送/)).not.toBeInTheDocument());
+  });
+});

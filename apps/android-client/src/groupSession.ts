@@ -25,6 +25,8 @@ export interface GroupSession {
   /** 这个群的管理员公钥（来自邀请串），用于验证公告签名 */
   adminPublicKey?: string | undefined;
   sendError?: string | undefined;
+  /** 正在发送的大文件进度文案 */
+  sendProgress?: string | undefined;
   incomingProgress?: { fileId: string; fileName: string; receivedChunks: number; totalChunks: number }[];
   /** 上次查看这个群的时间，用来算未读 */
   lastReadAtMs: number;
