@@ -2,6 +2,7 @@ import { encryptAead, decryptAead, randomUUID, type AeadCiphertext } from "@secu
 import type { KeystorePort } from "@secureinchat/crypto-core";
 import { decodeEnvelope, encodeEnvelope, type MessageEnvelope } from "./messageEnvelope";
 import { OfflineOutbox } from "./offlineOutbox";
+import { ReplayGuard } from "./ordering";
 
 /**
  * 客户端这边的中继协议实现——对应 docs/protocol/RELAY_CONTRACT_V0.md。
@@ -142,6 +143,12 @@ export class RelayClient {
   private queueSeq = 0;
   /** 同群当前在线的 deviceId。中继维护，客户端只是跟着更新。 */
   private peers = new Set<string>();
+  /** 重放检测：同一个 (发送者, epoch, seq) 出现第二次就丢弃 */
+  private replayGuard = new ReplayGuard();
+  /** 本机发出的消息序号，每发一条加一 */
+  private outgoingSeq = 0;
+  /** 已处理过的公告 id，防止重放旧公告顶掉今天的内容 */
+  private seenAnnouncementIds = new Set<string>();
   private peerHandlers: Array<(deviceIds: string[]) => void> = [];
 
   constructor(
@@ -339,6 +346,21 @@ export class RelayClient {
       // 解密成功但内容不认识——多半是对端用了更新版本的客户端发了新类型的消息。
       // 忽略这一条，不要因为不认识就断开连接或崩溃。
       return;
+    }
+
+    // 重放检测。同一条密文被重发（无论是攻击还是网络重复投递）都只处理一次。
+    // 老客户端发的消息没有 seq，跳过检查——丢掉真实消息比接受一次重放更糟。
+    if (envelope.kind === "text" && typeof envelope.seq === "number") {
+      if (this.replayGuard.check(fromDeviceId, this.deps.epoch, envelope.seq) === "replay") {
+        return;
+      }
+    }
+
+    // 公告按 id 去重。重放一条当前的公告没有害处（覆盖成同样的内容），
+    // 但重放一条**旧**公告会让昨天的内容顶掉今天的，所以同一个 id 只认一次。
+    if (envelope.kind === "announcement") {
+      if (this.seenAnnouncementIds.has(envelope.id)) return;
+      this.seenAnnouncementIds.add(envelope.id);
     }
 
     for (const handler of this.messageHandlers) handler({ fromDeviceId, envelope });
@@ -546,6 +568,7 @@ export class RelayClient {
       kind: "text",
       id: randomUUID(),
       text,
+      seq: this.outgoingSeq++,
       sentAtMs: Date.now(),
       ...(senderName ? { senderName } : {}),
     });

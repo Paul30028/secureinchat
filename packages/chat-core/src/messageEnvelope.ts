@@ -18,6 +18,12 @@ export type MessageEnvelope =
 
 export interface TextEnvelope {
   kind: "text";
+  /**
+   * 发送方自己维护的递增序号，用于重放检测（见 ordering.ts）。
+   * 在加密载荷里，中继看不到也改不了。老客户端没有这个字段，
+   * 接收方要能容忍缺失——那种消息只能跳过重放检查，不能整条丢掉。
+   */
+  seq?: number;
   /** 客户端生成的消息 ID，用于去重（见 dedup.ts） */
   id: string;
   text: string;
