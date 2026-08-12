@@ -19,6 +19,7 @@ from app.device_registry import DeviceRegistry
 from app.invite_registry import InviteRegistry
 from app.membership import GroupMembership
 from app.pubkey_auth import b64url_decode, verify_with_public_key
+from app.rate_limit import make_connection_limiter, make_message_limiter
 from app.registry import RoomRegistry
 
 logger = logging.getLogger("secureinchat.relay")
@@ -47,8 +48,25 @@ class RelayServer:
         self._invite_registry = invite_registry
         self._membership = membership
         self._registry: RoomRegistry[ServerConnection] = RoomRegistry()
+        # 限流：认证前按来源 IP，认证后按设备
+        self._connection_limiter = make_connection_limiter()
+        self._message_limiter = make_message_limiter()
+
+    @staticmethod
+    def _source_key(ws: ServerConnection) -> str:
+        """限流用的来源标识。取不到就归到一个共用 key——宁可保守一点，
+        也不要因为拿不到地址就完全不限。"""
+        remote = getattr(ws, "remote_address", None)
+        if isinstance(remote, tuple) and remote:
+            return str(remote[0])
+        return "unknown"
 
     async def handle_connection(self, ws: ServerConnection) -> None:
+        # 认证之前就限流——否则暴力尝试认证的成本几乎为零
+        if not self._connection_limiter.allow(self._source_key(ws)):
+            await ws.send(json.dumps({"type": "auth_failed", "reason": "rate_limited"}))
+            return
+
         nonce = generate_nonce()
         await ws.send(json.dumps({"type": "auth_challenge", "nonce": nonce}))
 
@@ -79,6 +97,7 @@ class RelayServer:
         finally:
             if device_id is not None and group_id is not None:
                 self._registry.unregister(group_id, device_id)
+                self._message_limiter.forget(device_id)
                 await self._broadcast_presence_event(group_id, device_id, "peer_left")
 
     async def _broadcast_presence_event(self, group_id: str, device_id: str, event_type: str) -> None:
@@ -244,6 +263,11 @@ class RelayServer:
                 continue  # 静默丢弃畸形帧，不因为一条坏帧断开整个会话
 
             frame_type = frame.get("type")
+
+            # 按设备限流。心跳不计入——它是固定 20 秒一次，而且把保活挤掉
+            # 只会让连接被误判为死掉。
+            if frame_type != "ping" and not self._message_limiter.allow(device_id):
+                continue  # 静默丢弃：告诉对方"你被限流了"反而方便对方摸清阈值
 
             if frame_type == "ping":
                 # 应用层心跳——协议层的 WebSocket ping 由 websockets 库自动处理
