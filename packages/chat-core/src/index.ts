@@ -11,3 +11,4 @@ export * from "./messageActions";
 export * from "./announcementCategories";
 export * from "./sendProgress";
 export * from "./keyRotation";
+export * from "./connectionStats";

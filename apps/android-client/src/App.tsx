@@ -8,6 +8,12 @@ import {
   buildFileEnvelopes,
   rotateGroupKey,
   sendFileEnvelopes,
+  addLatencySample,
+  recordDisconnect,
+  recordReconnect,
+  EMPTY_LATENCY_STATS,
+  type LatencyStats,
+  type DisconnectRecord,
   describeSendProgress,
   loadMessages,
   saveMessages,
@@ -30,6 +36,7 @@ import { AdminPublishScreen } from "./screens/AdminPublishScreen";
 import { QrScanScreen } from "./screens/QrScanScreen";
 import { AdminRecoveryScreen } from "./screens/AdminRecoveryScreen";
 import { LockScreen } from "./screens/LockScreen";
+import { ConnectionDiagnosticsScreen } from "./screens/ConnectionDiagnosticsScreen";
 import { isLockEnabled, disableLock } from "./appLock";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { saveAdminKey, loadAdminKey } from "./adminKeys";
@@ -70,6 +77,7 @@ type Screen =
   | { name: "adminPublish" }
   | { name: "scanQr" }
   | { name: "adminRecovery" }
+  | { name: "diagnostics" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -146,6 +154,10 @@ export function App() {
   }, []);
   /** 发布圣诗音频时的进度文案 */
   const [publishProgress, setPublishProgress] = useState<string | null>(null);
+  // 连接质量统计。跨群共用一份——它们走的是同一条网络、同一台中继，
+  // 分群统计只会把样本切碎，看不出趋势。
+  const [latency, setLatency] = useState<LatencyStats>(EMPTY_LATENCY_STATS);
+  const [disconnects, setDisconnects] = useState<DisconnectRecord[]>([]);
 
   useEffect(() => {
     void isAdminUnlocked().then(setIsAdmin);
@@ -404,7 +416,15 @@ export function App() {
     });
 
     client.onPeersChange((onlinePeers) => patch({ onlinePeers }));
-    client.onStatusChange((connectionStatus) => patch({ connectionStatus }));
+    client.onStatusChange((connectionStatus) => {
+      patch({ connectionStatus });
+      if (connectionStatus === "reconnecting") {
+        setDisconnects((prev) => recordDisconnect(prev, Date.now()));
+      } else if (connectionStatus === "connected") {
+        setDisconnects((prev) => recordReconnect(prev, Date.now()));
+      }
+    });
+    client.onLatency((rttMs) => setLatency((prev) => addLatencySample(prev, rttMs)));
     client.onQueueChange((pendingCount) => patch({ pendingCount }));
 
     const session: GroupSession = {
@@ -867,6 +887,18 @@ export function App() {
     );
   }
 
+  if (screen.name === "diagnostics") {
+    return (
+      <ConnectionDiagnosticsScreen
+        relayUrl={relayUrl}
+        status={sortSessions(sessions)[0]?.connectionStatus ?? "disconnected"}
+        latency={latency}
+        disconnects={disconnects}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
   if (screen.name === "adminRecovery") {
     return (
       <AdminRecoveryScreen
@@ -964,6 +996,7 @@ export function App() {
         onOpenAdmin={() => setScreen({ name: "adminPublish" })}
         onOpenAdminRecovery={() => setScreen({ name: "adminRecovery" })}
         onOpenLockSetup={() => setShowLockSetup(true)}
+        onOpenDiagnostics={() => setScreen({ name: "diagnostics" })}
         onAdminUnlocked={() => {
           void setAdminUnlocked(true);
           setIsAdmin(true);

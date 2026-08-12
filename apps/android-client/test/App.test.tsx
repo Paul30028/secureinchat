@@ -1412,3 +1412,60 @@ describe("member removal via key rotation", () => {
     expect(code.textContent).toMatch(/^SIC2\./);
   });
 });
+
+describe("connection diagnostics", () => {
+  async function openDiagnostics() {
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    // 「连接诊断」在按钮和页面标题里都出现，用按钮角色精确定位
+    fireEvent.click(screen.getByRole("button", { name: /连接诊断/ }));
+  }
+
+  it("is reachable from 我的 and shows the relay in use", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await openDiagnostics();
+
+    expect(await screen.findByText("服务器")).toBeInTheDocument();
+    // 断言"显示了某个 ws 地址"，而不是写死默认值——服务器地址是持久化的，
+    // 别的测试改过它之后这里读到的就不是默认值了
+    expect(screen.getAllByText(/^wss?:\/\//).length).toBeGreaterThan(0);
+  });
+
+  it("says measurements haven't happened yet rather than showing a fake zero", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await openDiagnostics();
+
+    // 「尚未测量」在质量评级和延迟行各出现一次
+    expect(await screen.findByText("等待心跳测量...")).toBeInTheDocument();
+    expect(screen.getAllByText(/尚未测量/).length).toBeGreaterThan(0);
+  });
+
+  it("reports the current connection state", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await openDiagnostics();
+
+    expect(await screen.findByText("已连接")).toBeInTheDocument();
+  });
+
+  it("counts a drop and its recovery", async () => {
+    await renderApp();
+    await joinTestGroup();
+
+    // 掉线：mock socket 触发 onclose，客户端进入重连
+    MockRelayWebSocket.lastInstance?.onclose?.();
+    await openDiagnostics();
+
+    expect(await screen.findByText("1 次")).toBeInTheDocument();
+  });
+
+  it("explains that latency is message round-trip, not connect time", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await openDiagnostics();
+
+    expect(await screen.findByText(/不是首次连接耗时/)).toBeInTheDocument();
+  });
+});

@@ -25,6 +25,7 @@ export interface MessageListScreenProps {
   onAdminUnlocked: () => void;
   onOpenAdminRecovery: () => void;
   onOpenLockSetup: () => void;
+  onOpenDiagnostics: () => void;
   deviceId: string;
   nickname?: string | undefined;
   onOpenServerSettings: () => void;
@@ -44,6 +45,7 @@ export function MessageListScreen({
   onAdminUnlocked,
   onOpenAdminRecovery,
   onOpenLockSetup,
+  onOpenDiagnostics,
   deviceId,
   nickname,
   onOpenServerSettings,
@@ -133,6 +135,23 @@ export function MessageListScreen({
             <div style={{ fontSize: 11, color: "#8A8A82", wordBreak: "break-all", fontFamily: "monospace" }}>
               {deviceId}
             </div>
+            <button
+              onClick={onOpenDiagnostics}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>连接诊断</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>延迟、掉线次数</div>
+            </button>
+
             <button
               onClick={onOpenServerSettings}
               style={{
