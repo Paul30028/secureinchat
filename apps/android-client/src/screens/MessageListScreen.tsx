@@ -26,6 +26,7 @@ export interface MessageListScreenProps {
   onOpenAdminRecovery: () => void;
   onOpenLockSetup: () => void;
   onOpenDiagnostics: () => void;
+  onOpenDevices: () => void;
   deviceId: string;
   nickname?: string | undefined;
   onOpenServerSettings: () => void;
@@ -46,6 +47,7 @@ export function MessageListScreen({
   onOpenAdminRecovery,
   onOpenLockSetup,
   onOpenDiagnostics,
+  onOpenDevices,
   deviceId,
   nickname,
   onOpenServerSettings,
@@ -135,6 +137,23 @@ export function MessageListScreen({
             <div style={{ fontSize: 11, color: "#8A8A82", wordBreak: "break-all", fontFamily: "monospace" }}>
               {deviceId}
             </div>
+            <button
+              onClick={onOpenDevices}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>群内设备</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>看看有没有不认识的设备</div>
+            </button>
+
             <button
               onClick={onOpenDiagnostics}
               style={{

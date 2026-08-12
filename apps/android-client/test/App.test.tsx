@@ -1469,3 +1469,55 @@ describe("connection diagnostics", () => {
     expect(await screen.findByText(/不是首次连接耗时/)).toBeInTheDocument();
   });
 });
+
+describe("connected devices", () => {
+  async function openDevices() {
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByRole("button", { name: /群内设备/ }));
+  }
+
+  it("says nothing has been seen yet rather than inventing a list", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await openDevices();
+
+    expect(await screen.findByText("还没见到其他设备")).toBeInTheDocument();
+  });
+
+  it("lists a device once it comes online", async () => {
+    await renderApp();
+    await joinTestGroup();
+
+    MockRelayWebSocket.lastInstance?.onmessage?.({
+      data: JSON.stringify({ type: "peer_joined", deviceId: "device-abc12345" }),
+    });
+
+    await openDevices();
+    expect(await screen.findByText("abc12345")).toBeInTheDocument();
+    expect(screen.getByText("在线")).toBeInTheDocument();
+  });
+
+  it("explains why the list can be incomplete", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await openDevices();
+
+    // 中继不保存上线历史，所以名单必然只是本机观察到的——不能让人误以为是全量
+    expect(await screen.findByText(/中继不保存谁上过线的历史/)).toBeInTheDocument();
+  });
+
+  it("shows a device as no longer online after it leaves", async () => {
+    await renderApp();
+    await joinTestGroup();
+    const socket = MockRelayWebSocket.lastInstance!;
+
+    socket.onmessage?.({ data: JSON.stringify({ type: "peer_joined", deviceId: "device-abc12345" }) });
+    socket.onmessage?.({ data: JSON.stringify({ type: "peer_left", deviceId: "device-abc12345" }) });
+
+    await openDevices();
+    // 仍然在名单里（见过），但不再标记为在线
+    expect(await screen.findByText("abc12345")).toBeInTheDocument();
+    expect(screen.queryByText("在线")).not.toBeInTheDocument();
+  });
+});

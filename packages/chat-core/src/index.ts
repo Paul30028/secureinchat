@@ -12,3 +12,4 @@ export * from "./announcementCategories";
 export * from "./sendProgress";
 export * from "./keyRotation";
 export * from "./connectionStats";
+export * from "./knownDevices";

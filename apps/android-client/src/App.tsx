@@ -7,6 +7,11 @@ import {
   FileAssembler,
   buildFileEnvelopes,
   rotateGroupKey,
+  loadKnownDevices,
+  saveKnownDevices,
+  markDeviceSeen,
+  forgetAllDevices,
+  type KnownDevice,
   sendFileEnvelopes,
   addLatencySample,
   recordDisconnect,
@@ -37,6 +42,7 @@ import { QrScanScreen } from "./screens/QrScanScreen";
 import { AdminRecoveryScreen } from "./screens/AdminRecoveryScreen";
 import { LockScreen } from "./screens/LockScreen";
 import { ConnectionDiagnosticsScreen } from "./screens/ConnectionDiagnosticsScreen";
+import { ConnectedDevicesScreen } from "./screens/ConnectedDevicesScreen";
 import { isLockEnabled, disableLock } from "./appLock";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { saveAdminKey, loadAdminKey } from "./adminKeys";
@@ -78,6 +84,7 @@ type Screen =
   | { name: "scanQr" }
   | { name: "adminRecovery" }
   | { name: "diagnostics" }
+  | { name: "devices" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -141,6 +148,9 @@ export function App() {
   const isAutoReconnectRef = useRef(false);
   // 从聊天页返回时要落在消息 tab，而不是默认的公告 tab
   const cameFromChatRef = useRef(false);
+  const myDeviceIdRef = useRef("");
+  /** 每个群一条写入链，避免设备名单的读改写互相覆盖 */
+  const deviceWriteChainRef = useRef<Map<string, Promise<void>>>(new Map());
   // 公告音频的分片和公告本身谁先到都有可能，两边各记一份等对上
   const pendingAudioRef = useRef<Map<string, AnnouncementCategory>>(new Map());
   const arrivedAudioRef = useRef<Map<string, string>>(new Map());
@@ -249,6 +259,7 @@ export function App() {
     const store = await getDeviceStore();
     const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
     const identity = await getDeviceIdentity();
+    myDeviceIdRef.current = identity.deviceId;
 
     const client = new RelayClient(relayUrl, {
       deviceId: identity.deviceId,
@@ -303,11 +314,15 @@ export function App() {
     };
 
     const history = (await loadMessages(store, groupId)).map(fromStored);
+    const knownDevices = await loadKnownDevices(store, groupId);
 
     client.onMessage((msg) => {
       const env = msg.envelope;
 
       if (env.kind === "text") {
+        // 发消息的人带了昵称，正好补进设备名单
+        void recordSightings(groupId, [{ deviceId: msg.fromDeviceId, displayName: env.senderName }]);
+
         appendMessage({
           id: `recv-${nextMessageId++}`,
           text: env.text,
@@ -415,7 +430,11 @@ export function App() {
       );
     });
 
-    client.onPeersChange((onlinePeers) => patch({ onlinePeers }));
+    client.onPeersChange((onlinePeers) => {
+      patch({ onlinePeers });
+      // 在线状态是唯一能"看见还没说过话的成员"的途径
+      void recordSightings(groupId, onlinePeers.map((id) => ({ deviceId: id })));
+    });
     client.onStatusChange((connectionStatus) => {
       patch({ connectionStatus });
       if (connectionStatus === "reconnecting") {
@@ -438,6 +457,7 @@ export function App() {
       adminPublicKey: parsed.adminPublicKeyRawB64Url,
       epoch,
       today: {},
+      knownDevices,
       lastReadAtMs: Date.now(),
     };
 
@@ -758,6 +778,32 @@ export function App() {
   }
 
   /**
+   * 记录见到的设备。
+   *
+   * 这里必须串行：读取名单 → 更新 → 写回是个读改写序列，上线和下线事件
+   * 连着来的时候，后一个会读到前一个还没写完的旧值，把刚记下的设备丢掉。
+   * 每个群一条 promise 链，保证顺序。
+   */
+  async function recordSightings(
+    groupId: string,
+    sightings: { deviceId: string; displayName?: string | undefined }[]
+  ): Promise<void> {
+    const previous = deviceWriteChainRef.current.get(groupId) ?? Promise.resolve();
+    const next = previous
+      .catch(() => undefined)
+      .then(async () => {
+        const store = await getDeviceStore();
+        let devices = await loadKnownDevices(store, groupId);
+        const now = Date.now();
+        for (const s of sightings) devices = markDeviceSeen(devices, s.deviceId, now, s.displayName);
+        await saveKnownDevices(store, groupId, devices);
+        setSessions((prev) => patchSession(prev, groupId, { knownDevices: devices }));
+      });
+    deviceWriteChainRef.current.set(groupId, next);
+    return next;
+  }
+
+  /**
    * 更换群密钥。生成新的密钥材料、epoch 加一，返回新邀请码给管理员分发。
    * 本机随即用新密钥重连——不然管理员自己反而读不到轮换后的消息。
    */
@@ -775,6 +821,8 @@ export function App() {
 
     // 旧连接用的是旧密钥，必须断掉重连
     session.client.close();
+    // 轮换之后旧设备读不到新消息了，名单重新积累
+    await saveKnownDevices(await getDeviceStore(), session.groupId, forgetAllDevices());
     await connectToGroup(parseInviteAuto(rotated.inviteCode), session.groupName, true);
     return rotated.inviteCode;
   }
@@ -882,6 +930,19 @@ export function App() {
           setIsAdmin(false);
           setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
         }}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "devices") {
+    const s = activeSession() ?? sortSessions(sessions)[0];
+    return (
+      <ConnectedDevicesScreen
+        groupName={s?.groupName ?? ""}
+        devices={s?.knownDevices ?? []}
+        onlineNow={s?.onlinePeers ?? []}
+        myDeviceId={screen.name === "devices" ? myDeviceIdRef.current : ""}
         onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
       />
     );
@@ -997,6 +1058,7 @@ export function App() {
         onOpenAdminRecovery={() => setScreen({ name: "adminRecovery" })}
         onOpenLockSetup={() => setShowLockSetup(true)}
         onOpenDiagnostics={() => setScreen({ name: "diagnostics" })}
+        onOpenDevices={() => setScreen({ name: "devices" })}
         onAdminUnlocked={() => {
           void setAdminUnlocked(true);
           setIsAdmin(true);

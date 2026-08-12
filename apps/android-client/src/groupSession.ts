@@ -1,4 +1,4 @@
-import type { RelayClient, ConnectionStatus } from "@secureinchat/chat-core";
+import type { RelayClient, ConnectionStatus, KnownDevice } from "@secureinchat/chat-core";
 import type { DisplayMessage } from "./screens/ChatScreen";
 import type { TodayContent } from "./screens/TodayScreen";
 
@@ -26,6 +26,8 @@ export interface GroupSession {
   adminPublicKey?: string | undefined;
   /** 当前群密钥的 epoch，轮换时加一 */
   epoch: number;
+  /** 本机在这个群里见过的设备 */
+  knownDevices: KnownDevice[];
   sendError?: string | undefined;
   /** 正在发送的大文件进度文案 */
   sendProgress?: string | undefined;
