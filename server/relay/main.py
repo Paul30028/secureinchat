@@ -14,10 +14,21 @@ import os
 from app.device_registry import DeviceRegistry
 from app.pubkey_auth import PublicKeyDeviceVerifier
 from app.server import run_server
+from app.sqlite_device_registry import SqliteDeviceRegistry
 
 if __name__ == "__main__":
     port = int(os.environ.get("SECUREINCHAT_RELAY_PORT", "8765"))
-    registry = DeviceRegistry()
+
+    # 设备注册表默认持久化到 SQLite 文件。内存态的话每次重启 TOFU 保护都被
+    # 重置一次——攻击者等一次重启就能抢注别人的 deviceId，那正是 TOFU 要防的。
+    # 设 SECUREINCHAT_DEVICE_DB=":memory:" 可以退回旧行为（仅用于临时联调）。
+    db_path = os.environ.get("SECUREINCHAT_DEVICE_DB", "devices.db")
+    if db_path == ":memory:":
+        registry = DeviceRegistry()
+        print("设备注册表：内存态（重启后清空，仅供联调）")
+    else:
+        registry = SqliteDeviceRegistry(db_path)
+        print(f"设备注册表：{db_path}（已注册 {registry.count()} 台设备）")
     verifier = PublicKeyDeviceVerifier(registry)
     print(f"开发用中继监听 ws://127.0.0.1:{port} （仅供本地联调，见 README.md）")
     print("设备认证：ECDSA P-256 + TOFU 首次注册（register_device 帧）")

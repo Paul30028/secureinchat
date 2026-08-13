@@ -21,3 +21,8 @@ apps/android-client/android/.gradle/
 apps/android-client/android/build/
 apps/android-client/android/local.properties
 apps/android-client/android/app/src/main/assets/public/
+
+# 中继的设备注册表（运行时数据，不进仓库）
+server/relay/*.db
+server/relay/*.db-wal
+server/relay/*.db-shm
