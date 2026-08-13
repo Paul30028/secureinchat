@@ -339,9 +339,7 @@ describe("App navigation", () => {
     fireEvent.change(screen.getByLabelText("邀请码输入框"), { target: { value: validCode } });
     fireEvent.click(screen.getByRole("button", { name: "用邀请码加入" }));
     fireEvent.click(screen.getByRole("button", { name: "确认加入" }));
-    await screen.findByLabelText("消息输入框");
-
-    fireEvent.click(screen.getByText("同心同行")); // tap the message list item
+    // 单群加入后直接进聊天，不需要再从列表点一次
     expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
     expect(screen.getByText("还没有消息，说点什么吧")).toBeInTheDocument();
   });
@@ -511,7 +509,7 @@ describe("App navigation", () => {
     await screen.findByText("第一条消息"); // 列表预览就是这条
 
     // Navigate back in — the earlier message must still be there.
-    fireEvent.click(screen.getByText("同心同行"));
+    fireEvent.click(screen.getAllByRole("button", { name: /同心同行/ })[0]!);
     expect(await screen.findByText("第一条消息")).toBeInTheDocument();
   });
 
@@ -647,7 +645,7 @@ describe("App navigation", () => {
     await screen.findByText("1 位成员在线");
 
     // 再回到聊天页看通话按钮
-    fireEvent.click(screen.getByText("同心同行"));
+    fireEvent.click(screen.getAllByRole("button", { name: /同心同行/ })[0]!);
     await screen.findByLabelText("消息输入框");
 
     expect(screen.getByLabelText("语音通话")).toBeEnabled();
@@ -879,7 +877,7 @@ describe("message history persistence", () => {
     await joinShared();
     // 重连之后落在公告 tab，要切到消息并进群才看得到历史
     await goToGroupList();
-    fireEvent.click(screen.getByText("同心同行"));
+    fireEvent.click(screen.getAllByRole("button", { name: /同心同行/ })[0]!);
     expect(await screen.findByText("重启前发的消息")).toBeInTheDocument();
   });
 
@@ -960,7 +958,7 @@ describe("multiple groups", () => {
   it("keeps each group's messages separate", async () => {
     await renderApp();
     await joinNamed("g-book", "读书会");
-    fireEvent.click(screen.getByText("读书会"));
+    // 第一个群直接进聊天
     await screen.findByLabelText("消息输入框");
     fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "读书会的消息" } });
     fireEvent.click(screen.getByRole("button", { name: "发送" }));
@@ -968,7 +966,8 @@ describe("multiple groups", () => {
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
 
     await joinNamed("g-hike", "爬山队");
-    fireEvent.click(screen.getByText("爬山队"));
+    await goToGroupList();
+    fireEvent.click(screen.getAllByRole("button", { name: /爬山队/ })[0]!);
     await screen.findByLabelText("消息输入框");
 
     // 爬山队里不该看到读书会的消息
@@ -1519,5 +1518,93 @@ describe("connected devices", () => {
     // 仍然在名单里（见过），但不再标记为在线
     expect(await screen.findByText("abc12345")).toBeInTheDocument();
     expect(screen.queryByText("在线")).not.toBeInTheDocument();
+  });
+});
+
+describe("changing your nickname", () => {
+  it("is reachable from 我的 and updates the displayed name", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByText("测试用户"));
+
+    const input = await screen.findByLabelText("昵称输入框");
+    fireEvent.change(input, { target: { value: "张溪" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await screen.findByText("我的");
+    fireEvent.click(screen.getByText("我的"));
+    expect(await screen.findByText("张溪")).toBeInTheDocument();
+  });
+
+  it("says plainly that renaming doesn't rewrite messages already sent", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByText("测试用户"));
+
+    expect(await screen.findByText(/已经发出去的不会变/)).toBeInTheDocument();
+  });
+
+  it("rejects an empty nickname", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByText("测试用户"));
+
+    fireEvent.change(await screen.findByLabelText("昵称输入框"), { target: { value: "   " } });
+    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
+  });
+});
+
+describe("group settings", () => {
+  it("opens by tapping the group name in the chat header", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+    fireEvent.click(screen.getByLabelText("群设置"));
+
+    expect(await screen.findByLabelText("群名称输入框")).toBeInTheDocument();
+  });
+
+  it("renames the group locally and says the change is local only", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+    fireEvent.click(screen.getByLabelText("群设置"));
+
+    expect(await screen.findByText(/其他人那边不会跟着变/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("群名称输入框"), { target: { value: "周三小组" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存群名" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("已保存");
+  });
+
+  it("warns that leaving deletes local history, and asks for confirmation", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+    fireEvent.click(screen.getByLabelText("群设置"));
+
+    expect(await screen.findByText(/聊天记录会一起删掉/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "退出群聊" }));
+    expect(await screen.findByRole("button", { name: "确认退出" })).toBeInTheDocument();
+  });
+
+  it("leaving removes the group from the list", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+    fireEvent.click(screen.getByLabelText("群设置"));
+
+    fireEvent.click(await screen.findByRole("button", { name: "退出群聊" }));
+    fireEvent.click(screen.getByRole("button", { name: "确认退出" }));
+
+    // 回到列表，群没了
+    await goToGroupList();
+    expect(await screen.findByText("还没有加入任何群聊")).toBeInTheDocument();
   });
 });

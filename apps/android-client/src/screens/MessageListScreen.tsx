@@ -27,6 +27,7 @@ export interface MessageListScreenProps {
   onOpenLockSetup: () => void;
   onOpenDiagnostics: () => void;
   onOpenDevices: () => void;
+  onOpenEditProfile: () => void;
   deviceId: string;
   nickname?: string | undefined;
   onOpenServerSettings: () => void;
@@ -48,6 +49,7 @@ export function MessageListScreen({
   onOpenLockSetup,
   onOpenDiagnostics,
   onOpenDevices,
+  onOpenEditProfile,
   deviceId,
   nickname,
   onOpenServerSettings,
@@ -127,12 +129,21 @@ export function MessageListScreen({
           <TodayScreen content={todayContent} isAdmin={isAdmin} onOpenAdmin={onOpenAdmin} />
         ) : (
           <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-            {nickname ? (
-              <>
-                <div style={{ fontSize: 13, color: colors.textPrimary }}>昵称</div>
-                <div style={{ fontSize: 15, color: colors.deepInkGreen }}>{nickname}</div>
-              </>
-            ) : null}
+            <button
+              onClick={onOpenEditProfile}
+              style={{
+                minHeight: touchTarget.minDp,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>昵称</div>
+              <div style={{ fontSize: 15, color: colors.deepInkGreen }}>{nickname ?? "未设置"}</div>
+            </button>
             <div style={{ fontSize: 13, color: colors.textPrimary, marginTop: 8 }}>本机身份</div>
             <div style={{ fontSize: 11, color: "#8A8A82", wordBreak: "break-all", fontFamily: "monospace" }}>
               {deviceId}

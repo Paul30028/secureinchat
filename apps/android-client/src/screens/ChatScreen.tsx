@@ -35,6 +35,7 @@ export interface ChatScreenProps {
   onSetReplyTarget: (message: DisplayMessage | null) => void;
   replyTarget?: DisplayMessage | null | undefined;
   onOpenSearch: () => void;
+  onOpenGroupSettings: () => void;
   onSendFile: (file: File, mediaKind: "image" | "voice" | "file") => Promise<void>;
   sendError?: string | undefined;
   connectionStatus?: "connecting" | "connected" | "reconnecting" | "disconnected" | undefined;
@@ -97,6 +98,7 @@ export function ChatScreen({
   onSetReplyTarget,
   replyTarget,
   onOpenSearch,
+  onOpenGroupSettings,
   sendError,
   connectionStatus,
   pendingCount,
@@ -155,7 +157,24 @@ export function ChatScreen({
         >
           ←
         </button>
-        <span style={{ fontSize: 16, fontWeight: 500, color: colors.deepInkGreen, flex: 1 }}>{groupName}</span>
+        <button
+          onClick={onOpenGroupSettings}
+          aria-label="群设置"
+          style={{
+            flex: 1,
+            textAlign: "left",
+            background: "transparent",
+            border: "none",
+            boxShadow: "none",
+            fontSize: 16,
+            fontWeight: 500,
+            color: colors.deepInkGreen,
+            cursor: "pointer",
+            minHeight: touchTarget.minDp,
+          }}
+        >
+          {groupName}
+        </button>
         <button
           onClick={onOpenSearch}
           aria-label="搜索消息"

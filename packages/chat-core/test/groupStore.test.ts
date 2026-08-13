@@ -7,6 +7,7 @@ import {
   upsertGroup,
   removeGroup,
   markGroupRead,
+  renameGroup,
   unreadCount,
   type JoinedGroup,
 } from "../src/groupStore";
@@ -126,5 +127,24 @@ describe("unreadCount", () => {
 
   it("is zero when everything has been read", () => {
     expect(unreadCount([{ sentAtMs: 500, isOwn: false }], 1000)).toBe(0);
+  });
+});
+
+describe("renameGroup", () => {
+  it("renames only the named group", () => {
+    const result = renameGroup([group("g1", "旧名"), group("g2", "别的群")], "g1", "新名");
+    expect(result.find((g) => g.groupId === "g1")!.groupName).toBe("新名");
+    expect(result.find((g) => g.groupId === "g2")!.groupName).toBe("别的群");
+  });
+
+  it("keeps the key material and epoch intact — renaming is cosmetic", () => {
+    const original = { ...group("g1"), keyMaterialB64Url: "secret", epoch: 4 };
+    const renamed = renameGroup([original], "g1", "新名")[0]!;
+    expect(renamed.keyMaterialB64Url).toBe("secret");
+    expect(renamed.epoch).toBe(4);
+  });
+
+  it("is a no-op for an unknown group", () => {
+    expect(renameGroup([group("g1")], "nope", "x")[0]!.groupName).toBe("g1");
   });
 });

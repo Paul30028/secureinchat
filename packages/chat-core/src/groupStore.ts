@@ -55,6 +55,11 @@ export function removeGroup(groups: JoinedGroup[], groupId: string): JoinedGroup
   return groups.filter((g) => g.groupId !== groupId);
 }
 
+/** 改群名。只改本机显示的名字——中继不知道群叫什么，别人那边不会跟着变。 */
+export function renameGroup(groups: JoinedGroup[], groupId: string, groupName: string): JoinedGroup[] {
+  return groups.map((g) => (g.groupId === groupId ? { ...g, groupName } : g));
+}
+
 export function markGroupRead(groups: JoinedGroup[], groupId: string, atMs = Date.now()): JoinedGroup[] {
   return groups.map((g) => (g.groupId === groupId ? { ...g, lastReadAtMs: atMs } : g));
 }

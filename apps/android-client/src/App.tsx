@@ -8,6 +8,9 @@ import {
   buildFileEnvelopes,
   rotateGroupKey,
   loadKnownDevices,
+  removeGroup,
+  renameGroup,
+  clearMessages,
   saveKnownDevices,
   markDeviceSeen,
   forgetAllDevices,
@@ -43,6 +46,8 @@ import { AdminRecoveryScreen } from "./screens/AdminRecoveryScreen";
 import { LockScreen } from "./screens/LockScreen";
 import { ConnectionDiagnosticsScreen } from "./screens/ConnectionDiagnosticsScreen";
 import { ConnectedDevicesScreen } from "./screens/ConnectedDevicesScreen";
+import { EditProfileScreen } from "./screens/EditProfileScreen";
+import { GroupSettingsScreen } from "./screens/GroupSettingsScreen";
 import { isLockEnabled, disableLock } from "./appLock";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { saveAdminKey, loadAdminKey } from "./adminKeys";
@@ -85,6 +90,8 @@ type Screen =
   | { name: "adminRecovery" }
   | { name: "diagnostics" }
   | { name: "devices" }
+  | { name: "editProfile" }
+  | { name: "groupSettings"; groupId: string }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -827,6 +834,33 @@ export function App() {
     return rotated.inviteCode;
   }
 
+  async function handleRenameGroup(groupId: string, groupName: string): Promise<void> {
+    const store = await getDeviceStore();
+    await saveJoinedGroups(store, renameGroup(await loadJoinedGroups(store), groupId, groupName));
+    setSessions((prev) => patchSession(prev, groupId, { groupName }));
+  }
+
+  /**
+   * 退群：断连接、删本机记录。中继不保存任何东西，所以"退群"就是本机的事——
+   * 没有需要通知服务端的状态。留下的人不会收到任何提示，这一点在界面上说了。
+   */
+  async function handleLeaveGroup(groupId: string): Promise<void> {
+    sessions[groupId]?.client.close();
+
+    const store = await getDeviceStore();
+    await saveJoinedGroups(store, removeGroup(await loadJoinedGroups(store), groupId));
+    await clearMessages(store, groupId);
+    await saveKnownDevices(store, groupId, []);
+
+    setSessions((prev) => {
+      const next = { ...prev };
+      delete next[groupId];
+      sessionsRef.current = next;
+      return next;
+    });
+    setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+  }
+
   /** 各群的今日内容合并显示——小团体通常只有一个群，多群时后加入的覆盖先加入的 */
   function mergedToday(): TodayContent {
     return sortSessions(sessions).reduce<TodayContent>((acc, s) => ({ ...acc, ...s.today }), {});
@@ -931,6 +965,36 @@ export function App() {
           setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
         }}
         onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "editProfile") {
+    return (
+      <EditProfileScreen
+        currentNickname={nickname ?? ""}
+        onSaved={(name) => {
+          nicknameRef.current = name;
+          setNickname(name);
+          setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+        }}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "groupSettings") {
+    const s = sessions[screen.groupId];
+    if (!s) {
+      return <div style={{ minHeight: "100%", background: "#EBECE5" }} aria-busy="true" />;
+    }
+    return (
+      <GroupSettingsScreen
+        groupName={s.groupName}
+        memberCount={s.onlinePeers.length}
+        onRename={(name) => handleRenameGroup(s.groupId, name)}
+        onLeave={() => handleLeaveGroup(s.groupId)}
+        onBack={() => setScreen({ name: "connected", activeGroupId: s.groupId, view: "chat", deviceId: "" })}
       />
     );
   }
@@ -1059,6 +1123,7 @@ export function App() {
         onOpenLockSetup={() => setShowLockSetup(true)}
         onOpenDiagnostics={() => setScreen({ name: "diagnostics" })}
         onOpenDevices={() => setScreen({ name: "devices" })}
+        onOpenEditProfile={() => setScreen({ name: "editProfile" })}
         onAdminUnlocked={() => {
           void setAdminUnlocked(true);
           setIsAdmin(true);
@@ -1099,6 +1164,7 @@ export function App() {
       onSetReplyTarget={setReplyTarget}
       replyTarget={replyTarget}
       onOpenSearch={() => setScreen({ ...screen, view: "search" })}
+      onOpenGroupSettings={() => setScreen({ name: "groupSettings", groupId: active.groupId })}
       onBack={() => {
         setReplyTarget(null);
         // 从聊天返回应该看到消息列表，而不是默认的公告 tab
