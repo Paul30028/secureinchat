@@ -1608,3 +1608,33 @@ describe("group settings", () => {
     expect(await screen.findByText("还没有加入任何群聊")).toBeInTheDocument();
   });
 });
+
+describe("messages sent while disconnected", () => {
+  it("marks a message as waiting rather than implying it was delivered", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    // 掉线
+    MockRelayWebSocket.lastInstance?.onclose?.();
+
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "重要通知" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    // 内容还在，并且明确标出还没发出去——而不是让人以为对方已经看到了
+    expect(await screen.findByText("重要通知")).toBeInTheDocument();
+    expect(await screen.findByText("等待发送")).toBeInTheDocument();
+  });
+
+  it("a message sent while connected is not marked as waiting", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "正常消息" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    await screen.findByText("正常消息");
+    expect(screen.queryByText("等待发送")).not.toBeInTheDocument();
+  });
+});

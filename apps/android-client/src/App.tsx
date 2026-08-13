@@ -617,10 +617,10 @@ export function App() {
     if (!session) return;
     const { groupId, client } = session;
     setSessions((prev) => patchSession(prev, groupId, { sendError: undefined }));
-    try {
-      // sendText 现在断线时会排队而不是抛错——排队也算"发出去了"，
-      // 连接状态横幅会告诉用户还有几条在等待，不需要再报一次"发送失败"
-      const reply = replyTarget
+
+    // 在 try 外面算好——发送失败时要把它一起保留在"未发送"的那条上，
+    // 否则重发会丢掉引用
+    const reply = replyTarget
         ? {
             senderName: replyTarget.isOwn ? (nickname ?? "我") : (replyTarget.fromDeviceId ?? "对方"),
             excerpt: buildReplyExcerpt({
@@ -632,7 +632,10 @@ export function App() {
           }
         : undefined;
 
-      await client.sendEnvelope({
+    try {
+      // sendText 断线时会排队而不是抛错——排队也算"发出去了"，
+      // 连接状态横幅会告诉用户还有几条在等待
+      const outcome = await client.sendEnvelope({
         kind: "text",
         id: randomUUID(),
         text,
@@ -644,12 +647,17 @@ export function App() {
       await appendOwnMessage(groupId, {
         id: `sent-${nextMessageId++}`,
         text,
+        // 断线时消息进了队列，会在重连后自动补发——标出来让用户知道
+        // 它还没真的发出去，而不是让他以为对方已经看到了
+        queued: outcome === "queued",
         isOwn: true,
         sentAtMs: Date.now(),
         ...(reply ? { replyTo: reply } : {}),
       });
     } catch {
-      setSessions((prev) => patchSession(prev, groupId, { sendError: "发送失败，请检查连接" }));
+      // sendEnvelope 断线时会排队而不是抛错，所以走到这里说明是加密或
+      // 序列化出了问题——那不是重发能解决的，如实报错。
+      setSessions((prev) => patchSession(prev, groupId, { sendError: "这条消息发不出去，请重试" }));
     }
   }
 

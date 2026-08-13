@@ -14,6 +14,8 @@ export interface DisplayMessage {
   text?: string | undefined;
   /** 媒体消息：图片/语音/文件——bytes 已经在本地解密组装好，用 objectUrl 渲染 */
   media?: MediaContent | undefined;
+  /** 断线时进了离线队列，重连后会自动补发 */
+  queued?: boolean | undefined;
   /** 引用的消息（快照，不是 ID——对方可能已经删了原消息） */
   replyTo?: { senderName: string; excerpt: string } | undefined;
 }
@@ -260,6 +262,11 @@ export function ChatScreen({
                 ) : null}
                 {m.media ? <MediaBubbleContent media={m.media} isOwn={m.isOwn} /> : m.text}
               </ChatBubble>
+              {m.queued ? (
+                <div style={{ textAlign: "right", fontSize: 11, color: colors.wheatGold, marginTop: 2 }}>
+                  等待发送
+                </div>
+              ) : null}
             </div>
           ))
         )}
