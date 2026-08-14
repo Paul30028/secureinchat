@@ -1681,3 +1681,42 @@ describe("viewing an image", () => {
     expect(screen.getByRole("dialog", { name: /查看图片/ })).toBeInTheDocument();
   });
 });
+
+describe("group list long-press", () => {
+  it("opens group settings without having to enter the group first", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+
+    fireEvent.contextMenu(screen.getAllByRole("button", { name: /同心同行/ })[0]!);
+
+    expect(await screen.findByLabelText("群名称输入框")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "退出群聊" })).toBeInTheDocument();
+  });
+
+  it("going back returns to the list, not into the chat", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+
+    fireEvent.contextMenu(screen.getAllByRole("button", { name: /同心同行/ })[0]!);
+    await screen.findByLabelText("群名称输入框");
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+
+    // 回到列表：底部导航在，聊天输入框不在
+    expect(await screen.findByText("我的")).toBeInTheDocument();
+    expect(screen.queryByLabelText("消息输入框")).not.toBeInTheDocument();
+  });
+
+  it("from the chat header, back still returns to the chat", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.click(screen.getByLabelText("群设置"));
+    await screen.findByLabelText("群名称输入框");
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+
+    expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
+  });
+});

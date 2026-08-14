@@ -91,7 +91,7 @@ type Screen =
   | { name: "diagnostics" }
   | { name: "devices" }
   | { name: "editProfile" }
-  | { name: "groupSettings"; groupId: string }
+  | { name: "groupSettings"; groupId: string; from: "chat" | "list" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -1002,7 +1002,14 @@ export function App() {
         memberCount={s.onlinePeers.length}
         onRename={(name) => handleRenameGroup(s.groupId, name)}
         onLeave={() => handleLeaveGroup(s.groupId)}
-        onBack={() => setScreen({ name: "connected", activeGroupId: s.groupId, view: "chat", deviceId: "" })}
+        onBack={() =>
+          // 从哪儿进来就回哪儿——从列表长按进来的，返回不该跳进聊天页
+          setScreen(
+            screen.name === "groupSettings" && screen.from === "list"
+              ? { name: "connected", activeGroupId: null, view: "list", deviceId: "" }
+              : { name: "connected", activeGroupId: s.groupId, view: "chat", deviceId: "" }
+          )
+        }
       />
     );
   }
@@ -1116,6 +1123,7 @@ export function App() {
           onlineCount: s.onlinePeers.length,
           lastMessage: previewFor(s),
         }))}
+        onOpenGroupSettings={(groupId) => setScreen({ name: "groupSettings", groupId, from: "list" })}
         onOpenGroup={(groupId) => {
           // 打开即标记已读
           setSessions((prev) => patchSession(prev, groupId, { lastReadAtMs: Date.now() }));
@@ -1172,7 +1180,7 @@ export function App() {
       onSetReplyTarget={setReplyTarget}
       replyTarget={replyTarget}
       onOpenSearch={() => setScreen({ ...screen, view: "search" })}
-      onOpenGroupSettings={() => setScreen({ name: "groupSettings", groupId: active.groupId })}
+      onOpenGroupSettings={() => setScreen({ name: "groupSettings", groupId: active.groupId, from: "chat" })}
       onBack={() => {
         setReplyTarget(null);
         // 从聊天返回应该看到消息列表，而不是默认的公告 tab

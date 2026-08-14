@@ -16,6 +16,8 @@ export interface GroupListItem {
 export interface MessageListScreenProps {
   groups: GroupListItem[];
   onOpenGroup: (groupId: string) => void;
+  /** 长按群条目触发——直接到群设置，退群/改名都在那儿 */
+  onOpenGroupSettings: (groupId: string) => void;
   /** 去加入/创建另一个群 */
   onJoinAnotherGroup: () => void;
   todayContent: TodayContent;
@@ -40,6 +42,7 @@ export interface MessageListScreenProps {
 export function MessageListScreen({
   groups,
   onOpenGroup,
+  onOpenGroupSettings,
   onJoinAnotherGroup,
   todayContent,
   isAdmin,
@@ -102,6 +105,11 @@ export function MessageListScreen({
                   timeLabel={g.lastMessage ? formatListTime(g.lastMessage.sentAtMs) : ""}
                   unreadCount={g.unread}
                   onClick={() => onOpenGroup(g.groupId)}
+                  onContextMenu={(e) => {
+                    // 移动端长按走 contextmenu；不再需要先进群才能改名或退群
+                    e.preventDefault();
+                    onOpenGroupSettings(g.groupId);
+                  }}
                 />
                 <div style={{ padding: "0 6px 6px 60px", fontSize: 11, color: "#9A9A94" }}>
                   {g.onlineCount > 0 ? `${g.onlineCount} 位成员在线` : "群里暂时只有你在线"}
