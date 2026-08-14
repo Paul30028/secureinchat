@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, waitForElementToBeRemoved, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, waitForElementToBeRemoved, cleanup, within } from "@testing-library/react";
 import { buildSic1Invite, buildSic2Invite } from "@secureinchat/protocol";
 import { App } from "../src/App";
 import { saveNickname, clearNickname } from "../src/profile";
@@ -1636,5 +1636,48 @@ describe("messages sent while disconnected", () => {
 
     await screen.findByText("正常消息");
     expect(screen.queryByText("等待发送")).not.toBeInTheDocument();
+  });
+});
+
+describe("viewing an image", () => {
+  async function sendImage(fileName = "photo.jpg") {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    const file = new File([new Uint8Array([1, 2, 3, 4])], fileName, { type: "image/jpeg" });
+    fireEvent.click(screen.getByLabelText("添加图片或文件"));
+    fireEvent.change(await screen.findByLabelText("选择图片"), { target: { files: [file] } });
+    await screen.findByAltText(fileName);
+  }
+
+  it("opens fullscreen on tap instead of only offering a download", async () => {
+    await sendImage();
+    fireEvent.click(screen.getByLabelText("查看 photo.jpg"));
+
+    expect(await screen.findByRole("dialog", { name: /查看图片/ })).toBeInTheDocument();
+    // 全屏里仍然可以保存
+    expect(screen.getByLabelText("保存图片")).toBeInTheDocument();
+  });
+
+  it("closes with the close button", async () => {
+    await sendImage();
+    fireEvent.click(screen.getByLabelText("查看 photo.jpg"));
+    await screen.findByRole("dialog", { name: /查看图片/ });
+
+    fireEvent.click(screen.getByLabelText("关闭"));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /查看图片/ })).not.toBeInTheDocument());
+  });
+
+  it("tapping the image itself does not close it — that would fight with looking closely", async () => {
+    await sendImage();
+    fireEvent.click(screen.getByLabelText("查看 photo.jpg"));
+    const dialog = await screen.findByRole("dialog", { name: /查看图片/ });
+
+    // 全屏里的那张大图
+    const fullImage = within(dialog).getByAltText("photo.jpg");
+    fireEvent.click(fullImage);
+
+    expect(screen.getByRole("dialog", { name: /查看图片/ })).toBeInTheDocument();
   });
 });

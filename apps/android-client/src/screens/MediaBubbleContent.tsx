@@ -15,18 +15,37 @@ function formatSize(bytes: number): string {
 }
 
 /** 图片/语音/文件三种媒体消息的渲染。放在 ChatBubble 内部作为 children。 */
-export function MediaBubbleContent({ media, isOwn }: { media: MediaContent; isOwn: boolean }) {
+export function MediaBubbleContent({
+  media,
+  isOwn,
+  onOpenImage,
+}: {
+  media: MediaContent;
+  isOwn: boolean;
+  onOpenImage?: ((media: MediaContent) => void) | undefined;
+}) {
   const subduedColor = isOwn ? "rgba(235,236,229,0.75)" : "#8A8A82";
 
   if (media.mediaKind === "image") {
     return (
-      <a href={media.objectUrl} download={media.fileName} style={{ display: "block" }}>
+      <button
+        onClick={() => onOpenImage?.(media)}
+        aria-label={`查看 ${media.fileName}`}
+        style={{
+          display: "block",
+          padding: 0,
+          background: "transparent",
+          border: "none",
+          boxShadow: "none",
+          cursor: "pointer",
+        }}
+      >
         <img
           src={media.objectUrl}
           alt={media.fileName}
           style={{ maxWidth: 200, maxHeight: 200, borderRadius: radii.cardSmall, display: "block" }}
         />
-      </a>
+      </button>
     );
   }
 

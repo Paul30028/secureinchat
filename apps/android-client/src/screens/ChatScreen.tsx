@@ -3,6 +3,7 @@ import { colors, ChatBubble, Composer, touchTarget } from "@secureinchat/ui";
 import { MediaBubbleContent, AnnouncementCard, type MediaContent } from "./MediaBubbleContent";
 import { formatMessageTime } from "../timeFormat";
 import { MessageActionSheet, type MessageAction } from "./MessageActionSheet";
+import { ImageViewer } from "./ImageViewer";
 
 export interface DisplayMessage {
   id: string;
@@ -118,6 +119,7 @@ export function ChatScreen({
   /** 附件面板是否展开。默认收起，让"发送"是这一屏唯一突出的主按钮
    *  （对应需求第六节"每页只有一个突出主按钮"）。 */
   const [attachOpen, setAttachOpen] = useState(false);
+  const [viewingImage, setViewingImage] = useState<MediaContent | null>(null);
   const [recordError, setRecordError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
 
@@ -260,7 +262,11 @@ export function ChatScreen({
                     <div>{m.replyTo.excerpt}</div>
                   </div>
                 ) : null}
-                {m.media ? <MediaBubbleContent media={m.media} isOwn={m.isOwn} /> : m.text}
+                {m.media ? (
+                  <MediaBubbleContent media={m.media} isOwn={m.isOwn} onOpenImage={setViewingImage} />
+                ) : (
+                  m.text
+                )}
               </ChatBubble>
               {m.queued ? (
                 <div style={{ textAlign: "right", fontSize: 11, color: colors.wheatGold, marginTop: 2 }}>
@@ -440,6 +446,14 @@ export function ChatScreen({
           </div>
         ) : null}
       </div>
+
+      {viewingImage ? (
+        <ImageViewer
+          src={viewingImage.objectUrl}
+          fileName={viewingImage.fileName}
+          onClose={() => setViewingImage(null)}
+        />
+      ) : null}
 
       {actionTarget ? (
         <MessageActionSheet
