@@ -1,9 +1,11 @@
-import { colors, radii, touchTarget } from "@secureinchat/ui";
+import { useState } from "react";
+import { colors, radii, touchTarget, Button } from "@secureinchat/ui";
 import {
   qualityFor,
   describeQuality,
   type LatencyStats,
   type DisconnectRecord,
+  probeRelay,
   type ConnectionStatus,
 } from "@secureinchat/chat-core";
 
@@ -50,6 +52,24 @@ export function ConnectionDiagnosticsScreen({
   disconnects,
   onBack,
 }: ConnectionDiagnosticsScreenProps) {
+  const [probing, setProbing] = useState(false);
+  const [probeMessage, setProbeMessage] = useState<string | null>(null);
+  const [probeOk, setProbeOk] = useState(false);
+
+  async function runProbe() {
+    setProbing(true);
+    setProbeMessage(null);
+    try {
+      const result = await probeRelay(relayUrl);
+      setProbeOk(result.ok);
+      setProbeMessage(
+        result.ok ? `服务器正常，握手用时 ${result.elapsedMs} 毫秒` : `连接失败：${result.reason}`
+      );
+    } finally {
+      setProbing(false);
+    }
+  }
+
   const quality = qualityFor(latency);
   const recovered = disconnects.filter((d) => d.recoveredAfterMs !== null);
   const avgRecovery =
@@ -97,6 +117,28 @@ export function ConnectionDiagnosticsScreen({
         <div style={{ fontSize: 12, color: "#8A8A82" }}>
           {latency.latestMs !== null ? `最近一次往返 ${latency.latestMs} 毫秒` : "等待心跳测量..."}
         </div>
+      </div>
+
+      {/* 主动测试。之前这一页只显示"当前状态"，连不上的时候它也是空的——
+          最需要它的时候什么都不说。 */}
+      <div style={{ marginBottom: 12 }}>
+        <Button variant="primary" onClick={() => void runProbe()} disabled={probing} style={{ width: "100%" }}>
+          {probing ? "正在测试..." : "测试连接"}
+        </Button>
+        {probeMessage ? (
+          <p
+            role="status"
+            style={{
+              fontSize: 12,
+              color: probeOk ? colors.deepInkGreen : "#A33",
+              margin: "8px 0 0",
+              textAlign: "center",
+              lineHeight: 1.6,
+            }}
+          >
+            {probeMessage}
+          </p>
+        ) : null}
       </div>
 
       <Row label="服务器" value={relayUrl} />

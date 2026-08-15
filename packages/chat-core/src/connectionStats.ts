@@ -81,3 +81,69 @@ export function recordReconnect(history: DisconnectRecord[], atMs: number): Disc
   if (last.recoveredAfterMs !== null) return history;
   return [...history.slice(0, -1), { ...last, recoveredAfterMs: atMs - last.atMs }];
 }
+
+export type ProbeResult =
+  | { ok: true; elapsedMs: number }
+  | { ok: false; reason: string };
+
+/**
+ * 主动测一次连接。
+ *
+ * 诊断页原本只显示"当前状态"，连不上的时候那一页也是空的——最需要它的时候
+ * 它什么都不说。这个函数只做一件事：连上去，看服务端有没有下发 auth_challenge，
+ * 然后立刻断开。不认证、不注册设备，所以对生产服务器是安全的。
+ */
+export async function probeRelay(
+  url: string,
+  options: { WebSocketImpl?: typeof WebSocket | undefined; timeoutMs?: number } = {}
+): Promise<ProbeResult> {
+  const WS = options.WebSocketImpl ?? WebSocket;
+  const timeoutMs = options.timeoutMs ?? 10_000;
+  const startedAt = Date.now();
+
+  return new Promise<ProbeResult>((resolve) => {
+    let settled = false;
+    let ws: WebSocket | null = null;
+
+    const finish = (result: ProbeResult) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        ws?.close();
+      } catch {
+        // 已经关了就算了
+      }
+      resolve(result);
+    };
+
+    const timer = setTimeout(
+      () => finish({ ok: false, reason: "连接超时，服务器没有响应" }),
+      timeoutMs
+    );
+
+    try {
+      ws = new WS(url);
+    } catch {
+      finish({ ok: false, reason: "地址格式不正确" });
+      return;
+    }
+
+    ws.onmessage = (event: MessageEvent) => {
+      try {
+        const frame: unknown = JSON.parse(String((event as { data: unknown }).data));
+        if (typeof frame === "object" && frame && (frame as { type?: unknown }).type === "auth_challenge") {
+          finish({ ok: true, elapsedMs: Date.now() - startedAt });
+          return;
+        }
+        // 连上了但第一帧不是 auth_challenge——多半连到了别的服务
+        finish({ ok: false, reason: "连上了，但对方不是这个应用的服务器" });
+      } catch {
+        finish({ ok: false, reason: "服务器返回了无法识别的内容" });
+      }
+    };
+
+    ws.onerror = () => finish({ ok: false, reason: "连不上，请检查网络和服务器地址" });
+    ws.onclose = () => finish({ ok: false, reason: "连接被关闭" });
+  });
+}

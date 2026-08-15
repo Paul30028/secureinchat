@@ -99,7 +99,6 @@ async function createGroupAsAdmin(name = "测试群") {
   fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: name } });
   fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
   // 必须先确认保存管理员恢复码——丢了就再也发不了公告
-  fireEvent.click(await screen.findByRole("button", { name: "我已保存" }));
   fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
   await screen.findByLabelText("消息输入框");
 }
@@ -457,10 +456,12 @@ describe("App navigation", () => {
     const codeEl = await screen.findByText(/^SIC2\./);
     expect(codeEl.textContent).toMatch(/^SIC2\./);
 
-    // 恢复码显示出来供抄写，但不挡住进群——手机上这张卡片在折叠线以下，
-    // 挡住的话按钮看起来就像坏了
-    expect(screen.getByText("管理员恢复码")).toBeInTheDocument();
-    expect(screen.getByText(/^SICADMIN1\./)).toBeInTheDocument();
+    // 恢复码默认折叠——它重要，但不该占满整屏把"进入群聊"挤到看不见的地方
+    expect(screen.getByText(/管理员恢复码/)).toBeInTheDocument();
+    expect(screen.queryByText(/^SICADMIN1\./)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("展开管理员恢复码"));
+    expect(await screen.findByText(/^SICADMIN1\./)).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
     // 创建的是第一个群，所以直接进聊天
     expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
@@ -1239,9 +1240,9 @@ describe("admin recovery", () => {
     fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
     fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: "恢复测试群" } });
     fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    fireEvent.click(await screen.findByLabelText("展开管理员恢复码"));
     const recoveryCode = (await screen.findByText(/^SICADMIN1\./)).textContent!;
     const inviteCode = (await screen.findByText(/^SIC2\./)).textContent!;
-    fireEvent.click(screen.getByRole("button", { name: "我已保存" }));
     fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
     await screen.findByLabelText("消息输入框");
 
@@ -1827,5 +1828,57 @@ describe("creating a group when the admin key can't be stored", () => {
     } finally {
       EncryptedKeyValueStore.prototype.set = originalSet;
     }
+  });
+});
+
+describe("create-group screen layout", () => {
+  it("keeps 进入群聊 reachable without scrolling past two large cards", async () => {
+    await renderApp();
+    await openJoinScreen();
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: "麦子" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+
+    // 按钮固定在底部，不再排在恢复码和二维码卡片之后
+    const enter = await screen.findByRole("button", { name: "进入群聊" });
+    expect(enter).toBeInTheDocument();
+    expect(enter).toBeEnabled();
+  });
+
+  it("keeps the recovery code collapsed so it doesn't fill the screen", async () => {
+    await renderApp();
+    await openJoinScreen();
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+    fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: "麦子" } });
+    fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+
+    await screen.findByLabelText("展开管理员恢复码");
+    expect(screen.queryByText(/^SICADMIN1\./)).not.toBeInTheDocument();
+  });
+});
+
+describe("testing the connection", () => {
+  async function openDiagnostics() {
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByRole("button", { name: /连接诊断/ }));
+  }
+
+  it("offers a test button, so the page is useful even when nothing is connected", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await openDiagnostics();
+
+    expect(await screen.findByRole("button", { name: "测试连接" })).toBeInTheDocument();
+  });
+
+  it("reports the result of a test", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await openDiagnostics();
+
+    fireEvent.click(await screen.findByRole("button", { name: "测试连接" }));
+    // mock socket 会下发 auth_challenge，所以应该测通
+    expect(await screen.findByRole("status")).toHaveTextContent(/服务器正常/);
   });
 });

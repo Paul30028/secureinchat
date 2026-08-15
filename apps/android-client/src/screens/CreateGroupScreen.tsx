@@ -40,6 +40,8 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
   const [pendingKeyMaterial, setPendingKeyMaterial] = useState<string | null>(null);
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
   const [recoverySaved, setRecoverySaved] = useState(false);
+  // 恢复码默认折叠：它重要，但不该占满整屏把主流程挤下去
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [isEntering, setIsEntering] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -142,10 +144,36 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
                 background: `${colors.sageMint}22`,
               }}
             >
-              <div style={{ fontSize: 14, fontWeight: 500, color: colors.textPrimary, marginBottom: 6 }}>
-                管理员恢复码
-              </div>
-              <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "0 0 10px" }}>
+              <button
+                onClick={() => setRecoveryOpen((v) => !v)}
+                aria-label={recoveryOpen ? "收起管理员恢复码" : "展开管理员恢复码"}
+                style={{
+                  width: "100%",
+                  minHeight: touchTarget.minDp,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "transparent",
+                  border: "none",
+                  boxShadow: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: 14, fontWeight: 500, color: colors.textPrimary }}>
+                  管理员恢复码{recoverySaved ? " ✓" : ""}
+                </span>
+                <span style={{ fontSize: 12, color: colors.wheatGold }}>{recoveryOpen ? "收起" : "展开抄写"}</span>
+              </button>
+              {!recoveryOpen ? (
+                <p style={{ fontSize: 11, color: "#9A9A94", margin: "4px 0 0" }}>
+                  换手机时用来找回发布权限，建议现在抄下来
+                </p>
+              ) : null}
+
+              {recoveryOpen ? (
+              <>
+              <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "8px 0 10px" }}>
                 只有你能发布这个群的每日内容，凭据就保存在这台手机上。
                 <strong style={{ fontWeight: 500, color: colors.textPrimary }}>
                   换手机或手机丢失后，只有这串码能恢复
@@ -180,6 +208,8 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
                   {recoverySaved ? "已保存 ✓" : "我已保存"}
                 </Button>
               </div>
+              </>
+              ) : null}
             </div>
           ) : null}
 
@@ -188,16 +218,37 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
             inviteCode={inviteCode}
             onCopy={() => void copyToClipboard(inviteCode)}
           />
-          <Button variant="primary" onClick={handleEnter} disabled={isEntering}>
-            {isEntering ? "正在进入..." : "进入群聊"}
-          </Button>
+
           {errorMessage ? (
-            <p role="alert" style={{ color: "#A33", fontSize: 12, textAlign: "center" }}>
+            <p role="alert" style={{ color: "#A33", fontSize: 12, textAlign: "center", whiteSpace: "pre-line" }}>
               {errorMessage}
             </p>
           ) : null}
+
+          {/* 底部留出固定按钮的高度，免得最后一段内容被挡住 */}
+          <div style={{ height: 76 }} />
         </div>
       )}
+
+      {/* 进入群聊是这一页唯一的出口，固定在底部——之前它排在恢复码和二维码
+          两张卡片下面，手机上要滚很久才看得到，看起来就像没有这个按钮。 */}
+      {inviteCode ? (
+        <div
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            padding: "10px 24px calc(10px + env(safe-area-inset-bottom))",
+            background: colors.ivory,
+            borderTop: `0.5px solid ${colors.sageMint}`,
+          }}
+        >
+          <Button variant="primary" onClick={handleEnter} disabled={isEntering} style={{ width: "100%" }}>
+            {isEntering ? "正在进入..." : "进入群聊"}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

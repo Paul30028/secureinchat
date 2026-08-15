@@ -7,6 +7,7 @@ import {
   describeQuality,
   recordDisconnect,
   recordReconnect,
+  probeRelay,
 } from "../src/connectionStats";
 
 describe("latency stats", () => {
@@ -76,5 +77,64 @@ describe("disconnect history", () => {
     let history: ReturnType<typeof recordDisconnect> = [];
     for (let i = 0; i < MAX_SAMPLES + 10; i++) history = recordDisconnect(history, i);
     expect(history).toHaveLength(MAX_SAMPLES);
+  });
+});
+
+describe("probeRelay", () => {
+  class FakeSocket {
+    onmessage: ((e: { data: string }) => void) | null = null;
+    onerror: (() => void) | null = null;
+    onclose: (() => void) | null = null;
+    closed = false;
+    constructor(public url: string, private behaviour: "challenge" | "wrong" | "error" | "silent") {
+      setTimeout(() => {
+        if (this.behaviour === "challenge") {
+          this.onmessage?.({ data: JSON.stringify({ type: "auth_challenge", nonce: "n" }) });
+        } else if (this.behaviour === "wrong") {
+          this.onmessage?.({ data: JSON.stringify({ type: "hello" }) });
+        } else if (this.behaviour === "error") {
+          this.onerror?.();
+        }
+      }, 0);
+    }
+    close() {
+      this.closed = true;
+    }
+  }
+
+  function socketFactory(behaviour: "challenge" | "wrong" | "error" | "silent") {
+    return function (url: string) {
+      return new FakeSocket(url, behaviour);
+    } as unknown as typeof WebSocket;
+  }
+
+  it("succeeds when the server sends auth_challenge", async () => {
+    const result = await probeRelay("wss://relay.test", { WebSocketImpl: socketFactory("challenge") });
+    expect(result.ok).toBe(true);
+  });
+
+  it("reports how long it took, so a slow-but-working link is distinguishable", async () => {
+    const result = await probeRelay("wss://relay.test", { WebSocketImpl: socketFactory("challenge") });
+    if (result.ok) expect(result.elapsedMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("fails clearly when something else answers on that address", async () => {
+    const result = await probeRelay("wss://relay.test", { WebSocketImpl: socketFactory("wrong") });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain("不是这个应用的服务器");
+  });
+
+  it("fails when the socket errors", async () => {
+    const result = await probeRelay("wss://relay.test", { WebSocketImpl: socketFactory("error") });
+    expect(result.ok).toBe(false);
+  });
+
+  it("times out rather than hanging when the server never answers", async () => {
+    const result = await probeRelay("wss://relay.test", {
+      WebSocketImpl: socketFactory("silent"),
+      timeoutMs: 30,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain("超时");
   });
 });
