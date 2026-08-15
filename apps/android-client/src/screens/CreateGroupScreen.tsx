@@ -5,13 +5,16 @@ import { randomUUID, generateAdminKeyPair } from "@secureinchat/crypto-core";
 import { copyToClipboard } from "@secureinchat/chat-core";
 
 export interface CreateGroupScreenProps {
+  /** 当前生效的中继地址，连不上时要显示出来——否则不知道它在连哪里 */
+  relayUrl: string;
   onCreated: (input: {
     groupId: string;
     groupName: string;
     keyMaterialB64Url: string;
     inviteCode: string;
-    /** 建群者保留的管理员私钥——只有它能签发这个群的公告 */
-    adminPrivateKey: CryptoKey;
+    /** 管理员凭据（恢复码那串）。存文本而不是 CryptoKey 对象——
+     *  老 WebView 存不了 CryptoKey，一失败建群就断在这一步。 */
+    adminRecoveryCode: string;
   }) => Promise<void>;
   onBack: () => void;
 }
@@ -30,12 +33,11 @@ function randomBase64UrlKeyMaterial(): string {
  * 连上同一个 groupId——服务端目前不做"这个群是否真的存在/谁有权创建"的校验。
  * 等成员资格收紧之后，创建群需要额外一步向服务端登记邀请码，这里先不冒充已实现。
  */
-export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps) {
+export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupScreenProps) {
   const [groupName, setGroupName] = useState("");
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [pendingGroupId, setPendingGroupId] = useState<string | null>(null);
   const [pendingKeyMaterial, setPendingKeyMaterial] = useState<string | null>(null);
-  const [adminKey, setAdminKey] = useState<CryptoKey | null>(null);
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
   const [recoverySaved, setRecoverySaved] = useState(false);
   const [isEntering, setIsEntering] = useState(false);
@@ -56,13 +58,12 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
     });
     setPendingGroupId(groupId);
     setPendingKeyMaterial(keyMaterialB64Url);
-    setAdminKey(admin.privateKey);
     setRecoveryCode(admin.recoveryCode);
     setInviteCode(code);
   }
 
   async function handleEnter() {
-    if (!pendingGroupId || !pendingKeyMaterial || !inviteCode || !adminKey) return;
+    if (!pendingGroupId || !pendingKeyMaterial || !inviteCode || !recoveryCode) return;
     setIsEntering(true);
     setErrorMessage(null);
     try {
@@ -71,11 +72,15 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
         groupName: groupName || "新群聊",
         keyMaterialB64Url: pendingKeyMaterial,
         inviteCode,
-        adminPrivateKey: adminKey,
+        adminRecoveryCode: recoveryCode,
       });
     } catch (err) {
       setIsEntering(false);
-      setErrorMessage(`进入群聊失败：${err instanceof Error ? err.message : "请重试"}`);
+      // 把地址一起显示出来。连不上时最需要知道的就是"它在连哪台服务器"——
+      // 只说"失败了"没法判断是服务器没起、地址填错、还是网络问题。
+      setErrorMessage(
+        `进入群聊失败：${err instanceof Error ? err.message : "请重试"}\n服务器：${relayUrl}`
+      );
     }
   }
 

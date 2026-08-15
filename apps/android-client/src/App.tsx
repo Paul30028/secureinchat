@@ -567,12 +567,22 @@ export function App() {
     groupName: string;
     keyMaterialB64Url: string;
     inviteCode: string;
-    adminPrivateKey: CryptoKey;
+    adminRecoveryCode: string;
   }) {
-    // 建群者保存管理员私钥——这是他能发公告的唯一凭据
-    await saveAdminKey(input.groupId, input.adminPrivateKey);
     const parsed = parseInviteAuto(input.inviteCode); // 复用解析路径，不手搓一份 ParsedInvite
+
+    // 先进群，再存管理员凭据。反过来的话，存凭据一旦失败就整个卡在建群这一步——
+    // 真机上就是这么断的。存失败最多是发不了公告，可以用恢复码补救，
+    // 但连不进自己刚建的群是彻底走不下去。
     await connectToGroup(parsed, input.groupName);
+    try {
+      await saveAdminKey(input.groupId, input.adminRecoveryCode);
+      // 存完立刻重新判断——否则要等到下一次 sessions 变化，
+      // 建群者会看不到自己的发布入口
+      setHoldsAdminKey(true);
+    } catch {
+      // 忽略：群已经能用了，管理员权限可以用恢复码恢复
+    }
   }
 
   /** 当前打开的群的会话；不在群里就是 undefined */
@@ -1068,7 +1078,9 @@ export function App() {
   }
 
   if (screen.name === "createGroup") {
-    return <CreateGroupScreen onBack={() => setScreen({ name: "join" })} onCreated={handleGroupCreated} />;
+    return (
+      <CreateGroupScreen relayUrl={relayUrl} onBack={() => setScreen({ name: "join" })} onCreated={handleGroupCreated} />
+    );
   }
 
   if (screen.name === "invite") {

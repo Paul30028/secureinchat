@@ -1802,3 +1802,30 @@ describe("the group creator can find publishing", () => {
     expect(screen.getByText("团契小组")).toBeInTheDocument();
   });
 });
+
+describe("creating a group when the admin key can't be stored", () => {
+  it("still enters the group — storage trouble must not strand you outside your own group", async () => {
+    // 真机上就是这么断的：老 WebView 存不了凭据，而它排在进群之前，
+    // 结果建完群进不去、公告入口也不出现。
+    const { EncryptedKeyValueStore } = await import("@secureinchat/secure-storage");
+    const originalSet = EncryptedKeyValueStore.prototype.set;
+    EncryptedKeyValueStore.prototype.set = async function patched(key: string, value: Uint8Array) {
+      if (key.startsWith("admin-key:")) throw new Error("structured clone not supported");
+      return originalSet.call(this, key, value);
+    } as typeof originalSet;
+
+    try {
+      await renderApp();
+      await openJoinScreen();
+      fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+      fireEvent.change(await screen.findByLabelText("群聊名称输入框"), { target: { value: "存不下也要能进" } });
+      fireEvent.click(screen.getByRole("button", { name: "创建群聊" }));
+      fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
+
+      // 关键：群进得去
+      expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
+    } finally {
+      EncryptedKeyValueStore.prototype.set = originalSet;
+    }
+  });
+});

@@ -71,6 +71,17 @@ export class AdminRecoveryError extends Error {
   }
 }
 
+/**
+ * 导出成可以自己保存的形式（就是恢复码那串）。
+ *
+ * 为什么需要：把 CryptoKey 对象直接塞进 IndexedDB 依赖结构化克隆支持
+ * CryptoKey，老版本 Android WebView 不一定支持，一失败整个建群流程就断了。
+ * 存这串文本再按需导入，到处都能用。
+ */
+export function adminKeyToPortableCode(recoveryCode: string): string {
+  return recoveryCode;
+}
+
 /** 用恢复码还原管理员私钥。恢复出来的同样是不可导出的。 */
 export async function restoreAdminKeyFromRecoveryCode(code: string): Promise<AdminKeyPair> {
   const trimmed = code.trim();

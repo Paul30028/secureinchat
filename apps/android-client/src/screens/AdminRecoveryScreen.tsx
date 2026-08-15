@@ -34,7 +34,7 @@ export function AdminRecoveryScreen({ groups, onRecovered, onBack }: AdminRecove
         setError("这串恢复码不属于你已加入的任何群聊。请确认抄写完整，或先加入该群。");
         return;
       }
-      await saveAdminKey(match.groupId, restored.privateKey);
+      await saveAdminKey(match.groupId, code.trim());
       onRecovered(match.groupId, match.groupName);
     } catch (err) {
       setError(err instanceof AdminRecoveryError ? err.message : "恢复失败，请重试");
