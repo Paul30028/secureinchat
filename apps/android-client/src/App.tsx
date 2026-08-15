@@ -1133,7 +1133,10 @@ export function App() {
         }}
         onJoinAnotherGroup={() => setScreen({ name: "join" })}
         todayContent={mergedToday()}
-        isAdmin={isAdmin && holdsAdminKey}
+        // 只看有没有管理员密钥。七次点击本来是为了对普通成员隐藏发布入口，
+        // 但没有密钥的人本来就发不出去——那个手势只是把入口对唯一需要它的人
+        // （建群者）也藏了起来，他根本不知道要去点版本号。
+        isAdmin={holdsAdminKey}
         onOpenAdmin={() => setScreen({ name: "adminPublish" })}
         onOpenAdminRecovery={() => setScreen({ name: "adminRecovery" })}
         onOpenLockSetup={() => setShowLockSetup(true)}

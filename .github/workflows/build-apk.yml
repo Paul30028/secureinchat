@@ -33,6 +33,11 @@ jobs:
 
       - name: Build web assets
         working-directory: apps/android-client
+        # 不设这个的话默认是 ws://localhost:8765 —— 手机上没有这个服务，
+        # 装上之后所有连接都失败，看起来像"扫码没反应""进不去群"。
+        # 应用内「服务器设置」仍然可以覆盖它。
+        env:
+          VITE_RELAY_URL: wss://ws-next.secureinchat.com
         run: npx vite build
 
       # 把构建产物同步进 android/ 原生工程。android/ 目录本身已经提交在仓库里，

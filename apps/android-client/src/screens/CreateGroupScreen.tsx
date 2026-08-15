@@ -128,7 +128,7 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
           <p style={{ fontSize: 12, color: "#8A8A82", textAlign: "center" }}>
             截图这张卡片发出去，或让对方扫码加入
           </p>
-          {recoveryCode && !recoverySaved ? (
+          {recoveryCode ? (
             <div
               style={{
                 border: `1px solid ${colors.wheatGold}`,
@@ -167,8 +167,12 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
                 <Button variant="secondary" onClick={() => void copyToClipboard(recoveryCode)} style={{ flex: 1 }}>
                   复制
                 </Button>
-                <Button variant="primary" onClick={() => setRecoverySaved(true)} style={{ flex: 1 }}>
-                  我已保存
+                <Button
+                  variant={recoverySaved ? "secondary" : "primary"}
+                  onClick={() => setRecoverySaved(true)}
+                  style={{ flex: 1 }}
+                >
+                  {recoverySaved ? "已保存 ✓" : "我已保存"}
                 </Button>
               </div>
             </div>
@@ -179,8 +183,8 @@ export function CreateGroupScreen({ onCreated, onBack }: CreateGroupScreenProps)
             inviteCode={inviteCode}
             onCopy={() => void copyToClipboard(inviteCode)}
           />
-          <Button variant="primary" onClick={handleEnter} disabled={isEntering || !recoverySaved}>
-            {isEntering ? "正在进入..." : recoverySaved ? "进入群聊" : "请先保存恢复码"}
+          <Button variant="primary" onClick={handleEnter} disabled={isEntering}>
+            {isEntering ? "正在进入..." : "进入群聊"}
           </Button>
           {errorMessage ? (
             <p role="alert" style={{ color: "#A33", fontSize: 12, textAlign: "center" }}>

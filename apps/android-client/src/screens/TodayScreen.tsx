@@ -14,7 +14,7 @@ export type TodayContent = Partial<Record<AnnouncementCategory, CategoryEntry>>;
 
 export interface TodayScreenProps {
   content: TodayContent;
-  /** 管理员解锁后才显示发布入口 */
+  /** 持有本群管理员密钥（建群者）才显示发布入口 */
   isAdmin: boolean;
   onOpenAdmin: () => void;
 }

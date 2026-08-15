@@ -457,12 +457,10 @@ describe("App navigation", () => {
     const codeEl = await screen.findByText(/^SIC2\./);
     expect(codeEl.textContent).toMatch(/^SIC2\./);
 
-    // 管理员恢复码只显示这一次，必须确认保存后才能继续
+    // 恢复码显示出来供抄写，但不挡住进群——手机上这张卡片在折叠线以下，
+    // 挡住的话按钮看起来就像坏了
     expect(screen.getByText("管理员恢复码")).toBeInTheDocument();
     expect(screen.getByText(/^SICADMIN1\./)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "请先保存恢复码" })).toBeDisabled();
-
-    fireEvent.click(screen.getByRole("button", { name: "我已保存" }));
     fireEvent.click(await screen.findByRole("button", { name: "进入群聊" }));
     // 创建的是第一个群，所以直接进聊天
     expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
@@ -1773,5 +1771,34 @@ describe("@提醒", () => {
     fireEvent.click(screen.getByRole("button", { name: "发送" }));
 
     await waitFor(() => expect((screen.getByLabelText("消息输入框") as HTMLInputElement).value).toBe(""));
+  });
+});
+
+describe("the group creator can find publishing", () => {
+  it("sees the publish entry without needing the version-tap gesture", async () => {
+    await renderApp();
+    await createGroupAsAdmin("团契小组");
+    await goToGroupList();
+    fireEvent.click(screen.getByText("公告"));
+
+    // 建群者持有管理员密钥，发布入口就该直接可见——
+    // 之前还要先连点版本号 7 次，而应用里没有任何地方说过这件事
+    expect(await screen.findByRole("button", { name: "发布今日内容" })).toBeInTheDocument();
+  });
+
+  it("someone who merely joined still sees no publish entry", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await goToGroupList();
+    fireEvent.click(screen.getByText("公告"));
+
+    expect(screen.queryByRole("button", { name: "发布今日内容" })).not.toBeInTheDocument();
+  });
+
+  it("creating a group leads straight into the chat", async () => {
+    await renderApp();
+    await createGroupAsAdmin("团契小组");
+    // createGroupAsAdmin 里已经等到了输入框，这里再确认一次群名对得上
+    expect(screen.getByText("团契小组")).toBeInTheDocument();
   });
 });
