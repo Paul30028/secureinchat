@@ -34,7 +34,18 @@ function getFromDb(db: IDBDatabase, alias: string): Promise<CryptoKey | undefine
 function putInDb(db: IDBDatabase, alias: string, key: CryptoKey): Promise<void> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).put(key, alias);
+    try {
+      // 同上：CryptoKey 的结构化克隆在老 WebView 上可能同步抛错
+      tx.objectStore(STORE_NAME).put(key, alias);
+    } catch (err) {
+      reject(
+        new Error(
+          `这台设备的浏览器内核无法保存加密密钥（${err instanceof Error ? err.message : "结构化克隆失败"}）。` +
+            `请更新系统的 Android System WebView 后重试。`
+        )
+      );
+      return;
+    }
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error ?? new Error(`写入 alias=${alias} 失败`));
   });

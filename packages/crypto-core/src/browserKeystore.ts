@@ -59,7 +59,20 @@ export class BrowserKeystore implements KeystorePort {
     const db = await this.getDb();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
-      tx.objectStore(STORE_NAME).put(pair, alias);
+      try {
+        // 存的是 CryptoKey 对象，依赖结构化克隆支持它。老版本 Android WebView
+        // 不一定支持，而且失败是在 put() 同步抛出的——不放在 try 里就绕过了
+        // 下面的 onerror，变成一个没人接的异常。
+        tx.objectStore(STORE_NAME).put(pair, alias);
+      } catch (err) {
+        reject(
+          new Error(
+            `这台设备的浏览器内核无法保存加密密钥（${err instanceof Error ? err.message : "结构化克隆失败"}）。` +
+              `请更新系统的 Android System WebView 后重试。`
+          )
+        );
+        return;
+      }
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error ?? new Error(`写入 alias=${alias} 失败`));
     });

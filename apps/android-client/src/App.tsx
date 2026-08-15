@@ -49,6 +49,7 @@ import { ConnectedDevicesScreen } from "./screens/ConnectedDevicesScreen";
 import { EditProfileScreen } from "./screens/EditProfileScreen";
 import { GroupSettingsScreen } from "./screens/GroupSettingsScreen";
 import { isLockEnabled, disableLock } from "./appLock";
+import { checkCryptoStorage, type CapabilityResult } from "./capabilityCheck";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { saveAdminKey, loadAdminKey } from "./adminKeys";
 import { CallScreen } from "./screens/CallScreen";
@@ -164,6 +165,11 @@ export function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   /** null = 还没查完是否启用了应用锁 */
   const [locked, setLocked] = useState<boolean | null>(null);
+  const [capability, setCapability] = useState<CapabilityResult | null>(null);
+
+  useEffect(() => {
+    void checkCryptoStorage().then(setCapability);
+  }, []);
   const [showLockSetup, setShowLockSetup] = useState(false);
 
   useEffect(() => {
@@ -898,6 +904,28 @@ export function App() {
 
   if (!isSecureContextAvailable()) {
     return <InsecureContextNotice />;
+  }
+
+  // 能力自检最先——地基不行的话，后面每一步都会以看不懂的方式失败
+  if (capability && !capability.ok) {
+    return (
+      <div
+        style={{
+          minHeight: "100%",
+          background: "#EBECE5",
+          padding: 32,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          gap: 12,
+        }}
+      >
+        <div style={{ fontSize: 16, fontWeight: 500, color: "#2B2B28" }}>{capability.reason}</div>
+        {capability.detail ? (
+          <div style={{ fontSize: 13, color: "#8A8A82", lineHeight: 1.8 }}>{capability.detail}</div>
+        ) : null}
+      </div>
+    );
   }
 
   // 应用锁在最前面——手机被别人拿到时，连群名都不该看到
