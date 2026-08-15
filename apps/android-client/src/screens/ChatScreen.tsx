@@ -1,9 +1,22 @@
 import { useRef, useState } from "react";
-import { colors, ChatBubble, Composer, touchTarget } from "@secureinchat/ui";
+import {
+  colors,
+  ChatBubble,
+  Composer,
+  touchTarget,
+  SearchIcon,
+  PhoneIcon,
+  VideoIcon,
+  ImageIcon,
+  FileIcon,
+  PlusIcon,
+  SmileIcon,
+} from "@secureinchat/ui";
 import { MediaBubbleContent, AnnouncementCard, type MediaContent } from "./MediaBubbleContent";
 import { formatMessageTime } from "../timeFormat";
 import { MessageActionSheet, type MessageAction } from "./MessageActionSheet";
 import { ImageViewer } from "./ImageViewer";
+import { EmojiPicker } from "./EmojiPicker";
 import { parseMentions, mentionsMe, mentionCandidates, activeMentionQuery, applyMention } from "@secureinchat/chat-core";
 
 export interface DisplayMessage {
@@ -130,6 +143,8 @@ export function ChatScreen({
   // Composer 受控，才能在选中候选之后把文本写回去
   const [draft, setDraft] = useState("");
   const [caret, setCaret] = useState(0);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [callHint, setCallHint] = useState<string | null>(null);
   const [recordError, setRecordError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
 
@@ -162,7 +177,18 @@ export function ChatScreen({
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: colors.ivory, display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        // 用 height:100% 而不是 minHeight:100vh —— 后者和全局的 #root>* 高度约束
+        // 打架，消息区会撑出屏幕，把底部输入栏顶到消息列表上方去。
+        height: "100%",
+        maxHeight: "100%",
+        background: colors.ivory,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
         <button
           onClick={onBack}
@@ -194,29 +220,60 @@ export function ChatScreen({
           aria-label="搜索消息"
           style={{ ...callBtnStyle, fontSize: 16 }}
         >
-          🔍
+          <SearchIcon />
         </button>
         {/* 通话按钮常驻显示。之前是"没有在线成员就整个隐藏"，结果用户
             以为功能不存在——现在改成禁用+说明，一眼能看出为什么点不了。 */}
         <button
           onClick={() => onStartCall("voice", knownPeers[knownPeers.length - 1]!)}
-          disabled={knownPeers.length === 0}
+          aria-disabled={knownPeers.length === 0}
           aria-label="语音通话"
+          onClickCapture={(e) => {
+            if (knownPeers.length === 0) {
+              e.preventDefault();
+              e.stopPropagation();
+              setCallHint("群里现在没有其他人在线，等对方打开应用后再拨");
+            }
+          }}
           title={knownPeers.length === 0 ? "群里没有其他人在线" : "语音通话"}
           style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
         >
-          📞
+          <PhoneIcon />
         </button>
         <button
           onClick={() => onStartCall("video", knownPeers[knownPeers.length - 1]!)}
-          disabled={knownPeers.length === 0}
+          aria-disabled={knownPeers.length === 0}
           aria-label="视频通话"
+          onClickCapture={(e) => {
+            if (knownPeers.length === 0) {
+              e.preventDefault();
+              e.stopPropagation();
+              setCallHint("群里现在没有其他人在线，等对方打开应用后再拨");
+            }
+          }}
           title={knownPeers.length === 0 ? "群里没有其他人在线" : "视频通话"}
           style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
         >
-          🎥
+          <VideoIcon />
         </button>
       </div>
+
+      {callHint ? (
+        <div
+          role="status"
+          onClick={() => setCallHint(null)}
+          style={{
+            background: `${colors.wheatGold}22`,
+            color: colors.wheatGold,
+            fontSize: 12,
+            textAlign: "center",
+            padding: "6px 12px",
+            cursor: "pointer",
+          }}
+        >
+          {callHint}
+        </div>
+      ) : null}
 
       {connectionStatus && connectionStatus !== "connected" ? (
         <div
@@ -238,7 +295,7 @@ export function ChatScreen({
         </div>
       ) : null}
 
-      <div style={{ flex: 1, padding: "8px 16px", display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
+      <div style={{ flex: 1, minHeight: 0, padding: "8px 16px", display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
         {announcement ? <AnnouncementCard title={announcement.title} body={announcement.body} /> : null}
 
         {messages.length === 0 && !announcement ? (
@@ -450,7 +507,10 @@ export function ChatScreen({
 
         <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px 0" }}>
           <button
-            onClick={() => setAttachOpen((v) => !v)}
+            onClick={() => {
+              setAttachOpen((v) => !v);
+              setEmojiOpen(false);
+            }}
             aria-label={attachOpen ? "收起附件选项" : "添加图片或文件"}
             style={{
               minHeight: touchTarget.minDp,
@@ -465,8 +525,30 @@ export function ChatScreen({
               transition: "transform 120ms",
             }}
           >
-            ＋
+            <PlusIcon size={24} />
           </button>
+          <button
+            onClick={() => {
+              setEmojiOpen((v) => !v);
+              setAttachOpen(false);
+            }}
+            aria-label={emojiOpen ? "收起表情" : "选择表情"}
+            style={{
+              minHeight: touchTarget.minDp,
+              minWidth: touchTarget.minDp,
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+              color: emojiOpen ? colors.wheatGold : colors.deepInkGreen,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <SmileIcon size={22} />
+          </button>
+
           <div style={{ flex: 1 }}>
             <Composer
               value={draft}
@@ -483,6 +565,17 @@ export function ChatScreen({
           </div>
         </div>
 
+        {emojiOpen ? (
+          <EmojiPicker
+            onPick={(emoji) => {
+              // 插到光标处，插完把光标移到表情后面，可以接着打字
+              const next = draft.slice(0, caret) + emoji + draft.slice(caret);
+              setDraft(next);
+              setCaret(caret + emoji.length);
+            }}
+          />
+        ) : null}
+
         {attachOpen ? (
           <div style={{ display: "flex", alignItems: "stretch", padding: "0 6px 4px" }}>
             <button
@@ -493,7 +586,7 @@ export function ChatScreen({
               aria-label="发送图片"
               style={toolbarButtonStyle(colors.deepInkGreen)}
             >
-              🖼️
+              <ImageIcon />
               <span style={toolbarLabelStyle}>图片</span>
             </button>
             <button
@@ -504,7 +597,7 @@ export function ChatScreen({
               aria-label="发送文件"
               style={toolbarButtonStyle(colors.deepInkGreen)}
             >
-              📎
+              <FileIcon />
               <span style={toolbarLabelStyle}>文件</span>
             </button>
           </div>

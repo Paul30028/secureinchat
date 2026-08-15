@@ -176,7 +176,7 @@ export function AdminPublishScreen({
                   setPublishedNotice(null);
                 }}
               />
-              {audioFile ? `已选择：${audioFile.name}` : "添加音频（可选）"}
+              {audioFile ? `已选择：${audioFile.name.length > 24 ? audioFile.name.slice(0, 24) + "…" : audioFile.name}` : "添加音频（可选）"}
             </label>
             {audioFile ? (
               <div style={{ fontSize: 11, color: "#9A9A94", marginTop: 4 }}>
@@ -198,7 +198,13 @@ export function AdminPublishScreen({
           </p>
         ) : null}
 
-        <Button variant="primary" onClick={handlePublish} disabled={isPublishing || body.trim().length === 0}>
+        {/* 一首诗歌常常只有标题和音频，正文本来就是空的——
+            要求正文非空会让"选了音频却发不出去"，那正是 Paul 遇到的。 */}
+        <Button
+          variant="primary"
+          onClick={handlePublish}
+          disabled={isPublishing || (body.trim().length === 0 && !audioFile && title.trim().length === 0)}
+        >
           {isPublishing ? "发布中..." : `发布到「${CATEGORY_META[category].label}」`}
         </Button>
       </div>

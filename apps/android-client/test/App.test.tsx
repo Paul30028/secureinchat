@@ -619,18 +619,18 @@ describe("App navigation", () => {
     expect(screen.queryByLabelText("发送图片")).not.toBeInTheDocument();
   });
 
-  it("disables (rather than hides) call buttons when nobody else is online", async () => {
+  it("explains why a call can't be placed instead of silently doing nothing", async () => {
     await renderApp();
     await joinTestGroup();
     await screen.findByLabelText("消息输入框");
 
-    // 按钮要看得见（否则用户以为没有通话功能），但点不了，
-    // 并且 title 说清楚为什么
+    // 按钮看得见（否则用户以为没有通话功能），点了会说明原因，
+    // 而不是灰着不动让人以为功能没做
     const voice = screen.getByLabelText("语音通话");
-    const video = screen.getByLabelText("视频通话");
-    expect(voice).toBeDisabled();
-    expect(video).toBeDisabled();
-    expect(voice).toHaveAttribute("title", "群里没有其他人在线");
+    expect(voice).toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(voice);
+    expect(await screen.findByText(/群里现在没有其他人在线/)).toBeInTheDocument();
   });
 
   it("enables call buttons once someone else is online", async () => {
@@ -647,8 +647,8 @@ describe("App navigation", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /同心同行/ })[0]!);
     await screen.findByLabelText("消息输入框");
 
-    expect(screen.getByLabelText("语音通话")).toBeEnabled();
-    expect(screen.getByLabelText("视频通话")).toBeEnabled();
+    expect(screen.getByLabelText("语音通话")).toHaveAttribute("aria-disabled", "false");
+    expect(screen.getByLabelText("视频通话")).toHaveAttribute("aria-disabled", "false");
   });
 });
 
@@ -1880,5 +1880,66 @@ describe("testing the connection", () => {
     fireEvent.click(await screen.findByRole("button", { name: "测试连接" }));
     // mock socket 会下发 auth_challenge，所以应该测通
     expect(await screen.findByRole("status")).toHaveTextContent(/服务器正常/);
+  });
+});
+
+describe("emoji", () => {
+  it("inserts an emoji into the message being typed", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "谢谢" } });
+    fireEvent.click(screen.getByLabelText("选择表情"));
+    fireEvent.click(await screen.findByLabelText("表情 🙏"));
+
+    expect((screen.getByLabelText("消息输入框") as HTMLInputElement).value).toContain("🙏");
+  });
+
+  it("the emoji panel and the attachment panel don't stack on top of each other", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.click(screen.getByLabelText("选择表情"));
+    await screen.findByRole("listbox", { name: "选择表情" });
+
+    fireEvent.click(screen.getByLabelText("添加图片或文件"));
+    await waitFor(() =>
+      expect(screen.queryByRole("listbox", { name: "选择表情" })).not.toBeInTheDocument()
+    );
+    expect(screen.getByLabelText("发送图片")).toBeInTheDocument();
+  });
+});
+
+describe("publishing a hymn that is only audio", () => {
+  it("can be published with a title and audio but no body text", async () => {
+    await renderApp();
+    await createGroupAsAdmin("诗歌测试");
+    await unlockAdmin();
+    fireEvent.click(screen.getByText("公告"));
+    fireEvent.click(await screen.findByRole("button", { name: "发布今日内容" }));
+    fireEvent.click(screen.getByRole("button", { name: "赞美圣诗" }));
+
+    fireEvent.change(screen.getByLabelText("公告标题输入框"), { target: { value: "奇异恩典" } });
+    const file = new File([new Uint8Array([1, 2, 3])], "hymn.mp3", { type: "audio/mpeg" });
+    fireEvent.change(await screen.findByLabelText("选择圣诗音频"), { target: { files: [file] } });
+
+    // 一首诗歌常常只有标题和音频，正文是空的——不该因此发不出去
+    const publish = screen.getByRole("button", { name: "发布到「赞美圣诗」" });
+    expect(publish).toBeEnabled();
+
+    fireEvent.click(publish);
+    expect(await screen.findByText("赞美圣诗 已发布")).toBeInTheDocument();
+  });
+
+  it("still refuses a completely empty publish", async () => {
+    await renderApp();
+    await createGroupAsAdmin("诗歌测试");
+    await unlockAdmin();
+    fireEvent.click(screen.getByText("公告"));
+    fireEvent.click(await screen.findByRole("button", { name: "发布今日内容" }));
+
+    expect(screen.getByRole("button", { name: "发布到「今日经文」" })).toBeDisabled();
   });
 });
