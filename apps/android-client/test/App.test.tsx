@@ -1720,3 +1720,58 @@ describe("group list long-press", () => {
     expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
   });
 });
+
+describe("@提醒", () => {
+  async function openChat() {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+  }
+
+  it("offers 全体 as soon as you type @", async () => {
+    await openChat();
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "@" } });
+
+    const list = await screen.findByRole("listbox", { name: "选择要提醒的人" });
+    expect(within(list).getByRole("option", { name: "全体" })).toBeInTheDocument();
+  });
+
+  it("hides the picker once the mention is finished", async () => {
+    await openChat();
+    const input = screen.getByLabelText("消息输入框");
+    fireEvent.change(input, { target: { value: "@" } });
+    await screen.findByRole("listbox");
+
+    fireEvent.change(input, { target: { value: "@全体 明天聚会" } });
+    await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument());
+  });
+
+  it("picking a candidate completes the mention and leaves room to keep typing", async () => {
+    await openChat();
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "@" } });
+    fireEvent.click(await screen.findByRole("option", { name: "全体" }));
+
+    expect((screen.getByLabelText("消息输入框") as HTMLInputElement).value).toBe("@全体 ");
+  });
+
+  it("renders a mention highlighted without losing the rest of the message", async () => {
+    await openChat();
+
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "@全体 请看" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    // @全体 单独成段以便高亮，但整条消息的文字不能少
+    const mention = await screen.findByText("@全体");
+    expect(mention).toBeInTheDocument();
+    expect(mention.parentElement?.textContent).toContain("@全体 请看");
+  });
+
+  it("clears the draft after sending", async () => {
+    await openChat();
+    const input = screen.getByLabelText("消息输入框");
+    fireEvent.change(input, { target: { value: "你好" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    await waitFor(() => expect((screen.getByLabelText("消息输入框") as HTMLInputElement).value).toBe(""));
+  });
+});

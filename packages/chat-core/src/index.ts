@@ -13,3 +13,4 @@ export * from "./sendProgress";
 export * from "./keyRotation";
 export * from "./connectionStats";
 export * from "./knownDevices";
+export * from "./mentions";

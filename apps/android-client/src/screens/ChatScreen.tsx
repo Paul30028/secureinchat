@@ -4,6 +4,7 @@ import { MediaBubbleContent, AnnouncementCard, type MediaContent } from "./Media
 import { formatMessageTime } from "../timeFormat";
 import { MessageActionSheet, type MessageAction } from "./MessageActionSheet";
 import { ImageViewer } from "./ImageViewer";
+import { parseMentions, mentionsMe, mentionCandidates, activeMentionQuery, applyMention } from "@secureinchat/chat-core";
 
 export interface DisplayMessage {
   id: string;
@@ -39,6 +40,10 @@ export interface ChatScreenProps {
   replyTarget?: DisplayMessage | null | undefined;
   onOpenSearch: () => void;
   onOpenGroupSettings: () => void;
+  /** 本机昵称，用来判断哪些消息 @ 了我 */
+  myNickname?: string | undefined;
+  /** 群里见过的成员昵称，用于 @ 候选 */
+  memberNames?: (string | undefined)[] | undefined;
   onSendFile: (file: File, mediaKind: "image" | "voice" | "file") => Promise<void>;
   sendError?: string | undefined;
   connectionStatus?: "connecting" | "connected" | "reconnecting" | "disconnected" | undefined;
@@ -102,6 +107,8 @@ export function ChatScreen({
   replyTarget,
   onOpenSearch,
   onOpenGroupSettings,
+  myNickname,
+  memberNames,
   sendError,
   connectionStatus,
   pendingCount,
@@ -120,6 +127,9 @@ export function ChatScreen({
    *  （对应需求第六节"每页只有一个突出主按钮"）。 */
   const [attachOpen, setAttachOpen] = useState(false);
   const [viewingImage, setViewingImage] = useState<MediaContent | null>(null);
+  // Composer 受控，才能在选中候选之后把文本写回去
+  const [draft, setDraft] = useState("");
+  const [caret, setCaret] = useState(0);
   const [recordError, setRecordError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
 
@@ -237,6 +247,11 @@ export function ChatScreen({
           messages.map((m) => (
             <div
               key={m.id}
+              style={
+                !m.isOwn && m.text && mentionsMe(m.text, myNickname)
+                  ? { borderLeft: `2px solid ${colors.wheatGold}`, paddingLeft: 6, marginLeft: -8 }
+                  : undefined
+              }
               onContextMenu={(e) => {
                 // 长按在移动端触发 contextmenu；桌面端右键也走这里
                 e.preventDefault();
@@ -264,9 +279,23 @@ export function ChatScreen({
                 ) : null}
                 {m.media ? (
                   <MediaBubbleContent media={m.media} isOwn={m.isOwn} onOpenImage={setViewingImage} />
-                ) : (
-                  m.text
-                )}
+                ) : m.text ? (
+                  parseMentions(m.text).map((seg, i) =>
+                    seg.type === "mention" ? (
+                      <span
+                        key={i}
+                        style={{
+                          color: m.isOwn ? colors.wheatGold : colors.deepInkGreen,
+                          fontWeight: 500,
+                        }}
+                      >
+                        @{seg.value}
+                      </span>
+                    ) : (
+                      <span key={i}>{seg.value}</span>
+                    )
+                  )
+                ) : null}
               </ChatBubble>
               {m.queued ? (
                 <div style={{ textAlign: "right", fontSize: 11, color: colors.wheatGold, marginTop: 2 }}>
@@ -326,6 +355,52 @@ export function ChatScreen({
             e.target.value = "";
           }}
         />
+
+        {(() => {
+          const query = activeMentionQuery(draft, caret);
+          if (query === null) return null;
+          const matches = mentionCandidates(memberNames ?? []).filter((n) => n.startsWith(query));
+          if (matches.length === 0) return null;
+          return (
+            <div
+              role="listbox"
+              aria-label="选择要提醒的人"
+              style={{
+                display: "flex",
+                gap: 6,
+                overflowX: "auto",
+                padding: "6px 10px 0",
+              }}
+            >
+              {matches.map((name) => (
+                <button
+                  key={name}
+                  role="option"
+                  aria-selected={false}
+                  onClick={() => {
+                    const next = applyMention(draft, caret, name);
+                    setDraft(next.text);
+                    setCaret(next.caret);
+                  }}
+                  style={{
+                    minHeight: touchTarget.minDp,
+                    padding: "0 14px",
+                    borderRadius: 18,
+                    border: `0.5px solid ${colors.sageMint}`,
+                    background: "transparent",
+                    color: colors.deepInkGreen,
+                    fontSize: 13,
+                    whiteSpace: "nowrap",
+                    cursor: "pointer",
+                    boxShadow: "none",
+                  }}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         {replyTarget ? (
           <div
@@ -393,7 +468,18 @@ export function ChatScreen({
             ＋
           </button>
           <div style={{ flex: 1 }}>
-            <Composer onSend={onSend} onStartVoice={() => void startRecording()} />
+            <Composer
+              value={draft}
+              onChange={(v) => {
+                setDraft(v);
+                setCaret(v.length);
+              }}
+              onSend={async (text) => {
+                await onSend(text);
+                setDraft("");
+              }}
+              onStartVoice={() => void startRecording()}
+            />
           </div>
         </div>
 
