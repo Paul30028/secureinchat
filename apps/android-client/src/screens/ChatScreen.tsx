@@ -213,7 +213,11 @@ export function ChatScreen({
             minHeight: touchTarget.minDp,
           }}
         >
-          {groupName}
+          <span style={{ display: "block" }}>{groupName}</span>
+          {/* 在线人数放在群名下面——聊天时最想知道的就是"现在有没有人在" */}
+          <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: "#8A8A82" }}>
+            {knownPeers.length > 0 ? `${knownPeers.length} 人在线` : "群里暂时只有你在线"}
+          </span>
         </button>
         <button
           onClick={onOpenSearch}
@@ -505,7 +509,7 @@ export function ChatScreen({
           </div>
         ) : null}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 10px 0", minWidth: 0 }}>
           <button
             onClick={() => {
               setAttachOpen((v) => !v);
@@ -515,11 +519,14 @@ export function ChatScreen({
             style={{
               minHeight: touchTarget.minDp,
               minWidth: touchTarget.minDp,
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               background: "transparent",
               border: "none",
               boxShadow: "none",
               color: colors.deepInkGreen,
-              fontSize: 22,
               cursor: "pointer",
               transform: attachOpen ? "rotate(45deg)" : "none",
               transition: "transform 120ms",
@@ -541,6 +548,7 @@ export function ChatScreen({
               boxShadow: "none",
               color: emojiOpen ? colors.wheatGold : colors.deepInkGreen,
               cursor: "pointer",
+              flexShrink: 0,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -549,7 +557,7 @@ export function ChatScreen({
             <SmileIcon size={22} />
           </button>
 
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: "1 1 0", minWidth: 0 }}>
             <Composer
               value={draft}
               onChange={(v) => {

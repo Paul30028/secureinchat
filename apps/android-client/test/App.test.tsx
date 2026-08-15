@@ -1943,3 +1943,25 @@ describe("publishing a hymn that is only audio", () => {
     expect(screen.getByRole("button", { name: "发布到「今日经文」" })).toBeDisabled();
   });
 });
+
+describe("online count in the chat header", () => {
+  it("says you're alone when nobody else is connected", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    expect(screen.getByText("群里暂时只有你在线")).toBeInTheDocument();
+  });
+
+  it("shows the count once someone else is online, without leaving the chat", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    MockRelayWebSocket.lastInstance?.onmessage?.({
+      data: JSON.stringify({ type: "presence", deviceIds: ["a", "b"] }),
+    });
+
+    expect(await screen.findByText("2 人在线")).toBeInTheDocument();
+  });
+});

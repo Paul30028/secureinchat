@@ -63,7 +63,16 @@ export function Composer({
   return (
     <form
       onSubmit={handleSubmit}
-      style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 4px", boxShadow: "none" }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 4px",
+        boxShadow: "none",
+        // 没有 minWidth:0 的话，flex 子项不会收缩到内容宽度以下，
+        // 窄屏上输入框会把发送/录音按钮挤出屏幕
+        minWidth: 0,
+      }}
     >
       <input
         type="text"
@@ -74,7 +83,10 @@ export function Composer({
         disabled={disabled}
         aria-label="消息输入框"
         style={{
-          flex: 1,
+          flex: "1 1 0",
+          // flex 子项默认 min-width:auto，输入框会以内容宽度为下限、
+          // 把右边的按钮顶出屏幕——必须显式允许它收缩
+          minWidth: 0,
           minHeight: touchTarget.minDp,
           border: `0.5px solid ${colors.sageMint}`,
           borderRadius: 20,
@@ -92,7 +104,7 @@ export function Composer({
           onClick={onStartVoice}
           disabled={disabled}
           aria-label="录制语音"
-          style={{ minWidth: touchTarget.minDp, padding: 0 }}
+          style={{ minWidth: touchTarget.minDp, flexShrink: 0, padding: 0 }}
         >
           🎤
         </Button>
@@ -101,7 +113,7 @@ export function Composer({
           type="submit"
           variant="primary"
           disabled={disabled || isEmpty}
-          style={{ minWidth: touchTarget.minDp }}
+          style={{ minWidth: touchTarget.minDp, flexShrink: 0 }}
         >
           发送
         </Button>

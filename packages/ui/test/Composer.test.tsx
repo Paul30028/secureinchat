@@ -110,3 +110,20 @@ describe("Composer mic/send slot swap", () => {
     expect(screen.queryByLabelText("录制语音")).not.toBeInTheDocument();
   });
 });
+
+
+describe("Composer layout on narrow screens", () => {
+  it("lets the input shrink so the send button can't be pushed off-screen", () => {
+    render(<Composer onSend={() => {}} />);
+    const input = screen.getByLabelText("消息输入框");
+
+    // flex 子项默认 min-width:auto，输入框会以内容宽度为下限，
+    // 在窄屏上把按钮顶出屏幕——真机上就是这么溢出的
+    expect(input.style.minWidth).toBe("0");
+  });
+
+  it("keeps the action button from being squashed", () => {
+    render(<Composer onSend={() => {}} onStartVoice={() => {}} />);
+    expect(screen.getByLabelText("录制语音").style.flexShrink).toBe("0");
+  });
+});
