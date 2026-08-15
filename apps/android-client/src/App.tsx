@@ -242,6 +242,9 @@ export function App() {
               groupId: g.groupId,
               keyMaterialB64Url: g.keyMaterialB64Url,
               epoch: g.epoch,
+              ...(g.adminPublicKeyRawB64Url
+                ? { adminPublicKeyRawB64Url: g.adminPublicKeyRawB64Url }
+                : {}),
             },
             g.groupName
           );
@@ -480,6 +483,9 @@ export function App() {
       groupName,
       keyMaterialB64Url: parsed.keyMaterialB64Url,
       epoch,
+      ...(parsed.adminPublicKeyRawB64Url
+        ? { adminPublicKeyRawB64Url: parsed.adminPublicKeyRawB64Url }
+        : {}),
       joinedAtMs: Date.now(),
       lastReadAtMs: Date.now(),
     });

@@ -42,7 +42,14 @@ describe.skipIf(!RUN_CROSS_STACK)("RelayClient <-> real Python relay (cross-stac
   beforeAll(async () => {
     relayProcess = spawn(path.join(RELAY_DIR, ".venv/bin/python"), ["main.py"], {
       cwd: RELAY_DIR,
-      env: { ...process.env, SECUREINCHAT_RELAY_PORT: String(PORT) },
+      env: {
+        ...process.env,
+        SECUREINCHAT_RELAY_PORT: String(PORT),
+        // 注册表现在持久化到 devices.db。不隔离的话，上一次运行留下的注册记录
+        // 会让这一次的 register_device 被拒（"device already registered"），
+        // 测试就变成了"第一次能过、之后都挂"。
+        SECUREINCHAT_DEVICE_DB: ":memory:",
+      },
     });
 
     await new Promise<void>((resolve, reject) => {
@@ -119,4 +126,85 @@ describe.skipIf(!RUN_CROSS_STACK)("RelayClient <-> real Python relay (cross-stac
     alice.close();
     eve.close();
   }, 10_000);
+
+  /**
+   * 公告的端到端投递。
+   *
+   * Paul 报告"发布后同群其他人看不见,只有自己能看见"。签名验证、栏目归类、
+   * 重放去重都在收发路径上,任何一环出错都会表现成"别人收不到"。
+   * 单独测哪一环都不够——必须两个真实客户端经真实中继跑一遍。
+   */
+  it("delivers an announcement from one client to another", async () => {
+    const groupKey = await deriveGroupEpochKey({
+      rawKeyMaterial: new Uint8Array(32).fill(9),
+      groupId: "group-ann",
+      epoch: 0,
+    });
+    const admin = await makeClient("admin-device", "group-ann", groupKey);
+    const member = await makeClient("member-device", "group-ann", groupKey);
+
+    await admin.connect("register");
+    await member.connect("register");
+
+    const received: { title: string; body: string; category?: string | undefined }[] = [];
+    member.onMessage((msg) => {
+      if (msg.envelope.kind === "announcement") {
+        received.push({
+          title: msg.envelope.title,
+          body: msg.envelope.body,
+          category: msg.envelope.category,
+        });
+      }
+    });
+
+    await admin.sendEnvelope({
+      kind: "announcement",
+      id: "ann-1",
+      category: "scripture",
+      title: "诗篇 133:1",
+      body: "弟兄和睦同居",
+      sentAtMs: Date.now(),
+      adminSignature: "signature-checked-by-the-app-layer",
+    });
+
+    await new Promise((r) => setTimeout(r, 500));
+
+    expect(received).toHaveLength(1);
+    expect(received[0]).toMatchObject({ title: "诗篇 133:1", category: "scripture" });
+
+    admin.close();
+    member.close();
+  });
+
+  it("measures round-trip latency via the heartbeat", async () => {
+    const groupKey = await deriveGroupEpochKey({
+      rawKeyMaterial: new Uint8Array(32).fill(7),
+      groupId: "group-hb",
+      epoch: 0,
+    });
+    const keystore = new TestOnlyInMemoryKeystore();
+    const alias = await keystore.generateDeviceKeyPair("hb-device");
+    const client = new RelayClient(URL, {
+      deviceId: "hb-device",
+      groupId: "group-hb",
+      keystore,
+      keystoreAlias: alias,
+      groupKey,
+      epoch: 0,
+      WebSocketImpl: WebSocketImpl as unknown as typeof WebSocket,
+      heartbeatIntervalMs: 100, // 默认 20 秒，测试等不起
+    });
+
+    const samples: number[] = [];
+    client.onLatency((rtt) => samples.push(rtt));
+    await client.connect("register");
+
+    await new Promise((r) => setTimeout(r, 600));
+
+    // Paul 的诊断页一直显示"尚未测量"——先确认心跳到底会不会回报
+    expect(samples.length).toBeGreaterThan(0);
+    expect(samples[0]).toBeGreaterThanOrEqual(0);
+
+    client.close();
+  });
 });

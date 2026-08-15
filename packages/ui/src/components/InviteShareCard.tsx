@@ -79,14 +79,29 @@ export function InviteShareCard({ groupName, inviteCode, expiryLabel, onCopy }: 
           justifyContent: "center",
           margin: "4px 0",
         }}
-        // 二维码是本地用 qrcode 库生成的字符串，不是外部输入
-        dangerouslySetInnerHTML={qrSvg ? { __html: qrSvg } : undefined}
       >
-        {!qrSvg ? (
-          <span style={{ fontSize: 12, color: "#9A9A94" }}>
+        {qrSvg ? (
+          // 单独一个元素承载 SVG：同一个元素上既给 dangerouslySetInnerHTML
+          // 又给 children，React 会丢掉其中一个——之前二维码位置一片空白就是这样。
+          // qrcode 生成的 SVG 没有宽高属性，必须由容器把它撑开。
+          <div
+            style={{ width: "100%", height: "100%", display: "flex" }}
+            ref={(node) => {
+              if (!node) return;
+              node.innerHTML = qrSvg;
+              const svg = node.querySelector("svg");
+              if (svg) {
+                svg.setAttribute("width", "100%");
+                svg.setAttribute("height", "100%");
+                svg.style.display = "block";
+              }
+            }}
+          />
+        ) : (
+          <span style={{ fontSize: 12, color: "#9A9A94", textAlign: "center" }}>
             {qrError ? "二维码生成失败，请用下方邀请码" : "正在生成二维码..."}
           </span>
-        ) : null}
+        )}
       </div>
 
       <div style={{ fontSize: 11, color: "#8A8A82", textAlign: "center", lineHeight: 1.6 }}>

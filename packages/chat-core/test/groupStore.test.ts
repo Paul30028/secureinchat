@@ -148,3 +148,20 @@ describe("renameGroup", () => {
     expect(renameGroup([group("g1")], "nope", "x")[0]!.groupName).toBe("g1");
   });
 });
+
+describe("admin public key persistence", () => {
+  it("survives a save/load round trip", async () => {
+    const { store } = await makeStore();
+    const withAdmin: JoinedGroup = { ...group("g1"), adminPublicKeyRawB64Url: "BAdminKey" };
+    await saveJoinedGroups(store, [withAdmin]);
+
+    // 不存的话重连后公告一律验不过，表现成"收不到别人的公告"
+    expect((await loadJoinedGroups(store))[0]!.adminPublicKeyRawB64Url).toBe("BAdminKey");
+  });
+
+  it("is preserved when the group is rejoined with a fresh invite", () => {
+    const existing = [{ ...group("g1"), adminPublicKeyRawB64Url: "BAdminKey" }];
+    const result = upsertGroup(existing, { ...group("g1"), adminPublicKeyRawB64Url: "BAdminKey" });
+    expect(result[0]!.adminPublicKeyRawB64Url).toBe("BAdminKey");
+  });
+});

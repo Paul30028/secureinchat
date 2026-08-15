@@ -84,6 +84,15 @@ def test_connection_limiter_tolerates_normal_reconnect_backoff():
         assert limiter.allow("1.2.3.4", now=t) is True
 
 
+def test_a_shared_exit_ip_does_not_starve_normal_users():
+    """一家人或一个办公室共用出口 IP。几个人同时打开应用、各自还可能重连几次，
+    加起来的量不该被当成攻击——限流打到正常用户身上比不限还糟。"""
+    limiter = make_connection_limiter()
+    # 6 个人，每人在 30 秒内连了 5 次（开应用 + 切网络重连）
+    results = [limiter.allow("1.2.3.4", now=float(i % 30)) for i in range(30)]
+    assert all(results)
+
+
 def test_connection_limiter_blocks_a_reconnect_storm():
     limiter = make_connection_limiter()
     results = [limiter.allow("1.2.3.4", now=0.0) for _ in range(CONNECTION_ATTEMPTS + 5)]

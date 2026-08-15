@@ -57,3 +57,27 @@ describe("InviteShareCard", () => {
     expect(screen.getByText(huge)).toBeInTheDocument();
   });
 });
+
+describe("QR rendering", () => {
+  it("actually puts an svg with dimensions into the DOM", async () => {
+    // 之前同一个元素既传 dangerouslySetInnerHTML 又传 children，
+    // 结果二维码位置一片空白——这个测试盯住"真的画出来了"
+    render(<InviteShareCard groupName="麦子" inviteCode={CODE} onCopy={() => {}} />);
+    const holder = screen.getByLabelText("邀请二维码");
+
+    await waitFor(() => {
+      const svg = holder.querySelector("svg");
+      expect(svg).not.toBeNull();
+      expect(svg!.getAttribute("width")).toBe("100%");
+    });
+  });
+
+  it("renders a QR for a realistically long invite code", async () => {
+    const longCode = "SIC2." + "eyJ2IjoyLCJnbiI6".repeat(50);
+    render(<InviteShareCard groupName="麦子" inviteCode={longCode} onCopy={() => {}} />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("邀请二维码").querySelector("svg")).not.toBeNull();
+    });
+  });
+});

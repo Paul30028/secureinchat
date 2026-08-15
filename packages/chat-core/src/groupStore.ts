@@ -15,6 +15,14 @@ export interface JoinedGroup {
   /** 邀请串里的原始密钥材料，重新连接时用它派生群密钥 */
   keyMaterialB64Url: string;
   epoch: number;
+  /**
+   * 管理员公钥，用来验证这个群的公告签名。
+   *
+   * 必须持久化：它来自邀请串，但重启后是从本地恢复群列表的，不再经过邀请串。
+   * 不存的话重连之后这个字段是 undefined，所有公告都验不过、被静默丢弃——
+   * 表现成"别人发的公告我收不到"。
+   */
+  adminPublicKeyRawB64Url?: string | undefined;
   joinedAtMs: number;
   /** 最后一次查看这个群的时间，用来算未读数 */
   lastReadAtMs: number;
