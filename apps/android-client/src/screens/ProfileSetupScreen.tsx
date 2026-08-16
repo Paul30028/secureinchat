@@ -64,7 +64,7 @@ export function ProfileSetupScreen({ onDone }: ProfileSetupScreenProps) {
             setNickname(e.target.value);
             setError(null);
           }}
-          placeholder="请输入昵称"
+          placeholder="例如：李阳"
           aria-label="昵称输入框"
           maxLength={NICKNAME_MAX_LENGTH}
           style={{
