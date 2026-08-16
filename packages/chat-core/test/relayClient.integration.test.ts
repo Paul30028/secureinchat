@@ -176,6 +176,67 @@ describe.skipIf(!RUN_CROSS_STACK)("RelayClient <-> real Python relay (cross-stac
     member.close();
   });
 
+  /**
+   * 在线状态的端到端验证。Paul 报告"聊天里看不见几人在线"且"通话按钮点不了"——
+   * 这两件事用的是同一份数据（onlinePeers），所以先确认它到底有没有到客户端。
+   */
+  it("each device sees the other as online", async () => {
+    const groupKey = await deriveGroupEpochKey({
+      rawKeyMaterial: new Uint8Array(32).fill(5),
+      groupId: "group-presence",
+      epoch: 0,
+    });
+    const alice = await makeClient("alice-dev", "group-presence", groupKey);
+    const bob = await makeClient("bob-dev", "group-presence", groupKey);
+
+    const alicePeers: string[][] = [];
+    alice.onPeersChange((p) => alicePeers.push([...p]));
+
+    await alice.connect("register");
+    await bob.connect("register");
+    await new Promise((r) => setTimeout(r, 400));
+
+    // alice 应该看到 bob 上线了
+    expect(alice.onlinePeers).toContain("bob-dev");
+    // bob 连上时拿到的名单里应该已经有 alice
+    expect(bob.onlinePeers).toContain("alice-dev");
+
+    // 下线之后要能反映出来
+    bob.close();
+    await new Promise((r) => setTimeout(r, 400));
+    expect(alice.onlinePeers).not.toContain("bob-dev");
+
+    alice.close();
+  });
+
+  it("relays call signaling between two devices", async () => {
+    const groupKey = await deriveGroupEpochKey({
+      rawKeyMaterial: new Uint8Array(32).fill(3),
+      groupId: "group-call",
+      epoch: 0,
+    });
+    const caller = await makeClient("caller-dev", "group-call", groupKey);
+    const callee = await makeClient("callee-dev", "group-call", groupKey);
+
+    const signals: { type: string; callId?: string }[] = [];
+    callee.onSignaling((s) => signals.push(s as { type: string; callId?: string }));
+
+    await caller.connect("register");
+    await callee.connect("register");
+    await new Promise((r) => setTimeout(r, 300));
+
+    await caller.sendSignaling("call_invite", "callee-dev", "call-1", {
+      kind: "voice",
+      sdp: "fake-offer",
+    });
+    await new Promise((r) => setTimeout(r, 400));
+
+    expect(signals.map((s) => s.type)).toContain("call_invite");
+
+    caller.close();
+    callee.close();
+  });
+
   it("measures round-trip latency via the heartbeat", async () => {
     const groupKey = await deriveGroupEpochKey({
       rawKeyMaterial: new Uint8Array(32).fill(7),

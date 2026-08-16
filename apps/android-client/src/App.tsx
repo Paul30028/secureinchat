@@ -446,6 +446,77 @@ export function App() {
       );
     });
 
+    // 通话工厂。之前只声明了 callFactoryRef 却从来没赋值过，
+    // 所以 handleStartCall 每次都在第一行静默返回——按钮点了什么都不发生。
+    callFactoryRef.current = (callId, peerDeviceId, kind) =>
+      new CallSession({
+        callId,
+        peerDeviceId,
+        kind,
+        iceServers: ICE_CONFIG.iceServers,
+        iceTransportPolicy: ICE_CONFIG.iceTransportPolicy,
+        // RelayClient 本身就有同名的 sendSignaling，直接当传输层用
+        transport: client,
+        onStateChange: (info) =>
+          setScreen((prev) =>
+            prev.name === "connected" && prev.call
+              ? { ...prev, call: { ...prev.call, info } }
+              : prev
+          ),
+        onLocalStream: (stream) =>
+          setScreen((prev) =>
+            prev.name === "connected" && prev.call
+              ? { ...prev, call: { ...prev.call, localStream: stream } }
+              : prev
+          ),
+        onRemoteStream: (stream) =>
+          setScreen((prev) =>
+            prev.name === "connected" && prev.call
+              ? { ...prev, call: { ...prev.call, remoteStream: stream } }
+              : prev
+          ),
+      });
+
+    // 收到对方的信令。之前完全没订阅，所以别人打过来这边毫无反应——
+    // 通话是"两边都没接上"，不只是发不出去。
+    client.onSignaling((signal) => {
+      const currentCall = currentCallRef.current;
+
+      if (signal.type === "call_invite") {
+        // 已经在通话中就直接拒掉，不要把现有通话顶掉
+        if (currentCall) {
+          void client.sendSignaling("call_reject", signal.fromDeviceId, signal.callId, {
+            reason: "busy",
+          });
+          return;
+        }
+        const factory = callFactoryRef.current;
+        if (!factory) return;
+        const kind = (signal.payload["kind"] as CallKind | undefined) ?? "voice";
+        const session = factory(signal.callId, signal.fromDeviceId, kind);
+        setScreen((prev) =>
+          prev.name === "connected"
+            ? { ...prev, call: { session, kind, info: { state: "idle" }, peerDeviceId: signal.fromDeviceId } }
+            : prev
+        );
+        void session.receiveInvite(String(signal.payload["sdp"] ?? ""));
+        return;
+      }
+
+      if (!currentCall) return;
+
+      // 其余信令按类型分派给当前通话
+      if (signal.type === "call_answer") {
+        void currentCall.session.receiveAnswer(String(signal.payload["sdp"] ?? ""));
+      } else if (signal.type === "ice_candidate") {
+        void currentCall.session.receiveIceCandidate(
+          signal.payload["candidate"] as RTCIceCandidateInit
+        );
+      } else if (signal.type === "call_reject" || signal.type === "call_cancel" || signal.type === "call_hangup") {
+        void currentCall.session.hangup();
+      }
+    });
+
     client.onPeersChange((onlinePeers) => {
       patch({ onlinePeers });
       // 在线状态是唯一能"看见还没说过话的成员"的途径

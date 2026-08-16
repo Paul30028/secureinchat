@@ -17,6 +17,8 @@ import { enableLock, disableLock } from "../src/appLock";
  */
 class MockRelayWebSocket {
   static lastInstance: MockRelayWebSocket | null = null;
+  /** 发出去的原始帧，用来断言"到底有没有真的发出东西" */
+  sent: string[] = [];
   onmessage: ((event: { data: string }) => void) | null = null;
   onerror: (() => void) | null = null;
   onclose: (() => void) | null = null;
@@ -29,6 +31,7 @@ class MockRelayWebSocket {
   }
 
   send(raw: string) {
+    this.sent.push(raw);
     const frame = JSON.parse(raw);
     if (frame.type === "register_device" || frame.type === "auth_response") {
       setTimeout(() => {
@@ -1963,5 +1966,72 @@ describe("online count in the chat header", () => {
     });
 
     expect(await screen.findByText("2 人在线")).toBeInTheDocument();
+  });
+});
+
+describe("placing a call", () => {
+  /** jsdom 没有摄像头/麦克风，也没有 RTCPeerConnection——补上够用的替身，
+   *  这样测的才是应用的接线，而不是 jsdom 的能力。 */
+  function installWebrtcStubs() {
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: async () => ({ getTracks: () => [] }) as unknown as MediaStream },
+      configurable: true,
+    });
+    class FakePeerConnection {
+      onicecandidate: unknown = null;
+      ontrack: unknown = null;
+      onconnectionstatechange: unknown = null;
+      addTrack() {}
+      async createOffer() {
+        return { type: "offer", sdp: "fake-sdp" };
+      }
+      async createAnswer() {
+        return { type: "answer", sdp: "fake-sdp" };
+      }
+      async setLocalDescription() {}
+      async setRemoteDescription() {}
+      async addIceCandidate() {}
+      close() {}
+    }
+    (globalThis as unknown as { RTCPeerConnection: unknown }).RTCPeerConnection = FakePeerConnection;
+  }
+
+  it("actually sends a call_invite when the button is tapped", async () => {
+    installWebrtcStubs();
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    // 对方上线，按钮才可用
+    MockRelayWebSocket.lastInstance?.onmessage?.({
+      data: JSON.stringify({ type: "peer_joined", deviceId: "peer-device" }),
+    });
+    await screen.findByText("1 人在线");
+
+    const sentBefore = MockRelayWebSocket.lastInstance!.sent.length;
+    fireEvent.click(screen.getByLabelText("语音通话"));
+
+    // callFactoryRef 从来没被赋值时，handleStartCall 会在第一行静默返回，
+    // 一个字节都不会发出去——这个断言盯住的就是那个 bug
+    await waitFor(() => {
+      const frames = MockRelayWebSocket.lastInstance!.sent.slice(sentBefore).map((s) => JSON.parse(s).type);
+      expect(frames).toContain("call_invite");
+    });
+  });
+
+  it("shows the call screen once a call starts", async () => {
+    installWebrtcStubs();
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+    MockRelayWebSocket.lastInstance?.onmessage?.({
+      data: JSON.stringify({ type: "peer_joined", deviceId: "peer-device" }),
+    });
+    await screen.findByText("1 人在线");
+
+    fireEvent.click(screen.getByLabelText("语音通话"));
+
+    // 通话界面顶掉聊天界面
+    await waitFor(() => expect(screen.queryByLabelText("消息输入框")).not.toBeInTheDocument());
   });
 });
