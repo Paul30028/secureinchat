@@ -1146,6 +1146,7 @@ export function App() {
     return (
       <ConnectionDiagnosticsScreen
         relayUrl={relayUrl}
+        iceConfig={ICE_CONFIG}
         status={sortSessions(sessions)[0]?.connectionStatus ?? "disconnected"}
         latency={latency}
         disconnects={disconnects}

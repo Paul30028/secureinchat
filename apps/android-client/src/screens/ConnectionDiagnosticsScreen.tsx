@@ -8,9 +8,11 @@ import {
   probeRelay,
   type ConnectionStatus,
 } from "@secureinchat/chat-core";
+import { probeIceServers, type IceConfiguration } from "@secureinchat/webrtc";
 
 export interface ConnectionDiagnosticsScreenProps {
   relayUrl: string;
+  iceConfig: IceConfiguration;
   status: ConnectionStatus;
   latency: LatencyStats;
   disconnects: DisconnectRecord[];
@@ -47,6 +49,7 @@ const STATUS_LABEL: Record<ConnectionStatus, string> = {
  */
 export function ConnectionDiagnosticsScreen({
   relayUrl,
+  iceConfig,
   status,
   latency,
   disconnects,
@@ -67,6 +70,36 @@ export function ConnectionDiagnosticsScreen({
       );
     } finally {
       setProbing(false);
+    }
+  }
+
+  const [turnProbing, setTurnProbing] = useState(false);
+  const [turnMessage, setTurnMessage] = useState<string | null>(null);
+  const [turnOk, setTurnOk] = useState(false);
+
+  /**
+   * 真的建一个 RTCPeerConnection 收集一轮候选，看有没有 relay 类型。
+   * 没有 relay 就意味着跨运营商通话必定失败——与其等真打电话时才发现，
+   * 不如在这里一次问清楚。
+   */
+  async function runTurnProbe() {
+    setTurnProbing(true);
+    setTurnMessage(null);
+    try {
+      const result = await probeIceServers(iceConfig);
+      if (!result.ok) {
+        setTurnOk(false);
+        setTurnMessage(`检测失败：${result.error}`);
+        return;
+      }
+      setTurnOk(result.sawRelayCandidate);
+      setTurnMessage(
+        result.sawRelayCandidate
+          ? `TURN 正常，跨运营商通话可以走中继（候选类型：${result.candidateTypes.join("、")}）`
+          : `没有拿到 relay 候选，跨运营商通话很可能打不通（候选类型：${result.candidateTypes.join("、") || "无"}）`
+      );
+    } finally {
+      setTurnProbing(false);
     }
   }
 
@@ -141,7 +174,32 @@ export function ConnectionDiagnosticsScreen({
         ) : null}
       </div>
 
+      <div style={{ marginBottom: 12 }}>
+        <Button variant="secondary" onClick={() => void runTurnProbe()} disabled={turnProbing} style={{ width: "100%" }}>
+          {turnProbing ? "正在检测通话线路..." : "检测通话线路（TURN）"}
+        </Button>
+        {turnMessage ? (
+          <p
+            role="status"
+            style={{
+              fontSize: 12,
+              color: turnOk ? colors.deepInkGreen : "#A33",
+              margin: "8px 0 0",
+              textAlign: "center",
+              lineHeight: 1.6,
+            }}
+          >
+            {turnMessage}
+          </p>
+        ) : null}
+      </div>
+
       <Row label="服务器" value={relayUrl} />
+      <Row
+        label="通话线路"
+        value={iceConfig.hasTurn ? "已配置 TURN" : "只有 STUN"}
+        hint={iceConfig.hasTurn ? undefined : "没有 TURN 时，跨运营商通话大概率打不通"}
+      />
       <Row label="连接状态" value={STATUS_LABEL[status]} />
       <Row
         label="消息往返延迟"

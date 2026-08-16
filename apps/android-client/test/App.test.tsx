@@ -2035,3 +2035,32 @@ describe("placing a call", () => {
     await waitFor(() => expect(screen.queryByLabelText("消息输入框")).not.toBeInTheDocument());
   });
 });
+
+describe("TURN diagnostics", () => {
+  async function openDiagnostics() {
+    await goToGroupList();
+    fireEvent.click(screen.getByText("我的"));
+    fireEvent.click(screen.getByRole("button", { name: /连接诊断/ }));
+  }
+
+  it("says plainly when only STUN is configured", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await openDiagnostics();
+
+    // 没配 TURN 时不能让人以为通话一定能通
+    expect(await screen.findByText("只有 STUN")).toBeInTheDocument();
+    expect(screen.getByText(/跨运营商通话大概率打不通/)).toBeInTheDocument();
+  });
+
+  it("offers a probe that reports whether a relay candidate was obtained", async () => {
+    // probeIceServers 需要 RTCPeerConnection；jsdom 没有，
+    // 所以它会如实报"当前环境不支持 WebRTC"——这条路径也该有结果，不能静默
+    await renderApp();
+    await joinTestGroup();
+    await openDiagnostics();
+
+    fireEvent.click(await screen.findByRole("button", { name: "检测通话线路（TURN）" }));
+    expect(await screen.findByText(/检测失败|relay|候选/)).toBeInTheDocument();
+  });
+});
