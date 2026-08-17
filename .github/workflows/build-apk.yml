@@ -38,6 +38,16 @@ jobs:
         # 应用内「服务器设置」仍然可以覆盖它。
         env:
           VITE_RELAY_URL: wss://ws-next.secureinchat.com
+          # TURN。跨运营商通话必需——两端都在 CGNAT 后面时 P2P 打不通，
+          # 媒体要经服务器中继。
+          #
+          # ⚠️ 这个密码会被编译进 APK，反编译就能拿到，理论上有人可以拿它
+          # 白嫖带宽做中继。内部试用可以接受（coturn 配了 user-quota 限制
+          # 单用户并发）。要对外发布必须换成时限凭证（TURN REST API），
+          # 由服务端按时间生成，客户端启动时去取。
+          VITE_TURN_URL: turn:turn.secureinchat.com:3478
+          VITE_TURN_USERNAME: secureinchat
+          VITE_TURN_CREDENTIAL: sZpA3cJc5WaQ/gwCt/SWnOJlkpIJBuIr
         run: npx vite build
 
       # 把构建产物同步进 android/ 原生工程。android/ 目录本身已经提交在仓库里，

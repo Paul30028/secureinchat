@@ -1,4 +1,18 @@
-# TURN 部署实操（一起测）
+# TURN 部署实操
+
+> **状态：已部署并验证通过**（2026-08-16）
+> `turn.secureinchat.com` → `212.135.212.22:3478`，DNS 灰云，coturn 运行中。
+> 服务器本机 `turnutils_uclient` 测试：8 收 8 发、零丢包、抖动 0.25ms。
+> 凭证已配进 APK 构建（见 `.github/workflows/build-apk.yml`）。
+>
+> **注意**：coturn 在 Ubuntu 上日志走 systemd journal，不写
+> `/var/log/turnserver.log`。看日志用 `sudo journalctl -u coturn -f`。
+>
+> **排查经验**：在办公室/家庭宽带上用浏览器测 trickle-ice 可能一个候选都
+> 收不到，而服务器本身完全正常——国内不少网络会阻断到 3478 的 UDP。
+> 判断方法：点 Gather 时看 `journalctl -u coturn -f`，**日志里一条记录都没有**
+> 就说明流量根本没到服务器，是路径问题不是配置问题。手机走 4G/5G 的路径
+> 和电脑走 WiFi 完全不同，要以真机测试为准。
 
 针对你的实际环境：VPS `212.135.212.22`，已经跑着两个中继（8765 生产、8766 本项目）
 和 Cloudflare Tunnel、Caddy。
