@@ -17,6 +17,7 @@ import { formatMessageTime } from "../timeFormat";
 import { MessageActionSheet, type MessageAction } from "./MessageActionSheet";
 import { ImageViewer } from "./ImageViewer";
 import { EmojiPicker } from "./EmojiPicker";
+import { GroupMembersSheet } from "./GroupMembersSheet";
 import { parseMentions, mentionsMe, mentionCandidates, activeMentionQuery, applyMention } from "@secureinchat/chat-core";
 
 export interface DisplayMessage {
@@ -57,6 +58,9 @@ export interface ChatScreenProps {
   myNickname?: string | undefined;
   /** 群里见过的成员昵称，用于 @ 候选 */
   memberNames?: (string | undefined)[] | undefined;
+  /** 群里见过的设备，用于成员列表 */
+  knownDevices?: import("@secureinchat/chat-core").KnownDevice[] | undefined;
+  myDeviceId?: string | undefined;
   onSendFile: (file: File, mediaKind: "image" | "voice" | "file") => Promise<void>;
   sendError?: string | undefined;
   connectionStatus?: "connecting" | "connected" | "reconnecting" | "disconnected" | undefined;
@@ -122,6 +126,8 @@ export function ChatScreen({
   onOpenGroupSettings,
   myNickname,
   memberNames,
+  knownDevices,
+  myDeviceId,
   sendError,
   connectionStatus,
   pendingCount,
@@ -145,6 +151,7 @@ export function ChatScreen({
   const [caret, setCaret] = useState(0);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [callHint, setCallHint] = useState<string | null>(null);
+  const [membersOpen, setMembersOpen] = useState(false);
   const [recordError, setRecordError] = useState<string | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
 
@@ -213,9 +220,32 @@ export function ChatScreen({
             minHeight: touchTarget.minDp,
           }}
         >
-          <span style={{ display: "block" }}>{groupName}</span>
+          {groupName}
           {/* 在线人数放在群名下面——聊天时最想知道的就是"现在有没有人在" */}
-          <span style={{ display: "block", fontSize: 11, fontWeight: 400, color: "#8A8A82" }}>
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label="查看群成员"
+            onClick={(e) => {
+              // 点在线人数看成员，点群名进设置——两个动作叠在同一块区域，
+              // 所以这里要拦住冒泡
+              e.stopPropagation();
+              setMembersOpen(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+                setMembersOpen(true);
+              }
+            }}
+            style={{
+              display: "block",
+              fontSize: 11,
+              fontWeight: 400,
+              color: "#8A8A82",
+              cursor: "pointer",
+            }}
+          >
             {knownPeers.length > 0 ? `${knownPeers.length} 人在线` : "群里暂时只有你在线"}
           </span>
         </button>
@@ -633,6 +663,16 @@ export function ChatScreen({
           </div>
         ) : null}
       </div>
+
+      {membersOpen ? (
+        <GroupMembersSheet
+          devices={knownDevices ?? []}
+          onlineNow={knownPeers}
+          myDeviceId={myDeviceId ?? ""}
+          myNickname={myNickname}
+          onClose={() => setMembersOpen(false)}
+        />
+      ) : null}
 
       {viewingImage ? (
         <ImageViewer

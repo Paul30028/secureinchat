@@ -73,14 +73,36 @@ export function CallScreen({
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
 
+  /**
+   * 把流挂到 <video>/<audio> 上。
+   *
+   * 依赖里必须带上 info.state：视频元素只在通话界面切换到相应状态后才挂载，
+   * 而流可能在那之前就到了。只依赖 stream 的话，effect 跑的时候 ref 还是空的，
+   * 等元素挂载好又不会重跑——srcObject 永远没被赋值，画面就是一个播放按钮占位图。
+   *
+   * 赋值之后还要显式 play()：Android WebView 对自动播放的限制比桌面浏览器严，
+   * autoPlay 属性不总是够。play() 被拒绝时忽略即可，用户点一下也能播。
+   */
   useEffect(() => {
-    if (localVideoRef.current && localStream) localVideoRef.current.srcObject = localStream;
-  }, [localStream]);
+    const el = localVideoRef.current;
+    if (!el || !localStream) return;
+    el.srcObject = localStream;
+    void el.play().catch(() => undefined);
+  }, [localStream, info.state, cameraOn]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) remoteVideoRef.current.srcObject = remoteStream;
-    if (remoteAudioRef.current && remoteStream) remoteAudioRef.current.srcObject = remoteStream;
-  }, [remoteStream]);
+    if (!remoteStream) return;
+    const video = remoteVideoRef.current;
+    if (video) {
+      video.srcObject = remoteStream;
+      void video.play().catch(() => undefined);
+    }
+    const audio = remoteAudioRef.current;
+    if (audio) {
+      audio.srcObject = remoteStream;
+      void audio.play().catch(() => undefined);
+    }
+  }, [remoteStream, info.state]);
 
   // 通话计时——只在真正接通后开始走
   useEffect(() => {

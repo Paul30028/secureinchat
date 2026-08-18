@@ -1304,6 +1304,8 @@ export function App() {
       onOpenGroupSettings={() => setScreen({ name: "groupSettings", groupId: active.groupId, from: "chat" })}
       myNickname={nickname}
       memberNames={active.knownDevices.map((d) => d.displayName)}
+      knownDevices={active.knownDevices}
+      myDeviceId={myDeviceIdRef.current}
       onBack={() => {
         setReplyTarget(null);
         // 从聊天返回应该看到消息列表，而不是默认的公告 tab

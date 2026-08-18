@@ -2064,3 +2064,61 @@ describe("TURN diagnostics", () => {
     expect(await screen.findByText(/检测失败|relay|候选/)).toBeInTheDocument();
   });
 });
+
+describe("seeing who is in the group", () => {
+  it("tapping the online count shows the member list, not just a number", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    MockRelayWebSocket.lastInstance?.onmessage?.({
+      data: JSON.stringify({ type: "presence", deviceIds: ["device-aaa111", "device-bbb222"] }),
+    });
+    await screen.findByText("2 人在线");
+
+    fireEvent.click(screen.getByLabelText("查看群成员"));
+    expect(await screen.findByRole("dialog", { name: "群成员" })).toBeInTheDocument();
+  });
+
+  it("names members it knows and marks the ones it doesn't", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    MockRelayWebSocket.lastInstance?.onmessage?.({
+      data: JSON.stringify({ type: "presence", deviceIds: ["device-aaa111"] }),
+    });
+    await screen.findByText("1 人在线");
+
+    fireEvent.click(screen.getByLabelText("查看群成员"));
+    const dialog = await screen.findByRole("dialog", { name: "群成员" });
+
+    // 只上线没发过话的人，中继不知道他叫什么——如实显示设备短号
+    expect(within(dialog).getByText(/设备 aaa111/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/还没发过消息/)).toBeInTheDocument();
+  });
+
+  it("always lists yourself, marked as this device", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.click(screen.getByLabelText("查看群成员"));
+    const dialog = await screen.findByRole("dialog", { name: "群成员" });
+
+    expect(within(dialog).getByText("测试用户")).toBeInTheDocument();
+    expect(within(dialog).getByText("本机")).toBeInTheDocument();
+  });
+
+  it("opening members does not also open group settings", async () => {
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.click(screen.getByLabelText("查看群成员"));
+    await screen.findByRole("dialog", { name: "群成员" });
+
+    // 两个可点区域叠在一起，点成员不该顺带跳进群设置
+    expect(screen.queryByLabelText("群名称输入框")).not.toBeInTheDocument();
+  });
+});
