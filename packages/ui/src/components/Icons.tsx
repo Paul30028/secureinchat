@@ -104,3 +104,14 @@ export function SmileIcon(props: IconProps) {
     </Svg>
   );
 }
+
+export function UsersIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+      <path d="M16 5.5a3 3 0 0 1 0 5.6" />
+      <path d="M17.5 19a5.5 5.5 0 0 0-2-4.3" />
+    </Svg>
+  );
+}

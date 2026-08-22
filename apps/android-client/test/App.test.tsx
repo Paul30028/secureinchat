@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, waitForElementToBeRemoved, cleanup, within } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, waitForElementToBeRemoved, cleanup, within, act } from "@testing-library/react";
 import { buildSic1Invite, buildSic2Invite } from "@secureinchat/protocol";
 import { App } from "../src/App";
 import { saveNickname, clearNickname } from "../src/profile";
@@ -17,6 +17,9 @@ import { enableLock, disableLock } from "../src/appLock";
  */
 class MockRelayWebSocket {
   static lastInstance: MockRelayWebSocket | null = null;
+  /** 所有创建过的实例。测试要能等到"新的一条连接"，
+   *  只看 lastInstance 会拿到上一个测试或上一次加群留下的旧连接。 */
+  static instances: MockRelayWebSocket[] = [];
   /** 发出去的原始帧，用来断言"到底有没有真的发出东西" */
   sent: string[] = [];
   onmessage: ((event: { data: string }) => void) | null = null;
@@ -25,6 +28,7 @@ class MockRelayWebSocket {
 
   constructor(_url: string) {
     MockRelayWebSocket.lastInstance = this;
+    MockRelayWebSocket.instances.push(this);
     setTimeout(() => {
       this.onmessage?.({ data: JSON.stringify({ type: "auth_challenge", nonce: "test-nonce" }) });
     }, 0);
@@ -65,6 +69,9 @@ beforeEach(async () => {
   (globalThis as unknown as { indexedDB: IDBFactory }).indexedDB = new IDBFactory();
   __resetForTests();
   await disableLock();
+  // 上一个测试的 socket 引用会残留在静态字段上，导致断言打在旧连接上
+  MockRelayWebSocket.lastInstance = null;
+  MockRelayWebSocket.instances = [];
 
   // 绝大多数测试关心的是加群之后的行为，不是首次设昵称。预置一个昵称让它们
   // 走"老用户"路径；首次设置流程本身由下面单独的 describe 覆盖。
@@ -75,6 +82,23 @@ function futureExpiry(): number {
   return Date.now() + 1000 * 60 * 60 * 24;
 }
 
+
+
+/** 等连接建立好再推服务端帧。连接是异步的，直接用 lastInstance 会打在 null 上，
+ *  表现为间歇性失败。 */
+async function pushServerFrame(frame: unknown) {
+  // 推到**所有**已注册处理器的连接上。
+  //
+  // 为什么不是只推给 lastInstance：一次测试里可能建过好几条连接（加群会新建，
+  // 重连也会），而哪一条是"当前那条"从测试外部看不出来。推给全部，让应用自己
+  // 忽略不相干的——这比猜哪条是对的可靠得多，也不会因为时序而间歇失败。
+  await waitFor(() => {
+    expect(MockRelayWebSocket.instances.some((s) => typeof s.onmessage === "function")).toBe(true);
+  });
+  for (const socket of MockRelayWebSocket.instances) {
+    socket.onmessage?.({ data: JSON.stringify(frame) });
+  }
+}
 
 /** App 启动时会先异步读昵称，读完才渲染主界面。测试统一用这个渲染，
  *  避免每处都写等待。 */
@@ -639,9 +663,7 @@ describe("App navigation", () => {
   it("enables call buttons once someone else is online", async () => {
     await renderApp();
     await joinTestGroup();
-    MockRelayWebSocket.lastInstance?.onmessage?.({
-      data: JSON.stringify({ type: "peer_joined", deviceId: "alice" }),
-    });
+    await pushServerFrame({ type: "peer_joined", deviceId: "alice" });
     // presence 是异步处理的，先到列表确认它已经落地
     await goToGroupList();
     await screen.findByText("1 位成员在线");
@@ -903,9 +925,7 @@ describe("online presence", () => {
     await joinTestGroup();
     await goToGroupList();
 
-    MockRelayWebSocket.lastInstance?.onmessage?.({
-      data: JSON.stringify({ type: "presence", deviceIds: ["alice", "bob"] }),
-    });
+    await pushServerFrame({ type: "presence", deviceIds: ["alice", "bob"] });
 
     expect(await screen.findByText("2 位成员在线")).toBeInTheDocument();
   });
@@ -1490,9 +1510,7 @@ describe("connected devices", () => {
     await renderApp();
     await joinTestGroup();
 
-    MockRelayWebSocket.lastInstance?.onmessage?.({
-      data: JSON.stringify({ type: "peer_joined", deviceId: "device-abc12345" }),
-    });
+    await pushServerFrame({ type: "peer_joined", deviceId: "device-abc12345" });
 
     await openDevices();
     expect(await screen.findByText("abc12345")).toBeInTheDocument();
@@ -1961,9 +1979,7 @@ describe("online count in the chat header", () => {
     await joinTestGroup();
     await screen.findByLabelText("消息输入框");
 
-    MockRelayWebSocket.lastInstance?.onmessage?.({
-      data: JSON.stringify({ type: "presence", deviceIds: ["a", "b"] }),
-    });
+    await pushServerFrame({ type: "presence", deviceIds: ["a", "b"] });
 
     expect(await screen.findByText("2 人在线")).toBeInTheDocument();
   });
@@ -2003,9 +2019,7 @@ describe("placing a call", () => {
     await screen.findByLabelText("消息输入框");
 
     // 对方上线，按钮才可用
-    MockRelayWebSocket.lastInstance?.onmessage?.({
-      data: JSON.stringify({ type: "peer_joined", deviceId: "peer-device" }),
-    });
+    await pushServerFrame({ type: "peer_joined", deviceId: "peer-device" });
     await screen.findByText("1 人在线");
 
     const sentBefore = MockRelayWebSocket.lastInstance!.sent.length;
@@ -2024,9 +2038,7 @@ describe("placing a call", () => {
     await renderApp();
     await joinTestGroup();
     await screen.findByLabelText("消息输入框");
-    MockRelayWebSocket.lastInstance?.onmessage?.({
-      data: JSON.stringify({ type: "peer_joined", deviceId: "peer-device" }),
-    });
+    await pushServerFrame({ type: "peer_joined", deviceId: "peer-device" });
     await screen.findByText("1 人在线");
 
     fireEvent.click(screen.getByLabelText("语音通话"));
@@ -2071,9 +2083,7 @@ describe("seeing who is in the group", () => {
     await joinTestGroup();
     await screen.findByLabelText("消息输入框");
 
-    MockRelayWebSocket.lastInstance?.onmessage?.({
-      data: JSON.stringify({ type: "presence", deviceIds: ["device-aaa111", "device-bbb222"] }),
-    });
+    await pushServerFrame({ type: "presence", deviceIds: ["device-aaa111", "device-bbb222"] });
     await screen.findByText("2 人在线");
 
     fireEvent.click(screen.getByLabelText("查看群成员"));
@@ -2085,9 +2095,7 @@ describe("seeing who is in the group", () => {
     await joinTestGroup();
     await screen.findByLabelText("消息输入框");
 
-    MockRelayWebSocket.lastInstance?.onmessage?.({
-      data: JSON.stringify({ type: "presence", deviceIds: ["device-aaa111"] }),
-    });
+    await pushServerFrame({ type: "presence", deviceIds: ["device-aaa111"] });
     await screen.findByText("1 人在线");
 
     fireEvent.click(screen.getByLabelText("查看群成员"));
@@ -2120,5 +2128,110 @@ describe("seeing who is in the group", () => {
 
     // 两个可点区域叠在一起，点成员不该顺带跳进群设置
     expect(screen.queryByLabelText("群名称输入框")).not.toBeInTheDocument();
+  });
+});
+
+describe("voice conference", () => {
+  function stubWebrtc() {
+    Object.defineProperty(navigator, "mediaDevices", {
+      value: { getUserMedia: async () => ({ getTracks: () => [] }) as unknown as MediaStream },
+      configurable: true,
+    });
+    class FakePeerConnection {
+      onicecandidate: unknown = null;
+      ontrack: unknown = null;
+      onconnectionstatechange: unknown = null;
+      addTrack() {}
+      async createOffer() { return { type: "offer", sdp: "sdp" }; }
+      async createAnswer() { return { type: "answer", sdp: "sdp" }; }
+      async setLocalDescription() {}
+      async setRemoteDescription() {}
+      async addIceCandidate() {}
+      close() {}
+    }
+    (globalThis as unknown as { RTCPeerConnection: unknown }).RTCPeerConnection = FakePeerConnection;
+  }
+
+  async function openChatWithPeer() {
+    stubWebrtc();
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+    // 连接是异步建立的，socket 可能还没就绪；等它出现再推 presence
+    await waitFor(() => expect(MockRelayWebSocket.lastInstance).not.toBeNull());
+    await pushServerFrame({ type: "peer_joined", deviceId: "device-peer1" });
+    await screen.findByText("1 人在线");
+  }
+
+  it("broadcasts an invite when a conference is started", async () => {
+    await openChatWithPeer();
+
+    const before = MockRelayWebSocket.lastInstance!.sent.length;
+    fireEvent.click(screen.getByLabelText("发起语音会议"));
+
+    await waitFor(() => {
+      const types = MockRelayWebSocket.lastInstance!.sent.slice(before).map((s) => JSON.parse(s).type);
+      expect(types).toContain("conference_invite");
+    });
+  });
+
+  it("shows the conference screen with yourself in it", async () => {
+    await openChatWithPeer();
+    fireEvent.click(screen.getByLabelText("发起语音会议"));
+
+    expect(await screen.findByText(/语音会议/)).toBeInTheDocument();
+    expect(screen.getByText("本机")).toBeInTheDocument();
+    // 还没人加入时说清楚在等什么，而不是空白
+    expect(screen.getByText(/正在等其他人加入/)).toBeInTheDocument();
+  });
+
+  it("adds someone who accepts the invite", async () => {
+    await openChatWithPeer();
+    fireEvent.click(screen.getByLabelText("发起语音会议"));
+    await screen.findByText(/语音会议/);
+
+    await pushServerFrame({ type: "conference_invite", conferenceId: "c1", fromDeviceId: "device-peer1" });
+
+    // 等待列表里出现这个人——"正在等其他人加入"消失就说明有人进来了
+    await waitFor(() =>
+      expect(screen.queryByText(/正在等其他人加入/)).not.toBeInTheDocument()
+    );
+    expect(screen.getByText(/设备 peer1/)).toBeInTheDocument();
+  });
+
+  it("mute is reflected for yourself", async () => {
+    await openChatWithPeer();
+    fireEvent.click(screen.getByLabelText("发起语音会议"));
+    await screen.findByText(/语音会议/);
+
+    fireEvent.click(screen.getByLabelText("静音"));
+    // 按钮切换成"取消静音"是最直接的证据——"已静音"这个文字在
+    // 其他参与者的状态里也会出现，用它断言会匹配到别人
+    expect(await screen.findByLabelText("取消静音")).toBeInTheDocument();
+  });
+
+  it("leaving returns to the chat", async () => {
+    await openChatWithPeer();
+    fireEvent.click(screen.getByLabelText("发起语音会议"));
+    await screen.findByText(/语音会议/);
+
+    fireEvent.click(screen.getByLabelText("离开会议"));
+    expect(await screen.findByLabelText("消息输入框")).toBeInTheDocument();
+  });
+
+  it("states that the server can't hear the conference", async () => {
+    await openChatWithPeer();
+    fireEvent.click(screen.getByLabelText("发起语音会议"));
+    expect(await screen.findByText(/服务器听不到/)).toBeInTheDocument();
+  });
+
+  it("says why a conference can't start with nobody online", async () => {
+    stubWebrtc();
+    await renderApp();
+    await joinTestGroup();
+    await screen.findByLabelText("消息输入框");
+
+    fireEvent.click(screen.getByLabelText("发起语音会议"));
+    expect(await screen.findByText(/没有其他人在线/)).toBeInTheDocument();
   });
 });

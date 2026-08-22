@@ -51,6 +51,12 @@ export interface IncomingSignaling {
   payload: Record<string, unknown>;
 }
 
+export interface ConferenceFrame {
+  type: "conference_invite" | "conference_end";
+  conferenceId: string;
+  fromDeviceId: string;
+}
+
 export interface CallFailed {
   callId: string;
   reason: string;
@@ -149,6 +155,7 @@ export class RelayClient {
   private outgoingSeq = 0;
   /** 已处理过的公告 id，防止重放旧公告顶掉今天的内容 */
   private seenAnnouncementIds = new Set<string>();
+  private conferenceHandlers: Array<(frame: ConferenceFrame) => void> = [];
   private peerHandlers: Array<(deviceIds: string[]) => void> = [];
 
   constructor(
@@ -314,6 +321,19 @@ export class RelayClient {
       return;
     }
 
+    // 会议帧是广播的（发起时还不知道谁会来，没有 target 可写）
+    if (frameType === "conference_invite" || frameType === "conference_end") {
+      if (typeof frame.conferenceId === "string" && typeof frame.fromDeviceId === "string") {
+        const conferenceFrame: ConferenceFrame = {
+          type: frameType,
+          conferenceId: frame.conferenceId,
+          fromDeviceId: frame.fromDeviceId,
+        };
+        for (const handler of this.conferenceHandlers) handler(conferenceFrame);
+      }
+      return;
+    }
+
     if (frameType === "pong") {
       const ts = frame.timestamp;
       if (typeof ts === "number") {
@@ -368,6 +388,16 @@ export class RelayClient {
 
   onMessage(handler: (msg: IncomingMessage) => void): void {
     this.messageHandlers.push(handler);
+  }
+
+  onConference(handler: (frame: ConferenceFrame) => void): void {
+    this.conferenceHandlers.push(handler);
+  }
+
+  /** 广播会议帧给群里所有人 */
+  sendConferenceFrame(type: ConferenceFrame["type"], conferenceId: string): void {
+    if (!this.ws) return;
+    this.ws.send(JSON.stringify({ type, conferenceId }));
   }
 
   onSignaling(handler: (sig: IncomingSignaling) => void): void {

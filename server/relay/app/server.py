@@ -29,6 +29,11 @@ SIGNALING_FRAME_TYPES = frozenset(
     {"call_invite", "call_ring", "call_answer", "call_reject", "call_cancel", "call_hangup", "ice_candidate"}
 )
 
+# 会议帧广播给同群所有人，而不是按 targetDeviceId 精确路由。
+# 一对一通话是"打给某个人"，会议是"叫大家来"——发起时还不知道谁会来，
+# 所以没有 target 可写。内容照样是加密的，中继看不到会议里说什么。
+CONFERENCE_BROADCAST_TYPES = frozenset({"conference_invite", "conference_end"})
+
 
 class RelayServer:
     def __init__(
@@ -99,6 +104,19 @@ class RelayServer:
                 self._registry.unregister(group_id, device_id)
                 self._message_limiter.forget(device_id)
                 await self._broadcast_presence_event(group_id, device_id, "peer_left")
+
+    async def _broadcast_conference_frame(self, device_id: str, group_id: str, frame: dict) -> None:
+        """把会议帧转给同群其他人，原样透传并附上发送者。
+
+        和普通消息一样是盲转发：中继不知道这是谁发起的什么会议，
+        conferenceId 之外的内容都在加密载荷里。
+        """
+        payload = json.dumps({**frame, "fromDeviceId": device_id})
+        for peer in self._registry.members_excluding(group_id, device_id):
+            try:
+                await peer.send(payload)
+            except websockets.ConnectionClosed:
+                pass
 
     async def _broadcast_presence_event(self, group_id: str, device_id: str, event_type: str) -> None:
         """把某人上线/下线告诉同群其他人。发给对方失败就跳过——那个连接
@@ -282,6 +300,10 @@ class RelayServer:
 
             if frame_type in SIGNALING_FRAME_TYPES:
                 await self._route_signaling_frame(ws, device_id, group_id, frame_type, frame)
+                continue
+
+            if frame_type in CONFERENCE_BROADCAST_TYPES:
+                await self._broadcast_conference_frame(device_id, group_id, frame)
                 continue
 
             if frame_type != "forward":

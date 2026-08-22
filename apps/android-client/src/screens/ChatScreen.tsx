@@ -11,6 +11,7 @@ import {
   FileIcon,
   PlusIcon,
   SmileIcon,
+  UsersIcon,
 } from "@secureinchat/ui";
 import { MediaBubbleContent, AnnouncementCard, type MediaContent } from "./MediaBubbleContent";
 import { formatMessageTime } from "../timeFormat";
@@ -54,6 +55,7 @@ export interface ChatScreenProps {
   replyTarget?: DisplayMessage | null | undefined;
   onOpenSearch: () => void;
   onOpenGroupSettings: () => void;
+  onStartConference: () => void;
   /** 本机昵称，用来判断哪些消息 @ 了我 */
   myNickname?: string | undefined;
   /** 群里见过的成员昵称，用于 @ 候选 */
@@ -124,6 +126,7 @@ export function ChatScreen({
   replyTarget,
   onOpenSearch,
   onOpenGroupSettings,
+  onStartConference,
   myNickname,
   memberNames,
   knownDevices,
@@ -273,6 +276,21 @@ export function ChatScreen({
           style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
         >
           <PhoneIcon />
+        </button>
+        <button
+          onClick={() => {
+            if (knownPeers.length === 0) {
+              setCallHint("群里现在没有其他人在线，等大家打开应用后再开会议");
+              return;
+            }
+            onStartConference();
+          }}
+          aria-label="发起语音会议"
+          aria-disabled={knownPeers.length === 0}
+          title={knownPeers.length === 0 ? "群里没有其他人在线" : "发起语音会议"}
+          style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
+        >
+          <UsersIcon />
         </button>
         <button
           onClick={() => onStartCall("video", knownPeers[knownPeers.length - 1]!)}

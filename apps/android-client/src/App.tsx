@@ -46,6 +46,7 @@ import { AdminRecoveryScreen } from "./screens/AdminRecoveryScreen";
 import { LockScreen } from "./screens/LockScreen";
 import { ConnectionDiagnosticsScreen } from "./screens/ConnectionDiagnosticsScreen";
 import { ConnectedDevicesScreen } from "./screens/ConnectedDevicesScreen";
+import { ConferenceScreen } from "./screens/ConferenceScreen";
 import { EditProfileScreen } from "./screens/EditProfileScreen";
 import { GroupSettingsScreen } from "./screens/GroupSettingsScreen";
 import { isLockEnabled, disableLock } from "./appLock";
@@ -53,7 +54,19 @@ import { checkCryptoStorage, type CapabilityResult } from "./capabilityCheck";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { saveAdminKey, loadAdminKey } from "./adminKeys";
 import { CallScreen } from "./screens/CallScreen";
-import { CallSession, type CallKind, type CallStateInfo } from "@secureinchat/webrtc";
+import {
+  CallSession,
+  createConference,
+  addParticipant,
+  updateParticipant,
+  removeParticipant,
+  setSelfMuted,
+  shouldInitiateTo,
+  isEmpty as conferenceIsEmpty,
+  type CallKind,
+  type CallStateInfo,
+  type ConferenceState,
+} from "@secureinchat/webrtc";
 import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
 import { randomUUID, signAnnouncement, verifyAnnouncement } from "@secureinchat/crypto-core";
 import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
@@ -177,6 +190,20 @@ export function App() {
   }, []);
   /** 发布圣诗音频时的进度文案 */
   const [publishProgress, setPublishProgress] = useState<string | null>(null);
+  /** 当前会议。null = 不在会议中 */
+  const [conference, setConference] = useState<ConferenceState | null>(null);
+  const [conferenceElapsed, setConferenceElapsed] = useState(0);
+  /** 会议里每个参与者一条 CallSession */
+  const conferenceSessionsRef = useRef<Map<string, CallSession>>(new Map());
+
+  useEffect(() => {
+    if (!conference) {
+      setConferenceElapsed(0);
+      return;
+    }
+    const timer = setInterval(() => setConferenceElapsed((s) => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, [conference !== null]);
   // 连接质量统计。跨群共用一份——它们走的是同一条网络、同一台中继，
   // 分群统计只会把样本切碎，看不出趋势。
   const [latency, setLatency] = useState<LatencyStats>(EMPTY_LATENCY_STATS);
@@ -515,6 +542,32 @@ export function App() {
       } else if (signal.type === "call_reject" || signal.type === "call_cancel" || signal.type === "call_hangup") {
         void currentCall.session.hangup();
       }
+    });
+
+    client.onConference((frame) => {
+      if (frame.type === "conference_end") {
+        setConference((prev) => (prev ? removeParticipant(prev, frame.fromDeviceId) : prev));
+        conferenceSessionsRef.current.get(frame.fromDeviceId)?.hangup();
+        conferenceSessionsRef.current.delete(frame.fromDeviceId);
+        return;
+      }
+
+      // conference_invite：别人发起了会议，或者已在会议中的人告诉我他也在
+      setConference((prev) => {
+        const base = prev ?? createConference(frame.conferenceId);
+        const known = sessionsRef.current[groupId]?.knownDevices ?? [];
+        const displayName = known.find((d) => d.deviceId === frame.fromDeviceId)?.displayName;
+        const result = addParticipant(base, frame.fromDeviceId, displayName);
+        if (!result.ok) {
+          // 满了：告诉对方一声，别让他一直等
+          client.sendConferenceFrame("conference_end", frame.conferenceId);
+          return prev;
+        }
+        return result.state;
+      });
+
+      // 已经在同一个会议里就去建连接
+      connectToConferencePeer(frame.fromDeviceId, frame.conferenceId);
     });
 
     client.onPeersChange((onlinePeers) => {
@@ -886,6 +939,53 @@ export function App() {
   }
 
   /**
+   * 和会议里某个人建立语音连接。
+   *
+   * 谁主动发 offer 由 shouldInitiateTo 决定（deviceId 字典序），两边必须一致，
+   * 否则会同时发 offer 撞车。
+   */
+  function connectToConferencePeer(peerDeviceId: string, conferenceId: string) {
+    const factory = callFactoryRef.current;
+    if (!factory) return;
+
+    const session = factory(`${conferenceId}:${peerDeviceId}`, peerDeviceId, "voice");
+    conferenceSessionsRef.current.set(peerDeviceId, session);
+
+    if (shouldInitiateTo(myDeviceIdRef.current, peerDeviceId)) {
+      setConference((prev) => (prev ? updateParticipant(prev, peerDeviceId, { state: "connecting" }) : prev));
+      void session.startOutgoing();
+    }
+    // 另一边会发 offer 过来，由 onSignaling 里的 call_invite 分支处理
+  }
+
+  /** 发起会议：广播邀请，群里在线的人会收到 */
+  function handleStartConference() {
+    const session = activeSession();
+    if (!session) return;
+    const conferenceId = randomUUID();
+    setConference(createConference(conferenceId));
+    session.client.sendConferenceFrame("conference_invite", conferenceId);
+  }
+
+  /** 离开会议：断开所有连接 */
+  function handleLeaveConference() {
+    for (const s of conferenceSessionsRef.current.values()) {
+      void s.hangup();
+    }
+    conferenceSessionsRef.current.clear();
+    setConference(null);
+  }
+
+  function handleToggleConferenceMute() {
+    setConference((prev) => {
+      if (!prev) return prev;
+      const next = setSelfMuted(prev, !prev.selfMuted);
+      for (const s of conferenceSessionsRef.current.values()) s.setMuted(next.selfMuted);
+      return next;
+    });
+  }
+
+  /**
    * 记录见到的设备。
    *
    * 这里必须串行：读取名单 → 更新 → 写回是个读改写序列，上线和下线事件
@@ -1201,6 +1301,21 @@ export function App() {
     );
   }
 
+  // 会议界面优先——正在开会时不该被其他界面盖住
+  if (conference) {
+    const s = activeSession() ?? sortSessions(sessions)[0];
+    return (
+      <ConferenceScreen
+        state={conference}
+        groupName={s?.groupName ?? ""}
+        myNickname={nickname}
+        elapsedSec={conferenceElapsed}
+        onToggleSelfMute={handleToggleConferenceMute}
+        onLeave={handleLeaveConference}
+      />
+    );
+  }
+
   // 有通话时，通话界面优先于消息列表/聊天页显示
   if (screen.name === "connected" && screen.call) {
     const call = screen.call;
@@ -1301,6 +1416,7 @@ export function App() {
       onSetReplyTarget={setReplyTarget}
       replyTarget={replyTarget}
       onOpenSearch={() => setScreen({ ...screen, view: "search" })}
+      onStartConference={handleStartConference}
       onOpenGroupSettings={() => setScreen({ name: "groupSettings", groupId: active.groupId, from: "chat" })}
       myNickname={nickname}
       memberNames={active.knownDevices.map((d) => d.displayName)}
