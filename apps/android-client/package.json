@@ -1,0 +1,38 @@
+{
+  "name": "@secureinchat/android-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@secureinchat/ui": "0.1.0",
+    "@secureinchat/protocol": "0.1.0",
+    "@secureinchat/crypto-core": "0.1.0",
+    "@secureinchat/secure-storage": "0.1.0",
+    "@secureinchat/chat-core": "0.1.0",
+    "jsqr": "^1.4.0",
+    "@secureinchat/webrtc": "0.1.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0",
+    "vitest": "^2.0.5",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.4.8",
+    "jsdom": "^25.0.0",
+    "fake-indexeddb": "^6.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  }
+}

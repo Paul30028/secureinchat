@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 取自设计稿实际采样色（象牙白卡片色），不是随手指定的近似值 -->
+    <color name="ic_launcher_background">#EBECE5</color>
+</resources>

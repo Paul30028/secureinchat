@@ -1,0 +1,22 @@
+{
+  "name": "@secureinchat/chat-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@secureinchat/protocol": "0.1.0",
+    "@secureinchat/crypto-core": "0.1.0",
+    "@secureinchat/secure-storage": "0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5",
+    "ws": "^8.18.0",
+    "@types/ws": "^8.5.12"
+  }
+}

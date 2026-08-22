@@ -1,0 +1,7 @@
+{
+  "deviceId": "device-alice-fixture",
+  "nonce": "fixture-nonce-abc123",
+  "publicKeyRawB64Url": "BPy4Yr4wbt5I_ZLdNquXxT0OWjEDf0ummuquuUZ575XigwPV7EMbfdvGqspbUaAyMP1uBe0ND_Ly7dZoQo7k0Dk",
+  "signatureP1363B64Url": "_SzG5VaukzdQjq6bH96Q8JFobQiLmVIPJBxpykJD7_KEC6uV12Df1yatkO2qFxGQlQ25OZGgwzIVkJliqxeYcw",
+  "note": "signature is over UTF-8 bytes of `nonce`, produced by KeystorePort.sign (ECDSA P-256 + SHA-256, Web Crypto raw/P1363 format); public key via KeystorePort.exportPublicKeyRaw (uncompressed point)"
+}

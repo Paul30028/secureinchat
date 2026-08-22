@@ -1,0 +1,64 @@
+/**
+ * 全局样式重置。
+ *
+ * 之前没有这个文件，导致真机上"界面会活动、不能固定成手机页面"：
+ * body 默认有 8px margin，各屏幕又用 100vh，加起来超出视口就产生滚动，
+ * 手指一滑整个页面跟着动。
+ */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* 100dvh 在移动端会随地址栏收起而变化，比 100vh 更贴合实际可视区域；
+     不支持 dvh 的老 WebView 会回退到上面的 height: 100% */
+  height: 100dvh;
+  overflow: hidden;
+  background: #ebece5;
+  /* 禁止整页橡皮筋回弹——聊天列表内部该滚的地方仍然能滚 */
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "PingFang SC",
+    "Noto Sans CJK SC",
+    "Microsoft YaHei",
+    sans-serif;
+}
+
+#root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  /* 适配刘海屏/挖孔屏的安全区域，配合 index.html 的 viewport-fit=cover */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
+}
+
+/* 屏幕组件内联写的是 minHeight: 100vh，那会让内容比视口更高，把底部导航
+   挤出屏幕（真机上表现为"公告 tab 看不见"）。这里强制它们撑满父容器而不是
+   撑出父容器；组件内部自己带 flex:1 的滚动区照常工作。 */
+#root > * {
+  flex: 1 1 auto;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  box-sizing: border-box;
+}
+
+/* 触摸端去掉点击高亮块，否则每次点按钮都会闪一下灰色方框 */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 输入框在 Android 上默认圆角和内阴影很难看，统一掉 */
+input,
+textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: inherit;
+}
