@@ -8,7 +8,13 @@ import {
   probeRelay,
   type ConnectionStatus,
 } from "@secureinchat/chat-core";
-import { probeIceServers, type IceConfiguration } from "@secureinchat/webrtc";
+import {
+  probeIceServers,
+  detectMediaEncryptionSupport,
+  describeMediaEncryptionSupport,
+  MAX_MESH_PARTICIPANTS,
+  type IceConfiguration,
+} from "@secureinchat/webrtc";
 
 export interface ConnectionDiagnosticsScreenProps {
   relayUrl: string;
@@ -103,6 +109,10 @@ export function ConnectionDiagnosticsScreen({
     }
   }
 
+  // 十几人会议要 SFU；能不能同时保住"服务器看不到内容"取决于这个能力。
+  // 在买机器、部署 SFU 之前先知道答案，而不是做完才发现跑不了。
+  const mediaEncryption = detectMediaEncryptionSupport();
+
   const quality = qualityFor(latency);
   const recovered = disconnects.filter((d) => d.recoveredAfterMs !== null);
   const avgRecovery =
@@ -195,6 +205,11 @@ export function ConnectionDiagnosticsScreen({
       </div>
 
       <Row label="服务器" value={relayUrl} />
+      <Row
+        label="多人会议"
+        value={mediaEncryption.supported ? "可加密（支持十几人）" : `最多 ${MAX_MESH_PARTICIPANTS} 人`}
+        hint={describeMediaEncryptionSupport(mediaEncryption)}
+      />
       <Row
         label="通话线路"
         value={iceConfig.hasTurn ? "已配置 TURN" : "只有 STUN"}
