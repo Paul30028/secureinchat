@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070A11" />
+  <title>SecureInChat：零知识盲中继加密通信</title>
+  <meta name="description" content="SecureInChat 是基于盲中继的端到端加密通信：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。可在线运行中继诊断和免费隐私工具。" />
+  <link rel="canonical" href="https://secureinchat.com/zh/" />
+  <link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
+  <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
+  <link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/" />
+  <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="SecureInChat：零知识盲中继加密通信" />
+  <meta property="og:description" content="SecureInChat 是基于盲中继的端到端加密通信：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。可在线运行中继诊断和免费隐私工具。" />
+  <meta property="og:url" content="https://secureinchat.com/zh/" />
+  <meta property="og:locale" content="zh_CN" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="SecureInChat：零知识盲中继加密通信" />
+  <meta name="twitter:description" content="SecureInChat 是基于盲中继的端到端加密通信：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。可在线运行中继诊断和免费隐私工具。" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/main.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://secureinchat.com/#org","name":"SecureInChat","url":"https://secureinchat.com/"},{"@type":"WebSite","@id":"https://secureinchat.com/#site","url":"https://secureinchat.com/","name":"SecureInChat","publisher":{"@id":"https://secureinchat.com/#org"},"inLanguage":"zh-CN"}]}</script>
+
+</head>
+<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
+  <a href="#top" class="skip">跳到正文</a>
+  <div class="fixed inset-0 grid-overlay pointer-events-none"></div>
+  <div class="fixed -top-24 left-[8%] w-96 h-96 rounded-full bg-indigo ambient pointer-events-none"></div>
+  <div class="fixed top-[30%] right-[4%] w-80 h-80 rounded-full bg-cyan ambient pointer-events-none"></div>
+  <div class="fixed bottom-0 left-[35%] w-96 h-80 rounded-full bg-emerald ambient pointer-events-none"></div>
+  <header class="fixed top-4 inset-x-0 z-50 px-4">
+    <nav class="max-w-7xl mx-auto glass rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between shadow-2xl" aria-label="Main">
+      <a href="/" class="flex items-center gap-3 group" aria-label="SecureInChat home">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo"><svg class="w-5 h-5 text-white" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></div>
+        <div>
+          <div class="font-display font-bold tracking-tight">SecureInChat</div>
+          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">ZERO-KNOWLEDGE RELAY</div>
+        </div>
+      </a>
+      <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
+        <a href="#architecture" class="hover:text-white transition">工作原理</a>
+        <a href="#security" class="hover:text-white transition">安全矩阵</a>
+        <a href="#diagnostics" class="hover:text-white transition">节点诊断</a>
+        <a href="/tools/" class="hover:text-white transition">工具</a>
+        <a href="https://blog.secureinchat.com/" class="hover:text-white transition">博客</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[.035] hairline font-mono text-[10px]" role="status">
+          <span class="relative flex w-2 h-2"><span id="net-dot-ping" class="absolute inline-flex w-full h-full rounded-full bg-amber-300 opacity-70 animate-ping"></span><span id="net-dot" class="relative inline-flex w-2 h-2 rounded-full bg-amber-300"></span></span>
+          <span id="net-label" class="text-slate-300">Network: Checking</span><span class="text-slate-600">|</span><span class="text-emerald">100% Zero-Knowledge</span>
+        </div>
+        <select id="lang" aria-label="Language" class="bg-white/[.04] hairline rounded-xl px-2.5 py-2 text-xs text-slate-300 outline-none">
+          <option value="/">EN</option><option value="/zh/" selected>ZH</option><option value="/ja/">JA</option>
+        </select>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top" class="relative z-10">
+    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-24 lg:pb-32">
+      <div class="grid lg:grid-cols-[1.08fr_.92fr] gap-14 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-[11px] font-mono uppercase tracking-[.16em] text-cyan mb-7">
+            <svg class="w-3.5 h-3.5" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M4.9 16.1C1 12.2 1 5.8 4.9 1.9" /> <path d="M7.8 4.7a6.14 6.14 0 0 0-.8 7.5" /> <circle cx="12" cy="9" r="2" /> <path d="M16.2 4.8c2 2 2.26 5.11.8 7.47" /> <path d="M19.1 1.9a9.96 9.96 0 0 1 0 14.1" /> <path d="M9.5 18h5" /> <path d="m8 22 4-11 4 11" /> </svg>
+            <span>Blind Relay Protocol / E2EE Native</span>
+          </div>
+          <h1 class="font-display font-bold text-5xl sm:text-6xl xl:text-7xl leading-[1.02] tracking-[-.045em] max-w-4xl">
+            <span>沟通不留痕迹。</span><br>
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-emerald-300">信任无需妥协。</span>
+          </h1>
+          <p class="mt-7 max-w-2xl text-lg leading-8 text-slate-400">零知识盲中继通信协议：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。</p>
+          <div class="mt-7 flex flex-wrap gap-2.5">
+            <span class="px-3 py-1.5 rounded-lg bg-white/[.035] hairline font-mono text-xs text-slate-300">End-to-End Encrypted</span><span class="px-3 py-1.5 rounded-lg bg-white/[.035] hairline font-mono text-xs text-slate-300">Blind Relay Engine</span><span class="px-3 py-1.5 rounded-lg bg-white/[.035] hairline font-mono text-xs text-slate-300">Zero Metadata</span>
+          </div>
+          <div class="mt-10 flex flex-col sm:flex-row gap-3">
+            <a href="#diagnostics" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-slate-950 font-semibold hover:scale-[1.02] transition shadow-xl"><svg class="w-5 h-5" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /> </svg><span>运行节点诊断</span></a>
+            <a href="#architecture" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl glass font-semibold text-slate-200 hover:bg-white/[.08] transition"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="12" r="10" /> <polygon points="10 8 16 12 10 16 10 8" /> </svg><span>查看工作原理</span></a>
+          </div>
+          <div class="mt-9 flex items-center gap-5 text-xs text-slate-500 font-mono">
+            <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-emerald" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <ellipse cx="12" cy="5" rx="9" ry="3" /> <path d="M3 5V19A9 3 0 0 0 15 21.84" /> <path d="M21 5V8" /> <path d="M21 12L18 17H22L19 22" /> <path d="M3 12A9 3 0 0 0 14.59 14.87" /> </svg>No message storage</span>
+            <span class="flex items-center gap-1.5"><svg class="w-4 h-4 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2 21a8 8 0 0 1 11.873-7" /> <circle cx="10" cy="8" r="5" /> <path d="m17 17 5 5" /> <path d="m22 17-5 5" /> </svg>No identity binding</span>
+          </div>
+        </div>
+
+        <div class="relative float" aria-hidden="true">
+          <div class="absolute -inset-8 bg-gradient-to-br from-indigo/20 via-cyan/5 to-emerald/20 blur-3xl rounded-full"></div>
+          <div class="relative glass rounded-3xl overflow-hidden shadow-2xl">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-black/20">
+              <div class="flex gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-400/70"></span><span class="w-2.5 h-2.5 rounded-full bg-amber-300/70"></span><span class="w-2.5 h-2.5 rounded-full bg-emerald/80"></span></div>
+              <div class="font-mono text-[10px] text-slate-500">secure-client://encryption-pipeline</div>
+              <svg class="w-4 h-4 text-emerald" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="16" r="1" /> <rect x="3" y="10" width="18" height="12" rx="2" /> <path d="M7 10V7a5 5 0 0 1 10 0v3" /> </svg>
+            </div>
+            <div class="p-6 sm:p-8 font-mono text-xs sm:text-sm leading-7 min-h-[420px] bg-gradient-to-b from-slate-950/50 to-transparent">
+              <div class="terminal-line text-slate-500">$ secureinchat --compose</div>
+              <div class="terminal-line"><span class="text-cyan">plaintext</span> <span class="text-slate-600">→</span> <span class="text-slate-300">“Meet at 21:00.”</span></div>
+              <div class="terminal-line"><span class="text-indigo-300">key_agreement</span> <span class="text-slate-600">→</span> <span class="text-slate-300">Curve25519 / HKDF</span></div>
+              <div class="terminal-line"><span class="text-emerald">client_encrypt</span> <span class="text-slate-600">→</span> <span class="text-slate-300">AES-256-GCM</span></div>
+              <div class="terminal-line mt-3 p-4 rounded-xl bg-emerald/5 border border-emerald/20 break-all text-emerald-200/80">7f2a9c01:e8d4...blind-cipher-payload...31f9</div>
+              <div class="mt-7 grid grid-cols-3 gap-3 text-center">
+                <div class="p-3 rounded-xl bg-white/[.025] hairline"><div class="text-slate-500 text-[9px] uppercase tracking-widest">Server sees</div><div class="mt-1 text-emerald">Ciphertext</div></div>
+                <div class="p-3 rounded-xl bg-white/[.025] hairline"><div class="text-slate-500 text-[9px] uppercase tracking-widest">Metadata</div><div class="mt-1 text-emerald">Minimized</div></div>
+                <div class="p-3 rounded-xl bg-white/[.025] hairline"><div class="text-slate-500 text-[9px] uppercase tracking-widest">Retention</div><div class="mt-1 text-emerald">None</div></div>
+              </div>
+              <div class="mt-7 flex items-center gap-2 text-slate-500"><span class="w-2 h-2 rounded-full bg-emerald animate-pulse"></span>WSS relay channel ready</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="diagnostics" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+      <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 shadow-emerald">
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
+          <div><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Live Node Diagnostics</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">实时验证盲中继状态。</h2><p class="mt-3 text-slate-400 max-w-2xl">浏览器会发起真实 WSS 连接，测量握手延迟，并验证中继返回的挑战消息。</p></div>
+          <button id="node-btn" type="button" data-testing="检测中…" data-retest="运行节点诊断" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald text-slate-950 font-semibold disabled:opacity-60"><svg class="w-4 h-4" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /> </svg><span id="node-btn-label">运行节点诊断</span></button>
+        </div>
+        <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div class="p-5 rounded-2xl bg-black/20 hairline"><div class="text-xs text-slate-500 uppercase tracking-widest">Relay Endpoint</div><div class="mt-3 font-mono text-sm text-cyan break-all">wss://ws.secureinchat.com</div><div id="node-conn" class="mt-4 text-xs text-slate-500">Awaiting test</div></div>
+          <div class="p-5 rounded-2xl bg-black/20 hairline"><div class="text-xs text-slate-500 uppercase tracking-widest">Handshake Latency</div><div class="mt-3 font-display text-3xl"><span id="node-latency">—</span><span class="text-sm text-slate-500 ml-1">ms</span></div><div class="mt-4 text-xs text-slate-500">Browser-to-relay WSS open time</div></div>
+          <div class="p-5 rounded-2xl bg-black/20 hairline"><div class="text-xs text-slate-500 uppercase tracking-widest">TLS Transport</div><div class="mt-3 flex items-center gap-2 text-lg"><svg class="w-5 h-5 text-emerald" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /> <path d="m9 12 2 2 4-4" /> </svg><span>WSS / TLS</span></div><div class="mt-4 text-xs text-slate-500">Certificate validated by browser</div></div>
+          <div class="p-5 rounded-2xl bg-black/20 hairline"><div class="text-xs text-slate-500 uppercase tracking-widest">Relay Challenge</div><div id="node-chal" class="mt-3 font-display text-xl text-slate-300">Pending</div><div id="node-chal-detail" class="mt-4 text-xs text-slate-500 truncate">Waiting for auth_challenge</div></div>
+        </div>
+        <div id="node-log" role="status" aria-live="polite" class="mt-5 p-4 rounded-xl font-mono text-xs border bg-white/[.02] border-white/10 text-slate-500">Ready to test the blind relay endpoint.</div>
+      </div>
+    </section>
+
+    <section id="architecture" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+      <div class="text-center max-w-3xl mx-auto mb-12"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-3">Zero-Knowledge Architecture</div><h2 class="font-display text-4xl sm:text-5xl font-semibold">服务器负责转发，但永远无法理解内容。</h2><p class="mt-4 text-slate-400">所有敏感操作都在终端本地完成，中继只接收完成投递所必需的加密载荷。</p></div>
+      <div class="relative grid lg:grid-cols-3 gap-5 items-stretch">
+        <svg class="hidden lg:block absolute inset-x-[16%] top-1/2 -translate-y-1/2 w-[68%] h-16 pointer-events-none" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40H1000" stroke="rgba(6,182,212,.4)" stroke-width="2" class="flow-line" fill="none"/></svg>
+        <article class="group relative glass rounded-3xl p-7 hover:-translate-y-2 transition duration-500"><div class="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition bg-gradient-to-br from-indigo/10 via-transparent to-emerald/10"></div><div class="relative"><div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/[.05] hairline mb-6"><svg class="w-6 h-6 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="16" r="1" /> <rect x="3" y="10" width="18" height="12" rx="2" /> <path d="M7 10V7a5 5 0 0 1 10 0v3" /> </svg></div><div class="font-mono text-[10px] text-slate-500 mb-2">01 / 03</div><h3 class="font-display text-xl font-semibold">Sender Local Encryption</h3><p class="mt-3 text-sm leading-6 text-slate-400">Message content and session keys are processed locally before any network transmission.</p><div class="mt-6 text-xs font-mono text-emerald">PLAINTEXT NEVER LEAVES DEVICE</div></div></article>
+        <article class="group relative glass rounded-3xl p-7 hover:-translate-y-2 transition duration-500"><div class="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition bg-gradient-to-br from-indigo/10 via-transparent to-emerald/10"></div><div class="relative"><div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/[.05] hairline mb-6"><svg class="w-6 h-6 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M7 2h13a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-5" /> <path d="M10 10 2.5 2.5C2 2 2 2.5 2 5v3a2 2 0 0 0 2 2h6z" /> <path d="M22 17v-1a2 2 0 0 0-2-2h-1" /> <path d="M4 14a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16.5l1-.5.5.5-8-8H4z" /> <path d="M6 18h.01" /> <path d="m2 2 20 20" /> </svg></div><div class="font-mono text-[10px] text-slate-500 mb-2">02 / 03</div><h3 class="font-display text-xl font-semibold">Blind Relay Server</h3><p class="mt-3 text-sm leading-6 text-slate-400">The relay routes opaque cipher payloads without possessing the keys required to decrypt them.</p><div class="mt-6 text-xs font-mono text-emerald">CANNOT READ MESSAGE CONTENT</div></div></article>
+        <article class="group relative glass rounded-3xl p-7 hover:-translate-y-2 transition duration-500"><div class="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition bg-gradient-to-br from-indigo/10 via-transparent to-emerald/10"></div><div class="relative"><div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/[.05] hairline mb-6"><svg class="w-6 h-6 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="16" r="1" /> <rect width="18" height="12" x="3" y="10" rx="2" /> <path d="M7 10V7a5 5 0 0 1 9.33-2.5" /> </svg></div><div class="font-mono text-[10px] text-slate-500 mb-2">03 / 03</div><h3 class="font-display text-xl font-semibold">Recipient Local Decryption</h3><p class="mt-3 text-sm leading-6 text-slate-400">Only the intended recipient device reconstructs and decrypts the authenticated message.</p><div class="mt-6 text-xs font-mono text-emerald">DECRYPTED AT THE EDGE</div></div></article>
+      </div>
+    </section>
+
+    <section id="security" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+      <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-10 items-start">
+        <div class="lg:sticky lg:top-28"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-indigo-300 mb-3">Security Matrix</div><h2 class="font-display text-4xl font-semibold">现代密码学，更小的信任边界。</h2><p class="mt-4 text-slate-400 leading-7">SecureInChat 采用成熟密码原语、客户端密钥控制和数据暴露最小化的盲中继架构。</p></div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <article class="glass rounded-2xl p-6 hover:border-emerald/30 transition"><div class="flex items-center justify-between"><svg class="w-5 h-5 text-emerald" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <line x1="6" x2="6" y1="3" y2="15" /> <circle cx="18" cy="6" r="3" /> <circle cx="6" cy="18" r="3" /> <path d="M18 9a9 9 0 0 1-9 9" /> </svg><span class="font-mono text-[9px] text-slate-600 uppercase tracking-widest">KEY AGREEMENT</span></div><h3 class="mt-5 font-display text-xl font-semibold">Curve25519</h3><p class="mt-2 text-sm leading-6 text-slate-400">Efficient elliptic-curve key agreement for modern client devices.</p></article>
+          <article class="glass rounded-2xl p-6 hover:border-emerald/30 transition"><div class="flex items-center justify-between"><svg class="w-5 h-5 text-emerald" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg><span class="font-mono text-[9px] text-slate-600 uppercase tracking-widest">AEAD</span></div><h3 class="mt-5 font-display text-xl font-semibold">AES-256-GCM</h3><p class="mt-2 text-sm leading-6 text-slate-400">Authenticated encryption designed to protect confidentiality and integrity.</p></article>
+          <article class="glass rounded-2xl p-6 hover:border-emerald/30 transition"><div class="flex items-center justify-between"><svg class="w-5 h-5 text-emerald" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /> <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /> </svg><span class="font-mono text-[9px] text-slate-600 uppercase tracking-widest">KEY DERIVATION</span></div><h3 class="mt-5 font-display text-xl font-semibold">HKDF</h3><p class="mt-2 text-sm leading-6 text-slate-400">Context-separated key derivation for session and message-key workflows.</p></article>
+          <article class="glass rounded-2xl p-6 hover:border-emerald/30 transition"><div class="flex items-center justify-between"><svg class="w-5 h-5 text-emerald" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <ellipse cx="12" cy="5" rx="9" ry="3" /> <path d="M3 5V19A9 3 0 0 0 15 21.84" /> <path d="M21 5V8" /> <path d="M21 12L18 17H22L19 22" /> <path d="M3 12A9 3 0 0 0 14.59 14.87" /> </svg><span class="font-mono text-[9px] text-slate-600 uppercase tracking-widest">DATA MINIMIZATION</span></div><h3 class="mt-5 font-display text-xl font-semibold">No-Log Assurance</h3><p class="mt-2 text-sm leading-6 text-slate-400">Relay operation is designed without persistent message-content storage.</p></article>
+        </div>
+      </div>
+      <div class="mt-8 glass rounded-2xl p-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-xs text-slate-400 font-mono"><span>Privacy-by-Design</span><span>Data Minimization</span><span>No-Log Architecture</span><span>Open Cryptographic Primitives</span><span>Client-Side Key Control</span></div>
+      <p class="mt-3 text-center text-[11px] text-slate-600">Compatibility statements describe design alignment, not legal certification or regulatory approval.</p>
+    </section>
+
+    <section id="tools" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+      <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-3">Tools</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">在浏览器里运行的免费隐私工具。</h2><p class="mt-3 text-slate-400">查看你的连接泄露了哪些信息。测试内容不会被保存，也不会设置 Cookie。</p></div>
+        <a href="/tools/ip-leak-test/" class="group block lg:w-96 p-5 rounded-2xl bg-black/20 hairline hover:border-cyan/40 transition">
+          <div class="flex items-center gap-3"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="12" r="10" /> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /> <path d="M2 12h20" /> </svg><span class="font-display text-xl font-semibold">IP 泄漏测试</span></div>
+          <p class="mt-3 text-sm leading-6 text-slate-400">检查公网 IP、WebRTC、IPv6、时区和请求头，并对照你的 VPN 或代理。</p>
+          <div class="mt-4 text-sm font-semibold text-cyan group-hover:text-white transition">开始测试 →</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+      <div class="relative overflow-hidden rounded-[2rem] glass p-8 sm:p-12 lg:p-16 text-center"><div class="absolute inset-0 bg-gradient-to-r from-indigo/10 via-cyan/5 to-emerald/10"></div><div class="relative"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-4">Private by architecture</div><h2 class="font-display text-4xl sm:text-5xl font-semibold max-w-3xl mx-auto">让私密通信重新回到终端。</h2><p class="mt-5 max-w-2xl mx-auto text-slate-400">通过一个尽可能少知道信息的盲中继建立连接。</p><p class="mt-3 max-w-2xl mx-auto text-sm text-slate-500">客户端仍在开发中。本站的节点诊断和工具现已可用。</p><div class="mt-9 flex flex-wrap justify-center gap-3"><a href="#diagnostics" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold inline-flex items-center gap-2"><svg class="w-4 h-4" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /> </svg>运行节点诊断</a><a href="/tools/ip-leak-test/" class="px-5 py-3 rounded-xl glass font-semibold inline-flex items-center gap-2"><svg class="w-4 h-4 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="12" r="10" /> <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" /> <path d="M2 12h20" /> </svg>试试 IP 泄漏测试</a></div></div></div>
+    </section>
+  </main>
+
+  <footer class="relative z-10 border-t border-white/10 py-8">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
+      <div>© 2026 SecureInChat. 零知识盲中继架构。</div>
+      <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
+        <a href="/tools/" class="hover:text-white">工具</a>
+        <a href="https://blog.secureinchat.com/" class="hover:text-white">博客</a>
+        <a href="/privacy/" class="hover:text-white">隐私</a>
+        <a href="/about/" class="hover:text-white">关于</a>
+        <a href="/contact/" class="hover:text-white">联系</a>
+        <a href="https://github.com/Paul30028/secureinchat" class="hover:text-white" rel="noopener">GitHub</a>
+      </nav>
+      <div class="flex gap-4"><a href="/" hreflang="en" lang="en" class="hover:text-white">EN</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN" class="hover:text-white">ZH</a><a href="/ja/" hreflang="ja" lang="ja" class="hover:text-white">JA</a></div>
+    </div>
+  </footer>
+</body>
+</html>

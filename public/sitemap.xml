@@ -1,6 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://secureinchat.com/</loc><lastmod>2026-10-20</lastmod></url>
-  <url><loc>https://secureinchat.com/tools/</loc><lastmod>2026-10-20</lastmod></url>
-  <url><loc>https://secureinchat.com/tools/ip-leak-test/</loc><lastmod>2026-10-20</lastmod></url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://secureinchat.com/</loc>
+    <lastmod>2026-10-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/" />
+  </url>
+  <url>
+    <loc>https://secureinchat.com/zh/</loc>
+    <lastmod>2026-10-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/" />
+  </url>
+  <url>
+    <loc>https://secureinchat.com/ja/</loc>
+    <lastmod>2026-10-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/" />
+  </url>
+  <url>
+    <loc>https://secureinchat.com/tools/</loc>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/tools/ip-leak-test/</loc>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/about/</loc>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/privacy/</loc>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/contact/</loc>
+    <lastmod>2026-10-20</lastmod>
+  </url>
 </urlset>

@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face { font-family: "Inter"; font-weight: 400; font-style: normal; font-display: swap; src: url("/assets/fonts/inter-400.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 500; font-style: normal; font-display: swap; src: url("/assets/fonts/inter-500.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 600; font-style: normal; font-display: swap; src: url("/assets/fonts/inter-600.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 700; font-style: normal; font-display: swap; src: url("/assets/fonts/inter-700.woff2") format("woff2"); }
+@font-face { font-family: "Inter"; font-weight: 800; font-style: normal; font-display: swap; src: url("/assets/fonts/inter-800.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-weight: 500; font-style: normal; font-display: swap; src: url("/assets/fonts/space-grotesk-500.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-weight: 600; font-style: normal; font-display: swap; src: url("/assets/fonts/space-grotesk-600.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-weight: 700; font-style: normal; font-display: swap; src: url("/assets/fonts/space-grotesk-700.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-style: normal; font-display: swap; src: url("/assets/fonts/jetbrains-mono-400.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 500; font-style: normal; font-display: swap; src: url("/assets/fonts/jetbrains-mono-500.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 600; font-style: normal; font-display: swap; src: url("/assets/fonts/jetbrains-mono-600.woff2") format("woff2"); }
+
+:root { color-scheme: dark; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body { background: #070A11; }
+.noise::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.75'/%3E%3C/svg%3E");
+}
+.grid-overlay {
+  background-image: linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size: 48px 48px; mask-image: linear-gradient(to bottom, black, transparent 82%);
+}
+.glass { background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025)); border: 1px solid rgba(255,255,255,.10); backdrop-filter: blur(22px); }
+.hairline { border: 1px solid rgba(255,255,255,.09); }
+.ambient { filter: blur(90px); opacity: .22; }
+.terminal-line { opacity: 0; transform: translateY(8px); animation: reveal .6s forwards; }
+.terminal-line:nth-child(2) { animation-delay: .7s }
+.terminal-line:nth-child(3) { animation-delay: 1.4s }
+.terminal-line:nth-child(4) { animation-delay: 2.1s }
+.terminal-line:nth-child(5) { animation-delay: 2.8s }
+@keyframes reveal { to { opacity: 1; transform: none; } }
+@keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+@keyframes flow { to { stroke-dashoffset: -28; } }
+.float { animation: float 6s ease-in-out infinite; }
+.flow-line { stroke-dasharray: 8 10; animation: flow 1.6s linear infinite; }
+.js .fade-up { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+.js .fade-up.visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .float, .flow-line, .animate-ping, .animate-pulse { animation: none !important; }
+  .terminal-line { animation: none; opacity: 1; transform: none; }
+  .js .fade-up { opacity: 1; transform: none; transition: none; }
+  html { scroll-behavior: auto; }
+}
+.skip { position: absolute; left: 12px; top: -64px; z-index: 100; background: #fff; color: #020617; padding: 10px 14px; border-radius: 10px; font-weight: 600; }
+.skip:focus { top: 12px; }
+:focus-visible { outline: 2px solid #22D3EE; outline-offset: 3px; border-radius: 6px; }
+
+/* plain document pages (privacy, about, contact) */
+.doc h1 { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: clamp(2rem, 5vw, 2.75rem); letter-spacing: -0.03em; line-height: 1.1; }
+.doc h2 { font-family: "Space Grotesk", sans-serif; font-weight: 600; font-size: 1.35rem; margin-top: 2.25rem; margin-bottom: .5rem; }
+.doc p, .doc li { color: #94A3B8; line-height: 1.8; }
+.doc p { margin-top: .9rem; }
+.doc ul { margin-top: .75rem; padding-left: 1.25rem; list-style: disc; }
+.doc li { margin-top: .35rem; }
+.doc a { color: #67E8F9; text-underline-offset: 3px; text-decoration: underline; }
+.doc a:hover { color: #fff; }
+.doc strong { color: #E2E8F0; font-weight: 600; }
+.doc .meta { color: #64748B; font-size: .9rem; margin-top: .75rem; }
