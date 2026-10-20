@@ -60,7 +60,13 @@ systemctl daemon-reload
 systemctl enable dnsleak >/dev/null
 systemctl restart dnsleak
 
-# HTTPS for the result API through Caddy (automatic certificate).
+# HTTPS for the result API through Caddy (automatic certificate). It needs ports 80 and 443.
+for port in 80 443; do
+  if ss -H -ltnp "sport = :$port" | grep -v caddy | grep -q .; then
+    echo; echo "The DNS server is installed, but port $port is already used by:"; ss -ltnp "sport = :$port"
+    echo "Free that port (or put this hostname behind the service that uses it), then re-run this script."; exit 1
+  fi
+done
 if ! command -v caddy >/dev/null; then
   apt-get install -y debian-keyring debian-archive-keyring apt-transport-https gnupg
   curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
