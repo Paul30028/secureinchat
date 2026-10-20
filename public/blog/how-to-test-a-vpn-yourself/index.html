@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070A11" />
+  <title>How to test a VPN yourself without trusting the vendor | SecureInChat</title>
+  <meta name="description" content="A short checklist for checking what a VPN does and does not hide: public IP, WebRTC, IPv6, DNS, a dropped connection, and what no test can tell you." />
+  <link rel="canonical" href="https://secureinchat.com/blog/how-to-test-a-vpn-yourself/" />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="How to test a VPN yourself without trusting the vendor | SecureInChat" />
+  <meta property="og:description" content="A short checklist for checking what a VPN does and does not hide: public IP, WebRTC, IPv6, DNS, a dropped connection, and what no test can tell you." />
+  <meta property="og:url" content="https://secureinchat.com/blog/how-to-test-a-vpn-yourself/" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="How to test a VPN yourself without trusting the vendor | SecureInChat" />
+  <meta name="twitter:description" content="A short checklist for checking what a VPN does and does not hide: public IP, WebRTC, IPv6, DNS, a dropped connection, and what no test can tell you." />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/main.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How to test a VPN yourself without trusting the vendor","description":"A short checklist for checking what a VPN does and does not hide: public IP, WebRTC, IPv6, DNS, a dropped connection, and what no test can tell you.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/how-to-test-a-vpn-yourself/"}</script>
+
+</head>
+<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
+  <a href="#top" class="skip">Skip to content</a>
+  <div class="fixed inset-0 grid-overlay pointer-events-none"></div>
+  <div class="fixed -top-24 left-[8%] w-96 h-96 rounded-full bg-indigo ambient pointer-events-none"></div>
+  <div class="fixed top-[30%] right-[4%] w-80 h-80 rounded-full bg-cyan ambient pointer-events-none"></div>
+  <div class="fixed bottom-0 left-[35%] w-96 h-80 rounded-full bg-emerald ambient pointer-events-none"></div>
+  <header class="fixed top-4 inset-x-0 z-50 px-4">
+    <nav class="max-w-7xl mx-auto glass rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between shadow-2xl" aria-label="Main">
+      <a href="/" class="flex items-center gap-3 group" aria-label="SecureInChat home">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo"><svg class="w-5 h-5 text-white" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></div>
+        <div>
+          <div class="font-display font-bold tracking-tight">SecureInChat</div>
+          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">ZERO-KNOWLEDGE RELAY</div>
+        </div>
+      </a>
+      <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
+        <a href="/#architecture" class="hover:text-white transition">Architecture</a>
+        <a href="/#security" class="hover:text-white transition">Security</a>
+        <a href="/#diagnostics" class="hover:text-white transition">Diagnostics</a>
+        <a href="/tools/" class="hover:text-white transition">Tools</a>
+        <a href="/blog/" class="hover:text-white transition text-white" aria-current="page">Blog</a>
+      </div>
+      <div class="flex items-center gap-3">
+        
+        
+      </div>
+    </nav>
+  </header>
+  <main id="top" class="relative z-10 doc max-w-3xl mx-auto px-5 sm:px-8 pt-36 pb-24">
+    <p class="meta"><a href="/blog/">Blog</a></p>
+    <h1>How to test a VPN yourself without trusting the vendor</h1>
+    <p class="meta">By Paul · 2026-10-20</p>
+    <p>A VPN vendor's page says what the product is meant to do. A few free checks show what it does on your device, on your network, today. None of them proves a provider's logging claims, and the last section says what they cannot cover.</p>
+
+    <h2>1. Compare addresses with and without the VPN</h2>
+    <p>Run the <a href="/tools/ip-leak-test/">IP leak test</a> with the VPN off and note the address and network. Turn the VPN on and run it again. The address and network should change. If they do not, the VPN is not carrying that traffic.</p>
+
+    <h2>2. Check the side routes</h2>
+    <p>The <a href="/tools/webrtc-leak-test/">WebRTC</a> and <a href="/tools/ipv6-leak-test/">IPv6</a> tests look for addresses that go around the tunnel. These are the two most common failures a browser can detect.</p>
+
+    <h2>3. Check DNS with a dedicated test</h2>
+    <p>A browser cannot see which DNS resolver answers it, so our test marks DNS as not tested. Use a DNS leak test that runs its own DNS server and compare the resolver it reports with your normal network and with the VPN. A resolver run by your internet provider while the VPN is on is a leak.</p>
+
+    <h2>4. Drop the connection</h2>
+    <p>With a page loaded, turn off the network adapter for a few seconds or disconnect the VPN manually, then see whether traffic stops. A working kill switch blocks traffic when the tunnel is down. Run the tests again after you reconnect.</p>
+
+    <h2>5. Try a second network</h2>
+    <p>Repeat on mobile data or a different Wi-Fi. Leaks often depend on the network, particularly IPv6 and UDP handling.</p>
+
+    <h2>What no test here can show</h2>
+    <ul>
+      <li>Whether the provider keeps logs. That depends on its servers, its policies and independent audits, not on anything a browser can measure.</li>
+      <li>Whether your traffic is safe once it leaves the VPN. A VPN moves where you appear to connect from. It does not make a website you log into forget who you are.</li>
+      <li>Behaviour in other apps. A browser test covers the browser. A torrent client or a game can take a different route.</li>
+    </ul>
+    <p>Treat the results as a snapshot. Re-run the checks after you update the VPN client, the browser or the operating system.</p>
+
+  </main>
+  <footer class="relative z-10 border-t border-white/10 py-8">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
+      <div>© 2026 SecureInChat. Zero-Knowledge Blind Relay Architecture.</div>
+      <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
+        <a href="/tools/" class="hover:text-white">Tools</a>
+        <a href="/blog/" class="hover:text-white">Blog</a>
+        <a href="/privacy/" class="hover:text-white">Privacy</a>
+        <a href="/about/" class="hover:text-white">About</a>
+        <a href="/contact/" class="hover:text-white">Contact</a>
+        <a href="https://github.com/Paul30028/secureinchat" class="hover:text-white" rel="noopener">GitHub</a>
+      </nav>
+      <div class="flex gap-4"><a href="/" hreflang="en" lang="en" class="hover:text-white">EN</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN" class="hover:text-white">ZH</a><a href="/ja/" hreflang="ja" lang="ja" class="hover:text-white">JA</a></div>
+    </div>
+  </footer>
+</body>
+</html>

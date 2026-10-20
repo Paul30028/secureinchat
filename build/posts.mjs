@@ -94,4 +94,96 @@ export const POSTS = [
     <p>You can see the relay's live handshake on the <a href="/#diagnostics">home page</a>. That test shows that a secure connection to the relay works; it does not prove anything about what the server does with data, and we do not present it as proof of that.</p>
 `,
   },
+  {
+    slug: 'webrtc-leak-explained',
+    title: 'WebRTC leaks explained: what a page can read and how to read your result',
+    desc: 'What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it.',
+    date: '2026-10-20',
+    body: `
+    <p>WebRTC is the browser feature behind video calls and some file-sharing sites. It is also the most common reason a VPN user sees a second address in a leak test. This post explains what the <a href="/tools/webrtc-leak-test/">WebRTC leak test</a> reports and what to do with each result.</p>
+
+    <h2>What actually happens</h2>
+    <p>To connect two browsers directly, each side needs to know which addresses it can be reached on. The browser gathers these candidates, including the address a STUN server sees. Any web page can start this process through JavaScript, and no permission prompt appears for the address lookup itself.</p>
+    <p>A VPN client usually routes ordinary web traffic through its tunnel. If the STUN request, which is UDP, leaves through your normal connection instead, the page learns an address that is not your VPN exit.</p>
+
+    <h2>Reading the result</h2>
+    <ul>
+      <li><strong>The address matches your public IP.</strong> Nothing leaks beyond what every website already sees.</li>
+      <li><strong>A different public address, with the VPN box ticked.</strong> This is a leak. A page can read your real network without asking.</li>
+      <li><strong>A name ending in <code>.local</code>.</strong> The browser hid your local address behind a random name. This is the intended behaviour.</li>
+      <li><strong>A raw local address such as 192.168.x.x.</strong> It is not reachable from the internet, but it is one more detail a tracker can use to tell you apart from other visitors.</li>
+      <li><strong>No addresses.</strong> Either WebRTC is off, or UDP to the STUN server is blocked. It means the question could not be asked, not that you are certain to be safe.</li>
+    </ul>
+
+    <h2>Closing a leak</h2>
+    <p>The options differ by browser. Firefox lets you turn WebRTC off in <code>about:config</code> by setting <code>media.peerconnection.enabled</code> to false, at the cost of browser video calls. Chrome and Edge have no built-in switch, but an extension can restrict WebRTC to the default public interface. Brave has a WebRTC IP handling policy in its privacy settings. A VPN client with a kill switch that blocks all traffic outside the tunnel, UDP included, can close the leak for every browser at once.</p>
+    <p>After any change, run the test again. The result is the only proof that matters, because settings and extensions change between versions.</p>
+
+    <h2>What this test cannot tell you</h2>
+    <p>It runs from one browser on one network at one moment. A different browser, or the same device on a different network, can behave differently. It also does not test DNS, which a web page cannot observe. For the rest of the checks, use the <a href="/tools/ip-leak-test/">full IP leak test</a>, and read <a href="/blog/how-the-ip-leak-test-works/">how it works</a> for what each check can and cannot see.</p>
+`,
+  },
+  {
+    slug: 'ipv6-leaks-explained',
+    title: 'IPv6 leaks explained: why a VPN can show one address and expose another',
+    desc: 'Why a connection with both IPv4 and IPv6 can leak around a VPN that tunnels only IPv4, how the IPv6 leak test decides, and the fixes in order of preference.',
+    date: '2026-10-20',
+    body: `
+    <p>Many people check one number, the IP address a website shows, and stop when it matches their VPN. That number can be an IPv4 address while a second, IPv6 address goes out another way. The <a href="/tools/ipv6-leak-test/">IPv6 leak test</a> checks for exactly that.</p>
+
+    <h2>Two addresses, two routes</h2>
+    <p>A device on a modern home or mobile network usually has an IPv4 address and an IPv6 address. When a website supports both, the system prefers IPv6. A VPN that creates a tunnel only for IPv4 leaves the IPv6 route untouched, so connections to IPv6-capable sites bypass it.</p>
+
+    <h2>How the test decides</h2>
+    <p>The page asks one lookup service for your IPv4 address and another for your IPv6 address. It then looks up which network owns each. If both belong to the same network, both routes share an exit. If they belong to different networks while you say you are using a VPN, IPv6 is leaving outside it.</p>
+    <p>If the lookup that names the network fails, the result is a warning rather than a pass, because the test has not shown the addresses are on the same network.</p>
+
+    <h2>Caveats</h2>
+    <ul>
+      <li>Network names come from IP data. Two networks run by one company can have different names, and records can be out of date, so treat a mismatch as a reason to look closer.</li>
+      <li>No IPv6 address in the result means your network did not reach the internet over IPv6 during the test. For leak purposes that is a pass, because there is nothing to leak.</li>
+      <li>The result is for one browser, one network and one moment.</li>
+    </ul>
+
+    <h2>Fixes, in order of preference</h2>
+    <ol>
+      <li>Turn on IPv6 leak protection in your VPN client, or use a VPN that tunnels IPv6.</li>
+      <li>Enable the client's kill switch so nothing leaves outside the tunnel.</li>
+      <li>As a last resort, disable IPv6 on your network adapter or router. This removes a working connection, so undo it when you stop using the VPN.</li>
+    </ol>
+    <p>Run the test again after each change. Then check <a href="/tools/webrtc-leak-test/">WebRTC</a>, which is a separate route around a tunnel.</p>
+`,
+  },
+  {
+    slug: 'how-to-test-a-vpn-yourself',
+    title: 'How to test a VPN yourself without trusting the vendor',
+    desc: 'A short checklist for checking what a VPN does and does not hide: public IP, WebRTC, IPv6, DNS, a dropped connection, and what no test can tell you.',
+    date: '2026-10-20',
+    body: `
+    <p>A VPN vendor's page says what the product is meant to do. A few free checks show what it does on your device, on your network, today. None of them proves a provider's logging claims, and the last section says what they cannot cover.</p>
+
+    <h2>1. Compare addresses with and without the VPN</h2>
+    <p>Run the <a href="/tools/ip-leak-test/">IP leak test</a> with the VPN off and note the address and network. Turn the VPN on and run it again. The address and network should change. If they do not, the VPN is not carrying that traffic.</p>
+
+    <h2>2. Check the side routes</h2>
+    <p>The <a href="/tools/webrtc-leak-test/">WebRTC</a> and <a href="/tools/ipv6-leak-test/">IPv6</a> tests look for addresses that go around the tunnel. These are the two most common failures a browser can detect.</p>
+
+    <h2>3. Check DNS with a dedicated test</h2>
+    <p>A browser cannot see which DNS resolver answers it, so our test marks DNS as not tested. Use a DNS leak test that runs its own DNS server and compare the resolver it reports with your normal network and with the VPN. A resolver run by your internet provider while the VPN is on is a leak.</p>
+
+    <h2>4. Drop the connection</h2>
+    <p>With a page loaded, turn off the network adapter for a few seconds or disconnect the VPN manually, then see whether traffic stops. A working kill switch blocks traffic when the tunnel is down. Run the tests again after you reconnect.</p>
+
+    <h2>5. Try a second network</h2>
+    <p>Repeat on mobile data or a different Wi-Fi. Leaks often depend on the network, particularly IPv6 and UDP handling.</p>
+
+    <h2>What no test here can show</h2>
+    <ul>
+      <li>Whether the provider keeps logs. That depends on its servers, its policies and independent audits, not on anything a browser can measure.</li>
+      <li>Whether your traffic is safe once it leaves the VPN. A VPN moves where you appear to connect from. It does not make a website you log into forget who you are.</li>
+      <li>Behaviour in other apps. A browser test covers the browser. A torrent client or a game can take a different route.</li>
+    </ul>
+    <p>Treat the results as a snapshot. Re-run the checks after you update the VPN client, the browser or the operating system.</p>
+`,
+  },
 ];

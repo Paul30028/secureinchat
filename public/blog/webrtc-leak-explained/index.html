@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070A11" />
+  <title>WebRTC leaks explained: what a page can read and how to read your result | SecureInChat</title>
+  <meta name="description" content="What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it." />
+  <link rel="canonical" href="https://secureinchat.com/blog/webrtc-leak-explained/" />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="WebRTC leaks explained: what a page can read and how to read your result | SecureInChat" />
+  <meta property="og:description" content="What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it." />
+  <meta property="og:url" content="https://secureinchat.com/blog/webrtc-leak-explained/" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="WebRTC leaks explained: what a page can read and how to read your result | SecureInChat" />
+  <meta name="twitter:description" content="What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it." />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/main.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"WebRTC leaks explained: what a page can read and how to read your result","description":"What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/webrtc-leak-explained/"}</script>
+
+</head>
+<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
+  <a href="#top" class="skip">Skip to content</a>
+  <div class="fixed inset-0 grid-overlay pointer-events-none"></div>
+  <div class="fixed -top-24 left-[8%] w-96 h-96 rounded-full bg-indigo ambient pointer-events-none"></div>
+  <div class="fixed top-[30%] right-[4%] w-80 h-80 rounded-full bg-cyan ambient pointer-events-none"></div>
+  <div class="fixed bottom-0 left-[35%] w-96 h-80 rounded-full bg-emerald ambient pointer-events-none"></div>
+  <header class="fixed top-4 inset-x-0 z-50 px-4">
+    <nav class="max-w-7xl mx-auto glass rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between shadow-2xl" aria-label="Main">
+      <a href="/" class="flex items-center gap-3 group" aria-label="SecureInChat home">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo"><svg class="w-5 h-5 text-white" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></div>
+        <div>
+          <div class="font-display font-bold tracking-tight">SecureInChat</div>
+          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">ZERO-KNOWLEDGE RELAY</div>
+        </div>
+      </a>
+      <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
+        <a href="/#architecture" class="hover:text-white transition">Architecture</a>
+        <a href="/#security" class="hover:text-white transition">Security</a>
+        <a href="/#diagnostics" class="hover:text-white transition">Diagnostics</a>
+        <a href="/tools/" class="hover:text-white transition">Tools</a>
+        <a href="/blog/" class="hover:text-white transition text-white" aria-current="page">Blog</a>
+      </div>
+      <div class="flex items-center gap-3">
+        
+        
+      </div>
+    </nav>
+  </header>
+  <main id="top" class="relative z-10 doc max-w-3xl mx-auto px-5 sm:px-8 pt-36 pb-24">
+    <p class="meta"><a href="/blog/">Blog</a></p>
+    <h1>WebRTC leaks explained: what a page can read and how to read your result</h1>
+    <p class="meta">By Paul · 2026-10-20</p>
+    <p>WebRTC is the browser feature behind video calls and some file-sharing sites. It is also the most common reason a VPN user sees a second address in a leak test. This post explains what the <a href="/tools/webrtc-leak-test/">WebRTC leak test</a> reports and what to do with each result.</p>
+
+    <h2>What actually happens</h2>
+    <p>To connect two browsers directly, each side needs to know which addresses it can be reached on. The browser gathers these candidates, including the address a STUN server sees. Any web page can start this process through JavaScript, and no permission prompt appears for the address lookup itself.</p>
+    <p>A VPN client usually routes ordinary web traffic through its tunnel. If the STUN request, which is UDP, leaves through your normal connection instead, the page learns an address that is not your VPN exit.</p>
+
+    <h2>Reading the result</h2>
+    <ul>
+      <li><strong>The address matches your public IP.</strong> Nothing leaks beyond what every website already sees.</li>
+      <li><strong>A different public address, with the VPN box ticked.</strong> This is a leak. A page can read your real network without asking.</li>
+      <li><strong>A name ending in <code>.local</code>.</strong> The browser hid your local address behind a random name. This is the intended behaviour.</li>
+      <li><strong>A raw local address such as 192.168.x.x.</strong> It is not reachable from the internet, but it is one more detail a tracker can use to tell you apart from other visitors.</li>
+      <li><strong>No addresses.</strong> Either WebRTC is off, or UDP to the STUN server is blocked. It means the question could not be asked, not that you are certain to be safe.</li>
+    </ul>
+
+    <h2>Closing a leak</h2>
+    <p>The options differ by browser. Firefox lets you turn WebRTC off in <code>about:config</code> by setting <code>media.peerconnection.enabled</code> to false, at the cost of browser video calls. Chrome and Edge have no built-in switch, but an extension can restrict WebRTC to the default public interface. Brave has a WebRTC IP handling policy in its privacy settings. A VPN client with a kill switch that blocks all traffic outside the tunnel, UDP included, can close the leak for every browser at once.</p>
+    <p>After any change, run the test again. The result is the only proof that matters, because settings and extensions change between versions.</p>
+
+    <h2>What this test cannot tell you</h2>
+    <p>It runs from one browser on one network at one moment. A different browser, or the same device on a different network, can behave differently. It also does not test DNS, which a web page cannot observe. For the rest of the checks, use the <a href="/tools/ip-leak-test/">full IP leak test</a>, and read <a href="/blog/how-the-ip-leak-test-works/">how it works</a> for what each check can and cannot see.</p>
+
+  </main>
+  <footer class="relative z-10 border-t border-white/10 py-8">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
+      <div>© 2026 SecureInChat. Zero-Knowledge Blind Relay Architecture.</div>
+      <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
+        <a href="/tools/" class="hover:text-white">Tools</a>
+        <a href="/blog/" class="hover:text-white">Blog</a>
+        <a href="/privacy/" class="hover:text-white">Privacy</a>
+        <a href="/about/" class="hover:text-white">About</a>
+        <a href="/contact/" class="hover:text-white">Contact</a>
+        <a href="https://github.com/Paul30028/secureinchat" class="hover:text-white" rel="noopener">GitHub</a>
+      </nav>
+      <div class="flex gap-4"><a href="/" hreflang="en" lang="en" class="hover:text-white">EN</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN" class="hover:text-white">ZH</a><a href="/ja/" hreflang="ja" lang="ja" class="hover:text-white">JA</a></div>
+    </div>
+  </footer>
+</body>
+</html>
