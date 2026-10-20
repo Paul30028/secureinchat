@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070A11" />
+  <title>IP and DNS leak test sites compared: ipleak.net, BrowserLeaks, dnsleaktest and SecureInChat | SecureInChat</title>
+  <meta name="description" content="A plain comparison of four leak test sites: what each one tests, what it says about data handling, and which to use for which job. Includes what ours cannot do." />
+  <link rel="canonical" href="https://secureinchat.com/blog/leak-test-sites-compared/" />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="IP and DNS leak test sites compared: ipleak.net, BrowserLeaks, dnsleaktest and SecureInChat | SecureInChat" />
+  <meta property="og:description" content="A plain comparison of four leak test sites: what each one tests, what it says about data handling, and which to use for which job. Includes what ours cannot do." />
+  <meta property="og:url" content="https://secureinchat.com/blog/leak-test-sites-compared/" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="IP and DNS leak test sites compared: ipleak.net, BrowserLeaks, dnsleaktest and SecureInChat | SecureInChat" />
+  <meta name="twitter:description" content="A plain comparison of four leak test sites: what each one tests, what it says about data handling, and which to use for which job. Includes what ours cannot do." />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/main.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"IP and DNS leak test sites compared: ipleak.net, BrowserLeaks, dnsleaktest and SecureInChat","description":"A plain comparison of four leak test sites: what each one tests, what it says about data handling, and which to use for which job. Includes what ours cannot do.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/leak-test-sites-compared/"}</script>
+
+</head>
+<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
+  <a href="#top" class="skip">Skip to content</a>
+  <div class="fixed inset-0 grid-overlay pointer-events-none"></div>
+  <div class="fixed -top-24 left-[8%] w-96 h-96 rounded-full bg-indigo ambient pointer-events-none"></div>
+  <div class="fixed top-[30%] right-[4%] w-80 h-80 rounded-full bg-cyan ambient pointer-events-none"></div>
+  <div class="fixed bottom-0 left-[35%] w-96 h-80 rounded-full bg-emerald ambient pointer-events-none"></div>
+  <header class="fixed top-4 inset-x-0 z-50 px-4">
+    <nav class="max-w-7xl mx-auto glass rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between shadow-2xl" aria-label="Main">
+      <a href="/" class="flex items-center gap-3 group" aria-label="SecureInChat home">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo"><svg class="w-5 h-5 text-white" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></div>
+        <div>
+          <div class="font-display font-bold tracking-tight">SecureInChat</div>
+          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">ZERO-KNOWLEDGE RELAY</div>
+        </div>
+      </a>
+      <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
+        <a href="/#architecture" class="hover:text-white transition">Architecture</a>
+        <a href="/#security" class="hover:text-white transition">Security</a>
+        <a href="/#diagnostics" class="hover:text-white transition">Diagnostics</a>
+        <a href="/tools/" class="hover:text-white transition">Tools</a>
+        <a href="/blog/" class="hover:text-white transition text-white" aria-current="page">Blog</a>
+      </div>
+      <div class="flex items-center gap-3">
+        
+        
+      </div>
+    </nav>
+  </header>
+  <main id="top" class="relative z-10 doc max-w-3xl mx-auto px-5 sm:px-8 pt-36 pb-24">
+    <p class="meta"><a href="/blog/">Blog</a></p>
+    <h1>IP and DNS leak test sites compared: ipleak.net, BrowserLeaks, dnsleaktest and SecureInChat</h1>
+    <p class="meta">By Paul · 2026-10-20</p>
+    <p>Several free sites test whether a VPN or proxy leaks. They overlap, but they are not the same. This comparison is based on what each site says about itself on its own pages when we checked, and on our own tool. Sites change, so check the page if something here matters to you.</p>
+
+    <h2>At a glance</h2>
+    <table>
+      <thead><tr><th>Site</th><th>Tests it lists</th><th>What it says about data</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://ipleak.net/" rel="noopener">ipleak.net</a></td><td>IP details, WebRTC, DNS, a torrent address test, geolocation, browser details, HTTP headers, a free API</td><td>No logging or retention policy on the page we read. The torrent test records what the client sends, by design. It says it is powered by AirVPN.</td></tr>
+        <tr><td><a href="https://browserleaks.com/" rel="noopener">BrowserLeaks</a></td><td>IP, WebRTC, DNS and IPv6 checks, plus a long list of browser tests: canvas, WebGL, fonts, geolocation, TLS and more</td><td>Its privacy policy says it does not collect personal data or store fingerprints, and that some third-party services may be active.</td></tr>
+        <tr><td><a href="https://www.dnsleaktest.com/" rel="noopener">dnsleaktest.com</a></td><td>A DNS leak test</td><td>The page does not say who runs it. A footer link names IVPN Limited.</td></tr>
+        <tr><td>SecureInChat</td><td><a href="/tools/ip-leak-test/">IP, DNS, WebRTC and IPv6 leak tests</a>, plus a <a href="/tools/browser-fingerprint-test/">fingerprint test</a>, <a href="/tools/photo-metadata-remover/">photo metadata remover</a>, <a href="/tools/password-checker/">password checker</a> and <a href="/tools/text-redactor/">text redactor</a></td><td>Everything is listed on one <a href="/principles/">privacy principles</a> page. No cookies, no accounts, no stored results.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Which to use for what</h2>
+    <ul>
+      <li><strong>The widest set of browser tests:</strong> BrowserLeaks. If you want to see canvas, WebGL, fonts and TLS details, it covers far more than we do.</li>
+      <li><strong>A torrent address check or an API:</strong> ipleak.net. We have neither.</li>
+      <li><strong>Only a DNS check:</strong> dnsleaktest.com is a single-purpose page.</li>
+      <li><strong>One page that compares your resolver with your exit address and explains each verdict in plain language:</strong> that is what our <a href="/tools/ip-leak-test/">IP leak test</a> is for.</li>
+    </ul>
+
+    <h2>What ours does not do</h2>
+    <p>We are new and small. We have no torrent test, no API and far fewer browser tests than BrowserLeaks. Our DNS check runs on a single server, so it tells you which resolvers answer you, not who runs them. A pass is not proof of anonymity on any of these sites.</p>
+
+    <h2>Use more than one</h2>
+    <p>Tests can disagree because they ask different questions and use different data sources for locations and networks. If two sites give different answers, that is information. <a href="/blog/how-to-test-a-vpn-yourself/">How to test a VPN yourself</a> explains the steps, and <a href="/blog/dns-leaks-explained/">DNS leaks explained</a> covers how to read a DNS result.</p>
+
+  </main>
+  <footer class="relative z-10 border-t border-white/10 py-8">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
+      <div>© 2026 SecureInChat. Zero-Knowledge Blind Relay Architecture.</div>
+      <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
+        <a href="/tools/" class="hover:text-white">Tools</a>
+        <a href="/blog/" class="hover:text-white">Blog</a>
+        <a href="/privacy/" class="hover:text-white">Privacy</a>
+        <a href="/about/" class="hover:text-white">About</a>
+        <a href="/contact/" class="hover:text-white">Contact</a>
+        <a href="https://github.com/Paul30028/secureinchat" class="hover:text-white" rel="noopener">GitHub</a>
+      </nav>
+      <div class="flex gap-4"><a href="/" hreflang="en" lang="en" class="hover:text-white">EN</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN" class="hover:text-white">ZH</a><a href="/ja/" hreflang="ja" lang="ja" class="hover:text-white">JA</a></div>
+    </div>
+  </footer>
+</body>
+</html>

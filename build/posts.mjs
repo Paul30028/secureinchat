@@ -292,4 +292,38 @@ export const POSTS = [
     </ul>
 `,
   },
+  {
+    slug: 'leak-test-sites-compared',
+    title: 'IP and DNS leak test sites compared: ipleak.net, BrowserLeaks, dnsleaktest and SecureInChat',
+    desc: 'A plain comparison of four leak test sites: what each one tests, what it says about data handling, and which to use for which job. Includes what ours cannot do.',
+    date: '2026-10-20',
+    body: `
+    <p>Several free sites test whether a VPN or proxy leaks. They overlap, but they are not the same. This comparison is based on what each site says about itself on its own pages when we checked, and on our own tool. Sites change, so check the page if something here matters to you.</p>
+
+    <h2>At a glance</h2>
+    <table>
+      <thead><tr><th>Site</th><th>Tests it lists</th><th>What it says about data</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://ipleak.net/" rel="noopener">ipleak.net</a></td><td>IP details, WebRTC, DNS, a torrent address test, geolocation, browser details, HTTP headers, a free API</td><td>No logging or retention policy on the page we read. The torrent test records what the client sends, by design. It says it is powered by AirVPN.</td></tr>
+        <tr><td><a href="https://browserleaks.com/" rel="noopener">BrowserLeaks</a></td><td>IP, WebRTC, DNS and IPv6 checks, plus a long list of browser tests: canvas, WebGL, fonts, geolocation, TLS and more</td><td>Its privacy policy says it does not collect personal data or store fingerprints, and that some third-party services may be active.</td></tr>
+        <tr><td><a href="https://www.dnsleaktest.com/" rel="noopener">dnsleaktest.com</a></td><td>A DNS leak test</td><td>The page does not say who runs it. A footer link names IVPN Limited.</td></tr>
+        <tr><td>SecureInChat</td><td><a href="/tools/ip-leak-test/">IP, DNS, WebRTC and IPv6 leak tests</a>, plus a <a href="/tools/browser-fingerprint-test/">fingerprint test</a>, <a href="/tools/photo-metadata-remover/">photo metadata remover</a>, <a href="/tools/password-checker/">password checker</a> and <a href="/tools/text-redactor/">text redactor</a></td><td>Everything is listed on one <a href="/principles/">privacy principles</a> page. No cookies, no accounts, no stored results.</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Which to use for what</h2>
+    <ul>
+      <li><strong>The widest set of browser tests:</strong> BrowserLeaks. If you want to see canvas, WebGL, fonts and TLS details, it covers far more than we do.</li>
+      <li><strong>A torrent address check or an API:</strong> ipleak.net. We have neither.</li>
+      <li><strong>Only a DNS check:</strong> dnsleaktest.com is a single-purpose page.</li>
+      <li><strong>One page that compares your resolver with your exit address and explains each verdict in plain language:</strong> that is what our <a href="/tools/ip-leak-test/">IP leak test</a> is for.</li>
+    </ul>
+
+    <h2>What ours does not do</h2>
+    <p>We are new and small. We have no torrent test, no API and far fewer browser tests than BrowserLeaks. Our DNS check runs on a single server, so it tells you which resolvers answer you, not who runs them. A pass is not proof of anonymity on any of these sites.</p>
+
+    <h2>Use more than one</h2>
+    <p>Tests can disagree because they ask different questions and use different data sources for locations and networks. If two sites give different answers, that is information. <a href="/blog/how-to-test-a-vpn-yourself/">How to test a VPN yourself</a> explains the steps, and <a href="/blog/dns-leaks-explained/">DNS leaks explained</a> covers how to read a DNS result.</p>
+`,
+  },
 ];
