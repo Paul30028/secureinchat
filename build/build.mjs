@@ -417,7 +417,10 @@ const CONTACT = `    <h1>Contact</h1>
     <p>The fastest way to reach us is to open an issue in the public repository. It works for bug reports, factual corrections, tool feedback and privacy questions.</p>
     <ul>
       <li><a href="${REPO}/issues" rel="noopener">Open an issue on GitHub</a></li>
+      <li>Email: <a href="mailto:x@secureinchat.com">x@secureinchat.com</a></li>
     </ul>
+    <h2>Sponsorship and partnerships</h2>
+    <p>VPN, proxy and privacy-tool vendors can sponsor the free tools by email. Any sponsored or affiliate placement is labelled as such and never changes a test result.</p>
     <p>Please do not post sensitive personal information in a public issue. We will never ask for passwords, keys or private messages.</p>
 `;
 
