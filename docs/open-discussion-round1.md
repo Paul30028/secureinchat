@@ -22,3 +22,19 @@ Taxes/legal status of a mainland-China resident selling abroad; platform ToS on 
 
 ## Next (AI side)
 Public-data research on developer-template/kit demand (marketplaces, GitHub stars, Gumroad/Lemon Squeezy listings, forum requests); define 2-3 concrete product specs; reassess video as distribution once a product exists.
+
+---
+# Research note: developer starter-kit demand (public data, 2026-10-20)
+- Market is crowded: starterindex.com lists 3,115 boilerplates/starter kits (page gives no count for Cloudflare Workers / security / chat / auth; it does not show those as categories).
+- One public case found: Dirstarter (Next.js directory boilerplate), ~US$5,000/month, 180+ customers (Indie Hackers post; self-reported, price not stated). Its author first built a directory that reportedly reached 100,000 users in its first week, then sold the codebase to copycats. The audience came BEFORE the product.
+- Vendor blog (Dodo Payments, promotes its own platform): typical personal licence US$100-300; tiers personal/team/enterprise; one-time fee plus optional update subscription; merchant-of-record handles tax; docs + support channel needed; no-refund vs 14-day guarantee is a choice. Not independent.
+- Search for paid E2E-chat starter kits returned mostly free open-source repos (GitHub, Convex template), suggesting free substitutes are plentiful.
+
+## Reading
+- The single case does not show a no-audience path; it shows audience-first. We have no audience, so a template alone would face the same distribution problem as the tools site.
+- Free competition is large; differentiation would have to be a specific, tested, well-documented kit.
+- Not tested: whether anyone wants a "Cloudflare Worker + privacy tools" kit. No evidence either way.
+- Payout/licensing mechanics are for the owner; recorded only as dependency.
+
+## Implication for next step
+Do not build a kit yet. First test demand cheaply: which existing free repos/templates of this kind get stars/forks/issues (public signal), and whether a free "lite" release brings any inbound interest. Ask ChatGPT/Grok to critique.
