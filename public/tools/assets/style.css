@@ -216,3 +216,12 @@ tr[data-status="running"] .pill::before { background: var(--accent); border-radi
 .genbox { font-size: 1.25rem; overflow-wrap: anywhere; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: min(100%, 22rem); }
 .gen-controls { margin-top: 16px; }
 .gen-controls input[type="range"] { width: 12rem; max-width: 100%; accent-color: var(--accent); }
+
+/* text redactor */
+.rd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 8px; }
+@media (max-width: 760px) { .rd-grid { grid-template-columns: 1fr; } }
+.rd-grid label { display: block; font-weight: 700; margin-bottom: 6px; }
+.rd-text { width: 100%; box-sizing: border-box; min-height: 14rem; resize: vertical; font: 400 1rem/1.5 var(--mono); padding: 12px 14px; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 8px; }
+.rd-text:focus-visible { border-color: var(--accent); }
+.rd-rules { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 10px 0 0; }
+.rd-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }

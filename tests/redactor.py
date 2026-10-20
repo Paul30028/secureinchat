@@ -1,0 +1,39 @@
+import http.server, threading, socketserver, os, re
+from playwright.sync_api import sync_playwright
+ROOT = os.path.join(os.path.dirname(__file__), '..', 'public')
+csp = re.search(r'/tools/\*\n\s*Content-Security-Policy: (.*)', open(os.path.join(ROOT, '_headers')).read()).group(1)
+class H(http.server.SimpleHTTPRequestHandler):
+    def __init__(s, *a, **k): super().__init__(*a, directory=ROOT, **k)
+    def end_headers(s): s.send_header('Content-Security-Policy', csp); super().end_headers()
+    def log_message(s, *a): pass
+srv = socketserver.TCPServer(('127.0.0.1', 0), H); port = srv.server_address[1]
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+fails = []
+def ok(c, m):
+    print(('ok   ' if c else 'FAIL ') + m)
+    if not c: fails.append(m)
+with sync_playwright() as p:
+    b = p.chromium.launch(); pg = b.new_page(viewport={'width': 1280, 'height': 800}); errs = []; reqs = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.on('console', lambda m: errs.append(m.text) if 'Content Security' in m.text else None)
+    pg.on('request', lambda r: reqs.append(r.url) if not r.url.startswith(f'http://127.0.0.1:{port}') else None)
+    pg.goto(f'http://127.0.0.1:{port}/tools/text-redactor/')
+    ok(pg.is_disabled('#rd-copy'), 'copy disabled when empty')
+    pg.fill('#rd-in', 'Contact bob@example.com from 10.0.0.5 (+1 415-555-0132). Again bob@example.com. Card 4111 1111 1111 1111.')
+    out = pg.input_value('#rd-out')
+    ok(out == 'Contact [EMAIL_1] from [IPV4_1] ([PHONE_1]). Again [EMAIL_1]. Card [CARD_1].', 'redacts and reuses placeholders: ' + out)
+    ok(pg.locator('#rows tr').count() == 4, 'one row per category found')
+    ok('replaced' in pg.inner_text('#summary'), 'summary reports count')
+    pg.uncheck('#rule-email')
+    ok('bob@example.com' in pg.input_value('#rd-out'), 'unchecking a rule leaves those items')
+    pg.fill('#rd-in', 'nothing personal here')
+    ok('Nothing matched' in pg.inner_text('#summary'), 'warns that no match is not proof of safety')
+    pg.click('#rd-clear')
+    ok(pg.input_value('#rd-in') == '' and pg.is_disabled('#rd-copy'), 'clear resets')
+    ok(not reqs, 'no external requests')
+    ok(not errs, 'no page or CSP errors ' + str(errs))
+    pg.set_viewport_size({'width': 390, 'height': 800})
+    ok(pg.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'no overflow at 390px')
+    b.close()
+print('REDACTOR PAGE ' + ('FAILED' if fails else 'PASSED'))
+raise SystemExit(1 if fails else 0)
