@@ -1,6 +1,124 @@
 // Blog posts. Body is HTML using the .doc styles. Keep claims verifiable and scoped.
 export const POSTS = [
   {
+    slug: 'bank-statement-before-ai-upload',
+    title: 'Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses',
+    desc: 'We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant.',
+    date: '2026-10-20',
+    body: `
+    <p>Many people ask an AI assistant to summarise a bank or card statement. Before you do, decide what the assistant needs to see. This page does not claim what any AI provider does with uploads: policies differ and change, so read the provider's current data-controls page. It covers the part you control, which is what you hand over.</p>
+
+    <h2>What we tested</h2>
+    <p>We wrote a fake statement and ran it through our <a href="/tools/text-redactor/">text redactor</a>, which works in your browser and uploads nothing. The made-up input had a name, a street address, an account number, a sort code, an IBAN, a card number, an email, a phone number and two transactions.</p>
+    <ul>
+      <li><strong>Found and replaced:</strong> the card number (after a checksum check), the email address and the phone number. After this test we also added IBAN detection, with the standard checksum, so a valid IBAN is now replaced too.</li>
+      <li><strong>Not found:</strong> the account holder's name, the street address, the plain account number, the sort code, the employer in the payroll line and the names of people paid. These have no fixed pattern, so a pattern tool cannot know them.</li>
+    </ul>
+    <p>That is the honest limit of any automatic redaction: it finds formats, not meaning. Read the result yourself.</p>
+
+    <h2>Remove by hand before you share</h2>
+    <ul>
+      <li>Your name and address, and the names of people you pay or receive from.</li>
+      <li>Account numbers, sort codes, routing numbers and IBANs. Card numbers, even partial ones.</li>
+      <li>Reference numbers, customer IDs and anything that identifies the statement or the account.</li>
+      <li>Employer names in payroll lines, and unusual merchant names that point to where you live or work.</li>
+    </ul>
+
+    <h2>A safer way to ask</h2>
+    <ol>
+      <li>Copy only the lines you need, not the whole document. A PDF cannot be pasted into our tool as a file; copy the text out of it.</li>
+      <li>Run the text through the redactor, then read the output and replace names and addresses yourself, for example with [NAME] and [ADDRESS].</li>
+      <li>Ask the question about the pattern, such as "which of these are subscriptions", rather than uploading the original.</li>
+    </ol>
+
+    <h2>What this does not do</h2>
+    <p>It does not make an upload safe, and it does not remove information that can be worked out from context. If a statement is truly sensitive, think twice about sharing it at all. Related: <a href="/blog/redact-text-before-you-share-it/">redact text before you share it</a>.</p>`,
+  },
+  {
+    slug: 'photo-before-ai-upload',
+    title: 'What a photo reveals when you upload it to an AI chatbot, and how to remove it first',
+    desc: 'Phone photos usually carry hidden EXIF data such as GPS position, device and time. What it contains, what removal does and does not cover, and a step-by-step way to clean a photo in your browser before you upload it.',
+    date: '2026-10-20',
+    body: `
+    <p>When you send a photo to an AI assistant, you send the picture and, unless something removed it, the hidden data stored in the file. We do not claim what a given provider keeps or ignores; that varies and changes. What you can control is what the file contains.</p>
+
+    <h2>What is hidden in a phone photo</h2>
+    <p>Phone and camera JPEGs usually carry EXIF data: the device make and model, the date and time, often GPS coordinates, and sometimes the software, lens or a serial number. You can see it with our <a href="/tools/photo-metadata-remover/">photo metadata remover</a>, which reads the file in your browser and never uploads it.</p>
+
+    <h2>How to clean a photo before you upload it</h2>
+    <ol>
+      <li>Open the photo metadata remover and choose the photo. It shows the GPS location, device and dates found in a JPEG.</li>
+      <li>Save the clean copy. The page redraws the image onto a blank canvas and saves that as a new file, then re-reads the new JPEG to check no EXIF is left.</li>
+      <li>Upload the clean copy instead of the original.</li>
+    </ol>
+
+    <h2>What this does not remove</h2>
+    <ul>
+      <li>Anything visible in the picture: a street sign, a house number, a face, a landmark, a document on a desk, or a screen with text on it.</li>
+      <li>Formats it cannot read: HEIC and animated images are not supported; JPEG, PNG and WebP are.</li>
+      <li>A small quality loss is possible when a JPEG is re-encoded, and the colour profile is dropped.</li>
+    </ul>
+    <p>So before you upload, also look at the picture itself: crop or cover anything that identifies where you are or who is in it. Related: <a href="/tools/text-redactor/">text redactor</a> for the text you paste next to it.</p>`,
+  },
+  {
+    slug: 'cv-before-ai-upload',
+    title: 'Before you paste your CV into an AI tool: what to take out',
+    desc: 'A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to improve it, and what automatic redaction can and cannot do.',
+    date: '2026-10-20',
+    body: `
+    <p>People paste CVs into AI assistants to get them rewritten or tailored. A CV is dense with personal data. We make no claim about what any provider does with it; check the current data-controls page of the service you use. Here is what you control.</p>
+
+    <h2>What a CV usually contains</h2>
+    <ul>
+      <li>Full name, email, phone number, home address and links to profiles.</li>
+      <li>Employers, job titles and dates, which together can identify you even without your name.</li>
+      <li>Sometimes date of birth, nationality, photo, and references with their contact details.</li>
+    </ul>
+
+    <h2>What to take out first</h2>
+    <ol>
+      <li>Run the text through our <a href="/tools/text-redactor/">text redactor</a> in your browser. It replaces emails and phone numbers with placeholders. Nothing is uploaded.</li>
+      <li>Replace your name and address with [NAME] and [ADDRESS] yourself. A pattern tool does not recognise names or street addresses.</li>
+      <li>Generalise identifying details if the task allows it: "a mid-size UK retailer" instead of the employer's name.</li>
+      <li>Leave out references' contact details and anything you would not post publicly.</li>
+    </ol>
+
+    <h2>Put the details back afterwards</h2>
+    <p>The redactor gives equal values the same placeholder, such as [EMAIL_1], so the improved text keeps its structure. When the assistant returns the text, put your real details back by hand.</p>
+
+    <h2>Limits</h2>
+    <p>Redaction finds formats, not meaning, so read the result. Rewriting a CV without personal data does not stop the content itself from being yours: unusual projects or employers can still point to you.</p>`,
+  },
+  {
+    slug: 'before-you-paste-into-ai-checklist',
+    title: 'A one-minute checklist before you paste anything into an AI assistant',
+    desc: 'A short checklist of what to remove before pasting text, documents or photos into an AI assistant, with the free browser tools that help and the things no tool can find for you.',
+    date: '2026-10-20',
+    body: `
+    <p>This list is about what you hand over, not about any provider's promises, which differ and change. Spend a minute on it before you paste or upload.</p>
+
+    <h2>The checklist</h2>
+    <ol>
+      <li><strong>Do you need to share the original at all?</strong> Often a few lines or a described pattern is enough.</li>
+      <li><strong>Secrets:</strong> API keys, tokens, passwords in connection strings, private keys. Rotate any secret that has already been pasted somewhere.</li>
+      <li><strong>Contact data:</strong> emails, phone numbers, addresses. Replace them with placeholders.</li>
+      <li><strong>Financial data:</strong> card numbers, IBANs, account numbers, statements.</li>
+      <li><strong>Other people's data:</strong> names, messages and details of people who did not agree to be shared.</li>
+      <li><strong>Photos:</strong> hidden location, device and time data, and anything visible in the picture that gives away where you are.</li>
+      <li><strong>Work material:</strong> check your employer's rules before pasting internal or client documents.</li>
+    </ol>
+
+    <h2>Tools that help (they run in your browser and upload nothing)</h2>
+    <ul>
+      <li><a href="/tools/text-redactor/">Text redactor</a>: emails, phone numbers, IP and MAC addresses, card numbers, IBANs, common API key formats and private key blocks.</li>
+      <li><a href="/tools/photo-metadata-remover/">Photo metadata remover</a>: shows and removes EXIF data in JPEG, PNG and WebP photos.</li>
+    </ul>
+
+    <h2>What no tool can find for you</h2>
+    <p>Names, street addresses, plain account numbers, employer names and anything that only makes sense in context. Read the text again before you send it. More detail: <a href="/blog/bank-statement-before-ai-upload/">bank statements</a>, <a href="/blog/cv-before-ai-upload/">CVs</a>, <a href="/blog/photo-before-ai-upload/">photos</a>.</p>`,
+  },
+
+  {
     slug: 'how-the-ip-leak-test-works',
     title: 'How the IP leak test works, and what it cannot see',
     desc: 'The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch.',

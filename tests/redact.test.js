@@ -17,4 +17,6 @@ t('url credentials keep host', () => { assert.strictEqual(redact('postgres://use
 t('mac', () => { assert.strictEqual(redact('aa:bb:cc:dd:ee:ff').text, '[MAC_1]'); });
 t('disable a rule', () => { assert.strictEqual(redact('a@b.co 1.1.1.1', { email: false }).text, 'a@b.co [IPV4_1]'); });
 t('empty and plain', () => { assert.strictEqual(redact('').text, ''); assert.strictEqual(redact('nothing here').total, 0); });
+t('iban valid', () => { assert.ok(require('../public/tools/assets/redact.js').ibanOk('GB29NWBK60161331926819')); assert.strictEqual(redact('pay GB29 NWBK 6016 1331 9268 19 now').text, 'pay [IBAN_1] now'); assert.strictEqual(redact('DE89370400440532013000').text, '[IBAN_1]'); });
+t('iban bad checksum not matched', () => { assert.strictEqual(redact('GB29NWBK60161331926818').counts.iban, undefined); assert.strictEqual(redact('order AB12CD34EF56GH78').counts.iban, undefined); });
 console.log(n + ' tests passed');

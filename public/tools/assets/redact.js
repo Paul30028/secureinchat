@@ -13,6 +13,16 @@
     }
     return sum % 10 === 0;
   }
+  function ibanOk(s) {
+    var v = s.replace(/\s/g, '').toUpperCase();
+    if (v.length < 15 || v.length > 34 || !/^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(v)) return false;
+    var r = v.slice(4) + v.slice(0, 4), rem = 0;
+    for (var i = 0; i < r.length; i++) {
+      var c = r.charCodeAt(i), d = c >= 65 ? String(c - 55) : r[i];
+      for (var j = 0; j < d.length; j++) rem = (rem * 10 + (d.charCodeAt(j) - 48)) % 97;
+    }
+    return rem === 1;
+  }
   function ipv4ok(s) {
     var p = s.split('.');
     return p.length === 4 && p.every(function (x) { return x.length > 0 && x.length <= 3 && +x <= 255 && (x === '0' || x[0] !== '0'); });
@@ -25,6 +35,7 @@
     { id: 'apikey', label: 'API key or token', tag: 'API_KEY', re: /\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|sk-[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35})\b/g },
     { id: 'url_cred', label: 'Password inside a URL', tag: 'URL_CREDENTIALS', re: /\b[a-z][a-z0-9+.-]*:\/\/[^\s\/:@]+:[^\s\/@]+@/gi, keep: function (m) { return m.slice(0, m.indexOf('://') + 3); }, suffix: '@' },
     { id: 'email', label: 'Email address', tag: 'EMAIL', re: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g },
+    { id: 'iban', label: 'IBAN', tag: 'IBAN', re: /\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b/g, test: ibanOk },
     { id: 'card', label: 'Payment card number', tag: 'CARD', re: /\b(?:\d[ -]?){12,18}\d\b/g, test: function (m) { var d = m.replace(/[ -]/g, ''); return d.length >= 13 && d.length <= 19 && luhn(d); } },
     { id: 'ipv6', label: 'IPv6 address', tag: 'IPV6', re: /\b(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}\b|\b(?:[0-9A-Fa-f]{1,4}:){1,6}(?::[0-9A-Fa-f]{1,4}){1,6}\b|\b(?:[0-9A-Fa-f]{1,4}:){1,7}:(?![0-9A-Fa-f:])/g, test: function (m) { return /[0-9A-Fa-f]{2,}|:/.test(m) && m.indexOf(':') !== -1 && m.length > 4; } },
     { id: 'ipv4', label: 'IPv4 address', tag: 'IPV4', re: /\b\d{1,3}(?:\.\d{1,3}){3}\b/g, test: ipv4ok },
@@ -65,5 +76,5 @@
     return { text: out, counts: counts, total: picked.length };
   }
 
-  return { RULES: RULES, redact: redact, luhn: luhn };
+  return { RULES: RULES, redact: redact, luhn: luhn, ibanOk: ibanOk };
 });
