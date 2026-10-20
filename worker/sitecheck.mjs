@@ -224,6 +224,7 @@ export function summarize(rows) {
 export async function runCheck(input) {
   const t = parseTarget(input);
   if (!t.ok) return { status: 400, body: { error: t.error } };
+  if (/(^|\.)secureinchat\.com$/.test(t.host)) return { status: 400, body: { error: 'This tool cannot check the site that hosts it. Enter another address.' } };
   const home = await fetchFollow(t.origin + '/', 'GET', HTML_BYTES);
   const facts = { home: home.final, chain: home.chain, homeError: home.final && home.final.error ? ({ timeout: 'Timed out', unreachable: 'Could not connect', 'blocked-redirect': 'Redirected to an address that cannot be checked', 'too-many-redirects': 'Too many redirects', 'bad-redirect': 'Invalid redirect' }[home.final.error] || 'No response') : null };
   if (home.final && home.final.ok) {

@@ -55,3 +55,6 @@ const redir = await runCheck('www.redir.com');
 assert.strictEqual(redir.body.checks[0].status, 'fail');
 assert.ok(!calls.some((u) => u.includes('169.254')), 'does not follow redirects to private addresses');
 console.log('SITECHECK END-TO-END PASSED');
+
+assert.strictEqual((await runCheck('www.secureinchat.com')).status, 400);
+console.log('SELF-CHECK REFUSED');
