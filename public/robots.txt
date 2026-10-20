@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /tools/api/
+
+Sitemap: https://secureinchat.com/sitemap.xml
