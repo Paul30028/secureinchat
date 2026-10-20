@@ -46,7 +46,7 @@
     var a, b, blank;
     try { a = drawCanvas(); b = drawCanvas(); blank = blankCanvas(); } catch (e) { a = null; }
     if (!a || a === blank) return Promise.resolve(row('Canvas', 'How your browser draws text and shapes.', 'ok', 'Blocked', ['Canvas returned no image'], 'The browser or an extension blocked canvas reading, so this signal is hidden.'));
-    if (a !== b) return Promise.resolve(row('Canvas', 'How your browser draws text and shapes.', 'ok', 'Randomized', ['Two identical drawings gave different results'], 'Your browser adds noise to canvas output, so this signal cannot be used to recognise you across sites.'));
+    if (a !== b) return Promise.resolve(row('Canvas', 'How your browser draws text and shapes.', 'ok', 'Varies', ['Two identical drawings gave different results'], 'Your browser or an extension appears to add noise to canvas output. That would stop canvas from being a stable identifier. This test sees the difference but cannot confirm how it works.'));
     return sha(a).then(function (h) {
       return row('Canvas', 'How your browser draws text and shapes.', 'warn', 'Stable', ['Hash ' + h + ' (same on every draw)'], 'Sites can combine this with other signals to tell you apart. Compare the hash in another browser: different values mean it identifies your setup.');
     });

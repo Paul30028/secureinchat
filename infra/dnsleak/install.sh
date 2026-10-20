@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the SecureInChat DNS leak test server on a Debian or Ubuntu VPS. Run as root:
+# Installs the SecureInChat DNS leak test server on a Debian or Ubuntu VPS. Run as root (CERT_EMAIL is needed when nginx is used):
 #   curl -fsSL https://raw.githubusercontent.com/Paul30028/secureinchat/main/infra/dnsleak/install.sh | sudo bash
 # Re-running it is safe: it updates the server and keeps the rest.
 set -euo pipefail
@@ -60,35 +60,53 @@ systemctl daemon-reload
 systemctl enable dnsleak >/dev/null
 systemctl restart dnsleak
 
-# HTTPS for the result API through Caddy (automatic certificate). It needs ports 80 and 443.
-for port in 80 443; do
-  if ss -H -ltnp "sport = :$port" | grep -v caddy | grep -q .; then
-    echo; echo "The DNS server is installed, but port $port is already used by:"; ss -ltnp "sport = :$port"
-    echo "Free that port (or put this hostname behind the service that uses it), then re-run this script."; exit 1
-  fi
-done
-if ! command -v caddy >/dev/null; then
-  apt-get install -y debian-keyring debian-archive-keyring apt-transport-https gnupg
-  curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt >/etc/apt/sources.list.d/caddy-stable.list
-  apt-get update -y
-  apt-get install -y caddy
-fi
-touch /etc/caddy/Caddyfile
-if ! grep -q "$API_HOST" /etc/caddy/Caddyfile; then
-  cat >>/etc/caddy/Caddyfile <<EOF
-
-$API_HOST {
-	reverse_proxy 127.0.0.1:8081
+# HTTPS for the result API. If nginx is running, add a site block and get a certificate with certbot.
+# Otherwise install Caddy, which handles certificates itself.
+if systemctl is-active --quiet nginx 2>/dev/null; then
+  cat >/etc/nginx/conf.d/dnsapi.conf <<NGINX
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $API_HOST;
+    access_log off;
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host \$host;
+    }
 }
-EOF
+NGINX
+  nginx -t && systemctl reload nginx
+  command -v certbot >/dev/null || apt-get install -y certbot python3-certbot-nginx
+  if [ ! -d "/etc/letsencrypt/live/$API_HOST" ]; then
+    certbot --nginx -d "$API_HOST" -m "${CERT_EMAIL:?Set CERT_EMAIL=you@example.com to register the certificate}" --agree-tos --no-eff-email --redirect
+  fi
+else
+  for port in 80 443; do
+    if ss -H -ltnp "sport = :$port" | grep -v caddy | grep -q .; then
+      echo; echo "The DNS server is installed, but port $port is already used by:"; ss -ltnp "sport = :$port"
+      echo "Free that port, then re-run this script."; exit 1
+    fi
+  done
+  if ! command -v caddy >/dev/null; then
+    apt-get install -y debian-keyring debian-archive-keyring apt-transport-https gnupg
+    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt >/etc/apt/sources.list.d/caddy-stable.list
+    apt-get update -y
+    apt-get install -y caddy
+  fi
+  touch /etc/caddy/Caddyfile
+  if ! grep -q "$API_HOST" /etc/caddy/Caddyfile; then
+    printf '\n%s {\n\treverse_proxy 127.0.0.1:8081\n}\n' "$API_HOST" >>/etc/caddy/Caddyfile
+  fi
+  systemctl enable caddy >/dev/null
+  systemctl reload caddy 2>/dev/null || systemctl restart caddy
 fi
-systemctl enable caddy >/dev/null
-systemctl reload caddy 2>/dev/null || systemctl restart caddy
 
 if command -v ufw >/dev/null && ufw status | grep -q "Status: active"; then
   ufw allow 53/udp >/dev/null; ufw allow 53/tcp >/dev/null; ufw allow 80/tcp >/dev/null; ufw allow 443/tcp >/dev/null
   echo "ufw: opened 53, 80 and 443."
+else
+  echo "If a firewall or your provider's security group is active, open 53 (UDP and TCP), 80 and 443."
 fi
 
 echo; echo "Self-test:"

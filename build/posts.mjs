@@ -188,4 +188,68 @@ export const POSTS = [
     <p>Treat the results as a snapshot. Re-run the checks after you update the VPN client, the browser or the operating system.</p>
 `,
   },
+  {
+    slug: 'dns-leaks-explained',
+    title: 'DNS leaks explained: what they are and how to read a DNS leak test',
+    desc: 'What a DNS leak is, why a VPN can still send lookups to your internet provider, how our DNS check reaches its verdict, and what to do about each result.',
+    date: '2026-10-20',
+    body: `
+    <p>Every time you open a site, your device first asks a DNS resolver to turn the name into an address. That resolver sees which sites you visit even if everything after it is encrypted. A DNS leak is when those questions go to a resolver you did not mean to use, usually your internet provider's, while you think a VPN is covering you. Our <a href="/tools/ip-leak-test/">IP leak test</a> checks for it.</p>
+
+    <h2>How the check works</h2>
+    <p>The page asks your system to look up six random names under a domain we run. We run the DNS server for that domain, so we see which resolver asks for them, and only that. The page reads that list back and looks up whose network each resolver is on. The names are unique to each run, so nothing is answered from a cache. The resolver address is kept in memory for ten minutes and is not logged.</p>
+
+    <h2>Reading the result</h2>
+    <ul>
+      <li><strong>Pass:</strong> every resolver is on the same network as your exit address, so lookups are answered inside your VPN or proxy network.</li>
+      <li><strong>Fail:</strong> a resolver that answered when you ran the test without a VPN also answers with it on. For this the page remembers the first run in your tab, in memory only.</li>
+      <li><strong>Information:</strong> a well-known public resolver, such as Google or Cloudflare, answered. That is fine if you or your VPN chose it. The test cannot tell who chose it.</li>
+      <li><strong>Warning:</strong> a resolver on a different network answered, no lookups reached us, or the network of a resolver could not be identified. A different network is normal if it belongs to your VPN provider.</li>
+    </ul>
+
+    <h2>Why it is not a plain pass or fail</h2>
+    <p>The test cannot know who your internet provider is. Judging a resolver as a leak only because it sits on another network than your exit would flag many VPNs that use their own resolvers elsewhere. So the clear failure case needs a comparison: the same resolver with and without the VPN.</p>
+
+    <h2>Browsers that use DNS over HTTPS</h2>
+    <p>Some browsers send lookups to a provider such as Cloudflare or Google over HTTPS, bypassing the system resolver. That is not a bug in the test. The provider's resolver is what is actually answering, and it is what you will see.</p>
+
+    <h2>Fixing a leak</h2>
+    <ol>
+      <li>Turn on DNS leak protection in your VPN client and do not override the DNS servers it sets.</li>
+      <li>Use the kill switch so lookups cannot leave outside the tunnel when it drops.</li>
+      <li>Check the browser's secure DNS setting, which can send lookups around the VPN to a provider you did not choose.</li>
+    </ol>
+    <p>Run the test again after each change, with the VPN box unticked first and ticked second. For the other routes around a tunnel, see <a href="/blog/webrtc-leak-explained/">WebRTC</a> and <a href="/blog/ipv6-leaks-explained/">IPv6</a>.</p>
+`,
+  },
+  {
+    slug: 'how-password-breach-checks-work',
+    title: 'How a password breach check works without sending your password',
+    desc: 'How k-anonymity lets a breach check compare your password against billions of leaked ones by sending only a five-character hash prefix, what it reveals, and what it cannot tell you.',
+    date: '2026-10-20',
+    body: `
+    <p>Checking a password against a list of leaked passwords sounds like it requires handing the password to someone. It does not have to. The method used by the Pwned Passwords service, and by our <a href="/tools/password-checker/">password checker</a>, sends only a small piece of a hash and compares the rest on your device.</p>
+
+    <h2>The steps</h2>
+    <ol>
+      <li>Your browser computes the SHA-1 hash of the password. That is 40 hexadecimal characters.</li>
+      <li>It sends only the first five characters to the service.</li>
+      <li>The service replies with every hash suffix it holds that begins with those five characters, each with a count. A reply holds several hundred entries.</li>
+      <li>Your browser looks for the remaining 35 characters in that reply. If they are there, the password is in the breach data, and the count says how often.</li>
+    </ol>
+
+    <h2>Why this is called k-anonymity</h2>
+    <p>Any five-character prefix is shared by many different passwords, so the service cannot tell which one you checked. The password and the full hash never leave your browser.</p>
+
+    <h2>What it still reveals</h2>
+    <p>It is a reduction in what is disclosed, not zero. The service sees your IP address and the prefix. A network observer can see that you ran a check. Sending a request for each key press would reveal much more, so the checker only runs when you press the button. It also asks for padded replies, which adds fake entries so the size of the reply does not hint at the answer.</p>
+
+    <h2>What a result means</h2>
+    <ul>
+      <li><strong>Found:</strong> this exact password has appeared in a published breach, so attackers try it early. Stop using it everywhere.</li>
+      <li><strong>Not found:</strong> it is not in that list. It may still be weak, or it may have leaked in a way that was never published.</li>
+    </ul>
+    <p>That is why the checker shows strength and breach status as two separate results. A long random password used on one site is the goal, and a breach check is a way to catch the cases where that did not happen.</p>
+`,
+  },
 ];

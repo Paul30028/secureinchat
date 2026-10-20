@@ -378,6 +378,7 @@ const PRIVACY = `    <h1>Privacy policy</h1>
       <li><strong>ipwho.is</strong> looks up the network of a second address when the test finds one, and the network of each DNS resolver.</li>
       <li><strong>Random names under lk.secureinchat.com</strong> are looked up by your system for the DNS check. The DNS server we run for that domain records the address of the resolver that asks, keeps it in memory for ten minutes and writes no log. That address can be your internet provider's resolver, a public resolver or, if your system resolves names itself, your own address. The server's hosting provider can see network traffic to it, as any host can.</li>
       <li><strong>dnsapi.secureinchat.com</strong> returns the resolver addresses recorded for your run, and only yours. It sees your IP address when your browser asks.</li>
+      <li><strong>api.pwnedpasswords.com</strong> answers the password checker's breach check, only when you press its button. Your browser sends the first five characters of the password's SHA-1 hash, never the password or the full hash. The service sees your IP address and that prefix.</li>
       <li><strong>stun.cloudflare.com</strong> answers the WebRTC check, as it does for video calls.</li>
     </ul>
     <p>Those requests are sent without cookies and without a referrer.</p>
@@ -503,7 +504,7 @@ write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0],
+  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0],
 ];
 const homeAlts = Object.values(LANGS).map((l) => `    <xhtml:link rel="alternate" hreflang="${l.html}" href="${SITE}${l.path}" />`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/" />`;
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -514,7 +515,7 @@ ${urls.map(([u]) => `  <url>\n    <loc>${SITE}${u}</loc>\n    <lastmod>${DATE}</
 write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
-const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
 const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.

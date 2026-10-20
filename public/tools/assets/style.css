@@ -209,3 +209,10 @@ tr[data-status="running"] .pill::before { background: var(--accent); border-radi
 .picker { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; }
 .picker input[type="file"] { max-width: 100%; color: var(--ink-2); font: 400 1rem var(--sans); padding: 10px; border: 2px dashed var(--line); border-radius: 8px; background: var(--surface); }
 .picker input[type="file"]::file-selector-button { margin-right: 14px; font: 600 1rem var(--sans); padding: 10px 16px; border-radius: 6px; border: 2px solid var(--accent); background: transparent; color: var(--accent-deep); cursor: pointer; }
+
+/* password page */
+.picker input.wide { min-width: min(100%, 22rem); font: 400 1.1rem var(--mono); padding: 12px 14px; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 8px; }
+.picker input.wide:focus-visible { border-color: var(--accent); }
+.genbox { font-size: 1.25rem; overflow-wrap: anywhere; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: min(100%, 22rem); }
+.gen-controls { margin-top: 16px; }
+.gen-controls input[type="range"] { width: 12rem; max-width: 100%; accent-color: var(--accent); }

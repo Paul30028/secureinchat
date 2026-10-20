@@ -54,10 +54,10 @@
         },
         {
           "@type": "Question",
-          "name": "What does randomized canvas mean?",
+          "name": "What does a varying canvas result mean?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "The page draws the same image twice. If the results differ, your browser or an extension adds noise on purpose, which breaks the use of canvas as a stable identifier. Brave and some Firefox settings do this."
+            "text": "The page draws the same image twice. If the results differ, your browser or an extension appears to add noise on purpose, which would break the use of canvas as a stable identifier. Brave and some Firefox settings do this. The test sees the difference but cannot confirm the method."
           }
         },
         {
@@ -142,7 +142,7 @@
     <h2 id="what-h">What this test reads</h2>
     <p>Any page you visit can read the signals below without asking. This test reads them and tells you which ones help a tracker recognise you, and which defences your browser already applies.</p>
     <ul>
-      <li><strong>Canvas:</strong> draws an image twice. A stable result is a signal. A different result each time means your browser randomizes it.</li>
+      <li><strong>Canvas:</strong> draws an image twice. A stable result is a signal. A different result each time suggests your browser or an extension adds noise on purpose.</li>
       <li><strong>Graphics card:</strong> the GPU name WebGL can report. Some browsers hide it.</li>
       <li><strong>Global Privacy Control and Do Not Track:</strong> whether your browser sends opt-out signals.</li>
       <li><strong>Browser and device:</strong> user agent, languages, time zone, screen and hardware details.</li>
@@ -156,8 +156,8 @@
     <p>Sites read many small details from your browser, such as screen size, fonts, graphics output and language, and combine them into a value that recognises you without cookies.</p>
     <h3>Does this test tell me how unique I am?</h3>
     <p>No. A real uniqueness score needs a large dataset of other browsers, which this page does not have. It shows what your browser exposes and which defences are active.</p>
-    <h3>What does randomized canvas mean?</h3>
-    <p>The page draws the same image twice. If the results differ, your browser or an extension adds noise on purpose, which breaks the use of canvas as a stable identifier. Brave and some Firefox settings do this.</p>
+    <h3>What does a varying canvas result mean?</h3>
+    <p>The page draws the same image twice. If the results differ, your browser or an extension appears to add noise on purpose, which would break the use of canvas as a stable identifier. Brave and some Firefox settings do this. The test sees the difference but cannot confirm the method.</p>
     <h3>Is a stable canvas hash bad?</h3>
     <p>It is normal in most browsers. It matters because trackers combine it with other signals. Compare the hash across browsers on one device to see how much of it is yours alone.</p>
     <h3>What is Global Privacy Control?</h3>
