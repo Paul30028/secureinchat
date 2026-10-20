@@ -420,8 +420,30 @@ const CONTACT = `    <h1>Contact</h1>
       <li>Email: <a href="mailto:x@secureinchat.com">x@secureinchat.com</a></li>
     </ul>
     <h2>Sponsorship and partnerships</h2>
-    <p>VPN, proxy and privacy-tool vendors can sponsor the free tools by email. Any sponsored or affiliate placement is labelled as such and never changes a test result.</p>
+    <p>VPN, proxy and privacy-tool vendors can sponsor the free tools. Any sponsored or affiliate placement is labelled as such and never changes a test result. See <a href="/sponsor/">how sponsorship works</a>.</p>
     <p>Please do not post sensitive personal information in a public issue. We will never ask for passwords, keys or private messages.</p>
+`;
+
+const SPONSOR = `    <h1>Sponsorship and partnerships</h1>
+    <p class="meta">Last updated: ${DATE}</p>
+    <p>SecureInChat runs free privacy tools that people use while checking a VPN, proxy or browser setup. We accept a small number of sponsors and affiliate partners whose products fit that moment: VPNs, proxies, password managers and privacy software.</p>
+    <h2>What we offer</h2>
+    <ul>
+      <li>A labelled sponsor placement on the tools pages, at most one per page.</li>
+      <li>A mention in a blog post that explains a technical topic, marked as sponsored.</li>
+      <li>Affiliate links in articles, with a visible disclosure next to each link.</li>
+    </ul>
+    <h2>Our rules</h2>
+    <ul>
+      <li>Test results are computed in the visitor's browser. A sponsor cannot change them or the wording of a verdict.</li>
+      <li>Every paid or affiliate placement is labelled as such.</li>
+      <li>We only list products we can describe accurately. We may ask to test a product before we mention it.</li>
+      <li>We do not add trackers for sponsors. Any measurement is aggregate, such as clicks, and is described in the <a href="/privacy/">privacy policy</a> before it starts.</li>
+    </ul>
+    <h2>Traffic</h2>
+    <p>The site is new. We will share real figures on request once there are enough to be meaningful, and we will not quote numbers we cannot show.</p>
+    <h2>Get in touch</h2>
+    <p>Email <a href="mailto:x@secureinchat.com">x@secureinchat.com</a> with the product, the audience you want to reach and what you would like to run.</p>
 `;
 
 // ---------------------------------------------------------------------------------------------
@@ -434,6 +456,7 @@ function write(rel, content) {
 for (const t of Object.values(LANGS)) write(t.code === 'en' ? 'index.html' : `${t.code}/index.html`, home(t));
 write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', desc: 'What secureinchat.com and its tools do with your data: no cookies, no accounts, no stored test results.', body: PRIVACY }));
 write('about/index.html', docPage({ slug: 'about', title: 'About', desc: 'About SecureInChat: an end-to-end encrypted blind-relay messenger in development, plus free privacy tools.', body: ABOUT }));
+write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'Sponsorship and partnerships', desc: 'How VPN, proxy and privacy-tool vendors can sponsor SecureInChat tools, and the rules that keep test results independent.', body: SPONSOR }));
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT }));
 
 
@@ -478,7 +501,7 @@ write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0],
+  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0],
 ];
 const homeAlts = Object.values(LANGS).map((l) => `    <xhtml:link rel="alternate" hreflang="${l.html}" href="${SITE}${l.path}" />`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/" />`;
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -491,7 +514,7 @@ write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 

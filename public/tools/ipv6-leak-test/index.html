@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPv6 Leak Test: Is Your VPN Leaving IPv6 Open?</title>
+<meta name="description" content="Free IPv6 leak test. Check whether your IPv6 address is on a different network than your IPv4 address, which means traffic is bypassing your VPN.">
+<link rel="canonical" href="https://secureinchat.com/tools/ipv6-leak-test/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="IPv6 Leak Test: Is Your VPN Leaving IPv6 Open?">
+<meta property="og:description" content="Free IPv6 leak test. Check whether your IPv6 address is on a different network than your IPv4 address, which means traffic is bypassing your VPN.">
+<meta property="og:url" content="https://secureinchat.com/tools/ipv6-leak-test/">
+<meta name="theme-color" content="#070A11">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "IPv6 Leak Test",
+      "url": "https://secureinchat.com/tools/ipv6-leak-test/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Free IPv6 leak test. Check whether your IPv6 address is on a different network than your IPv4 address, which means traffic is bypassing your VPN.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is an IPv6 leak?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Your device has two internet addresses, IPv4 and IPv6. If a VPN tunnels only IPv4, sites that support IPv6 reach you directly on the IPv6 address, outside the tunnel, and see your real network."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does this test decide?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It fetches your IPv4 and IPv6 addresses separately, looks up which network owns each, and compares them. Different networks with the VPN box ticked is reported as a leak. A failed lookup is reported as a warning, not a pass."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "My result says no IPv6 connection. Is that good?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "For leak purposes, yes: with no IPv6 route there is nothing to leak. It only means your network or browser did not reach the internet over IPv6 during the test."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Should I disable IPv6?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Disabling it on your device closes the leak, but it also removes a working connection. A VPN that tunnels or blocks IPv6, a setting often called IPv6 leak protection, is the cleaner fix."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the network name always right?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Usually, but it comes from IP data that can be out of date, and two networks of one provider can look different. Treat a mismatch as a reason to check, not as proof."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this page store my address?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The page's code stores nothing and sets no cookies. The lookups it makes, to ipify and ipwho.is, are listed on the IP leak test page under How the test works."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/#architecture">Architecture</a><a href="/#security">Security</a><a href="/#diagnostics">Diagnostics</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Blog</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">IPv6 leak test</h1>
+    <p class="lede">Check whether your connection has an IPv6 address that goes around your VPN. Many VPNs tunnel only IPv4.</p>
+    <div class="controls">
+      <button id="run" class="btn" type="button">Run test</button>
+      <label class="check"><input id="vpn" type="checkbox" checked> <span>I'm using a VPN or proxy</span></label>
+    </div>
+    <p class="hint">With the box ticked, an IPv6 address on a different network than your IPv4 address is reported as a leak. Untick it to just see the addresses. The page stores nothing. For WebRTC, DNS and headers, run the <a href="/tools/ip-leak-test/">full IP leak test</a> and the <a href="/tools/webrtc-leak-test/">WebRTC leak test</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Run the test to see your result.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">IPv6 leak test result</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        <tr data-check="ipv6" data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">IPv6</span><span class="c-desc">A second route that VPNs often miss.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">How an IPv6 leak happens</h2>
+    <p>Most connections today have both an IPv4 and an IPv6 address. Many VPN clients create a tunnel for IPv4 only. When a website offers IPv6, your system prefers it, and that traffic leaves through your normal connection. The site sees your real network while the VPN shows a different IPv4 address.</p>
+    <p>This test asks for both addresses, finds which network owns each, and compares them. Matching networks mean both routes go through the same exit.</p>
+    <h2 id="fix-h">How to close a leak</h2>
+    <ul>
+      <li>Turn on IPv6 leak protection in your VPN client, or pick a VPN that tunnels IPv6.</li>
+      <li>Use the client's kill switch so traffic outside the tunnel is blocked.</li>
+      <li>If neither is possible, disable IPv6 on your network adapter or router. This removes a working connection, so reverse it if you stop using the VPN.</li>
+      <li>Run this test again afterwards, and the <a href="/tools/webrtc-leak-test/">WebRTC leak test</a> too.</li>
+    </ul>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>What is an IPv6 leak?</h3>
+    <p>Your device has two internet addresses, IPv4 and IPv6. If a VPN tunnels only IPv4, sites that support IPv6 reach you directly on the IPv6 address, outside the tunnel, and see your real network.</p>
+    <h3>How does this test decide?</h3>
+    <p>It fetches your IPv4 and IPv6 addresses separately, looks up which network owns each, and compares them. Different networks with the VPN box ticked is reported as a leak. A failed lookup is reported as a warning, not a pass.</p>
+    <h3>My result says no IPv6 connection. Is that good?</h3>
+    <p>For leak purposes, yes: with no IPv6 route there is nothing to leak. It only means your network or browser did not reach the internet over IPv6 during the test.</p>
+    <h3>Should I disable IPv6?</h3>
+    <p>Disabling it on your device closes the leak, but it also removes a working connection. A VPN that tunnels or blocks IPv6, a setting often called IPv6 leak protection, is the cleaner fix.</p>
+    <h3>Is the network name always right?</h3>
+    <p>Usually, but it comes from IP data that can be out of date, and two networks of one provider can look different. Treat a mismatch as a reason to check, not as proof.</p>
+    <h3>Does this page store my address?</h3>
+    <p>The page's code stores nothing and sets no cookies. The lookups it makes, to ipify and ipwho.is, are listed on the IP leak test page under How the test works.</p>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>SecureInChat</p>
+    <nav aria-label="Footer"><a href="/tools/">Tools</a><a href="/about/">About</a><a href="/privacy/">Privacy policy</a><a href="/blog/">Blog</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/logic.js" defer></script>
+<script src="/tools/assets/ipv6.js" defer></script>
+</body>
+</html>
