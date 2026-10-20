@@ -38,3 +38,12 @@ Public-data research on developer-template/kit demand (marketplaces, GitHub star
 
 ## Implication for next step
 Do not build a kit yet. First test demand cheaply: which existing free repos/templates of this kind get stars/forks/issues (public signal), and whether a free "lite" release brings any inbound interest. Ask ChatGPT/Grok to critique.
+
+---
+# Round 3 (ChatGPT only; Grok returned "High Demand" twice, retry later)
+Prompt: zero audience, AI-produced, no on-camera human, 15-20 min/day; what has public precedent?
+ChatGPT: found NO reliable public case that satisfies all of zero-audience + mostly-AI + 15-20 min/day + stable profit. Cases it cites are audience-or-search-first (OpenAlternative, reported ~$6.5k/month, self-reported; Nomad List; Testimonial.to via SEO, heavy support) - none show AI-only, low-maintenance start; AI share undisclosed.
+Its top-5 by subjective score (guesses, not statistics): (1) narrow comparison database that answers a concrete question (e.g. real price/licence/features/update date of a software category), (2) long-tail-need free tools, (3) niche dataset + visualisation, (4) profession-specific templates/calculators, (5) small-language professional resource library.
+Mechanism we may all be missing: charge vendors for qualified leads (pay-per-lead) instead of needing a big audience. Dependency: real buyer demand and lead quality must be proven first.
+Strongest objection: "bulk-generate thousands of SEO pages and wait" - does not validate demand and risks Google's scaled-content-abuse policy. Better: pick one profession/scenario, manually confirm 20 real search questions, build one useful database/tool, watch organic impressions, real use and enquiries, then expand.
+Claude note: all of this is reasoning, not evidence. A comparison database also overlaps with our existing tools-site skill set (research + code), but the lead-fee idea is untested and likely needs an audience we do not have. Next: a 7-day zero-cost demand probe (collect 20 real queries, check search results for weak incumbents) - to be designed with Grok when available.
