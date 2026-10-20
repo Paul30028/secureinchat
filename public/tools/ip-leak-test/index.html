@@ -225,7 +225,7 @@
       <div><dt>This site, /tools/api/whoami</dt><dd>Returns the address Cloudflare saw, its network, an approximate location and a few request headers. The code writes nothing to disk.</dd></div>
       <div><dt>api4.ipify.org and api6.ipify.org</dt><dd>Return your IPv4 and IPv6 address separately. If your network has no IPv6, the IPv6 request fails, and the test reads that as no IPv6.</dd></div>
       <div><dt>ipwho.is</dt><dd>Looks up the network of your second address when the test finds one, and the network of each DNS resolver.</dd></div>
-      <div><dt>Random names under lk.secureinchat.com</dt><dd>The DNS check asks your system to look up six names that exist only for this run. Our DNS server answers them and notes the address of the resolver that asked. It keeps that in memory for ten minutes and writes no log.</dd></div>
+      <div><dt>Random names under lk.secureinchat.com</dt><dd>The DNS check asks your system to look up six names that exist only for this run. Our DNS server answers them and notes the address of the resolver that asked. It keeps that in memory for ten minutes and writes no log. It also keeps a daily count of tests, a number with no addresses in it.</dd></div>
       <div><dt>dnsapi.secureinchat.com</dt><dd>Returns the resolver addresses recorded for this run, and only this run. Like any server, it sees your IP address when your browser asks.</dd></div>
       <div><dt>stun.cloudflare.com</dt><dd>The WebRTC check asks this STUN server for your public address, the same way a video call would.</dd></div>
     </dl>

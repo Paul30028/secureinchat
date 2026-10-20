@@ -6,11 +6,12 @@ What it does
   * Answers A queries for  <12 hex>-<n>.<ZONE>  with 127.0.0.1 (TTL 1), remembers which resolver asked,
     and serves the list of resolvers for one test id over a small HTTP API on localhost.
   * Answers nothing else: every name outside ZONE gets REFUSED, so it cannot be used as an open resolver.
-  * Keeps everything in memory for TTL_SECONDS and writes no logs. Nothing is stored on disk.
+  * Keeps resolver addresses in memory for TTL_SECONDS and writes no logs. The only thing it can store on disk is an
+    aggregate count per day (--stats-file): how many tests reached it and how many results were read back.
 
 Run:  python3 server.py --zone lk.secureinchat.com --dns-bind 0.0.0.0:53 --http-bind 127.0.0.1:8081
 """
-import argparse, asyncio, json, re, socket, struct, threading, time
+import argparse, asyncio, json, os, re, socket, struct, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -21,13 +22,30 @@ RATE_LIMIT = 100          # queries per source address per 10 s
 LABEL_RE = re.compile(r'^([0-9a-f]{12})-(\d{1,2})$')
 ID_RE = re.compile(r'^[0-9a-f]{12}$')
 
-store = {}                # id -> {"t": first_seen, "ips": {ip: count}}
+store = {}                # id -> {"t": first_seen, "ips": {ip: count}, "done": bool}
 lock = threading.Lock()
+stats = {}                # "YYYY-MM-DD" (UTC) -> {"confirmed": n, "completed": n}; aggregate counts only, no addresses
+stats_dirty = False
+STATS_DAYS = 60
 rate = {}                 # ip -> (window_start, count)
 
 
 def now():
     return time.monotonic()
+
+
+def today():
+    return time.strftime('%Y-%m-%d', time.gmtime())
+
+
+def bump(field):
+    """Count one event for today. Call with the lock held."""
+    global stats_dirty
+    d = stats.setdefault(today(), {"confirmed": 0, "completed": 0})
+    d[field] += 1
+    stats_dirty = True
+    for k in sorted(stats)[:-STATS_DAYS]:
+        del stats[k]
 
 
 def remember(test_id, ip):
@@ -38,7 +56,9 @@ def remember(test_id, ip):
                 del store[k]
             while len(store) > MAX_IDS:
                 del store[min(store, key=lambda k: store[k]["t"])]
-        e = store.setdefault(test_id, {"t": t, "ips": {}})
+        if test_id not in store:
+            bump("confirmed")                            # the authoritative server saw a query for a new test
+        e = store.setdefault(test_id, {"t": t, "ips": {}, "done": False})
         if ip in e["ips"] or len(e["ips"]) < MAX_RESOLVERS_PER_ID:
             e["ips"][ip] = e["ips"].get(ip, 0) + 1
 
@@ -48,7 +68,44 @@ def lookup(test_id):
         e = store.get(test_id)
         if not e or now() - e["t"] > TTL_SECONDS:
             return []
+        if not e["done"]:
+            e["done"] = True
+            bump("completed")                            # the page read the result back for a confirmed test
         return sorted(e["ips"])
+
+
+def load_stats(path):
+    global stats
+    try:
+        with open(path) as f:
+            data = json.load(f)
+        stats = {k: {"confirmed": int(v.get("confirmed", 0)), "completed": int(v.get("completed", 0))}
+                 for k, v in data.items() if re.match(r'^\d{4}-\d{2}-\d{2}$', k)}
+    except Exception:
+        stats = {}
+
+
+def save_stats_loop(path):
+    global stats_dirty
+    while True:
+        time.sleep(30)
+        with lock:
+            if not stats_dirty:
+                continue
+            snap = json.dumps(stats)
+            stats_dirty = False
+        try:
+            tmp = path + '.tmp'
+            with open(tmp, 'w') as f:
+                f.write(snap)
+            os.replace(tmp, path)
+        except Exception:
+            pass
+
+
+def stats_snapshot():
+    with lock:
+        return json.dumps({"days": {k: dict(v) for k, v in sorted(stats.items())}, "note": "Aggregate counts per UTC day. confirmed = tests whose DNS query reached this server; completed = confirmed tests whose result was read back. Not a count of people."})
 
 
 def limited(ip):
@@ -204,6 +261,8 @@ class API(BaseHTTPRequestHandler):
         u = urlparse(self.path)
         if u.path == '/h':
             return self._send(200, 'ok', 'text/plain')
+        if u.path == '/s':
+            return self._send(200, stats_snapshot())
         if u.path == '/r':
             tid = (parse_qs(u.query).get('id') or [''])[0].lower()
             if not ID_RE.match(tid):
@@ -225,7 +284,11 @@ async def main():
     ap.add_argument('--dns-bind', default='0.0.0.0:53')
     ap.add_argument('--http-bind', default='127.0.0.1:8081')
     ap.add_argument('--origin', default='https://secureinchat.com')
+    ap.add_argument('--stats-file', help='optional JSON file for the aggregate daily counts (no addresses are stored)')
     a = ap.parse_args()
+    if a.stats_file:
+        load_stats(a.stats_file)
+        threading.Thread(target=save_stats_loop, args=(a.stats_file,), daemon=True).start()
     API.origin = a.origin
     zone = Zone(a.zone, a.ns_name or 'ns.' + a.zone, a.ns_ip)
     loop = asyncio.get_running_loop()

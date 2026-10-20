@@ -38,7 +38,8 @@ Wants=network-online.target
 
 [Service]
 User=dnsleak
-ExecStart=/usr/bin/python3 /opt/dnsleak/server.py --zone $ZONE --ns-name $NS_NAME --dns-bind $BIND_IP:53 --http-bind 127.0.0.1:8081 --origin $ORIGIN
+ExecStart=/usr/bin/python3 /opt/dnsleak/server.py --zone $ZONE --ns-name $NS_NAME --dns-bind $BIND_IP:53 --http-bind 127.0.0.1:8081 --origin $ORIGIN --stats-file /var/lib/dnsleak/stats.json
+StateDirectory=dnsleak
 Restart=always
 RestartSec=2
 AmbientCapabilities=CAP_NET_BIND_SERVICE

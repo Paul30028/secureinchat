@@ -377,7 +377,7 @@ const PRIVACY = `    <h1>Privacy policy</h1>
       <li><strong>This site</strong> (<code>/tools/api/whoami</code>) returns the address, network and approximate location Cloudflare saw, plus a few request headers. It writes nothing to disk.</li>
       <li><strong>api4.ipify.org and api6.ipify.org</strong> return your IPv4 and IPv6 addresses.</li>
       <li><strong>ipwho.is</strong> looks up the network of a second address when the test finds one, and the network of each DNS resolver.</li>
-      <li><strong>Random names under lk.secureinchat.com</strong> are looked up by your system for the DNS check. The DNS server we run for that domain records the address of the resolver that asks, keeps it in memory for ten minutes and writes no log. That address can be your internet provider's resolver, a public resolver or, if your system resolves names itself, your own address. The server's hosting provider can see network traffic to it, as any host can.</li>
+      <li><strong>Random names under lk.secureinchat.com</strong> are looked up by your system for the DNS check. The DNS server we run for that domain records the address of the resolver that asks, keeps it in memory for ten minutes and writes no log. It also keeps one count per day of how many tests reached it and how many results were read back; this is a number only and holds no address. That address can be your internet provider's resolver, a public resolver or, if your system resolves names itself, your own address. The server's hosting provider can see network traffic to it, as any host can.</li>
       <li><strong>dnsapi.secureinchat.com</strong> returns the resolver addresses recorded for your run, and only yours. It sees your IP address when your browser asks.</li>
       <li><strong>api.pwnedpasswords.com</strong> answers the password checker's breach check, only when you press its button. Your browser sends the first five characters of the password's SHA-1 hash, never the password or the full hash. The service sees your IP address and that prefix.</li>
       <li><strong>stun.cloudflare.com</strong> answers the WebRTC check, as it does for video calls.</li>
@@ -435,7 +435,7 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
     <ul>
       <li>Files, photos and passwords are processed in your browser and are never uploaded.</li>
       <li>No cookies, no accounts and no advertising or analytics scripts on the tools pages.</li>
-      <li>Test results are not stored on our side. The DNS test keeps resolver addresses in memory for ten minutes.</li>
+      <li>Test results are not stored on our side. The DNS test keeps resolver addresses in memory for ten minutes, plus a daily count of tests with no addresses in it.</li>
       <li>Every outside service a tool contacts is listed below. A page security policy blocks any other.</li>
     </ul>
     <h2>Tool by tool</h2>

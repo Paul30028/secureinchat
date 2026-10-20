@@ -35,6 +35,13 @@ try:
     except urllib.error.HTTPError as e: ok(e.code == 400, 'bad id rejected with 400')
     req = urllib.request.Request(f'http://127.0.0.1:8099/r?id={tid}'); resp = urllib.request.urlopen(req)
     ok(resp.headers['Access-Control-Allow-Origin'] == 'https://secureinchat.com' and resp.headers['Cache-Control'] == 'no-store', 'CORS pinned to the site, no-store')
+    st = json.load(urllib.request.urlopen('http://127.0.0.1:8099/s'))
+    day = list(st['days'].values())[-1]
+    ok(day == {'confirmed': 1, 'completed': 1}, f'aggregate stats count one confirmed and one completed test: {st["days"]}')
+    ok('127.0.0.1' not in json.dumps(st), 'stats contain no addresses')
+    q('bbbbbbbbbbbb-1.lk.example.test')
+    day = list(json.load(urllib.request.urlopen('http://127.0.0.1:8099/s'))['days'].values())[-1]
+    ok(day == {'confirmed': 2, 'completed': 1}, 'a test never read back counts as confirmed only')
 finally:
     P.send_signal(signal.SIGTERM); P.wait()
 print('FAILED' if fails else 'DNS SERVER TESTS PASSED'); sys.exit(1 if fails else 0)
