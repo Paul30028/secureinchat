@@ -166,6 +166,7 @@ function header(t, { home, current }) {
         ${link(pre + '#security', t.navSecurity, 's')}
         ${link(pre + '#diagnostics', t.navDiagnostics, 'd')}
         ${link('/tools/', t.navTools, 'tools')}
+        ${t.code === 'en' ? link('/guides/', 'Guides', 'guides') : ''}
         ${link('/blog/', t.navBlog, 'blog')}
       </div>
       <div class="flex items-center gap-3">
@@ -183,6 +184,7 @@ function footer(t) {
       <div>© 2026 SecureInChat. ${t.footLine}</div>
       <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
         <a href="/tools/" class="hover:text-white">${t.navTools}</a>
+        ${t.code === 'en' ? '<a href="/guides/" class="hover:text-white">Guides</a>' : ''}
         <a href="/blog/" class="hover:text-white">${t.navBlog}</a>
         <a href="/privacy/" class="hover:text-white">${t.fPrivacy}</a>
         <a href="/about/" class="hover:text-white">${t.fAbout}</a>
@@ -199,6 +201,44 @@ const backdrop = `<div class="fixed inset-0 grid-overlay pointer-events-none"></
   <div class="fixed top-[30%] right-[4%] w-80 h-80 rounded-full bg-cyan ambient pointer-events-none"></div>
   <div class="fixed bottom-0 left-[35%] w-96 h-80 rounded-full bg-emerald ambient pointer-events-none"></div>`;
 
+
+const GUIDES = [
+  { slug: 'breakout-game-with-ai', title: 'Build a Breakout game with AI in one HTML file', blurb: 'A prompt set, the finished game and an automated test that caught a real bug. Every step was run.',
+    status: 'Code verified by automated test on 2026-10-20', price: '0.99', buyUrl: '' },
+];
+
+function enMain({ secHero, secDiag, secArch, secSec, secTools, secCta }) {
+  const g = GUIDES[0];
+  const hero = `    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-16">
+      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-5">Tested, not guessed</div>
+      <h1 class="font-display font-bold text-5xl sm:text-6xl leading-[1.04] tracking-[-.04em] max-w-4xl">Privacy tools and AI guides where every step was actually run.</h1>
+      <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-400">Free tools that work in your browser. Step-by-step guides that come with the test that proves they work. We state what was verified and what was not.</p>
+      <div class="mt-9 grid sm:grid-cols-2 gap-4 max-w-3xl">
+        <a href="/tools/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3">${icon('shield-check', 'w-5 h-5 text-cyan')}<span class="font-display text-xl font-semibold">Check your privacy</span></div><p class="mt-3 text-sm leading-6 text-slate-400">IP, WebRTC and IPv6 leak tests, photo metadata remover, text redactor and more. Free, in your browser.</p><div class="mt-4 text-sm font-semibold text-cyan group-hover:text-white transition">Open the tools →</div></a>
+        <a href="/guides/" class="group block p-6 rounded-2xl glass hover:border-emerald/40 transition"><div class="flex items-center gap-3">${icon('badge-check', 'w-5 h-5 text-emerald')}<span class="font-display text-xl font-semibold">Build with AI, tested</span></div><p class="mt-3 text-sm leading-6 text-slate-400">Guides with the prompts, the working result and the automated test. Play the result before you buy.</p><div class="mt-4 text-sm font-semibold text-emerald group-hover:text-white transition">See the guides →</div></a>
+      </div>
+    </section>`;
+  const guide = `    <section id="guides" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
+      <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Latest tested guide</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">${g.title}</h2><p class="mt-3 text-slate-400">${g.blurb}</p><p class="mt-2 text-sm text-emerald">${g.status}</p></div>
+        <div class="flex flex-col gap-3 lg:w-72"><a href="/guides/${g.slug}/play/" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold text-center">Play the result</a><a href="/guides/${g.slug}/" class="px-5 py-3 rounded-xl glass font-semibold text-center">See what is in the guide</a></div>
+      </div>
+    </section>`;
+  const posts = POSTS.slice(0, 3).map((p) => `<a href="/blog/${p.slug}/" class="block p-5 rounded-2xl glass hover:border-cyan/40 transition"><h3 class="font-display text-lg font-semibold">${esc(p.title)}</h3><p class="mt-2 text-sm leading-6 text-slate-400">${esc(p.desc.slice(0, 140))}…</p></a>`).join('\n        ');
+  const blog = `    <section id="blog" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
+      <div class="flex items-end justify-between mb-6"><h2 class="font-display text-3xl font-semibold">Latest from the blog</h2><a href="/blog/" class="text-sm text-cyan hover:text-white">All posts →</a></div>
+      <div class="grid md:grid-cols-3 gap-4">
+        ${posts}
+      </div>
+    </section>`;
+  const chat = `    <section id="chat" class="max-w-7xl mx-auto px-5 sm:px-8 pt-8 pb-10">
+      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-indigo-300 mb-3">Also building</div>
+      <h2 class="font-display text-3xl sm:text-4xl font-semibold max-w-3xl">SecureInChat: a zero-knowledge blind-relay messenger.</h2>
+      <p class="mt-4 max-w-2xl text-slate-400">Keys stay on your devices and the relay only forwards ciphertext. The clients are in development; the relay diagnostics below are live and run in your browser.</p>
+    </section>`;
+  return [hero, secTools, guide, blog, chat, secDiag, secArch, secSec].join('\n\n');
+}
+
 function home(t) {
   const alternates = [...Object.values(LANGS).map((l) => ({ hreflang: l.html, path: l.path })), { hreflang: 'x-default', path: '/' }];
   const jsonld = {
@@ -210,18 +250,7 @@ function home(t) {
   };
   const archCards = ARCH.map((s, i) => `<article class="group relative glass rounded-3xl p-7 hover:-translate-y-2 transition duration-500"><div class="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition bg-gradient-to-br from-indigo/10 via-transparent to-emerald/10"></div><div class="relative"><div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/[.05] hairline mb-6">${icon(s.icon, 'w-6 h-6 text-cyan')}</div><div class="font-mono text-[10px] text-slate-500 mb-2">0${i + 1} / 03</div><h3 class="font-display text-xl font-semibold">${s.title}</h3><p class="mt-3 text-sm leading-6 text-slate-400">${s.copy}</p><div class="mt-6 text-xs font-mono text-emerald">${s.status}</div></div></article>`).join('\n        ');
   const secCards = SEC.map((s) => `<article class="glass rounded-2xl p-6 hover:border-emerald/30 transition"><div class="flex items-center justify-between">${icon(s.icon, 'w-5 h-5 text-emerald')}<span class="font-mono text-[9px] text-slate-600 uppercase tracking-widest">${s.tag}</span></div><h3 class="mt-5 font-display text-xl font-semibold">${s.title}</h3><p class="mt-2 text-sm leading-6 text-slate-400">${s.copy}</p></article>`).join('\n          ');
-  return `<!DOCTYPE html>
-<html lang="${t.html}">
-<head>
-  ${head({ title: t.title, desc: t.desc, canonical: t.path, alternates, ogLocale: t.html.replace('-', '_'), jsonld })}
-</head>
-<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
-  <a href="#top" class="skip">${t.skip}</a>
-  ${backdrop}
-  ${header(t, { home: true })}
-
-  <main id="top" class="relative z-10">
-    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-24 lg:pb-32">
+  const secHero = `    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-24 lg:pb-32">
       <div class="grid lg:grid-cols-[1.08fr_.92fr] gap-14 items-center">
         <div>
           <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-[11px] font-mono uppercase tracking-[.16em] text-cyan mb-7">
@@ -270,9 +299,8 @@ function home(t) {
           </div>
         </div>
       </div>
-    </section>
-
-    <section id="diagnostics" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+    </section>`;
+  const secDiag = `    <section id="diagnostics" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
       <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 shadow-emerald">
         <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
           <div><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Live Node Diagnostics</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">${t.diagTitle}</h2><p class="mt-3 text-slate-400 max-w-2xl">${t.diagCopy}</p></div>
@@ -286,17 +314,15 @@ function home(t) {
         </div>
         <div id="node-log" role="status" aria-live="polite" class="mt-5 p-4 rounded-xl font-mono text-xs border bg-white/[.02] border-white/10 text-slate-500">Ready to test the blind relay endpoint.</div>
       </div>
-    </section>
-
-    <section id="architecture" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+    </section>`;
+  const secArch = `    <section id="architecture" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
       <div class="text-center max-w-3xl mx-auto mb-12"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-3">Zero-Knowledge Architecture</div><h2 class="font-display text-4xl sm:text-5xl font-semibold">${t.archTitle}</h2><p class="mt-4 text-slate-400">${t.archCopy}</p></div>
       <div class="relative grid lg:grid-cols-3 gap-5 items-stretch">
         <svg class="hidden lg:block absolute inset-x-[16%] top-1/2 -translate-y-1/2 w-[68%] h-16 pointer-events-none" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40H1000" stroke="rgba(6,182,212,.4)" stroke-width="2" class="flow-line" fill="none"/></svg>
         ${archCards}
       </div>
-    </section>
-
-    <section id="security" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+    </section>`;
+  const secSec = `    <section id="security" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
       <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-10 items-start">
         <div class="lg:sticky lg:top-28"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-indigo-300 mb-3">Security Matrix</div><h2 class="font-display text-4xl font-semibold">${t.securityTitle}</h2><p class="mt-4 text-slate-400 leading-7">${t.securityCopy}</p></div>
         <div class="grid sm:grid-cols-2 gap-4">
@@ -305,9 +331,8 @@ function home(t) {
       </div>
       <div class="mt-8 glass rounded-2xl p-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-xs text-slate-400 font-mono"><span>Privacy-by-Design</span><span>Data Minimization</span><span>No-Log Architecture</span><span>Open Cryptographic Primitives</span><span>Client-Side Key Control</span></div>
       <p class="mt-3 text-center text-[11px] text-slate-600">Compatibility statements describe design alignment, not legal certification or regulatory approval.</p>
-    </section>
-
-    <section id="tools" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+    </section>`;
+  const secTools = `    <section id="tools" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
       <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
         <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-3">Tools</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">${t.toolsTitle}</h2><p class="mt-3 text-slate-400">${t.toolsCopy}</p></div>
         <a href="/tools/ip-leak-test/" class="group block lg:w-96 p-5 rounded-2xl bg-black/20 hairline hover:border-cyan/40 transition">
@@ -326,11 +351,25 @@ function home(t) {
         <li><a class="hover:text-white" href="/tools/site-health-check/">Website health check</a></li>
         <li><a class="hover:text-white" href="/tools/">All tools</a></li>
       </ul>
-    </section>
-
-    <section class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
+    </section>`;
+  const secCta = `    <section class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
       <div class="relative overflow-hidden rounded-[2rem] glass p-8 sm:p-12 lg:p-16 text-center"><div class="absolute inset-0 bg-gradient-to-r from-indigo/10 via-cyan/5 to-emerald/10"></div><div class="relative"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-4">Private by architecture</div><h2 class="font-display text-4xl sm:text-5xl font-semibold max-w-3xl mx-auto">${t.ctaTitle}</h2><p class="mt-5 max-w-2xl mx-auto text-slate-400">${t.ctaCopy}</p><p class="mt-3 max-w-2xl mx-auto text-sm text-slate-500">${t.ctaNote}</p><div class="mt-9 flex flex-wrap justify-center gap-3"><a href="#diagnostics" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold inline-flex items-center gap-2">${icon('activity', 'w-4 h-4')}${t.runDiag}</a><a href="/tools/ip-leak-test/" class="px-5 py-3 rounded-xl glass font-semibold inline-flex items-center gap-2">${icon('globe', 'w-4 h-4 text-cyan')}${t.ctaTools}</a></div></div></div>
     </section>
+`;
+  let mainBody = [secHero, secDiag, secArch, secSec, secTools, secCta].join('\n\n');
+  if (t.code === 'en') mainBody = enMain({ secHero, secDiag, secArch, secSec, secTools, secCta });
+  return `<!DOCTYPE html>
+<html lang="${t.html}">
+<head>
+  ${head({ title: t.title, desc: t.desc, canonical: t.path, alternates, ogLocale: t.html.replace('-', '_'), jsonld })}
+</head>
+<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
+  <a href="#top" class="skip">${t.skip}</a>
+  ${backdrop}
+  ${header(t, { home: true })}
+
+  <main id="top" class="relative z-10">
+${mainBody}
   </main>
 
   ${footer(t)}
@@ -375,6 +414,8 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <h2>Hosting and server logs</h2>
     <p>The site is served by Cloudflare. Like any web host, Cloudflare receives your IP address and request details when your browser loads a page, and processes them to deliver the site and protect it from abuse. See <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a>.</p>
 
+    <h2>Guides and checkout</h2>
+    <p>The guides pages under /guides/ load no analytics and set no cookies. When a guide has a purchase button, it leads to a third-party checkout provider. That provider handles payment, processes your payment details and personal data under its own privacy policy, and may set its own cookies. We do not receive your card details.</p>
     <h2>Aggregate analytics</h2>
     <p>The main pages use Cloudflare Web Analytics, which measures page views and performance without cookies and without tracking you across sites. The tools pages under /tools/ load no analytics.</p>
 
@@ -508,6 +549,47 @@ write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'Sponsorship and p
 write('principles/index.html', docPage({ slug: 'principles', title: 'Privacy principles for the tools', desc: 'What each SecureInChat tool processes on your device, what it sends to outside services, and the limits we cannot remove.', body: PRINCIPLES }));
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT }));
 
+// guides (new section; checkout is a third-party link set by the owner)
+const buyBtn = (g) => g.buyUrl
+  ? `<a href="${g.buyUrl}" rel="noopener" class="inline-block px-6 py-3 rounded-xl bg-white text-slate-950 font-semibold">Get the pack: $${g.price}</a>`
+  : `<span class="inline-block px-6 py-3 rounded-xl bg-white/10 text-slate-400 font-semibold" aria-disabled="true">Get the pack: $${g.price} (coming soon)</span>`;
+const GUIDE_INDEX = `    <h1>Tested AI guides</h1>
+    <p>Step-by-step guides for building things with AI. Each one ships with the prompts, the working result, an automated test and the real test log, including the failures. We say what was verified and what was not. All content is original.</p>
+${GUIDES.map((g) => `    <h2><a href="/guides/${g.slug}/">${g.title}</a></h2>\n    <p>${g.blurb}</p>\n    <p><strong>${g.status}</strong></p>`).join('\n')}`;
+write('guides/index.html', docPage({ slug: 'guides', title: 'Tested AI guides', desc: 'Step-by-step guides for building with AI, each with the prompts, a working result and the automated test that proves it.', body: GUIDE_INDEX, current: 'guides' }));
+for (const g of GUIDES) {
+  const body = `    <h1>${g.title}</h1>
+    <p><strong>${g.status}</strong></p>
+    <p><a href="/guides/${g.slug}/play/">Play the finished game</a> (this is what you build; it is a demo of the result, not proof that every step passes).</p>
+    <h2>What you build</h2>
+    <p>A complete Breakout game in a single HTML file: paddle, 40 bricks, three lives, scoring, keyboard, mouse and touch control. You paste prompts into an AI and check the result; you do not write the code by hand.</p>
+    <h2>Free preview: Prompt 1</h2>
+    <pre><code>Write a single-file HTML5 canvas Breakout game (no libraries, no external assets). 480x560 canvas; 8 columns x 5 rows of bricks; ... Expose window.__game = { get(), reset(), start() } ... Return only the file.</code></pre>
+    <h2>In the pack</h2>
+    <ul><li>The full prompt sequence: build, test, fix, variations</li><li>game.html, ready to open in a browser</li><li>test_game.py, an automated Playwright test</li><li>TEST_LOG.txt with the real runs, including two failures and the fix</li></ul>
+    <h2>What was verified, and what was not</h2>
+    <ul><li>Verified: the game code passed the included automated test in headless Chromium on 2026-10-20.</li><li>Verified: the test found a real bug (the ball could bounce straight up and down forever); the log shows the failed runs and the fix.</li><li>Not yet done: an independent re-run of the prompt sequence from scratch by a second session. AI tools change, so steps may need small adjustments.</li></ul>
+    <h2>Price and refunds</h2>
+    <p>$${g.price} test price. Refund terms are on the <a href="/refund/">refunds page</a> and apply before you buy. Payment is handled by a third-party checkout provider; see the <a href="/privacy/">privacy policy</a>.</p>
+    <p>${buyBtn(g)}</p>`;
+  write(`guides/${g.slug}/index.html`, docPage({ slug: `guides/${g.slug}`, title: g.title, desc: g.blurb, body, current: 'guides' }));
+  const play = `    <link rel="stylesheet" href="/guides/assets/breakout.css">
+    <h1>Breakout (built with AI)</h1>
+    <p>Arrow keys or A/D, mouse or touch. Space or tap to start. <a href="/guides/${g.slug}/">Back to the guide</a>.</p>
+    <div id="hud" class="gh"><span>Score <b id="score">0</b></span> · <span>Lives <b id="lives">3</b></span> · <span id="msg">Press Space or tap to start</span></div>
+    <canvas id="c" width="480" height="560"></canvas>
+    <script src="/guides/assets/breakout.js" defer></script>`;
+  write(`guides/${g.slug}/play/index.html`, docPage({ slug: `guides/${g.slug}/play`, title: 'Play: Breakout built with AI', desc: 'Play the finished game from the Breakout AI build guide.', body: play, current: 'guides' }));
+}
+write('guides/assets/breakout.js', fs.readFileSync(path.join(ROOT, 'src/guides/breakout.js')));
+write('guides/assets/breakout.css', fs.readFileSync(path.join(ROOT, 'src/guides/breakout.css')));
+write('refund/index.html', docPage({ slug: 'refund', title: 'Refunds', desc: 'Refund terms for tested AI guide packs.', body: `    <h1>Refunds</h1>
+    <p><strong>Draft for owner review before go-live.</strong></p>
+    <p>Proposed: if a pack does not run as described, ask within 14 days of purchase and it is refunded. Statutory consumer rights where you live are not affected. Contact: x@secureinchat.com.</p>` }));
+write('terms/index.html', docPage({ slug: 'terms', title: 'Terms for guide packs', desc: 'Licence terms for tested AI guide packs.', body: `    <h1>Terms for guide packs</h1>
+    <p><strong>Draft for owner review before go-live.</strong></p>
+    <p>You may use the code in a pack for personal and commercial projects. You may not resell or redistribute the pack itself. Packs are provided as is; AI tools change and steps may need adjusting. All content is original; we do not copy or resell anyone else's courses.</p>` }));
+
 
 // blog
 const postJsonLd = (p) => ({
@@ -550,7 +632,7 @@ write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
+  ['/', 1], ['/guides/', 0], ['/guides/breakout-game-with-ai/', 0], ['/guides/breakout-game-with-ai/play/', 0], ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
 ];
 const homeAlts = Object.values(LANGS).map((l) => `    <xhtml:link rel="alternate" hreflang="${l.html}" href="${SITE}${l.path}" />`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/" />`;
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -566,6 +648,17 @@ const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-ori
 const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
+
+# Guides and policies: self-hosted assets only, no analytics.
+/guides/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'
+${common}
+/refund/
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'
+${common}
+/terms/
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'
+${common}
 
 # Tools: no analytics, only the lookups the tests need.
 /tools/*
