@@ -118,7 +118,15 @@
       </tbody>
     </table>
   </section>
-
+  <section class="wrap" aria-labelledby="sb-h">
+    <h2 id="sb-h">Check several sites</h2>
+    <p>Enter up to 10 addresses, one per line, for example the sites you maintain for clients. Each is checked in turn and you can download one report file. Use it for sites you own or manage.</p>
+    <label for="sb-list" class="sr">Website addresses, one per line</label>
+    <textarea id="sb-list" class="rd-text" spellcheck="false" autocomplete="off" placeholder="example.com"></textarea>
+    <div class="sc-actions"><button id="sb-go" class="btn" type="button">Check all</button><button id="sb-dl" class="btn btn--quiet" type="button" disabled>Download report (HTML)</button></div>
+    <p id="sb-status" class="hint" role="status" aria-live="polite">Nothing checked yet.</p>
+    <table class="results"><caption class="sr">Results for several websites</caption><thead><tr><th scope="col">Site</th><th scope="col">Summary</th><th scope="col">OK</th><th scope="col">Main points</th></tr></thead><tbody id="sb-rows"></tbody></table>
+  </section>
   <section class="wrap prose" aria-labelledby="what-h">
     <h2 id="what-h">What it checks</h2>
     <p>The tool loads the home page of a public website from a Cloudflare server and reports what a visitor or a search engine would meet first: whether the page loads over HTTPS, whether plain HTTP is redirected, the status code and redirects, how quickly the server answers, the common security headers, the title, description, canonical link, viewport, language and main heading, whether indexing is blocked, and whether robots.txt and a sitemap are present and readable.</p>
@@ -148,5 +156,6 @@
   </div>
 </footer>
 <script src="/tools/assets/sitecheck-app.js" defer></script>
+<script src="/tools/assets/sitecheck-batch.js" defer></script>
 </body>
 </html>

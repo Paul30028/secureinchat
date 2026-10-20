@@ -4,7 +4,7 @@
   "main": "worker/index.js",
   "compatibility_date": "2026-07-25",
   "ratelimits": [
-    { "name": "SITECHECK_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } }
+    { "name": "SITECHECK_LIMIT", "namespace_id": "1001", "simple": { "limit": 20, "period": 60 } }
   ],
   "assets": {
     "directory": "./public",
