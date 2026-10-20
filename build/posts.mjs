@@ -252,4 +252,44 @@ export const POSTS = [
     <p>That is why the checker shows strength and breach status as two separate results. A long random password used on one site is the goal, and a breach check is a way to catch the cases where that did not happen.</p>
 `,
   },
+  {
+    slug: 'what-data-brokers-know-about-you',
+    title: 'What data brokers know about you, and how to find out',
+    desc: 'What data brokers are, how they collect information, why a VPN does not stop them, and the practical ways to check what they hold and ask for removal.',
+    date: '2026-10-20',
+    body: `
+    <p>A data broker is a company that collects personal information from many sources, combines it into profiles and sells or licenses it. Most people never dealt with them directly, which is why it is hard to know what they hold. A VPN or a private browser does not change that, because brokers mostly work with information that was already collected elsewhere.</p>
+
+    <h2>Where the information comes from</h2>
+    <ul>
+      <li><strong>Public records:</strong> property records, court records, voter files in some countries, business registrations.</li>
+      <li><strong>Commercial sources:</strong> purchase and loyalty data, warranty cards, surveys and sign-up forms that were sold on.</li>
+      <li><strong>Online activity:</strong> data from apps, ad networks and trackers that link a device to a person.</li>
+      <li><strong>Other brokers:</strong> profiles are resold and merged, so one source feeds many sites.</li>
+    </ul>
+
+    <h2>What a profile can contain</h2>
+    <p>It varies by broker and country. Typical entries are name, past and current addresses, phone numbers, email addresses, age range, relatives and sometimes estimated income or interests. The accuracy is uneven, and mistakes are common.</p>
+
+    <h2>Why a VPN does not help</h2>
+    <p>A VPN hides your network address from the sites you visit and from your internet provider. It does not remove records that already exist, and it does not stop a person who signs up with their real name and phone number. Our <a href="/tools/browser-fingerprint-test/">fingerprint test</a> shows the other half: even without an address, a browser can be recognised from its own characteristics.</p>
+
+    <h2>How to find out what is held about you</h2>
+    <ol>
+      <li>Search your name, with your city, on a search engine and on the main people-search sites in your country. Note which ones list you.</li>
+      <li>Look for an opt-out or removal page on each. They are usually in the footer under a name such as "Do not sell my information" or "Opt out".</li>
+      <li>Where a privacy law applies to you, such as the GDPR in the EU and UK or state laws in parts of the US, you can send an access or deletion request. The right to do so depends on where you live.</li>
+    </ol>
+
+    <h2>Removal in practice</h2>
+    <p>Each broker has its own process, some need an email or a form, and profiles can reappear because the underlying sources still hold the data. Doing it by hand is free but takes time. Paid removal services repeat the requests on your behalf. They can save effort, but they cannot remove data from every source, and none of them makes a person anonymous. Treat them as upkeep, not a guarantee.</p>
+
+    <h2>What reduces the problem at the source</h2>
+    <ul>
+      <li>Give out a real phone number and address less often. Use an alias email for sign-ups.</li>
+      <li>Remove location data from photos before you share them with our <a href="/tools/photo-metadata-remover/">photo metadata remover</a>.</li>
+      <li>Use a unique password for each account and check old ones with the <a href="/tools/password-checker/">password checker</a>, so a breach in one place does not feed a profile elsewhere.</li>
+    </ul>
+`,
+  },
 ];
