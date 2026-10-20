@@ -203,8 +203,8 @@ const backdrop = `<div class="fixed inset-0 grid-overlay pointer-events-none"></
 
 
 const GUIDES = [
-  { slug: 'breakout-game-with-ai', title: 'Build a Breakout game with AI in one HTML file', blurb: 'A prompt set, the finished game and an automated test that caught a real bug. Every step was run.',
-    status: 'Code verified by automated test on 2026-10-20', price: '0.99', buyUrl: '' },
+  { slug: 'breakout-game-with-ai', title: 'Build a Breakout game with AI in one HTML file', blurb: 'A prompt set, the finished game and an automated test, re-run from scratch with every result logged, including the failures.',
+    status: 'Re-run from scratch on 2026-10-20; pass rate in the test log', price: '0.99', buyUrl: '' },
 ];
 
 function enMain({ secHero, secDiag, secArch, secSec, secTools, secCta }) {
@@ -566,9 +566,9 @@ for (const g of GUIDES) {
     <h2>Free preview: Prompt 1</h2>
     <pre><code>Write a single-file HTML5 canvas Breakout game (no libraries, no external assets). 480x560 canvas; 8 columns x 5 rows of bricks; ... Expose window.__game = { get(), reset(), start() } ... Return only the file.</code></pre>
     <h2>In the pack</h2>
-    <ul><li>The full prompt sequence: build, test, fix, variations</li><li>game.html, ready to open in a browser</li><li>test_game.py, an automated Playwright test</li><li>TEST_LOG.txt with the real runs, including two failures and the fix</li></ul>
+    <ul><li>The full prompt sequence: build, test, fix, variations</li><li>game.html, ready to open in a browser</li><li>test_game.py, an automated Playwright test</li><li>TEST_LOG.txt with every real run: 14 runs, a bug in the test itself, and the failures</li></ul>
     <h2>What was verified, and what was not</h2>
-    <ul><li>Verified: the game code passed the included automated test in headless Chromium on 2026-10-20.</li><li>Verified: the test found a real bug (the ball could bounce straight up and down forever); the log shows the failed runs and the fix.</li><li>Not yet done: an independent re-run of the prompt sequence from scratch by a second session. AI tools change, so steps may need small adjustments.</li></ul>
+    <ul><li>Verified: on 2026-10-20 a separate AI session that had not seen the original ran the prompts from scratch. Prompt 1 produced a working game on the first try.</li><li>Verified: in 13 of 13 runs the game passed the checks for starting, launching, paddle limits, losing a life, game over, restart and console errors.</li><li>Not stable: the check that an autoplayer wins within 120 seconds passed in 9 of 14 runs. The game was always winnable; a simple autoplayer is slow to hit the last brick. The log shows every failure.</li><li>Not yet done: running the fix and variation prompts end to end. AI tools change, so steps may need small adjustments.</li></ul>
     <h2>Price and refunds</h2>
     <p>$${g.price} test price. Refund terms are on the <a href="/refund/">refunds page</a> and apply before you buy. Payment is handled by a third-party checkout provider; see the <a href="/privacy/">privacy policy</a>.</p>
     <p>${buyBtn(g)}</p>`;
