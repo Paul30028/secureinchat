@@ -64,6 +64,8 @@ systemctl restart dnsleak
 # HTTPS for the result API. If nginx is running, add a site block and get a certificate with certbot.
 # Otherwise install Caddy, which handles certificates itself.
 if systemctl is-active --quiet nginx 2>/dev/null; then
+  # Keep an existing site file: certbot has already added the HTTPS block to it, and rewriting it would remove that block.
+  if ! grep -qs ssl_certificate /etc/nginx/conf.d/dnsapi.conf; then
   cat >/etc/nginx/conf.d/dnsapi.conf <<NGINX
 server {
     listen 80;
@@ -76,6 +78,7 @@ server {
     }
 }
 NGINX
+  fi
   nginx -t && systemctl reload nginx
   command -v certbot >/dev/null || apt-get install -y certbot python3-certbot-nginx
   if [ ! -d "/etc/letsencrypt/live/$API_HOST" ]; then
