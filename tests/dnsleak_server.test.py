@@ -42,6 +42,11 @@ try:
     q('bbbbbbbbbbbb-1.lk.example.test')
     day = list(json.load(urllib.request.urlopen('http://127.0.0.1:8099/s'))['days'].values())[-1]
     ok(day == {'confirmed': 2, 'completed': 1}, 'a test never read back counts as confirmed only')
+    for i in range(40):
+        q(f'{i:012x}-1.lk.example.test')
+        json.load(urllib.request.urlopen(f'http://127.0.0.1:8099/r?id={i:012x}'))
+    day = list(json.load(urllib.request.urlopen('http://127.0.0.1:8099/s'))['days'].values())[-1]
+    ok(day['confirmed'] == 30 and day['completed'] <= day['confirmed'], f'one resolver address cannot add more than 30 counted tests an hour: {day}')
 finally:
     P.send_signal(signal.SIGTERM); P.wait()
 print('FAILED' if fails else 'DNS SERVER TESTS PASSED'); sys.exit(1 if fails else 0)

@@ -20,7 +20,7 @@ How it works
 - My server sees which resolver asked for each name. It does not see your device.
 - The page then reads the list of resolver addresses back and looks up which network each belongs to (ASN).
 - It compares those networks with the network of your exit IP. Resolvers on the same network as the exit look like a VPN or proxy resolver. A well-known public resolver such as Google or Cloudflare gets an informational result. A resolver that also answered when you ran the test without the VPN is flagged as a likely leak. For that comparison the page keeps the first run in memory in your tab.
-- Resolver addresses are held in memory on the server for ten minutes and are not written to disk or to logs.
+- Resolver addresses are held in memory on the server for ten minutes and are not written to disk or to logs (a per-resolver counter that limits abuse of the usage count stays in memory for up to an hour).
 
 What it cannot show
 - The server sees the recursive resolver, not you. If your browser uses DNS over HTTPS, you will see that provider.

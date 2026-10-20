@@ -36,7 +36,7 @@ export const POSTS = [
     <h2>6. DNS</h2>
     <p>A DNS leak means your device asks your internet provider's resolver for domain names instead of your VPN's. A browser cannot observe which resolver answered, so the test needs a server that can. We run the authoritative DNS server for a domain used only for this. Your browser looks up six random names under it, and the server records the address of each resolver that asks. The page reads that list back and looks up whose network each resolver is on.</p>
     <p>The verdict is careful because the test cannot know who your internet provider is. A resolver on the same network as your exit address passes. A resolver on another network is a warning, since it may be your VPN provider's. If you first run the test with the VPN box unticked, the page remembers those resolvers in the tab, and a resolver that answers both times is reported as a leak. A well-known public resolver such as Google or Cloudflare is shown as information, because the test cannot tell whether you or your VPN chose it.</p>
-    <p><strong>How it can be wrong:</strong> if no lookup reaches our server, because of caching, filtering or a slow path, the result is a warning, never a pass. Browsers that send DNS over HTTPS to a provider show up as that provider's resolver, which is what is actually answering. The resolver address is kept in memory for ten minutes and not logged.</p>
+    <p><strong>How it can be wrong:</strong> if no lookup reaches our server, because of caching, filtering or a slow path, the result is a warning, never a pass. Browsers that send DNS over HTTPS to a provider show up as that provider's resolver, which is what is actually answering. The resolver address is kept in memory for ten minutes and not logged. A small counter per resolver, used only to limit abuse of the usage count, stays in memory for up to an hour.</p>
 
     <h2>What a browser test can never see</h2>
     <ul>
@@ -197,7 +197,7 @@ export const POSTS = [
     <p>Every time you open a site, your device first asks a DNS resolver to turn the name into an address. That resolver sees which sites you visit even if everything after it is encrypted. A DNS leak is when those questions go to a resolver you did not mean to use, usually your internet provider's, while you think a VPN is covering you. Our <a href="/tools/ip-leak-test/">IP leak test</a> checks for it.</p>
 
     <h2>How the check works</h2>
-    <p>The page asks your system to look up six random names under a domain we run. We run the DNS server for that domain, so we see which resolver asks for them, and only that. The page reads that list back and looks up whose network each resolver is on. The names are unique to each run, so nothing is answered from a cache. The resolver address is kept in memory for ten minutes and is not logged.</p>
+    <p>The page asks your system to look up six random names under a domain we run. We run the DNS server for that domain, so we see which resolver asks for them, and only that. The page reads that list back and looks up whose network each resolver is on. The names are unique to each run, so nothing is answered from a cache. The resolver address is kept in memory for ten minutes and is not logged. A small counter per resolver, used only to limit abuse of the usage count, stays in memory for up to an hour.</p>
 
     <h2>Reading the result</h2>
     <ul>

@@ -27,6 +27,8 @@ lock = threading.Lock()
 stats = {}                # "YYYY-MM-DD" (UTC) -> {"confirmed": n, "completed": n}; aggregate counts only, no addresses
 stats_dirty = False
 STATS_DAYS = 60
+COUNT_CAP_PER_HOUR = 30     # new tests counted per resolver address per hour, so one script cannot inflate the numbers
+count_window = {}         # resolver ip -> (hour, n); in memory only, never written out
 rate = {}                 # ip -> (window_start, count)
 
 
@@ -56,9 +58,19 @@ def remember(test_id, ip):
                 del store[k]
             while len(store) > MAX_IDS:
                 del store[min(store, key=lambda k: store[k]["t"])]
+        counted = False
         if test_id not in store:
-            bump("confirmed")                            # the authoritative server saw a query for a new test
-        e = store.setdefault(test_id, {"t": t, "ips": {}, "done": False})
+            hour = int(time.time() // 3600)
+            h, n = count_window.get(ip, (hour, 0))
+            if h != hour:
+                h, n = hour, 0
+            if len(count_window) > 50000:
+                count_window.clear()
+            count_window[ip] = (h, n + 1)
+            if n < COUNT_CAP_PER_HOUR:
+                counted = True
+                bump("confirmed")                        # the authoritative server saw a query for a new test
+        e = store.setdefault(test_id, {"t": t, "ips": {}, "done": not counted})
         if ip in e["ips"] or len(e["ips"]) < MAX_RESOLVERS_PER_ID:
             e["ips"][ip] = e["ips"].get(ip, 0) + 1
 
