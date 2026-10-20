@@ -501,7 +501,7 @@ write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0],
+  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0],
 ];
 const homeAlts = Object.values(LANGS).map((l) => `    <xhtml:link rel="alternate" hreflang="${l.html}" href="${SITE}${l.path}" />`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/" />`;
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>

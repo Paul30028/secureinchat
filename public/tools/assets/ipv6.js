@@ -43,7 +43,7 @@
     tr.querySelector('.why').textContent = c.text;
     var ip = d.who && d.who.ip ? d.who.ip : (d.v4 || 'unknown');
     summary.textContent = 'Websites see ' + ip + '. ' + (c.status === 'fail' ? 'IPv6 leaves outside your VPN.' : c.status === 'pass' ? 'No IPv6 leak found.' : 'Read the note below.');
-    summary.setAttribute('data-tone', c.status === 'fail' ? 'bad' : c.status === 'pass' ? 'good' : 'mid');
+    summary.setAttribute('data-tone', c.status === 'fail' ? 'fail' : c.status === 'pass' ? 'ok' : 'warn');
   }
 
   function run() {

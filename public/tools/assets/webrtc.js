@@ -61,7 +61,7 @@
     tr.querySelector('.why').textContent = c.text;
     var ip = d.who && d.who.ip ? d.who.ip : (d.v4 || 'unknown');
     summary.textContent = 'Websites see ' + ip + '. ' + (c.status === 'fail' ? 'WebRTC leaks a different address.' : c.status === 'pass' ? 'No WebRTC leak found.' : 'Read the note below.');
-    summary.setAttribute('data-tone', c.status === 'fail' ? 'bad' : c.status === 'pass' ? 'good' : 'mid');
+    summary.setAttribute('data-tone', c.status === 'fail' ? 'fail' : c.status === 'pass' ? 'ok' : 'warn');
   }
 
   function run() {

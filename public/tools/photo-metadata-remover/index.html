@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Metadata Remover: See and Remove EXIF and GPS Data Locally</title>
+<meta name="description" content="Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo.">
+<link rel="canonical" href="https://secureinchat.com/tools/photo-metadata-remover/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Photo Metadata Remover: See and Remove EXIF and GPS Data Locally">
+<meta property="og:description" content="Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo.">
+<meta property="og:url" content="https://secureinchat.com/tools/photo-metadata-remover/">
+<meta name="theme-color" content="#070A11">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Photo metadata remover",
+      "url": "https://secureinchat.com/tools/photo-metadata-remover/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is my photo uploaded?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The file is read and re-encoded inside this page. There is no upload, and the page's code stores nothing. The page loads no analytics."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What metadata do photos contain?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Phone and camera JPEGs usually carry EXIF data: the device make and model, the date and time, often GPS coordinates, and sometimes software, lens or serial number."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do social networks remove metadata for me?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Some do when you upload, but you cannot tell which, and sending a photo by email, cloud link or some messengers can pass the original file through. Remove it yourself before you share."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does removal work here?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The page decodes the image and draws it onto a blank canvas, then saves that canvas as a new file. Metadata is not part of the pixels, so it is not copied. The page then reads the new JPEG again to check that no EXIF is left."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will image quality change?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A JPEG is re-encoded at high quality, so there can be a small loss. PNG output is lossless. The embedded colour profile is dropped, which can shift colours slightly in some viewers."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which formats work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG, PNG and WebP, if your browser can decode them. HEIC and animated images are not supported. Only JPEG metadata is shown before cleaning, but cleaning removes metadata from all supported formats."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it remove what is in the picture itself?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. A street sign, a face or a landmark in the photo can still give away where you are. This tool only removes hidden data."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/#architecture">Architecture</a><a href="/#security">Security</a><a href="/#diagnostics">Diagnostics</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Blog</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">Photo metadata remover</h1>
+    <p class="lede">See what a photo reveals about where and when it was taken, then save a copy without it. The file never leaves your device.</p>
+    <div class="picker"><input id="file" type="file" accept="image/*" aria-label="Choose a photo"><button id="clean" class="btn" type="button" hidden>Remove metadata and download</button></div>
+    <p class="hint">Choose a JPEG, PNG or WebP. Your original is not changed. The page stores nothing. See also the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Choose a photo to begin.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">Photo metadata by category</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Photo</span><span class="c-desc">Choose a photo to see what it holds.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">What is hiding in your photos</h2>
+    <p>Most phone photos are saved with a block of hidden data called EXIF. It can include the exact coordinates where you stood, the time, and the model of your device. If you post or send the original file, whoever receives it can read that data with free software.</p>
+    <p>This page shows what a JPEG contains, then makes a copy without it. Your original file is never changed. The check and the cleaning both happen in your browser, so the photo does not leave your device.</p>
+    <h2 id="how-h">Before you share a photo</h2>
+    <ul>
+      <li>Remove metadata from the file, as this page does.</li>
+      <li>Look at the picture for details that give away a place: signs, house numbers, views from a window.</li>
+      <li>Turn off location tagging in your camera app if you rarely need it.</li>
+    </ul>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>Is my photo uploaded?</h3>
+    <p>No. The file is read and re-encoded inside this page. There is no upload, and the page's code stores nothing. The page loads no analytics.</p>
+    <h3>What metadata do photos contain?</h3>
+    <p>Phone and camera JPEGs usually carry EXIF data: the device make and model, the date and time, often GPS coordinates, and sometimes software, lens or serial number.</p>
+    <h3>Do social networks remove metadata for me?</h3>
+    <p>Some do when you upload, but you cannot tell which, and sending a photo by email, cloud link or some messengers can pass the original file through. Remove it yourself before you share.</p>
+    <h3>How does removal work here?</h3>
+    <p>The page decodes the image and draws it onto a blank canvas, then saves that canvas as a new file. Metadata is not part of the pixels, so it is not copied. The page then reads the new JPEG again to check that no EXIF is left.</p>
+    <h3>Will image quality change?</h3>
+    <p>A JPEG is re-encoded at high quality, so there can be a small loss. PNG output is lossless. The embedded colour profile is dropped, which can shift colours slightly in some viewers.</p>
+    <h3>Which formats work?</h3>
+    <p>JPEG, PNG and WebP, if your browser can decode them. HEIC and animated images are not supported. Only JPEG metadata is shown before cleaning, but cleaning removes metadata from all supported formats.</p>
+    <h3>Does it remove what is in the picture itself?</h3>
+    <p>No. A street sign, a face or a landmark in the photo can still give away where you are. This tool only removes hidden data.</p>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>SecureInChat</p>
+    <nav aria-label="Footer"><a href="/tools/">Tools</a><a href="/about/">About</a><a href="/privacy/">Privacy policy</a><a href="/blog/">Blog</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/exif.js" defer></script>
+<script src="/tools/assets/exif-app.js" defer></script>
+</body>
+</html>
