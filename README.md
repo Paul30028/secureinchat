@@ -1,33 +1,35 @@
-# secureinchat.com (rebuilt)
+# SecureInChat: site and privacy tools
 
-public/             generated static site (committed; this is what gets deployed)
-src/, build/        sources and generator: edit these, then run the build (below)
-public/tools/       IP leak test (dark theme), served at /tools/ and /tools/ip-leak-test/
-worker/index.js     serves GET /tools/api/whoami; every other request goes to static assets
-wrangler.jsonc      Worker "secureinchat" with static assets; only /tools/api/* runs the script
-public/_headers     strict CSP for /tools/* only (main page keeps its CDN scripts and wss relay)
+Source of [secureinchat.com](https://secureinchat.com/), including a free, open-source **IP leak test** (public IP, WebRTC, IPv6, time zone, request headers). It runs in the browser, stores nothing and sets no cookies. DNS is deliberately reported as "not tested": a browser cannot see which resolver answers, and the test says so.
 
-## Build (after editing src/ or build/build.mjs)
+- Live tool: https://secureinchat.com/tools/ip-leak-test/
+- How it works and what it cannot see: https://secureinchat.com/blog/how-the-ip-leak-test-works/
+- License: MIT for `public/tools/`, `worker/`, `build/`, `tests/` (see LICENSE). The SecureInChat name, logo and main-site text are not covered.
+
+## Layout
+
+    public/             generated static site (committed; this is what gets deployed)
+    public/tools/       IP leak test (hand-written HTML/CSS/JS, not touched by the build)
+    worker/index.js     Cloudflare Worker: GET /tools/api/whoami; everything else goes to static assets
+    wrangler.jsonc      Worker with static assets; only /tools/api/* runs the script
+    src/, build/        sources and generator for the main pages and blog
+    tests/              unit tests (logic) and Playwright tests (pages, CSP, IP test with mocked network)
+
+## Self-host the IP leak test
+
+The only server-side piece is `/tools/api/whoami`, which returns what Cloudflare saw for the request (`cf-connecting-ip`, `request.cf` network and location, a few headers) and writes nothing. Deploy `public/` and `worker/index.js` as a Cloudflare Worker with static assets (see `wrangler.jsonc`), keep the CSP from `public/_headers`, and the tool works on your own domain. Change the canonical and Open Graph URLs in `public/tools/ip-leak-test/index.html`.
+
+## Build
+
     cd build && npm install && node build.mjs
 
-This regenerates public/ (HTML for en, zh, ja, privacy, about, contact; self-hosted fonts; compiled Tailwind CSS; sitemap; robots; _headers). public/tools/ is hand-written and not touched by the build.
+Regenerates the HTML for en, zh, ja, privacy, about, contact and blog, the self-hosted fonts, the compiled Tailwind CSS, `sitemap.xml`, `robots.txt` and `_headers`.
 
 ## Tests
-    python3 tests/site.py /tmp/shots     # all pages, CSP, overflow, relay mock, no-JS, language switch
-    node tests/logic.test.js && python3 tests/e2e.py /tmp/shots   # IP leak test
+
+    python3 tests/site.py /tmp/shots                               # every page: CSP, overflow, relay mock, no-JS, language switch
+    node tests/logic.test.js && python3 tests/e2e.py /tmp/shots    # IP leak test logic and UI
 
 ## Deploy
-    npm i -D wrangler
-    npx wrangler deploy
 
-This replaces the current manual deployment of the existing "secureinchat" Worker. Its custom domains are kept.
-You can roll back from the Deployments tab in the dashboard.
-
-## After deploy (verify)
-1. https://secureinchat.com/ looks and works as before (language switch, node diagnostics, QR download dialog).
-2. https://secureinchat.com/tools/api/whoami returns JSON with your ip, asn, country.
-3. https://secureinchat.com/tools/ip-leak-test/ runs; see TOOL-README.md for the full checklist.
-
-## Put it in git (recommended; the old project folder was lost)
-    git init && git add . && git commit -m "secureinchat site"
-    then push to Paul30028/secureinchat
+Pushing to `main` deploys through Cloudflare (`npx wrangler deploy`). Direct deploy: `npx wrangler deploy` from the repository root. Roll back from the Deployments tab in the Cloudflare dashboard.

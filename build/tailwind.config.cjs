@@ -1,5 +1,5 @@
 module.exports = {
-  content: ['../public/index.html', '../public/zh/**/*.html', '../public/ja/**/*.html', '../public/privacy/**/*.html', '../public/about/**/*.html', '../public/contact/**/*.html', '../src/main.js'],
+  content: ['../public/index.html', '../public/zh/**/*.html', '../public/ja/**/*.html', '../public/privacy/**/*.html', '../public/about/**/*.html', '../public/contact/**/*.html', '../public/blog/**/*.html', '../src/main.js'],
   theme: {
     extend: {
       colors: { obsidian: '#070A11', void: '#0B0F19', emerald: '#10B981', indigo: '#6366F1', cyan: '#06B6D4' },

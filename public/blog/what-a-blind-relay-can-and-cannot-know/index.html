@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070A11" />
+  <title>What a blind relay can and cannot know | SecureInChat</title>
+  <meta name="description" content="A blind relay forwards encrypted messages it cannot read. That still leaves metadata, and some jobs, like enforcing admin rights, cannot be done on the server. Design notes on what the trade-offs look like in practice." />
+  <link rel="canonical" href="https://secureinchat.com/blog/what-a-blind-relay-can-and-cannot-know/" />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="What a blind relay can and cannot know | SecureInChat" />
+  <meta property="og:description" content="A blind relay forwards encrypted messages it cannot read. That still leaves metadata, and some jobs, like enforcing admin rights, cannot be done on the server. Design notes on what the trade-offs look like in practice." />
+  <meta property="og:url" content="https://secureinchat.com/blog/what-a-blind-relay-can-and-cannot-know/" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="What a blind relay can and cannot know | SecureInChat" />
+  <meta name="twitter:description" content="A blind relay forwards encrypted messages it cannot read. That still leaves metadata, and some jobs, like enforcing admin rights, cannot be done on the server. Design notes on what the trade-offs look like in practice." />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/main.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"What a blind relay can and cannot know","description":"A blind relay forwards encrypted messages it cannot read. That still leaves metadata, and some jobs, like enforcing admin rights, cannot be done on the server. Design notes on what the trade-offs look like in practice.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/what-a-blind-relay-can-and-cannot-know/"}</script>
+
+</head>
+<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
+  <a href="#top" class="skip">Skip to content</a>
+  <div class="fixed inset-0 grid-overlay pointer-events-none"></div>
+  <div class="fixed -top-24 left-[8%] w-96 h-96 rounded-full bg-indigo ambient pointer-events-none"></div>
+  <div class="fixed top-[30%] right-[4%] w-80 h-80 rounded-full bg-cyan ambient pointer-events-none"></div>
+  <div class="fixed bottom-0 left-[35%] w-96 h-80 rounded-full bg-emerald ambient pointer-events-none"></div>
+  <header class="fixed top-4 inset-x-0 z-50 px-4">
+    <nav class="max-w-7xl mx-auto glass rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between shadow-2xl" aria-label="Main">
+      <a href="/" class="flex items-center gap-3 group" aria-label="SecureInChat home">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo"><svg class="w-5 h-5 text-white" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></div>
+        <div>
+          <div class="font-display font-bold tracking-tight">SecureInChat</div>
+          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">ZERO-KNOWLEDGE RELAY</div>
+        </div>
+      </a>
+      <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
+        <a href="/#architecture" class="hover:text-white transition">Architecture</a>
+        <a href="/#security" class="hover:text-white transition">Security</a>
+        <a href="/#diagnostics" class="hover:text-white transition">Diagnostics</a>
+        <a href="/tools/" class="hover:text-white transition">Tools</a>
+        <a href="/blog/" class="hover:text-white transition text-white" aria-current="page">Blog</a>
+      </div>
+      <div class="flex items-center gap-3">
+        
+        
+      </div>
+    </nav>
+  </header>
+  <main id="top" class="relative z-10 doc max-w-3xl mx-auto px-5 sm:px-8 pt-36 pb-24">
+    <p class="meta"><a href="/blog/">Blog</a></p>
+    <h1>What a blind relay can and cannot know</h1>
+    <p class="meta">By Paul · 2026-10-20</p>
+    <p>"Zero-knowledge" is easy to say and hard to check. These are design notes on what a blind relay, the server type SecureInChat is built around, can and cannot know. They describe our current design. The clients are in development and have not been independently audited.</p>
+
+    <h2>What a blind relay is</h2>
+    <p>In a conventional chat service the server holds your messages and could read them. In a blind relay design the encryption keys stay on the devices, and the server only passes opaque encrypted payloads from one device to another. If the server is breached or compelled, it has no message content to hand over.</p>
+
+    <h2>What it cannot know</h2>
+    <ul>
+      <li>The content of messages and files, because it never has the keys.</li>
+      <li>Names that exist only on devices. In our design a group's display name is local to each device and is never sent to the relay.</li>
+    </ul>
+
+    <h2>What it still knows</h2>
+    <p>A relay that routes traffic cannot avoid learning some metadata. Be sceptical of any product that claims otherwise.</p>
+    <ul>
+      <li>The network address a device connects from, as with any server.</li>
+      <li>When devices connect and when messages arrive.</li>
+      <li>The size of each payload, which can hint at its type.</li>
+      <li>The identifiers needed to route messages, such as which group a device joins.</li>
+    </ul>
+    <p>Minimising this metadata, for example by not keeping connection history, is a design goal. Eliminating it is not realistic for a server that routes messages.</p>
+
+    <h2>A job the server cannot do: enforcing admin rights</h2>
+    <p>On a normal server, "only the admin may publish an announcement" is a database check. A blind relay cannot make that check without knowing who the admin is and what is being sent, which would undo the point of being blind. So the rule moves to the clients. In our design the group creator holds a signing key, announcements carry a signature, and every client rejects announcements it cannot verify. The cost is that admin rights belong to whoever holds the key, and losing it needs a recovery mechanism.</p>
+
+    <h2>Removing a member</h2>
+    <p>You cannot reach into a removed member's phone, so removal works by moving the group to new key material. The remaining members receive the new keys, the removed member does not, and later messages are unreadable to them. This has an honest limit: messages already delivered to the removed member's device stay readable there. It is also weaker than the continuous key ratcheting that Signal's protocol or MLS provide, and we do not claim equivalent security.</p>
+
+    <h2>How to judge a "zero-knowledge" claim</h2>
+    <ul>
+      <li>Ask what the server can still see, and expect a specific answer about metadata.</li>
+      <li>Ask who can change group membership or publish as an admin, and where that rule is enforced.</li>
+      <li>Check whether the product separates design goals from independent audits and certifications.</li>
+      <li>Treat words like "100%" and "unhackable" as a reason to ask more questions.</li>
+    </ul>
+    <p>You can see the relay's live handshake on the <a href="/#diagnostics">home page</a>. That test shows that a secure connection to the relay works; it does not prove anything about what the server does with data, and we do not present it as proof of that.</p>
+
+  </main>
+  <footer class="relative z-10 border-t border-white/10 py-8">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
+      <div>© 2026 SecureInChat. Zero-Knowledge Blind Relay Architecture.</div>
+      <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
+        <a href="/tools/" class="hover:text-white">Tools</a>
+        <a href="/blog/" class="hover:text-white">Blog</a>
+        <a href="/privacy/" class="hover:text-white">Privacy</a>
+        <a href="/about/" class="hover:text-white">About</a>
+        <a href="/contact/" class="hover:text-white">Contact</a>
+        <a href="https://github.com/Paul30028/secureinchat" class="hover:text-white" rel="noopener">GitHub</a>
+      </nav>
+      <div class="flex gap-4"><a href="/" hreflang="en" lang="en" class="hover:text-white">EN</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN" class="hover:text-white">ZH</a><a href="/ja/" hreflang="ja" lang="ja" class="hover:text-white">JA</a></div>
+    </div>
+  </footer>
+</body>
+</html>

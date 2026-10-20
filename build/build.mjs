@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { POSTS } from './posts.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const PUB = path.join(ROOT, 'public');
@@ -165,7 +166,7 @@ function header(t, { home, current }) {
         ${link(pre + '#security', t.navSecurity, 's')}
         ${link(pre + '#diagnostics', t.navDiagnostics, 'd')}
         ${link('/tools/', t.navTools, 'tools')}
-        ${link('https://blog.secureinchat.com/', t.navBlog, 'blog')}
+        ${link('/blog/', t.navBlog, 'blog')}
       </div>
       <div class="flex items-center gap-3">
         ${status}
@@ -182,7 +183,7 @@ function footer(t) {
       <div>© 2026 SecureInChat. ${t.footLine}</div>
       <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
         <a href="/tools/" class="hover:text-white">${t.navTools}</a>
-        <a href="https://blog.secureinchat.com/" class="hover:text-white">${t.navBlog}</a>
+        <a href="/blog/" class="hover:text-white">${t.navBlog}</a>
         <a href="/privacy/" class="hover:text-white">${t.fPrivacy}</a>
         <a href="/about/" class="hover:text-white">${t.fAbout}</a>
         <a href="/contact/" class="hover:text-white">${t.fContact}</a>
@@ -328,17 +329,17 @@ function home(t) {
 `;
 }
 
-function docPage({ slug, title, desc, body }) {
+function docPage({ slug, title, desc, body, current = null, article = null }) {
   const t = LANGS.en;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  ${head({ title: `${title} | SecureInChat`, desc, canonical: `/${slug}/` })}
+  ${head({ title: `${title} | SecureInChat`, desc, canonical: `/${slug}/`, jsonld: article })}
 </head>
 <body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
   <a href="#top" class="skip">${t.skip}</a>
   ${backdrop}
-  ${header(t, { home: false, current: null })}
+  ${header(t, { home: false, current })}
   <main id="top" class="relative z-10 doc max-w-3xl mx-auto px-5 sm:px-8 pt-36 pb-24">
 ${body}
   </main>
@@ -394,7 +395,7 @@ const ABOUT = `    <h1>About SecureInChat</h1>
     <ul>
       <li><strong>Relay diagnostics</strong> on the <a href="/">home page</a>: a real WebSocket test against the production relay, with measured latency.</li>
       <li><strong>Privacy tools</strong> in <a href="/tools/">/tools/</a>, starting with the <a href="/tools/ip-leak-test/">IP leak test</a>. They run in your browser and store nothing.</li>
-      <li>The <a href="https://blog.secureinchat.com/">blog</a>, with notes on end-to-end encryption and zero-knowledge design.</li>
+      <li>The <a href="/blog/">blog</a>, with notes on end-to-end encryption and zero-knowledge design.</li>
     </ul>
 
     <h2>How we write about security</h2>
@@ -432,6 +433,30 @@ write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', 
 write('about/index.html', docPage({ slug: 'about', title: 'About', desc: 'About SecureInChat: an end-to-end encrypted blind-relay messenger in development, plus free privacy tools.', body: ABOUT }));
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT }));
 
+
+// blog
+const postJsonLd = (p) => ({
+  '@context': 'https://schema.org', '@type': 'Article', headline: p.title, description: p.desc,
+  datePublished: p.date, dateModified: p.date, inLanguage: 'en',
+  author: { '@type': 'Person', name: 'Paul', url: SITE + '/about/' },
+  publisher: { '@type': 'Organization', name: 'SecureInChat', url: SITE + '/' },
+  mainEntityOfPage: `${SITE}/blog/${p.slug}/`,
+});
+for (const p of POSTS) {
+  write(`blog/${p.slug}/index.html`, docPage({
+    slug: `blog/${p.slug}`, title: p.title, desc: p.desc, current: 'blog', article: postJsonLd(p),
+    body: `    <p class="meta"><a href="/blog/">Blog</a></p>\n    <h1>${p.title}</h1>\n    <p class="meta">By Paul · ${p.date}</p>${p.body}`,
+  }));
+}
+write('blog/index.html', docPage({
+  slug: 'blog', title: 'Blog', current: 'blog',
+  desc: 'Notes on how our privacy tools work and on the design of a blind-relay encrypted messenger.',
+  body: `    <h1>Blog</h1>
+    <p>Notes from building SecureInChat and its privacy tools. We publish few posts and revise them when they are wrong.</p>
+${POSTS.map((p) => `    <h2><a href="/blog/${p.slug}/">${p.title}</a></h2>\n    <p class="meta">${p.date}</p>\n    <p>${p.desc}</p>`).join('\n')}
+`,
+}));
+
 write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366F1"/><stop offset=".5" stop-color="#06B6D4"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#g)"/><g transform="translate(6 6) scale(.833)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g></svg>\n`);
 
 // fonts + script
@@ -450,7 +475,7 @@ write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/about/', 0], ['/privacy/', 0], ['/contact/', 0],
+  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0],
 ];
 const homeAlts = Object.values(LANGS).map((l) => `    <xhtml:link rel="alternate" hreflang="${l.html}" href="${SITE}${l.path}" />`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/" />`;
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -463,7 +488,7 @@ write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/'];
+const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 
