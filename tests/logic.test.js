@@ -167,4 +167,42 @@ t('hosting heuristic', () => {
   assert.equal(L.looksLikeHosting(''), false);
 });
 
+// ---- DNS ----
+const dnsOf = (resolvers, extra) => Object.assign(base(), { dns: { status: 'ok', resolvers } }, extra || {});
+const M247 = { ip: '185.65.134.53', asn: 9009, org: 'M247 Europe SRL' };
+const ISP = { ip: '203.0.113.53', asn: 4134, org: 'Chinanet' };
+const GOOG = { ip: '74.125.46.12', asn: 15169, org: 'Google LLC' };
+
+t('DNS: no service result means not tested', () => {
+  assert.equal(by(L.analyze(base()), 'dns').status, 'na');
+  assert.equal(by(L.analyze(Object.assign(base(), { dns: { status: 'unavailable', resolvers: [] } })), 'dns').status, 'na');
+});
+t('DNS: resolver on the exit network passes', () => {
+  const r = by(L.analyze(dnsOf([M247])), 'dns');
+  assert.equal(r.status, 'pass'); assert.ok(r.lines[0].includes('AS9009'));
+});
+t('DNS: no lookups seen is a warning, never a pass', () => {
+  assert.equal(by(L.analyze(Object.assign(base(), { dns: { status: 'none', resolvers: [] } })), 'dns').status, 'warn');
+});
+t('DNS: public resolver is info, not pass or fail', () => {
+  assert.equal(by(L.analyze(dnsOf([GOOG])), 'dns').status, 'info');
+});
+t('DNS: unrelated network without a baseline is a warning', () => {
+  assert.equal(by(L.analyze(dnsOf([ISP])), 'dns').status, 'warn');
+});
+t('DNS: resolver also seen without the VPN fails and goes in the diagram', () => {
+  const r = L.analyze(dnsOf([ISP], { baseline: [{ ip: '203.0.113.77', asn: 4134, org: 'Chinanet' }] }));
+  assert.equal(by(r, 'dns').status, 'fail');
+  assert.ok(r.diagram.leaks.some(l => l.kind === 'DNS' && l.value === ISP.ip));
+});
+t('DNS: a public resolver in the baseline does not cause a failure', () => {
+  assert.equal(by(L.analyze(dnsOf([GOOG], { baseline: [GOOG] })), 'dns').status, 'info');
+});
+t('DNS: unidentified resolver network is a warning', () => {
+  assert.equal(by(L.analyze(dnsOf([{ ip: '198.51.100.9', asn: null, org: '' }])), 'dns').status, 'warn');
+});
+t('DNS: without a VPN it only informs', () => {
+  assert.equal(by(L.analyze(dnsOf([ISP], { vpn: false })), 'dns').status, 'info');
+});
+
 console.log('\n' + n + ' tests passed');

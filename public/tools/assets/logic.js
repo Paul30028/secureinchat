@@ -257,9 +257,58 @@
       'Your device has an IPv6 address, but the lookup that says whose network it is failed. Compare it with the network under Public IP.');
   }
 
-  function checkDNS() {
-    return result('dns', 'DNS', 'na', ['Not tested on this page'],
-      'A browser cannot see which resolver answers its DNS queries. That needs a DNS server we control, and this page does not have one yet.');
+  // Resolver networks that anyone can choose. Seeing one of these does not show whose choice it was.
+  var PUBLIC_DNS_ASN = { 15169: 'Google', 13335: 'Cloudflare', 19281: 'Quad9', 36692: 'Cisco OpenDNS' };
+
+  function dnsLine(r) {
+    var net = (r.asn ? 'AS' + r.asn + ' ' : '') + (r.org || '');
+    return r.ip + (net.trim() ? ' (' + net.trim() + ')' : '');
+  }
+
+  /* d.dns = { status: 'ok' | 'none' | 'unavailable', resolvers: [{ ip, asn, org }] }
+     d.baseline = resolvers seen earlier in this tab with the VPN box unticked, or null. */
+  function checkDNS(d) {
+    var x = d.dns;
+    if (!x || x.status === 'unavailable') {
+      return result('dns', 'DNS', 'na', ['Not tested'],
+        'The DNS test service did not respond, so this check did not run. The other checks are not affected.');
+    }
+    var list = x.resolvers || [];
+    if (!list.length) {
+      return result('dns', 'DNS', 'warn', ['No DNS lookups reached our server'],
+        'Your lookups may have been blocked, cached or sent through a path that did not finish in time. Run the test again. If it repeats, this check could not tell you anything.');
+    }
+    var lines = list.map(dnsLine);
+    if (!d.vpn) {
+      return result('dns', 'DNS', 'info', lines,
+        'These resolvers answered for this browser. Run the test again with a VPN on and the box ticked to compare. The test keeps this result in this tab only.', { resolvers: list });
+    }
+    var who = d.who || {};
+    var exit = { asn: who.asn, org: who.asOrganization };
+    var seen = {};
+    (d.baseline || []).forEach(function (b) { if (!PUBLIC_DNS_ASN[b.asn]) { seen['ip:' + normalizeIP(b.ip)] = 1; if (b.asn) seen['as:' + b.asn] = 1; } });
+
+    var sameAsBefore = list.filter(function (r) { return !PUBLIC_DNS_ASN[r.asn] && (seen['ip:' + normalizeIP(r.ip)] || (r.asn && seen['as:' + r.asn])); });
+    if (sameAsBefore.length) {
+      return result('dns', 'DNS', 'fail', lines,
+        'A resolver that answered without your VPN is answering with it on. Your DNS lookups still go to that network, which tells it every site you visit.', { resolvers: list });
+    }
+    var unknown = list.filter(function (r) { return !r.asn && !r.org; });
+    if (unknown.length) {
+      return result('dns', 'DNS', 'warn', lines,
+        'The lookup that names the resolver networks failed for at least one resolver, so this test cannot say whose they are. Run it again, or compare with a run without the VPN.', { resolvers: list });
+    }
+    var inExit = function (r) { return compareNetworks(r, exit) === true; };
+    if (list.every(inExit)) {
+      return result('dns', 'DNS', 'pass', lines,
+        'Every resolver is on the same network as your exit address, so lookups are answered inside your VPN or proxy network.', { resolvers: list });
+    }
+    if (list.every(function (r) { return inExit(r) || PUBLIC_DNS_ASN[r.asn]; })) {
+      return result('dns', 'DNS', 'info', lines,
+        'A public resolver answered. That is fine if your VPN or you chose it. This test cannot tell whether your VPN or your device made that choice.', { resolvers: list });
+    }
+    return result('dns', 'DNS', 'warn', lines,
+      'A resolver on a different network than your exit answered. That is normal if it belongs to your VPN provider and a leak if it is your internet provider. Run the test once with the box unticked and once with it ticked to compare.', { resolvers: list });
   }
 
   function checkTimezone(d) {
@@ -359,6 +408,8 @@
     if (wr.status === 'fail') (wr.leaks || []).forEach(function (a) { diagram.leaks.push({ kind: 'WebRTC', value: a }); });
     var v6r = checks[2];
     if (v6r.status === 'fail') diagram.leaks.push({ kind: 'IPv6', value: d.v6 || (d.who && d.who.ip) });
+    var dnsr = checks[3];
+    if (dnsr.status === 'fail') (dnsr.resolvers || []).forEach(function (r) { diagram.leaks.push({ kind: 'DNS', value: r.ip }); });
     void web;
 
     return { checks: checks, count: count, headline: headline, diagram: diagram };

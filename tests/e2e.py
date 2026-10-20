@@ -52,18 +52,18 @@ WHO = {"ip":"185.65.134.10","asn":9009,"asOrganization":"M247 Europe SRL","city"
        "headers":{"accept-language":"en-US,en;q=0.9","x-forwarded-for":"185.65.134.10","sec-ch-ua-platform":"\"Windows\""}}
 
 SCENARIOS = {
-  'clean': dict(who=WHO, v6=None, ipwho=None,
+  'clean': dict(who=WHO, v6=None, ipwho={"success":True,"connection":{"asn":9009,"org":"M247 Europe SRL"},"country_code":"RO"}, dns=['185.65.134.53'],
      cands=["candidate:1 1 udp 2113937151 a1b2c3d4.local 51000 typ host generation 0",
             "candidate:2 1 udp 1677729535 185.65.134.10 51000 typ srflx raddr 0.0.0.0 rport 0 generation 0"],
      tz='Europe/Bucharest',
-     expect=dict(ip='pass', webrtc='pass', ipv6='pass', dns='na', tz='pass', headers='info'), leaks=0),
-  'leaky': dict(who=dict(WHO, headers=dict(WHO['headers'], via='1.1 squid')), v6='2001:db8::1',
+     expect=dict(ip='pass', webrtc='pass', ipv6='pass', dns='pass', tz='pass', headers='info'), leaks=0),
+  'leaky': dict(dns=['203.0.113.53'], who=dict(WHO, headers=dict(WHO['headers'], via='1.1 squid')), v6='2001:db8::1',
      ipwho={"success":True,"connection":{"asn":7922,"org":"Comcast Cable Communications, LLC"},"country_code":"US"},
      cands=["candidate:1 1 udp 2113937151 192.168.1.23 51000 typ host generation 0",
             "candidate:2 1 udp 1677729535 185.65.134.10 51000 typ srflx raddr 0.0.0.0 rport 0 generation 0",
             "candidate:3 1 udp 1677729535 203.0.113.9 51001 typ srflx raddr 0.0.0.0 rport 0 generation 0"],
      tz='Asia/Shanghai',
-     expect=dict(ip='pass', webrtc='fail', ipv6='fail', dns='na', tz='warn', headers='warn'), leaks=2),
+     expect=dict(ip='pass', webrtc='fail', ipv6='fail', dns='warn', tz='warn', headers='warn'), leaks=2),
 }
 
 def run_scenario(p, name, sc, viewport, mobile=False, shot=None, vpn_toggle_check=False):
@@ -82,6 +82,8 @@ def run_scenario(p, name, sc, viewport, mobile=False, shot=None, vpn_toggle_chec
         page.route('https://api6.ipify.org/**', lambda r: r.abort())
     if sc['ipwho']:
         page.route('https://ipwho.is/**', lambda r: r.fulfill(status=200, content_type='application/json', headers={'access-control-allow-origin':'*'}, body=json.dumps(sc['ipwho'])))
+    page.route('https://dnsapi.secureinchat.com/**', lambda r: r.fulfill(status=200, content_type='application/json', headers={'access-control-allow-origin':'*'}, body=json.dumps({'resolvers': sc['dns']})))
+    page.route('https://*.lk.secureinchat.com/**', lambda r: r.abort())
     page.goto(URL, wait_until='networkidle')
     if shot: page.screenshot(path=f'{SHOTS}/{shot}-before.png', full_page=False)
     page.click('#run')

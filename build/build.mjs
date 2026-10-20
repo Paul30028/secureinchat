@@ -375,7 +375,9 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <ul>
       <li><strong>This site</strong> (<code>/tools/api/whoami</code>) returns the address, network and approximate location Cloudflare saw, plus a few request headers. It writes nothing to disk.</li>
       <li><strong>api4.ipify.org and api6.ipify.org</strong> return your IPv4 and IPv6 addresses.</li>
-      <li><strong>ipwho.is</strong> looks up the network of a second address, only when the test finds one.</li>
+      <li><strong>ipwho.is</strong> looks up the network of a second address when the test finds one, and the network of each DNS resolver.</li>
+      <li><strong>Random names under lk.secureinchat.com</strong> are looked up by your system for the DNS check. The DNS server we run for that domain records the address of the resolver that asks, keeps it in memory for ten minutes and writes no log. That address can be your internet provider's resolver, a public resolver or, if your system resolves names itself, your own address. The server's hosting provider can see network traffic to it, as any host can.</li>
+      <li><strong>dnsapi.secureinchat.com</strong> returns the resolver addresses recorded for your run, and only yours. It sees your IP address when your browser asks.</li>
       <li><strong>stun.cloudflare.com</strong> answers the WebRTC check, as it does for video calls.</li>
     </ul>
     <p>Those requests are sent without cookies and without a referrer.</p>
@@ -401,7 +403,7 @@ const ABOUT = `    <h1>About SecureInChat</h1>
     <h2>How we write about security</h2>
     <ul>
       <li>We explain why and how to verify, not only conclusions.</li>
-      <li>We say what a test cannot see. The IP leak test, for example, does not test DNS leaks, and the page says so.</li>
+      <li>We say what a test cannot see. Our DNS check, for example, compares with an earlier run to judge a leak, and the page says when it cannot tell.</li>
       <li>We separate design goals from independent audits. SecureInChat has not been through a third-party audit, and we do not claim SOC 2, ISO 27001 or similar certifications.</li>
       <li>The tools' source code is public in the <a href="${REPO}" rel="noopener">site repository</a>.</li>
     </ul>
@@ -512,7 +514,7 @@ ${urls.map(([u]) => `  <url>\n    <loc>${SITE}${u}</loc>\n    <lastmod>${DATE}</
 write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
-const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
 const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.

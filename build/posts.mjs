@@ -33,8 +33,10 @@ export const POSTS = [
     <h2>5. Request headers</h2>
     <p>Proxies sometimes announce themselves with <code>Via</code>, <code>Forwarded</code> or <code>X-Forwarded-For</code> headers, and your <code>Accept-Language</code> may point at a different country than your IP. We list what arrived. Language mismatch is shown as information only, because it is a weak signal.</p>
 
-    <h2>6. DNS: not tested</h2>
-    <p>A DNS leak means your device asks your internet provider's resolver for domain names instead of your VPN's. A browser cannot observe which resolver answered. Testing it needs an authoritative DNS server that logs which resolver asks for a random subdomain. We do not run one yet, so the DNS row says "Not tested" rather than showing a reassuring tick. Treat any leak test that shows DNS results without such a server with suspicion.</p>
+    <h2>6. DNS</h2>
+    <p>A DNS leak means your device asks your internet provider's resolver for domain names instead of your VPN's. A browser cannot observe which resolver answered, so the test needs a server that can. We run the authoritative DNS server for a domain used only for this. Your browser looks up six random names under it, and the server records the address of each resolver that asks. The page reads that list back and looks up whose network each resolver is on.</p>
+    <p>The verdict is careful because the test cannot know who your internet provider is. A resolver on the same network as your exit address passes. A resolver on another network is a warning, since it may be your VPN provider's. If you first run the test with the VPN box unticked, the page remembers those resolvers in the tab, and a resolver that answers both times is reported as a leak. A well-known public resolver such as Google or Cloudflare is shown as information, because the test cannot tell whether you or your VPN chose it.</p>
+    <p><strong>How it can be wrong:</strong> if no lookup reaches our server, because of caching, filtering or a slow path, the result is a warning, never a pass. Browsers that send DNS over HTTPS to a provider show up as that provider's resolver, which is what is actually answering. The resolver address is kept in memory for ten minutes and not logged.</p>
 
     <h2>What a browser test can never see</h2>
     <ul>
@@ -120,7 +122,7 @@ export const POSTS = [
     <p>After any change, run the test again. The result is the only proof that matters, because settings and extensions change between versions.</p>
 
     <h2>What this test cannot tell you</h2>
-    <p>It runs from one browser on one network at one moment. A different browser, or the same device on a different network, can behave differently. It also does not test DNS, which a web page cannot observe. For the rest of the checks, use the <a href="/tools/ip-leak-test/">full IP leak test</a>, and read <a href="/blog/how-the-ip-leak-test-works/">how it works</a> for what each check can and cannot see.</p>
+    <p>It runs from one browser on one network at one moment. A different browser, or the same device on a different network, can behave differently. It does not test DNS. The <a href="/tools/ip-leak-test/">full IP leak test</a> does, using a DNS server we run. For the rest of the checks, use the <a href="/tools/ip-leak-test/">full IP leak test</a>, and read <a href="/blog/how-the-ip-leak-test-works/">how it works</a> for what each check can and cannot see.</p>
 `,
   },
   {
@@ -168,8 +170,8 @@ export const POSTS = [
     <h2>2. Check the side routes</h2>
     <p>The <a href="/tools/webrtc-leak-test/">WebRTC</a> and <a href="/tools/ipv6-leak-test/">IPv6</a> tests look for addresses that go around the tunnel. These are the two most common failures a browser can detect.</p>
 
-    <h2>3. Check DNS with a dedicated test</h2>
-    <p>A browser cannot see which DNS resolver answers it, so our test marks DNS as not tested. Use a DNS leak test that runs its own DNS server and compare the resolver it reports with your normal network and with the VPN. A resolver run by your internet provider while the VPN is on is a leak.</p>
+    <h2>3. Check DNS</h2>
+    <p>A browser cannot see which DNS resolver answers it, so a DNS test needs its own DNS server. Our <a href="/tools/ip-leak-test/">IP leak test</a> has one. Run it with the VPN off, then on, and compare the resolvers. A resolver run by your internet provider while the VPN is on is a leak. If you use a public resolver such as Google or Cloudflare, you will see that one in both runs, and the test cannot say who chose it.</p>
 
     <h2>4. Drop the connection</h2>
     <p>With a page loaded, turn off the network adapter for a few seconds or disconnect the VPN manually, then see whether traffic stops. A working kill switch blocks traffic when the tunnel is down. Run the tests again after you reconnect.</p>

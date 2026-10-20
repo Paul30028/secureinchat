@@ -86,6 +86,46 @@
     };
   }
 
+  // ---- DNS leak probe ------------------------------------------------------------------------------------------------
+  // The browser looks up unique names under our zone. The authoritative server behind it records which resolver asked,
+  // and the result API returns those resolver addresses for this test id only. The lookups themselves are expected to fail.
+  var DNS_ZONE = 'lk.secureinchat.com';
+  var DNS_API = 'https://dnsapi.secureinchat.com/r?id=';
+
+  function randomHex(n) {
+    var a = new Uint8Array(n / 2);
+    crypto.getRandomValues(a);
+    return Array.prototype.map.call(a, function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+  }
+
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  function runDNS() {
+    if (!window.crypto || !crypto.getRandomValues) return Promise.resolve({ status: 'unavailable', resolvers: [] });
+    var id = randomHex(12);
+    for (var i = 1; i <= 6; i++) {
+      var ac = new AbortController();
+      fetch('https://' + id + '-' + i + '.' + DNS_ZONE + '/', { mode: 'no-cors', cache: 'no-store', credentials: 'omit', signal: ac.signal }).catch(function () {});
+      setTimeout(ac.abort.bind(ac), 2500);
+    }
+    var read = function () {
+      return fetchJSON(DNS_API + id, 4000, true).then(function (j) {
+        return Array.isArray(j && j.resolvers) ? j.resolvers.filter(function (ip) { return typeof ip === 'string' && /^[0-9a-f:.]{3,45}$/i.test(ip); }) : null;
+      }).catch(function () { return null; });
+    };
+    return wait(2200).then(read).then(function (first) {
+      if (first === null) return null;
+      if (first.length) return first;
+      return wait(1800).then(read);
+    }).then(function (ips) {
+      if (ips === null) return { status: 'unavailable', resolvers: [] };
+      if (!ips.length) return { status: 'none', resolvers: [] };
+      return Promise.all(ips.slice(0, 4).map(function (ip) {
+        return lookupNetwork(ip).then(function (n) { return { ip: ip, asn: n && n.asn || null, org: n && n.org || '' }; });
+      })).then(function (list) { return { status: 'ok', resolvers: list }; });
+    });
+  }
+
   // ---- rendering ---------------------------------------------------------------------------------------------------
 
   function setRowRunning(tr) {
@@ -178,15 +218,19 @@
     summary.textContent = 'Running checks. This takes a few seconds.';
     copyBtn.hidden = true;
     bypass.hidden = true;
-    Object.keys(rows).forEach(function (id) { if (id !== 'dns') setRowRunning(rows[id]); });
+    Object.keys(rows).forEach(function (id) { setRowRunning(rows[id]); });
 
     var who = fetchJSON('/tools/api/whoami', 6000, false).catch(function () { return null; });
     var v4 = fetchJSON('https://api4.ipify.org?format=json', 5000, true).then(function (j) { return cleanIP(j && j.ip, 4); }).catch(function () { return null; });
     var v6 = fetchJSON('https://api6.ipify.org?format=json', 5000, true).then(function (j) { return cleanIP(j && j.ip, 6); }).catch(function () { return null; });
     var rtc = gatherWebRTC(4500);
+    var dns = runDNS();
 
-    Promise.all([who, v4, v6, rtc]).then(function (r) {
-      var data = { who: r[0], v4: r[1], v6: r[2], webrtc: r[3], lookup: {}, tz: tzInfo(r[0]) };
+    Promise.all([who, v4, v6, rtc, dns]).then(function (r) {
+      var data = { who: r[0], v4: r[1], v6: r[2], webrtc: r[3], dns: r[4], baseline: null, lookup: {}, tz: tzInfo(r[0]) };
+      // Kept in this tab's memory only: resolvers seen without a VPN, to compare with a later run that has one.
+      if (!vpnBox.checked && r[4].status === 'ok') state.baseline = r[4].resolvers;
+      else if (vpnBox.checked) data.baseline = state.baseline;
       var target = L.lookupTarget(data.who, data.v4, data.v6);
       if (!target) return data;
       return lookupNetwork(target).then(function (info) {
@@ -200,12 +244,12 @@
       summary.setAttribute('data-tone', 'warn');
       summary.textContent = 'The test could not finish. Reload the page and try again.';
     }).then(function () {
-      var wait = reduceMotion ? 0 : 6 * 130 + 100;
+      var settle = reduceMotion ? 0 : 6 * 130 + 100;
       setTimeout(function () {
         state.running = false;
         runBtn.disabled = false;
         runBtn.textContent = 'Run test again';
-      }, wait);
+      }, settle);
     });
   }
 

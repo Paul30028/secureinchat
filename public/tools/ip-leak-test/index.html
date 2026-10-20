@@ -41,8 +41,8 @@
           "acceptedAnswer": { "@type": "Answer", "text": "No. Private windows clear history and cookies, but WebRTC, IPv6, DNS and the time zone behave the same way." } },
         { "@type": "Question", "name": "Should I turn WebRTC off?",
           "acceptedAnswer": { "@type": "Answer", "text": "Only if you cannot limit it another way. Turning it off breaks browser video calls and some web apps. Limiting WebRTC to the default public interface, or blocking non-proxied UDP, usually closes the leak and keeps calls working." } },
-        { "@type": "Question", "name": "Why is there no DNS leak test?",
-          "acceptedAnswer": { "@type": "Answer", "text": "A browser cannot see which resolver answers its DNS queries. A DNS test needs a DNS server that logs lookups, and this page does not have one yet. It shows the DNS row as not tested instead of guessing." } },
+        { "@type": "Question", "name": "How does the DNS check work?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Your browser looks up a few random names under a domain we run. The DNS server for that domain records which resolver asked, and the page reads that list back and looks up whose network each resolver is on. A resolver on your exit network passes. A resolver that also answered when you ran the test without a VPN fails. A public resolver such as Google or Cloudflare is shown as information, because the test cannot tell who chose it." } },
         { "@type": "Question", "name": "Why does IPv6 matter if my VPN works?",
           "acceptedAnswer": { "@type": "Answer", "text": "Many VPNs tunnel only IPv4. If your network also has IPv6, sites that support it connect to you over IPv6, outside the tunnel." } },
         { "@type": "Question", "name": "How accurate are the location and network name?",
@@ -137,10 +137,10 @@
           <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
           <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
         </tr>
-        <tr data-check="dns" data-status="na">
+        <tr data-check="dns" data-status="idle">
           <th scope="row" data-label="Check"><span class="c-name">DNS</span><span class="c-desc">Which resolver answers your lookups.</span></th>
-          <td data-label="Result"><div class="vals"><div class="val mono">Not tested on this page</div></div><p class="why">A browser cannot see which resolver answers its DNS queries. That needs a DNS server we control, and this page does not have one yet.</p></td>
-          <td data-label="Status"><span class="pill" data-pill>Not tested</span></td>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
         </tr>
         <tr data-check="tz" data-status="idle">
           <th scope="row" data-label="Check"><span class="c-name">Time zone</span><span class="c-desc">Your browser clock against your IP's location.</span></th>
@@ -211,7 +211,7 @@
       <details><summary>Why does the test ask whether I'm using a VPN?</summary><p>The test cannot tell. A home IP address is normal without a VPN and a problem with one. The checkbox decides whether results are judged as pass or fail, or only shown.</p></details>
       <details><summary>Does private browsing stop these leaks?</summary><p>No. Private windows clear history and cookies, but WebRTC, IPv6, DNS and the time zone behave the same way.</p></details>
       <details><summary>Should I turn WebRTC off?</summary><p>Only if you cannot limit it another way. Turning it off breaks browser video calls and some web apps. Limiting WebRTC to the default public interface, or blocking non-proxied UDP, usually closes the leak and keeps calls working.</p></details>
-      <details><summary>Why is there no DNS leak test?</summary><p>A browser cannot see which resolver answers its DNS queries. A DNS test needs a DNS server that logs lookups, and this page does not have one yet. It shows the DNS row as not tested instead of guessing.</p></details>
+      <details><summary>How does the DNS check work?</summary><p>Your browser looks up a few random names under a domain we run. The DNS server for that domain records which resolver asked, and the page reads that list back and looks up whose network each resolver is on. A resolver on your exit network passes. A resolver that also answered when you ran the test without a VPN fails. A public resolver such as Google or Cloudflare is shown as information, because the test cannot tell who chose it.</p></details>
       <details><summary>Why does IPv6 matter if my VPN works?</summary><p>Many VPNs tunnel only IPv4. If your network also has IPv6, sites that support it connect to you over IPv6, outside the tunnel.</p></details>
       <details><summary>How accurate are the location and network name?</summary><p>They come from IP geolocation data. The city is often off, sometimes by a lot. The network name is usually right. The hosting-or-ISP judgment is a heuristic based on the network name and can be wrong for residential VPN exits and corporate VPNs.</p></details>
       <details><summary>Do you store my IP address or results?</summary><p>The page's code stores nothing. Results are built in your browser and disappear when you close the tab. Cloudflare, which hosts the site, processes every request it serves, as it does for any site. The lookups listed under How the test works leave your browser.</p></details>
@@ -224,10 +224,12 @@
     <dl class="defs">
       <div><dt>This site, /tools/api/whoami</dt><dd>Returns the address Cloudflare saw, its network, an approximate location and a few request headers. The code writes nothing to disk.</dd></div>
       <div><dt>api4.ipify.org and api6.ipify.org</dt><dd>Return your IPv4 and IPv6 address separately. If your network has no IPv6, the IPv6 request fails, and the test reads that as no IPv6.</dd></div>
-      <div><dt>ipwho.is</dt><dd>Looks up the network of your second address, only when the test finds one in the other IP family.</dd></div>
+      <div><dt>ipwho.is</dt><dd>Looks up the network of your second address when the test finds one, and the network of each DNS resolver.</dd></div>
+      <div><dt>Random names under lk.secureinchat.com</dt><dd>The DNS check asks your system to look up six names that exist only for this run. Our DNS server answers them and notes the address of the resolver that asked. It keeps that in memory for ten minutes and writes no log.</dd></div>
+      <div><dt>dnsapi.secureinchat.com</dt><dd>Returns the resolver addresses recorded for this run, and only this run. Like any server, it sees your IP address when your browser asks.</dd></div>
       <div><dt>stun.cloudflare.com</dt><dd>The WebRTC check asks this STUN server for your public address, the same way a video call would.</dd></div>
     </dl>
-    <p>The page sets no cookies, loads no analytics and serves its fonts from this site. Pass and fail judgments depend on the VPN checkbox. DNS is not tested. Updated October 20, 2026.</p>
+    <p>The page sets no cookies, loads no analytics and serves its fonts from this site. Pass and fail judgments depend on the VPN checkbox. The DNS check compares with an earlier run in the same tab, which it keeps in memory only. Updated October 20, 2026.</p>
   </section>
 </main>
 

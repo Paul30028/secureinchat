@@ -63,8 +63,8 @@
     <h2>2. Check the side routes</h2>
     <p>The <a href="/tools/webrtc-leak-test/">WebRTC</a> and <a href="/tools/ipv6-leak-test/">IPv6</a> tests look for addresses that go around the tunnel. These are the two most common failures a browser can detect.</p>
 
-    <h2>3. Check DNS with a dedicated test</h2>
-    <p>A browser cannot see which DNS resolver answers it, so our test marks DNS as not tested. Use a DNS leak test that runs its own DNS server and compare the resolver it reports with your normal network and with the VPN. A resolver run by your internet provider while the VPN is on is a leak.</p>
+    <h2>3. Check DNS</h2>
+    <p>A browser cannot see which DNS resolver answers it, so a DNS test needs its own DNS server. Our <a href="/tools/ip-leak-test/">IP leak test</a> has one. Run it with the VPN off, then on, and compare the resolvers. A resolver run by your internet provider while the VPN is on is a leak. If you use a public resolver such as Google or Cloudflare, you will see that one in both runs, and the test cannot say who chose it.</p>
 
     <h2>4. Drop the connection</h2>
     <p>With a page loaded, turn off the network adapter for a few seconds or disconnect the VPN manually, then see whether traffic stops. A working kill switch blocks traffic when the tunnel is down. Run the tests again after you reconnect.</p>
