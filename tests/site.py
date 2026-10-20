@@ -33,7 +33,7 @@ BASE = f'http://127.0.0.1:{srv.server_address[1]}'
 WS_OK = """(()=>{class W{constructor(u){this.u=u;setTimeout(()=>{this.onopen&&this.onopen();setTimeout(()=>{this.onmessage&&this.onmessage({data:JSON.stringify({type:'auth_challenge',challenge:'abcdef0123456789abcdef'})})},40)},60)}close(){}}window.WebSocket=W})();"""
 WS_BAD = """(()=>{class W{constructor(u){setTimeout(()=>{this.onerror&&this.onerror();this.onclose&&this.onclose({code:1006})},60)}close(){}}window.WebSocket=W})();"""
 
-PAGES = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/tools/', '/tools/ip-leak-test/']
+PAGES = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/tools/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/']
 fails = []
 def check(cond, msg):
     print(('ok   ' if cond else 'FAIL ') + msg)
