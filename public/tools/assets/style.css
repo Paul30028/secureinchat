@@ -225,3 +225,10 @@ tr[data-status="running"] .pill::before { background: var(--accent); border-radi
 .rd-text:focus-visible { border-color: var(--accent); }
 .rd-rules { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 10px 0 0; }
 .rd-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+
+.sc-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 8px; }
+.sc-field { flex: 1 1 18rem; }
+.sc-field label { display: block; font-weight: 700; margin-bottom: 6px; }
+.sc-input { width: 100%; box-sizing: border-box; font: 400 1rem/1.5 var(--mono); padding: 12px 14px; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 8px; }
+.sc-input:focus-visible { border-color: var(--accent); }
+.sc-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }

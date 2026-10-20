@@ -1,3 +1,5 @@
+import { siteCheck } from './sitecheck.mjs';
+
 // Worker entry for secureinchat.com. Handles GET /tools/api/whoami; everything else goes to static assets.
 // Returns what Cloudflare saw for this request. Nothing is stored or logged by this code.
 
@@ -53,6 +55,15 @@ export default {
     if (url.pathname === '/tools/api/whoami') {
       if (request.method !== 'GET') return new Response('Method not allowed', { status: 405, headers: { allow: 'GET' } });
       return whoami(request);
+    }
+    if (url.pathname === '/tools/api/site-check') {
+      if (request.method !== 'GET') return new Response('Method not allowed', { status: 405, headers: { allow: 'GET' } });
+      if (env.SITECHECK_LIMIT) {
+        const key = request.headers.get('cf-connecting-ip') || 'anon';
+        const { success } = await env.SITECHECK_LIMIT.limit({ key });
+        if (!success) return new Response(JSON.stringify({ error: 'Too many checks from your network. Wait a minute and try again.' }), { status: 429, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'retry-after': '60' } });
+      }
+      return siteCheck(request);
     }
     return env.ASSETS.fetch(request);
   },
