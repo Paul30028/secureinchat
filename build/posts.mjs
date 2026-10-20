@@ -326,4 +326,42 @@ export const POSTS = [
     <p>Tests can disagree because they ask different questions and use different data sources for locations and networks. If two sites give different answers, that is information. <a href="/blog/how-to-test-a-vpn-yourself/">How to test a VPN yourself</a> explains the steps, and <a href="/blog/dns-leaks-explained/">DNS leaks explained</a> covers how to read a DNS result.</p>
 `,
   },
+  {
+    slug: 'redact-text-before-you-share-it',
+    title: 'Redact text before you share it: what to remove from logs, emails and configs',
+    desc: 'What personal data and secrets hide in logs, emails and config files, what a redaction tool can and cannot find, and a short checklist before you paste text into a forum or an AI assistant.',
+    date: '2026-10-20',
+    body: `
+    <p>People paste logs, emails and configuration files into bug reports, forums and AI assistants every day. Those texts often carry more than the problem: addresses, tokens and names. Once posted, they are hard to take back. This page lists what to look for and how our <a href="/tools/text-redactor/">text redactor</a> helps, including what it misses.</p>
+
+    <h2>What hides in ordinary text</h2>
+    <ul>
+      <li><strong>Network details:</strong> IPv4 and IPv6 addresses, MAC addresses and internal hostnames in logs and traces.</li>
+      <li><strong>Contact details:</strong> email addresses and phone numbers in headers, signatures and error reports.</li>
+      <li><strong>Secrets:</strong> API keys, access tokens, JSON Web Tokens, private keys and passwords inside connection strings such as <span class="mono">postgres://user:password@host</span>.</li>
+      <li><strong>Payment data:</strong> card numbers in order exports and support tickets.</li>
+    </ul>
+
+    <h2>What the redactor does</h2>
+    <p>It matches common patterns and replaces each with a labelled placeholder such as <span class="mono">[EMAIL_1]</span>. The same value always receives the same placeholder, so a log stays readable: you can still see that one address appeared five times without seeing the address. It runs in your browser and nothing is uploaded.</p>
+
+    <h2>What it cannot find</h2>
+    <ul>
+      <li>Names, street addresses, company names and anything without a fixed format.</li>
+      <li>Secrets in a custom format that does not look like a known key.</li>
+      <li>Card numbers that fail the standard checksum. A made-up number is left alone on purpose, to avoid replacing ordinary long numbers.</li>
+      <li>Context that identifies you without a pattern, such as a unique error message from your own project.</li>
+    </ul>
+    <p>That is why a tool like this reduces the risk but does not remove it. Read the result before you share it.</p>
+
+    <h2>A short checklist</h2>
+    <ol>
+      <li>Run the text through the redactor and read the output line by line.</li>
+      <li>Search the result for names, paths that include your user name, and project or customer names.</li>
+      <li>If a real secret was ever in the text, rotate it. Redacting a copy does not cancel a key that was already exposed.</li>
+      <li>Share the smallest piece of text that shows the problem.</li>
+    </ol>
+    <p>For images, the same idea applies to metadata: see the <a href="/tools/photo-metadata-remover/">photo metadata remover</a>.</p>
+`,
+  },
 ];
