@@ -20,7 +20,7 @@ BIND_IP="${BIND_IP:-$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\
 
 # Port 53 must be free on that address (systemd-resolved only holds 127.0.0.53, which is fine).
 if ss -H -lunp "sport = :53" | grep -q "$BIND_IP\|0.0.0.0:53\|\*:53"; then
-  if ! ss -H -lunp "sport = :53" | grep -q dnsleak; then
+  if ! systemctl is-active --quiet dnsleak 2>/dev/null; then
     echo "Port 53 on $BIND_IP is already in use:"; ss -lunp "sport = :53"; echo "Stop that service first, then re-run."; exit 1
   fi
 fi
