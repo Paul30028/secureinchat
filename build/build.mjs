@@ -354,6 +354,7 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <p class="meta">Last updated: ${DATE}</p>
     <p>This policy covers secureinchat.com, including the tools under /tools/. It describes what the site does with your data today. If that changes, for example if we add advertising, we will update this page before the change goes live.</p>
 
+    <p>A tool-by-tool list is on the <a href="/principles/">privacy principles</a> page.</p>
     <h2>What we do not do</h2>
     <ul>
       <li>We do not set cookies and we do not use local storage on this site.</li>
@@ -427,6 +428,38 @@ const CONTACT = `    <h1>Contact</h1>
     <p>Please do not post sensitive personal information in a public issue. We will never ask for passwords, keys or private messages.</p>
 `;
 
+const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
+    <p class="meta">Last updated: ${DATE}</p>
+    <p>This page lists, tool by tool, what runs on your device, what leaves it and who receives it. It complements the <a href="/privacy/">privacy policy</a>. Where a limit exists we say so.</p>
+    <h2>Rules we follow</h2>
+    <ul>
+      <li>Files, photos and passwords are processed in your browser and are never uploaded.</li>
+      <li>No cookies, no accounts and no advertising or analytics scripts on the tools pages.</li>
+      <li>Test results are not stored on our side. The DNS test keeps resolver addresses in memory for ten minutes.</li>
+      <li>Every outside service a tool contacts is listed below. A page security policy blocks any other.</li>
+    </ul>
+    <h2>Tool by tool</h2>
+    <table>
+      <thead><tr><th>Tool</th><th>Stays on your device</th><th>Sent to others</th></tr></thead>
+      <tbody>
+        <tr><td><a href="/tools/ip-leak-test/">IP leak test</a></td><td>Verdicts and comparisons</td><td>Your IP to ipify and ipwho.is; random DNS names to our lookup server; resolver addresses read from our API</td></tr>
+        <tr><td><a href="/tools/webrtc-leak-test/">WebRTC leak test</a></td><td>Everything</td><td>A STUN request to a public server, which sees your public address</td></tr>
+        <tr><td><a href="/tools/ipv6-leak-test/">IPv6 leak test</a></td><td>Verdicts</td><td>Your IPv6 address to ipify</td></tr>
+        <tr><td><a href="/tools/photo-metadata-remover/">Photo metadata remover</a></td><td>The photo and its metadata</td><td>Nothing</td></tr>
+        <tr><td><a href="/tools/browser-fingerprint-test/">Fingerprint test</a></td><td>All signals</td><td>Nothing</td></tr>
+        <tr><td><a href="/tools/password-checker/">Password checker</a></td><td>The password and its full hash</td><td>The first five characters of its SHA-1 hash to Pwned Passwords</td></tr>
+      </tbody>
+    </table>
+    <h2>What we cannot hide</h2>
+    <ul>
+      <li>Our CDN, Cloudflare, sees the IP address of every request to the site, as any web host does.</li>
+      <li>Outside services see your IP address when you use a tool that contacts them.</li>
+      <li>Results depend on your browser and network. A pass is not proof of anonymity.</li>
+    </ul>
+    <h2>Checking it yourself</h2>
+    <p>The tools are plain scripts without a build step on the page. Open your browser's network panel while using one and compare the requests with the table. The source is public in the <a href="https://github.com/Paul30028/secureinchat">repository</a>.</p>
+`;
+
 const SPONSOR = `    <h1>Sponsorship and partnerships</h1>
     <p class="meta">Last updated: ${DATE}</p>
     <p>SecureInChat runs free privacy tools that people use while checking a VPN, proxy or browser setup. We accept a small number of sponsors and affiliate partners whose products fit that moment: VPNs, proxies, password managers and privacy software.</p>
@@ -460,6 +493,7 @@ for (const t of Object.values(LANGS)) write(t.code === 'en' ? 'index.html' : `${
 write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', desc: 'What secureinchat.com and its tools do with your data: no cookies, no accounts, no stored test results.', body: PRIVACY }));
 write('about/index.html', docPage({ slug: 'about', title: 'About', desc: 'About SecureInChat: an end-to-end encrypted blind-relay messenger in development, plus free privacy tools.', body: ABOUT }));
 write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'Sponsorship and partnerships', desc: 'How VPN, proxy and privacy-tool vendors can sponsor SecureInChat tools, and the rules that keep test results independent.', body: SPONSOR }));
+write('principles/index.html', docPage({ slug: 'principles', title: 'Privacy principles for the tools', desc: 'What each SecureInChat tool processes on your device, what it sends to outside services, and the limits we cannot remove.', body: PRINCIPLES }));
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT }));
 
 
@@ -504,7 +538,7 @@ write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0],
+  ['/', 1], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
 ];
 const homeAlts = Object.values(LANGS).map((l) => `    <xhtml:link rel="alternate" hreflang="${l.html}" href="${SITE}${l.path}" />`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/" />`;
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -517,7 +551,7 @@ write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 
