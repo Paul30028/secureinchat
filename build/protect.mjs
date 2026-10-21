@@ -60,7 +60,7 @@ export const LAYERS = [
   {
     slug: 'accounts', icon: 'key-round', name: 'Accounts and email', tagline: 'Who can get into your accounts, and what your inbox reveals.',
     threat: 'Reused passwords, SMS codes and an email provider that can read every message are the usual way accounts and identities are taken over.',
-    live: [['Account security checkup: eight checks, official Google, Apple and Microsoft steps', '/tools/account-checkup/', 'local'], ['Password breach checker', '/tools/password-checker/', 'local'], ['How password breach checks work', '/blog/how-password-breach-checks-work/', 'guide'], ['What data brokers know about you', '/blog/what-data-brokers-know-about-you/', 'guide'], ['Moving to encrypted email: what it protects and how to switch', '/blog/move-to-encrypted-email/', 'guide'], ['Email aliases: a separate address for every site', '/blog/email-aliases-hide-your-address/', 'guide']],
+    live: [['Account security checkup: eight checks, official Google, Apple and Microsoft steps', '/tools/account-checkup/', 'local'], ['Password breach checker', '/tools/password-checker/', 'local'], ['How password breach checks work', '/blog/how-password-breach-checks-work/', 'guide'], ['What data brokers know about you', '/blog/what-data-brokers-know-about-you/', 'guide'], ['Moving to encrypted email: what it protects and how to switch', '/blog/move-to-encrypted-email/', 'guide'], ['Email aliases: a separate address for every site', '/blog/email-aliases-hide-your-address/', 'guide'], ['Protect your phone number: SIM PIN, carrier locks and SIM-swap scams', '/blog/protect-your-phone-number-sim-swap/', 'guide']],
     planned: ['An account recovery plan you keep offline: recovery codes, security keys and trusted devices'],
   },
   {

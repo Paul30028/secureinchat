@@ -1,6 +1,60 @@
 // Blog posts. Body is HTML using the .doc styles. Keep claims verifiable and scoped.
 export const POSTS = [
   {
+    slug: 'protect-your-phone-number-sim-swap',
+    title: 'Protect your phone number: SIM PIN, carrier locks and the SIM-swap scam',
+    desc: 'Someone who takes over your phone number receives your calls and text codes. Five steps that make that harder: a SIM PIN, an account PIN with your carrier, the free number and SIM locks US carriers now offer, codes that do not travel by SMS, and messenger settings that keep your number private.',
+    date: '2026-10-22',
+    body: `
+    <p>Your phone number is often the weakest key to your accounts. In a SIM-swap scam, someone persuades your mobile carrier to move your number to a SIM card they control, for example by claiming your phone was lost. From then on they receive your calls and texts, including the one-time codes many banks and apps send by SMS. A related trick, port-out fraud, moves your number to a different carrier. The steps below make both harder. Each one links to the official page it is based on. We have no affiliation with any carrier named here.</p>
+    <p>Source: <a href="https://consumer.ftc.gov/consumer-alerts/2019/10/sim-swap-scams-how-protect-yourself" rel="noopener">FTC: SIM swap scams, how to protect yourself</a>.</p>
+
+    <h2>1. Put a PIN on the SIM itself</h2>
+    <p>A SIM PIN stops someone who takes the SIM card out of your phone, or restarts a stolen phone, from using your number. It does not stop a SIM swap done at the carrier, which is what steps 2 and 3 are for.</p>
+    <ul>
+      <li><strong>iPhone:</strong> Settings, Cellular, SIM PIN. With two lines, tap the line first. Once on, the phone asks for the PIN after every restart and shows "Locked SIM" until you enter it.</li>
+      <li><strong>Android (Pixel):</strong> Settings, Security, Advanced security settings, SIM card lock. Menu names differ on other makers' phones; search Settings for "SIM lock". Pixel phones also have "Confirm SIM deletion" in the same section, which asks you to verify yourself before a downloaded eSIM is erased.</li>
+    </ul>
+    <p><strong>Before you start:</strong> the first time, you need the default PIN from your carrier (on the card holder, in the plan documents or on the carrier's help pages). Apple's advice is not to guess it: too many wrong tries locks the SIM, and you then need a PUK code from the carrier. If the PUK tries run out too, the SIM is locked for good and you need a new SIM or eSIM. Choose a PIN you will remember and write it down somewhere safe.</p>
+    <p>Sources: <a href="https://support.apple.com/en-us/118228" rel="noopener">Apple: Use a SIM PIN for your iPhone or iPad</a>, <a href="https://support.google.com/pixelphone/answer/2824802" rel="noopener">Google: Manage security and privacy settings on your Pixel phone</a>.</p>
+
+    <h2>2. Set an account PIN or passcode with your carrier</h2>
+    <p>This is the PIN a store or call-centre agent should ask for before changing anything on your account. The FTC lists it as a basic step. Do not reuse your SIM PIN, your bank PIN or your date of birth. T-Mobile, for example, requires 6 to 15 digits that are not sequential or repeated and are not your phone number, Social Security or tax number, or date of birth, and only the primary account holder can change it.</p>
+    <p>Sources: <a href="https://consumer.ftc.gov/consumer-alerts/2019/10/sim-swap-scams-how-protect-yourself" rel="noopener">FTC</a>, <a href="https://www.t-mobile.com/support/plans-features/help-with-t-mobile-account-fraud" rel="noopener">T-Mobile: Protect your account from fraud</a>.</p>
+
+    <h2>3. Turn on your carrier's number lock and SIM lock</h2>
+    <p>In the US, the FCC adopted rules in November 2023 that require mobile carriers to notify you immediately when a SIM change or port-out is requested on your account, and to offer a lock that blocks both. The big three carriers each have free switches for this:</p>
+    <table>
+      <thead><tr><th>Carrier</th><th>What it is called</th><th>Where</th><th>Turning it off</th></tr></thead>
+      <tbody>
+        <tr><td>Verizon</td><td>SIM Protection (blocks SIM swaps, upgrades and bring-your-own-device changes) and Number Lock (blocks transfers to another carrier)</td><td>My Verizon app: Me, Edit profile and settings, Security</td><td>After you switch SIM Protection off, SIM changes stay blocked for at least 15 minutes. Number Lock must be off before you can move your number.</td></tr>
+        <tr><td>T-Mobile</td><td>SIM Protection (postpaid) and Port Out Protection (postpaid, prepaid, business and Metro)</td><td>T-Life app: Manage, gear icon, Security, SIM Protection. Port Out Protection: Manage, See plans, Manage add-ons, then each line</td><td>Only the primary account holder can remove them</td></tr>
+        <tr><td>AT&amp;T</td><td>Wireless Account Lock (blocks number transfers, SIM swaps, billing changes and device purchases; launched July 2025)</td><td>Toggle in the myAT&amp;T app</td><td>Same toggle; business accounts use Business Account Lock</td></tr>
+      </tbody>
+    </table>
+    <p>Outside the US, ask your carrier whether it offers a port-out or SIM-change lock, and how it will tell you when a change is requested. The cost of all these locks is the same: when you change phones, switch carriers or need a replacement SIM, you have to switch the lock off first. Do that yourself in the app, not because someone phoned you and asked.</p>
+    <p>Sources: <a href="https://docs.fcc.gov/public/attachments/FCC-23-95A1.pdf" rel="noopener">FCC 23-95 Report and Order, adopted 15 November 2023</a>, <a href="https://www.verizon.com/support/knowledge-base-309293/" rel="noopener">Verizon: SIM Protection and Number Lock</a>, <a href="https://www.t-mobile.com/support/plans-features/help-with-t-mobile-account-fraud" rel="noopener">T-Mobile: Protect your account from fraud</a>, <a href="https://about.att.com/story/2025/wireless-account-lock.html" rel="noopener">AT&amp;T: Wireless Account Lock</a>.</p>
+
+    <h2>4. Stop relying on text-message codes for important accounts</h2>
+    <p>A SIM swap only pays off if your accounts trust your phone number. The FTC's advice is to use an authenticator app or a security key for sensitive accounts, because a text-message code can be redirected along with your number. Start with your email, bank, password manager and Apple, Google or Microsoft account. Our <a href="/tools/account-checkup/">account security checkup</a> walks through two-step verification and recovery options for each of those, with the official steps.</p>
+    <p>Never read a verification code out to someone who calls or texts you, whoever they say they are. A real company will not ask for it.</p>
+
+    <h2>5. Keep your number out of sight in messengers</h2>
+    <ul>
+      <li><strong>Signal:</strong> your number is hidden from people who do not already have it saved. Under Settings, Privacy, Phone Number you can also set "Who can find me by my number" to Nobody and give people an optional username instead. Turn on Registration Lock (Settings, Account) so that someone who takes over your number cannot register Signal with it without your Signal PIN.</li>
+      <li><strong>Everywhere else:</strong> the FTC also suggests not posting your phone number publicly, because it helps scammers answer security questions and target you.</li>
+    </ul>
+    <p>Sources: <a href="https://support.signal.org/hc/en-us/articles/6712070553754-Phone-Number-Privacy-and-Usernames" rel="noopener">Signal: Phone Number Privacy and Usernames</a>, <a href="https://support.signal.org/hc/en-us/articles/360007059792-Signal-PIN" rel="noopener">Signal PIN and Registration Lock</a>.</p>
+
+    <h2>If you think your number has been taken</h2>
+    <p>If you get an alert about a SIM change or number transfer you did not ask for, act at once. The FTC's steps: contact your carrier, using a number or website you already know is real, to take back your number; then change the passwords on your accounts and check your bank and card statements for transactions you did not make. In the US, IdentityTheft.gov has recovery plans if your identity documents or account numbers may be exposed.</p>
+    <p>Source: <a href="https://consumer.ftc.gov/consumer-alerts/2019/10/sim-swap-scams-how-protect-yourself" rel="noopener">FTC: SIM swap scams</a>.</p>
+
+    <h2>What we have not tested</h2>
+    <p>We have not tested any carrier's lock or how quickly carriers send change alerts. Menu paths are copied from each company's help pages as of October 2026 and can change. If one is wrong, email us and we will fix it.</p>
+`,
+  },
+  {
     slug: 'move-to-encrypted-email',
     title: 'Moving to encrypted email: what it protects, what it does not, and how to switch without losing mail',
     desc: 'What Proton Mail and Tuta actually encrypt, why mail to ordinary addresses is still readable by the other provider, and a step-by-step move: import old mail, forward new mail, update accounts in order, keep the old address for a while.',
