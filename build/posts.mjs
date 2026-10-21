@@ -1,6 +1,92 @@
 // Blog posts. Body is HTML using the .doc styles. Keep claims verifiable and scoped.
 export const POSTS = [
   {
+    slug: 'move-to-encrypted-email',
+    title: 'Moving to encrypted email: what it protects, what it does not, and how to switch without losing mail',
+    desc: 'What Proton Mail and Tuta actually encrypt, why mail to ordinary addresses is still readable by the other provider, and a step-by-step move: import old mail, forward new mail, update accounts in order, keep the old address for a while.',
+    date: '2026-10-22',
+    body: `
+    <p>An encrypted email service stores your mailbox so the provider cannot read it, and encrypts messages end to end when both sides use it. That is a real improvement over a provider that can read every message. It is not magic: email to and from ordinary addresses still passes through the other provider in a readable form. This guide explains the difference, then walks through a move that does not lose mail or lock you out of accounts. Every fact about a provider links to its own documentation. We have no affiliate link with either provider on this page.</p>
+
+    <h2>What gets encrypted</h2>
+    <table>
+      <thead><tr><th></th><th>Proton Mail</th><th>Tuta</th></tr></thead>
+      <tbody>
+        <tr><td>Mail between two users of the same service</td><td>End-to-end encrypted</td><td>End-to-end encrypted</td></tr>
+        <tr><td>Mail to or from other providers (Gmail, Outlook and so on)</td><td>Encrypted in transit (TLS), not end to end by default; stored with zero-access encryption once it reaches Proton</td><td>Not end to end; encrypted once it reaches Tuta's servers</td></tr>
+        <tr><td>Subject line</td><td>Not end-to-end encrypted (OpenPGP keeps it in the header)</td><td>Encrypted</td></tr>
+        <tr><td>Left unencrypted</td><td>Subject lines</td><td>Email addresses of sender and recipients, and sent and received dates</td></tr>
+        <tr><td>Writing to someone on another provider, end to end</td><td>Password-protected email, or PGP</td><td>Password-protected email</td></tr>
+        <tr><td>Standard</td><td>OpenPGP</td><td>Its own encryption, not PGP</td></tr>
+      </tbody>
+    </table>
+    <p>The practical point: if most people who write to you use Gmail or Outlook, their copy of each message stays readable by their provider whatever you use. The encrypted mailbox protects what is stored on your side. Proton suggests keeping subject lines generic for sensitive messages, because subjects are not end-to-end encrypted.</p>
+    <p>Sources: <a href="https://proton.me/support/proton-mail-encryption-explained" rel="noopener">Proton Mail encryption explained</a>, <a href="https://proton.me/support/does-protonmail-encrypt-email-subjects" rel="noopener">Does Proton Mail encrypt email subjects?</a>, <a href="https://tuta.com/encryption" rel="noopener">Tuta encryption</a>, <a href="https://tuta.com/fr/blog/how-to-password-protect-email" rel="noopener">Tuta: password-protected email (French)</a>.</p>
+
+    <h2>Before you start</h2>
+    <ul>
+      <li><strong>Secure the new account first.</strong> Turn on two-step verification and save its recovery codes offline. Our <a href="/tools/account-checkup/">account checkup</a> lists the steps. An encrypted mailbox you cannot get back into is worse than none.</li>
+      <li><strong>Keep the old account.</strong> Do not delete it for months. Some accounts will still send resets there, and the address could otherwise be lost.</li>
+    </ul>
+
+    <h2>The move, step by step</h2>
+    <ol>
+      <li><strong>Copy your old mail.</strong> Proton's Easy Switch imports from any provider that supports IMAP, with separate guides for Gmail, Outlook and Yahoo. It runs one import per account at a time. Check the current plan limits on Proton's page before you rely on it.</li>
+      <li><strong>Forward new mail.</strong> In Gmail on a computer: Settings, See all settings, Forwarding and POP/IMAP, Add a forwarding address, click the confirmation link sent to the new address, then choose "Forward a copy of incoming mail to". Google recommends keeping Gmail's copy in the inbox. The forwarded copy reaches your new mailbox, but the original still sits in Gmail, readable by Google.</li>
+      <li><strong>Change the address on your accounts, most important first.</strong> Your bank, phone carrier, Apple, Google or Microsoft account, password manager and government services first; shopping and newsletters last. For each, update the login email and the recovery email, and confirm a reset email arrives at the new address.</li>
+      <li><strong>Tell people.</strong> Give the new address to the people you write to. Mail between two users of the same encrypted service is the part that gets end-to-end protection.</li>
+      <li><strong>Watch the old inbox.</strong> Every message that still arrives there through forwarding shows an account you have not moved yet. Move it, then unsubscribe or delete.</li>
+      <li><strong>After a few months,</strong> stop forwarding, and decide whether to keep the old account dormant (with a strong password and two-step verification) or close it. Keeping it dormant protects you if a forgotten account still sends resets there.</li>
+    </ol>
+    <p>Sources: <a href="https://proton.me/support/easy-switch-emails" rel="noopener">How to import emails with Easy Switch</a>, <a href="https://support.google.com/mail/answer/10957?hl=en" rel="noopener">Automatically forward Gmail messages to another account</a>.</p>
+
+    <h2>What we have not tested</h2>
+    <p>We have not run a full import on a large mailbox, and we have not compared delivery or spam filtering. This page will say so when we have. To keep your new address private when you sign up for things, see <a href="/blog/email-aliases-hide-your-address/">email aliases</a>.</p>
+`,
+  },
+  {
+    slug: 'email-aliases-hide-your-address',
+    title: 'Email aliases: give every site its own address and switch off the ones that leak',
+    desc: 'An email alias forwards to your real inbox, so a shop or app never sees your address. How Apple Hide My Email and Firefox Relay work, what they cost, how to turn an alias off, and the accounts that should never use one.',
+    date: '2026-10-22',
+    body: `
+    <p>Your email address is the key that links your accounts together. Data brokers, leaked databases and marketing lists all use it. An alias is a separate address that forwards to your real inbox. Give each site its own alias, and when one starts receiving spam you know who leaked or sold it, and you can switch that alias off without changing anything else. Every fact below links to the provider's own documentation. No link on this page earns us anything.</p>
+
+    <h2>Two services you may already have</h2>
+    <h3>Apple Hide My Email</h3>
+    <ul>
+      <li>Creates unique, random addresses. Requires iCloud+, or someone in your Family Sharing group with iCloud+.</li>
+      <li>You can send and reply from these addresses in Mail on iCloud.com.</li>
+      <li>To switch one off: sign in at icloud.com/icloudplus, select Hide My Email, choose the address, then Deactivate email address. Mail sent to a deactivated address is returned to the sender. You can reactivate it at any time from the inactive addresses at the bottom of the list.</li>
+    </ul>
+    <p>Sources: <a href="https://support.apple.com/en-au/guide/icloud/mm9d9012c9e8/icloud" rel="noopener">Use Hide My Email</a>, <a href="https://support.apple.com/en-ca/guide/icloud/mm3adb030cbf" rel="noopener">Stop using or reactivate addresses</a>.</p>
+    <h3>Firefox Relay</h3>
+    <ul>
+      <li>Calls its aliases email masks. Free users can create up to 50.</li>
+      <li>Create one from the dashboard at relay.firefox.com (Generate new mask), or in Firefox from the email field of a sign-up form.</li>
+      <li>Blocking promotional mail on a mask needs Relay Premium. Deleting masks frees up slots on the free plan.</li>
+    </ul>
+    <p>Source: <a href="https://support.mozilla.org/hsb/kb/create-email-mask-through-firefox-relay" rel="noopener">Create an email mask through Firefox Relay</a>.</p>
+
+    <h2>Where to use an alias, and where not to</h2>
+    <table>
+      <thead><tr><th>Use an alias</th><th>Use your real address</th></tr></thead>
+      <tbody>
+        <tr><td>Shops, newsletters, apps you are trying, forums, Wi-Fi sign-ins, loyalty schemes</td><td>Your bank, tax and government accounts, your phone carrier, your password manager, and the recovery email of your main accounts</td></tr>
+      </tbody>
+    </table>
+    <p>The reason for the right-hand column: an alias depends on the alias service and on your account with it. If either stops working, every account behind that alias stops receiving password resets. Keep the accounts you cannot afford to lose on an address you control directly. That is also why alias accounts deserve two-step verification; see the <a href="/tools/account-checkup/">account checkup</a>.</p>
+
+    <h2>What an alias does not hide</h2>
+    <ul>
+      <li>The alias service sees who writes to you and, unless the mail is encrypted, what they write.</li>
+      <li>It does not hide your name, phone number, delivery address or payment card, which most shops still ask for.</li>
+      <li>Replying from your real inbox instead of through the alias can reveal your real address. Use the reply option the service provides.</li>
+    </ul>
+    <p>For what happens to your address once it is out there, see <a href="/blog/what-data-brokers-know-about-you/">what data brokers know about you</a>. If you are also changing your main inbox, see <a href="/blog/move-to-encrypted-email/">moving to encrypted email</a>. We have not yet tested reply handling or delivery for either service.</p>
+`,
+  },
+  {
     slug: 'check-app-permissions-android-iphone',
     title: 'Check what your phone apps can access: a 15-minute permission review for Android and iPhone',
     desc: 'Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation.',
