@@ -241,3 +241,10 @@ tr[data-status="running"] .pill::before { background: var(--accent); border-radi
 .lk-text { min-height: 6.5rem; }
 .lk-site { margin: 14px 0 0; font-size: 1.05rem; }
 .lk-site strong { font-family: var(--mono); overflow-wrap: anywhere; }
+
+/* privacy report */
+.group-h { margin: 32px 0 10px; font-size: 1.2rem; }
+.fix { margin: 18px 0 8px; padding: 16px 20px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.fix__t { margin: 0 0 8px; font-size: 1.1rem; }
+.fix__l { margin: 0; padding-left: 1.4em; display: grid; gap: 10px; max-width: 75ch; }
+.fix__l a { white-space: normal; }

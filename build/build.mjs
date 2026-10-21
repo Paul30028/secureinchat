@@ -34,6 +34,7 @@ const SEC = [
   { title: 'No message storage', tag: 'Data minimisation', copy: 'The relay is designed without persistent storage of message content.' },
 ];
 const TOOLS_HOME = [
+  { name: 'Browser privacy report', href: '/tools/privacy-report/', copy: 'One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser gives away, then lists what to look at first.', k: ['lim', 'Contacts lookup services'] },
   { name: 'Link checker', href: '/tools/link-checker/', copy: 'Remove tracking from a link and see the warning signs of phishing before you click. The link is never opened or sent.', k: ['tested', 'Runs on your device'] },
   { name: 'Photo metadata remover', href: '/tools/photo-metadata-remover/', copy: 'See and remove the location, device and dates hidden in a photo.', k: ['tested', 'Runs on your device'] },
   { name: 'Text redactor', href: '/tools/text-redactor/', copy: 'Replace emails, numbers and keys with placeholders before you share text or paste it into AI.', k: ['tested', 'Runs on your device'] },
@@ -154,7 +155,7 @@ function home() {
       <ul class="rows">
         ${TOOLS_HOME.map((t) => `<li><a href="${t.href}"><strong>${t.name}</strong><span>${t.copy}</span>${tagHtml(t.k[0], t.k[1])}</a></li>`).join('\n        ')}
       </ul>
-      <p class="sec__more"><a href="/tools/">All nine tools</a></p>
+      <p class="sec__more"><a href="/tools/">All ten tools</a></p>
     </section>`;
   const featured = ['encrypted-messaging-when-networks-fail', 'bank-statement-before-ai-upload', 'what-data-brokers-know-about-you'].map((s) => POSTS.find((p) => p.slug === s));
   const ftag = { 'encrypted-messaging-when-networks-fail': tagHtml('doc', 'Documented') + tagHtml('untested', 'Field test pending'), 'bank-statement-before-ai-upload': tagHtml('tested', 'We ran the test'), 'what-data-brokers-know-about-you': tagHtml('doc', 'Guide') };
@@ -354,6 +355,7 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
     <table>
       <thead><tr><th>Tool</th><th>Stays on your device</th><th>Sent to others</th></tr></thead>
       <tbody>
+        <tr><td><a href="/tools/privacy-report/">Browser privacy report</a></td><td>The whole report, until you close the tab</td><td>The same requests as the IP leak test; the browser checks send nothing</td></tr>
         <tr><td><a href="/tools/ip-leak-test/">IP leak test</a></td><td>Verdicts and comparisons</td><td>Your IP to ipify and ipwho.is; random DNS names to our lookup server; resolver addresses read from our API</td></tr>
         <tr><td><a href="/tools/webrtc-leak-test/">WebRTC leak test</a></td><td>Everything</td><td>A STUN request to a public server, which sees your public address</td></tr>
         <tr><td><a href="/tools/ipv6-leak-test/">IPv6 leak test</a></td><td>Verdicts</td><td>Your IPv6 address to ipify</td></tr>
@@ -509,7 +511,7 @@ write('assets/site.css', fs.readFileSync(path.join(ROOT, 'src/site.css')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
