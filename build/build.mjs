@@ -3,11 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { POSTS } from './posts.mjs';
+import { MISSION, MISSION_SHORT, LAYERS, layerBody, protectIndexBody } from './protect.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const PUB = path.join(ROOT, 'public');
 const SITE = 'https://secureinchat.com';
-const DATE = '2026-10-20';
+const DATE = '2026-10-21';
 const REPO = 'https://github.com/Paul30028/secureinchat';
 
 const iconDir = path.join(import.meta.dirname, 'node_modules/lucide-static/icons');
@@ -23,8 +24,8 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, 
 const LANGS = {
   en: {
     code: 'en', html: 'en', path: '/', label: 'EN',
-    title: 'SecureInChat: Zero-Knowledge Blind Relay Messaging',
-    desc: 'SecureInChat is an end-to-end encrypted messenger built on a blind relay: keys stay on your devices and the server only forwards ciphertext. Run live relay diagnostics and free privacy tools.',
+    title: 'SecureInChat: Personal Privacy Protection, Layer by Layer',
+    desc: 'Protect your privacy from the device in your hand to the messages you send: free tools that run in your browser, tested guides, offline and emergency messaging, and a zero-knowledge encrypted messenger.',
     navArchitecture: 'Architecture', navSecurity: 'Security', navDiagnostics: 'Diagnostics', navTools: 'Tools', navBlog: 'Blog',
     hero1: 'Communication Without Trace.', hero2: 'Trust Without Compromise.',
     heroCopy: 'A zero-knowledge blind relay protocol where encryption keys remain on your devices and the relay only forwards unreadable ciphertext.',
@@ -142,7 +143,7 @@ const logo = () => `<a href="/" class="flex items-center gap-3 group" aria-label
         <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo">${icon('shield-check', 'w-5 h-5 text-white')}</div>
         <div>
           <div class="font-display font-bold tracking-tight">SecureInChat</div>
-          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">ZERO-KNOWLEDGE RELAY</div>
+          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">PRIVACY, LAYER BY LAYER</div>
         </div>
       </a>`;
 
@@ -162,12 +163,16 @@ function header(t, { home, current }) {
     <nav class="max-w-7xl mx-auto glass rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between shadow-2xl" aria-label="Main">
       ${logo()}
       <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
-        ${link(pre + '#architecture', t.navArchitecture, 'a')}
+        ${t.code === 'en' ? `${link('/protect/', 'Protect', 'protect')}
+        ${link('/tools/', t.navTools, 'tools')}
+        ${link(pre + '#chat', 'Messenger', 'm')}
+        ${link('/guides/', 'Guides', 'guides')}
+        ${link('/blog/', t.navBlog, 'blog')}
+        ${link('/mission/', 'Mission', 'mission')}` : `${link(pre + '#architecture', t.navArchitecture, 'a')}
         ${link(pre + '#security', t.navSecurity, 's')}
         ${link(pre + '#diagnostics', t.navDiagnostics, 'd')}
         ${link('/tools/', t.navTools, 'tools')}
-        ${t.code === 'en' ? link('/guides/', 'Guides', 'guides') : ''}
-        ${link('/blog/', t.navBlog, 'blog')}
+        ${link('/blog/', t.navBlog, 'blog')}`}
       </div>
       <div class="flex items-center gap-3">
         ${status}
@@ -183,6 +188,7 @@ function footer(t) {
     <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
       <div>© 2026 SecureInChat. ${t.footLine}</div>
       <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
+        ${t.code === 'en' ? '<a href="/mission/" class="hover:text-white">Mission</a><a href="/protect/" class="hover:text-white">Protect</a>' : ''}
         <a href="/tools/" class="hover:text-white">${t.navTools}</a>
         ${t.code === 'en' ? '<a href="/guides/" class="hover:text-white">Guides</a>' : ''}
         <a href="/blog/" class="hover:text-white">${t.navBlog}</a>
@@ -209,18 +215,33 @@ const GUIDES = [
 
 function enMain({ secHero, secDiag, secArch, secSec, secTools, secCta }) {
   const g = GUIDES[0];
-  const hero = `    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-16">
-      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-5">Tested, not guessed</div>
-      <h1 class="font-display font-bold text-5xl sm:text-6xl leading-[1.04] tracking-[-.04em] max-w-4xl">Privacy tools and AI guides where every step was actually run.</h1>
-      <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-400">Free tools that work in your browser. Step-by-step guides that come with the test that proves they work. We state what was verified and what was not.</p>
-      <div class="mt-9 grid sm:grid-cols-2 gap-4 max-w-3xl">
-        <a href="/tools/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3">${icon('shield-check', 'w-5 h-5 text-cyan')}<span class="font-display text-xl font-semibold">Check your privacy</span></div><p class="mt-3 text-sm leading-6 text-slate-400">IP, WebRTC and IPv6 leak tests, photo metadata remover, text redactor and more. Free, in your browser.</p><div class="mt-4 text-sm font-semibold text-cyan group-hover:text-white transition">Open the tools →</div></a>
-        <a href="/guides/" class="group block p-6 rounded-2xl glass hover:border-emerald/40 transition"><div class="flex items-center gap-3">${icon('badge-check', 'w-5 h-5 text-emerald')}<span class="font-display text-xl font-semibold">Build with AI, tested</span></div><p class="mt-3 text-sm leading-6 text-slate-400">Guides with the prompts, the working result and the automated test. Play the result before you buy.</p><div class="mt-4 text-sm font-semibold text-emerald group-hover:text-white transition">See the guides →</div></a>
+  const hero = `    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-14">
+      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-5">Personal privacy, layer by layer</div>
+      <h1 class="font-display font-bold text-5xl sm:text-6xl leading-[1.04] tracking-[-.04em] max-w-4xl">Your privacy is a right. We help you protect it, layer by layer.</h1>
+      <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-400">From the camera on your laptop to the messages you send: free tools that run on your own device, guides where every step was actually tested, and a messenger whose server cannot read you.</p>
+      <div class="mt-9 flex flex-col sm:flex-row gap-3">
+        <a href="/protect/" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-slate-950 font-semibold">${icon('layers', 'w-5 h-5')}<span>Start with a layer</span></a>
+        <a href="/tools/" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl glass font-semibold text-slate-200">${icon('shield-check', 'w-5 h-5 text-cyan')}<span>Run a free check</span></a>
+        <a href="/mission/" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl glass font-semibold text-slate-200"><span>Our mission</span></a>
+      </div>
+      <p class="mt-6 text-xs text-slate-500 font-mono">No cookies · No accounts · Tools run in your browser · Untested steps are marked untested</p>
+    </section>`;
+  const layerCards = LAYERS.map((L) => `<a href="/protect/${L.slug}/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3">${icon(L.icon, 'w-5 h-5 text-cyan')}<span class="font-display text-xl font-semibold">${esc(L.name)}</span></div><p class="mt-3 text-sm leading-6 text-slate-400">${esc(L.tagline)}</p><div class="mt-4 text-xs font-mono ${L.live.length ? 'text-emerald' : 'text-slate-500'}">${L.live.length ? L.live.length + ' live' : 'Coming soon'} · ${L.planned.length} planned</div></a>`).join('\n        ');
+  const layers = `    <section id="layers" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24">
+      <div class="max-w-3xl mb-8"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Six layers of protection</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">From the hardware in your hands to the software on it.</h2><p class="mt-3 text-slate-400">One weak layer undoes the others. Pick the one that worries you most; each page lists what works today and what is still being built or tested.</p></div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        ${layerCards}
+      </div>
+    </section>`;
+  const offline = `    <section id="offline" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
+      <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-amber-300 mb-3">When the network goes down</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">Mobile networks fail. Keep talking securely anyway.</h2><p class="mt-3 text-slate-400">In 2025 Spain lost mobile service for hours, twice. What still works without a network, what Briar and Meshtastic really encrypt, and what to set up this week.</p></div>
+        <a href="/blog/encrypted-messaging-when-networks-fail/" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold text-center lg:w-72">Read the offline guide</a>
       </div>
     </section>`;
   const guide = `    <section id="guides" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
       <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Latest tested guide</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">${g.title}</h2><p class="mt-3 text-slate-400">${g.blurb}</p><p class="mt-2 text-sm text-emerald">${g.status}</p></div>
+        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Tested guide</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">${g.title}</h2><p class="mt-3 text-slate-400">${g.blurb}</p><p class="mt-2 text-sm text-emerald">${g.status}</p></div>
         <div class="flex flex-col gap-3 lg:w-72"><a href="/guides/${g.slug}/play/" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold text-center">Play the result</a><a href="/guides/${g.slug}/" class="px-5 py-3 rounded-xl glass font-semibold text-center">See what is in the guide</a></div>
       </div>
     </section>`;
@@ -232,11 +253,11 @@ function enMain({ secHero, secDiag, secArch, secSec, secTools, secCta }) {
       </div>
     </section>`;
   const chat = `    <section id="chat" class="max-w-7xl mx-auto px-5 sm:px-8 pt-8 pb-10">
-      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-indigo-300 mb-3">Also building</div>
-      <h2 class="font-display text-3xl sm:text-4xl font-semibold max-w-3xl">SecureInChat: a zero-knowledge blind-relay messenger.</h2>
+      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-indigo-300 mb-3">Communication layer</div>
+      <h2 class="font-display text-3xl sm:text-4xl font-semibold max-w-3xl">SecureInChat messenger: a zero-knowledge blind relay.</h2>
       <p class="mt-4 max-w-2xl text-slate-400">Keys stay on your devices and the relay only forwards ciphertext. The clients are in development; the relay diagnostics below are live and run in your browser.</p>
     </section>`;
-  return [hero, secTools, guide, blog, chat, secDiag, secArch, secSec].join('\n\n');
+  return [hero, layers, secTools, offline, blog, guide, chat, secDiag, secArch, secSec].join('\n\n');
 }
 
 function home(t) {
@@ -444,7 +465,7 @@ const PRIVACY = `    <h1>Privacy policy</h1>
 
 const ABOUT = `    <h1>About SecureInChat</h1>
     <p class="meta">Last updated: ${DATE}</p>
-    <p>SecureInChat is an end-to-end encrypted messenger built on a blind relay. Encryption keys stay on your devices, and the relay only forwards ciphertext it cannot read. The clients are still in development.</p>
+    <p>SecureInChat helps people protect their personal privacy layer by layer: physical, devices, accounts, communication, offline and AI. It started as an end-to-end encrypted messenger built on a blind relay, where keys stay on your devices and the relay only forwards ciphertext; the messenger clients are still in development. Read our <a href="/mission/">mission, vision and commitments</a>.</p>
 
     <h2>What you can use today</h2>
     <ul>
@@ -475,7 +496,7 @@ const CONTACT = `    <h1>Contact</h1>
       <li>Email: <a href="mailto:x@secureinchat.com">x@secureinchat.com</a></li>
     </ul>
     <h2>Sponsorship and partnerships</h2>
-    <p>VPN, proxy and privacy-tool vendors can sponsor the free tools. Any sponsored or affiliate placement is labelled as such and never changes a test result. See <a href="/sponsor/">how sponsorship works</a>.</p>
+    <p>Privacy-respecting products can sponsor the free tools and guides. Any sponsored or affiliate placement is labelled as such and never changes a test result. See <a href="/sponsor/">how sponsorship works</a> and our <a href="/mission/">mission</a>.</p>
     <p>Please do not post sensitive personal information in a public issue. We will never ask for passwords, keys or private messages.</p>
 `;
 
@@ -488,6 +509,12 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
       <li>No cookies, no accounts and no advertising or analytics scripts on the tools pages.</li>
       <li>Test results are not stored on our side. The DNS test keeps resolver addresses in memory for ten minutes, plus a daily count of tests with no addresses in it.</li>
       <li>Every outside service a tool contacts is listed below. A page security policy blocks any other.</li>
+    </ul>
+    <h2>Recommendations, sponsors and products</h2>
+    <ul>
+      <li>We only recommend products that collect no more data than they need. Commission never changes a verdict, and every affiliate or sponsored link is labelled.</li>
+      <li>Any physical product we sell will be one whose protection you can check yourself. We do not sell closed-firmware security electronics under our own brand.</li>
+      <li>If we add an AI assistant for setup help or support, this page will say which service processes the conversation and how long it is kept before it goes live. It will never ask for passwords, recovery codes or keys.</li>
     </ul>
     <h2>Tool by tool</h2>
     <table>
@@ -515,7 +542,13 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
 
 const SPONSOR = `    <h1>Sponsorship and partnerships</h1>
     <p class="meta">Last updated: ${DATE}</p>
-    <p>SecureInChat runs free privacy tools that people use while checking a VPN, proxy or browser setup. We accept a small number of sponsors and affiliate partners whose products fit that moment: VPNs, proxies, password managers and privacy software.</p>
+    <p>SecureInChat helps people protect their privacy layer by layer, from physical gear to accounts, messaging and AI use. We accept a small number of sponsors and affiliate partners whose products respect the same principle. See our <a href="/mission/">mission</a>.</p>
+    <h2>Who can sponsor</h2>
+    <ul>
+      <li>Products that collect no more data than they need to work, explain their data handling clearly and do not sell user data.</li>
+      <li>Examples of categories we cover: encrypted email, password managers, security keys, privacy-respecting browsers and software, and physical privacy gear.</li>
+      <li>We decline products whose business depends on tracking users, and we may decline any product we cannot test or describe accurately.</li>
+    </ul>
     <h2>What we offer</h2>
     <ul>
       <li>A labelled sponsor placement on the tools pages, at most one per page.</li>
@@ -547,6 +580,9 @@ write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', 
 write('about/index.html', docPage({ slug: 'about', title: 'About', desc: 'About SecureInChat: an end-to-end encrypted blind-relay messenger in development, plus free privacy tools.', body: ABOUT }));
 write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'Sponsorship and partnerships', desc: 'How VPN, proxy and privacy-tool vendors can sponsor SecureInChat tools, and the rules that keep test results independent.', body: SPONSOR }));
 write('principles/index.html', docPage({ slug: 'principles', title: 'Privacy principles for the tools', desc: 'What each SecureInChat tool processes on your device, what it sends to outside services, and the limits we cannot remove.', body: PRINCIPLES }));
+write('mission/index.html', docPage({ slug: 'mission', title: 'Our mission', desc: 'What SecureInChat believes, what we are building toward, who we build for and what we will never do.', body: MISSION, current: 'mission' }));
+write('protect/index.html', docPage({ slug: 'protect', title: 'Protect your privacy, layer by layer', desc: 'Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy.', body: protectIndexBody(esc), current: 'protect' }));
+for (const L of LAYERS) write(`protect/${L.slug}/index.html`, docPage({ slug: `protect/${L.slug}`, title: `${L.name} privacy`, desc: `${L.tagline} ${L.threat}`.slice(0, 155), body: layerBody(L, esc), current: 'protect' }));
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT }));
 
 // guides (new section; checkout is a third-party link set by the owner)
@@ -632,7 +668,7 @@ write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/guides/', 0], ['/guides/breakout-game-with-ai/', 0], ['/guides/breakout-game-with-ai/play/', 0], ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
+  ['/', 1], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/guides/', 0], ['/guides/breakout-game-with-ai/', 0], ['/guides/breakout-game-with-ai/play/', 0], ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
 ];
 const homeAlts = Object.values(LANGS).map((l) => `    <xhtml:link rel="alternate" hreflang="${l.html}" href="${SITE}${l.path}" />`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/" />`;
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -645,7 +681,7 @@ write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 

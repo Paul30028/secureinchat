@@ -1,6 +1,55 @@
 // Blog posts. Body is HTML using the .doc styles. Keep claims verifiable and scoped.
 export const POSTS = [
   {
+    slug: 'encrypted-messaging-when-networks-fail',
+    title: 'When mobile networks go down: how to keep messaging securely without a network',
+    desc: 'Mobile networks can fail for hours, as Spain saw twice in 2025. What still works without a network, what Briar and Meshtastic actually encrypt, and what to set up before you need it.',
+    date: '2026-10-21',
+    body: `
+    <p>Most secure messengers need the internet. When the mobile network fails, they stop too. This page covers what you can still use, what the encryption in those tools really protects, and what has to be done in advance. Our own field tests of range and delay are not done yet; until they are, we quote only what the projects themselves document.</p>
+
+    <h2>This is not hypothetical</h2>
+    <ul>
+      <li>On 28 April 2025 a power cut hit Spain and Portugal for more than ten hours. Operators ran emergency generators to keep parts of their networks up.</li>
+      <li>On 20 May 2025 a fault during a network upgrade in Spain cut phone and mobile data for millions of users across all major operators for about seven hours, and the 112 emergency number failed in several regions. (<a href="https://techblog.comsoc.org/2025/05/20/espana-hit-with-major-telecom-blackout-after-power-outage-april-28th/" rel="noopener">IEEE ComSoc report</a>)</li>
+    </ul>
+
+    <h2>Option 1: Briar, phone to phone</h2>
+    <p>Briar is an open-source messenger for Android. When the internet is down it syncs messages over Bluetooth, Wi-Fi or memory cards; when the internet is available it syncs over Tor. (<a href="https://briarproject.org/how-it-works/" rel="noopener">Briar: how it works</a>)</p>
+    <ul>
+      <li><strong>Good for:</strong> people close to each other, such as a family in one building or a group at one place.</li>
+      <li><strong>Limits:</strong> both people need Briar installed and must have added each other as contacts before the outage. The project does not publish range figures; Bluetooth and Wi-Fi reach is short and depends on walls and devices.</li>
+    </ul>
+
+    <h2>Option 2: Meshtastic, small LoRa radios that pass messages along</h2>
+    <p>Meshtastic uses cheap long-range (LoRa) radio boards that relay text messages from one to the next. Your phone connects to your own board over Bluetooth. What its encryption covers, according to the project's own documentation (<a href="https://meshtastic.org/docs/overview/encryption/" rel="noopener">Meshtastic: encryption</a>):</p>
+    <ul>
+      <li>Channel messages are encrypted with AES-CTR; a 32-byte key gives AES-256.</li>
+      <li><strong>The default channel key is published.</strong> Anything sent on a channel with the default key can be read by anyone. Create your own channel with your own key before you rely on it.</li>
+      <li>Direct messages use X25519 key agreement with AES-256-CCM.</li>
+      <li>There is no forward secrecy: if a key leaks later, recorded traffic can be decrypted.</li>
+      <li>The packet header is never encrypted, because relaying nodes need it.</li>
+      <li>Anyone who holds a channel key can send unsigned packets that appear to come from any node.</li>
+    </ul>
+    <p>Radio rules differ by country: use the frequency band and power allowed where you are, and check that the board is certified for your market.</p>
+
+    <h2>Option 3: satellite messaging</h2>
+    <p>Some recent phones can send emergency or short messages by satellite when there is no mobile signal. It needs a clear view of the sky, works only in supported countries and is mostly limited to emergency use and short texts. Check your phone maker's page for what your model and country support.</p>
+
+    <h2>What to do this week, before you need it</h2>
+    <ol>
+      <li>Decide who you would need to reach in an outage and where they usually are.</li>
+      <li>If you are close together, install Briar on each Android phone and add each other in person.</li>
+      <li>If you need more distance, consider Meshtastic, and create a private channel with your own key instead of the default.</li>
+      <li>Write down a meeting point and a time to check in, on paper. Charge a power bank.</li>
+      <li>Test it once with the network switched off, so you know it works before you rely on it.</li>
+    </ol>
+
+    <h2>What we have not tested yet</h2>
+    <p>We have not yet measured real range, delivery time or battery use for Briar or Meshtastic. When we do, this page will show the setup, the results and the failures. We are also researching an offline mode for SecureInChat; it does not exist yet.</p>
+`,
+  },
+  {
     slug: 'bank-statement-before-ai-upload',
     title: 'Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses',
     desc: 'We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant.',

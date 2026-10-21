@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#070A11" />
+  <title>When mobile networks go down: how to keep messaging securely without a network | SecureInChat</title>
+  <meta name="description" content="Mobile networks can fail for hours, as Spain saw twice in 2025. What still works without a network, what Briar and Meshtastic actually encrypt, and what to set up before you need it." />
+  <link rel="canonical" href="https://secureinchat.com/blog/encrypted-messaging-when-networks-fail/" />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="When mobile networks go down: how to keep messaging securely without a network | SecureInChat" />
+  <meta property="og:description" content="Mobile networks can fail for hours, as Spain saw twice in 2025. What still works without a network, what Briar and Meshtastic actually encrypt, and what to set up before you need it." />
+  <meta property="og:url" content="https://secureinchat.com/blog/encrypted-messaging-when-networks-fail/" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="When mobile networks go down: how to keep messaging securely without a network | SecureInChat" />
+  <meta name="twitter:description" content="Mobile networks can fail for hours, as Spain saw twice in 2025. What still works without a network, what Briar and Meshtastic actually encrypt, and what to set up before you need it." />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/main.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"When mobile networks go down: how to keep messaging securely without a network","description":"Mobile networks can fail for hours, as Spain saw twice in 2025. What still works without a network, what Briar and Meshtastic actually encrypt, and what to set up before you need it.","datePublished":"2026-10-21","dateModified":"2026-10-21","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/encrypted-messaging-when-networks-fail/"}</script>
+
+</head>
+<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
+  <a href="#top" class="skip">Skip to content</a>
+  <div class="fixed inset-0 grid-overlay pointer-events-none"></div>
+  <div class="fixed -top-24 left-[8%] w-96 h-96 rounded-full bg-indigo ambient pointer-events-none"></div>
+  <div class="fixed top-[30%] right-[4%] w-80 h-80 rounded-full bg-cyan ambient pointer-events-none"></div>
+  <div class="fixed bottom-0 left-[35%] w-96 h-80 rounded-full bg-emerald ambient pointer-events-none"></div>
+  <header class="fixed top-4 inset-x-0 z-50 px-4">
+    <nav class="max-w-7xl mx-auto glass rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between shadow-2xl" aria-label="Main">
+      <a href="/" class="flex items-center gap-3 group" aria-label="SecureInChat home">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo"><svg class="w-5 h-5 text-white" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></div>
+        <div>
+          <div class="font-display font-bold tracking-tight">SecureInChat</div>
+          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">PRIVACY, LAYER BY LAYER</div>
+        </div>
+      </a>
+      <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
+        <a href="/protect/" class="hover:text-white transition">Protect</a>
+        <a href="/tools/" class="hover:text-white transition">Tools</a>
+        <a href="/#chat" class="hover:text-white transition">Messenger</a>
+        <a href="/guides/" class="hover:text-white transition">Guides</a>
+        <a href="/blog/" class="hover:text-white transition text-white" aria-current="page">Blog</a>
+        <a href="/mission/" class="hover:text-white transition">Mission</a>
+      </div>
+      <div class="flex items-center gap-3">
+        
+        
+      </div>
+    </nav>
+  </header>
+  <main id="top" class="relative z-10 doc max-w-3xl mx-auto px-5 sm:px-8 pt-36 pb-24">
+    <p class="meta"><a href="/blog/">Blog</a></p>
+    <h1>When mobile networks go down: how to keep messaging securely without a network</h1>
+    <p class="meta">By Paul · 2026-10-21</p>
+    <p>Most secure messengers need the internet. When the mobile network fails, they stop too. This page covers what you can still use, what the encryption in those tools really protects, and what has to be done in advance. Our own field tests of range and delay are not done yet; until they are, we quote only what the projects themselves document.</p>
+
+    <h2>This is not hypothetical</h2>
+    <ul>
+      <li>On 28 April 2025 a power cut hit Spain and Portugal for more than ten hours. Operators ran emergency generators to keep parts of their networks up.</li>
+      <li>On 20 May 2025 a fault during a network upgrade in Spain cut phone and mobile data for millions of users across all major operators for about seven hours, and the 112 emergency number failed in several regions. (<a href="https://techblog.comsoc.org/2025/05/20/espana-hit-with-major-telecom-blackout-after-power-outage-april-28th/" rel="noopener">IEEE ComSoc report</a>)</li>
+    </ul>
+
+    <h2>Option 1: Briar, phone to phone</h2>
+    <p>Briar is an open-source messenger for Android. When the internet is down it syncs messages over Bluetooth, Wi-Fi or memory cards; when the internet is available it syncs over Tor. (<a href="https://briarproject.org/how-it-works/" rel="noopener">Briar: how it works</a>)</p>
+    <ul>
+      <li><strong>Good for:</strong> people close to each other, such as a family in one building or a group at one place.</li>
+      <li><strong>Limits:</strong> both people need Briar installed and must have added each other as contacts before the outage. The project does not publish range figures; Bluetooth and Wi-Fi reach is short and depends on walls and devices.</li>
+    </ul>
+
+    <h2>Option 2: Meshtastic, small LoRa radios that pass messages along</h2>
+    <p>Meshtastic uses cheap long-range (LoRa) radio boards that relay text messages from one to the next. Your phone connects to your own board over Bluetooth. What its encryption covers, according to the project's own documentation (<a href="https://meshtastic.org/docs/overview/encryption/" rel="noopener">Meshtastic: encryption</a>):</p>
+    <ul>
+      <li>Channel messages are encrypted with AES-CTR; a 32-byte key gives AES-256.</li>
+      <li><strong>The default channel key is published.</strong> Anything sent on a channel with the default key can be read by anyone. Create your own channel with your own key before you rely on it.</li>
+      <li>Direct messages use X25519 key agreement with AES-256-CCM.</li>
+      <li>There is no forward secrecy: if a key leaks later, recorded traffic can be decrypted.</li>
+      <li>The packet header is never encrypted, because relaying nodes need it.</li>
+      <li>Anyone who holds a channel key can send unsigned packets that appear to come from any node.</li>
+    </ul>
+    <p>Radio rules differ by country: use the frequency band and power allowed where you are, and check that the board is certified for your market.</p>
+
+    <h2>Option 3: satellite messaging</h2>
+    <p>Some recent phones can send emergency or short messages by satellite when there is no mobile signal. It needs a clear view of the sky, works only in supported countries and is mostly limited to emergency use and short texts. Check your phone maker's page for what your model and country support.</p>
+
+    <h2>What to do this week, before you need it</h2>
+    <ol>
+      <li>Decide who you would need to reach in an outage and where they usually are.</li>
+      <li>If you are close together, install Briar on each Android phone and add each other in person.</li>
+      <li>If you need more distance, consider Meshtastic, and create a private channel with your own key instead of the default.</li>
+      <li>Write down a meeting point and a time to check in, on paper. Charge a power bank.</li>
+      <li>Test it once with the network switched off, so you know it works before you rely on it.</li>
+    </ol>
+
+    <h2>What we have not tested yet</h2>
+    <p>We have not yet measured real range, delivery time or battery use for Briar or Meshtastic. When we do, this page will show the setup, the results and the failures. We are also researching an offline mode for SecureInChat; it does not exist yet.</p>
+
+  </main>
+  <footer class="relative z-10 border-t border-white/10 py-8">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
+      <div>© 2026 SecureInChat. Zero-Knowledge Blind Relay Architecture.</div>
+      <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
+        <a href="/mission/" class="hover:text-white">Mission</a><a href="/protect/" class="hover:text-white">Protect</a>
+        <a href="/tools/" class="hover:text-white">Tools</a>
+        <a href="/guides/" class="hover:text-white">Guides</a>
+        <a href="/blog/" class="hover:text-white">Blog</a>
+        <a href="/privacy/" class="hover:text-white">Privacy</a>
+        <a href="/about/" class="hover:text-white">About</a>
+        <a href="/contact/" class="hover:text-white">Contact</a>
+        <a href="https://github.com/Paul30028/secureinchat" class="hover:text-white" rel="noopener">GitHub</a>
+      </nav>
+      <div class="flex gap-4"><a href="/" hreflang="en" lang="en" class="hover:text-white">EN</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN" class="hover:text-white">ZH</a><a href="/ja/" hreflang="ja" lang="ja" class="hover:text-white">JA</a></div>
+    </div>
+  </footer>
+</body>
+</html>

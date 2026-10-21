@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#070A11" />
-  <title>SecureInChat: Zero-Knowledge Blind Relay Messaging</title>
-  <meta name="description" content="SecureInChat is an end-to-end encrypted messenger built on a blind relay: keys stay on your devices and the server only forwards ciphertext. Run live relay diagnostics and free privacy tools." />
+  <title>SecureInChat: Personal Privacy Protection, Layer by Layer</title>
+  <meta name="description" content="Protect your privacy from the device in your hand to the messages you send: free tools that run in your browser, tested guides, offline and emergency messaging, and a zero-knowledge encrypted messenger." />
   <link rel="canonical" href="https://secureinchat.com/" />
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
@@ -14,13 +14,13 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="SecureInChat: Zero-Knowledge Blind Relay Messaging" />
-  <meta property="og:description" content="SecureInChat is an end-to-end encrypted messenger built on a blind relay: keys stay on your devices and the server only forwards ciphertext. Run live relay diagnostics and free privacy tools." />
+  <meta property="og:title" content="SecureInChat: Personal Privacy Protection, Layer by Layer" />
+  <meta property="og:description" content="Protect your privacy from the device in your hand to the messages you send: free tools that run in your browser, tested guides, offline and emergency messaging, and a zero-knowledge encrypted messenger." />
   <meta property="og:url" content="https://secureinchat.com/" />
   <meta property="og:locale" content="en" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="SecureInChat: Zero-Knowledge Blind Relay Messaging" />
-  <meta name="twitter:description" content="SecureInChat is an end-to-end encrypted messenger built on a blind relay: keys stay on your devices and the server only forwards ciphertext. Run live relay diagnostics and free privacy tools." />
+  <meta name="twitter:title" content="SecureInChat: Personal Privacy Protection, Layer by Layer" />
+  <meta name="twitter:description" content="Protect your privacy from the device in your hand to the messages you send: free tools that run in your browser, tested guides, offline and emergency messaging, and a zero-knowledge encrypted messenger." />
   <link rel="stylesheet" href="/assets/site.css" />
   <script src="/assets/main.js"></script>
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://secureinchat.com/#org","name":"SecureInChat","url":"https://secureinchat.com/"},{"@type":"WebSite","@id":"https://secureinchat.com/#site","url":"https://secureinchat.com/","name":"SecureInChat","publisher":{"@id":"https://secureinchat.com/#org"},"inLanguage":"en"}]}</script>
@@ -38,16 +38,16 @@
         <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo"><svg class="w-5 h-5 text-white" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></div>
         <div>
           <div class="font-display font-bold tracking-tight">SecureInChat</div>
-          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">ZERO-KNOWLEDGE RELAY</div>
+          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">PRIVACY, LAYER BY LAYER</div>
         </div>
       </a>
       <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
-        <a href="#architecture" class="hover:text-white transition">Architecture</a>
-        <a href="#security" class="hover:text-white transition">Security</a>
-        <a href="#diagnostics" class="hover:text-white transition">Diagnostics</a>
+        <a href="/protect/" class="hover:text-white transition">Protect</a>
         <a href="/tools/" class="hover:text-white transition">Tools</a>
+        <a href="#chat" class="hover:text-white transition">Messenger</a>
         <a href="/guides/" class="hover:text-white transition">Guides</a>
         <a href="/blog/" class="hover:text-white transition">Blog</a>
+        <a href="/mission/" class="hover:text-white transition">Mission</a>
       </div>
       <div class="flex items-center gap-3">
         <div class="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[.035] hairline font-mono text-[10px]" role="status">
@@ -62,13 +62,27 @@
   </header>
 
   <main id="top" class="relative z-10">
-    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-16">
-      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-5">Tested, not guessed</div>
-      <h1 class="font-display font-bold text-5xl sm:text-6xl leading-[1.04] tracking-[-.04em] max-w-4xl">Privacy tools and AI guides where every step was actually run.</h1>
-      <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-400">Free tools that work in your browser. Step-by-step guides that come with the test that proves they work. We state what was verified and what was not.</p>
-      <div class="mt-9 grid sm:grid-cols-2 gap-4 max-w-3xl">
-        <a href="/tools/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg><span class="font-display text-xl font-semibold">Check your privacy</span></div><p class="mt-3 text-sm leading-6 text-slate-400">IP, WebRTC and IPv6 leak tests, photo metadata remover, text redactor and more. Free, in your browser.</p><div class="mt-4 text-sm font-semibold text-cyan group-hover:text-white transition">Open the tools →</div></a>
-        <a href="/guides/" class="group block p-6 rounded-2xl glass hover:border-emerald/40 transition"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-emerald" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z" /> <path d="m9 12 2 2 4-4" /> </svg><span class="font-display text-xl font-semibold">Build with AI, tested</span></div><p class="mt-3 text-sm leading-6 text-slate-400">Guides with the prompts, the working result and the automated test. Play the result before you buy.</p><div class="mt-4 text-sm font-semibold text-emerald group-hover:text-white transition">See the guides →</div></a>
+    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-14">
+      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-5">Personal privacy, layer by layer</div>
+      <h1 class="font-display font-bold text-5xl sm:text-6xl leading-[1.04] tracking-[-.04em] max-w-4xl">Your privacy is a right. We help you protect it, layer by layer.</h1>
+      <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-400">From the camera on your laptop to the messages you send: free tools that run on your own device, guides where every step was actually tested, and a messenger whose server cannot read you.</p>
+      <div class="mt-9 flex flex-col sm:flex-row gap-3">
+        <a href="/protect/" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-slate-950 font-semibold"><svg class="w-5 h-5" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /> <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /> <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /> </svg><span>Start with a layer</span></a>
+        <a href="/tools/" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl glass font-semibold text-slate-200"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg><span>Run a free check</span></a>
+        <a href="/mission/" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl glass font-semibold text-slate-200"><span>Our mission</span></a>
+      </div>
+      <p class="mt-6 text-xs text-slate-500 font-mono">No cookies · No accounts · Tools run in your browser · Untested steps are marked untested</p>
+    </section>
+
+    <section id="layers" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24">
+      <div class="max-w-3xl mb-8"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Six layers of protection</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">From the hardware in your hands to the software on it.</h2><p class="mt-3 text-slate-400">One weak layer undoes the others. Pick the one that worries you most; each page lists what works today and what is still being built or tested.</p></div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <a href="/protect/physical/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg><span class="font-display text-xl font-semibold">Physical</span></div><p class="mt-3 text-sm leading-6 text-slate-400">What people and devices near you can see and pick up.</p><div class="mt-4 text-xs font-mono text-slate-500">Coming soon · 2 planned</div></a>
+        <a href="/protect/devices/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <rect width="14" height="20" x="5" y="2" rx="2" ry="2" /> <path d="M12 18h.01" /> </svg><span class="font-display text-xl font-semibold">Devices and network</span></div><p class="mt-3 text-sm leading-6 text-slate-400">What your phone, computer and browser give away.</p><div class="mt-4 text-xs font-mono text-emerald">5 live · 1 planned</div></a>
+        <a href="/protect/accounts/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /> <circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /> </svg><span class="font-display text-xl font-semibold">Accounts and email</span></div><p class="mt-3 text-sm leading-6 text-slate-400">Who can get into your accounts, and what your inbox reveals.</p><div class="mt-4 text-xs font-mono text-emerald">3 live · 2 planned</div></a>
+        <a href="/protect/communication/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z" /> <path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1" /> </svg><span class="font-display text-xl font-semibold">Communication</span></div><p class="mt-3 text-sm leading-6 text-slate-400">Messages only the people in the conversation can read.</p><div class="mt-4 text-xs font-mono text-emerald">2 live · 2 planned</div></a>
+        <a href="/protect/offline/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" /> <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" /> <circle cx="12" cy="12" r="2" /> <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" /> <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" /> </svg><span class="font-display text-xl font-semibold">Offline and emergency</span></div><p class="mt-3 text-sm leading-6 text-slate-400">Staying in touch securely when mobile networks fail.</p><div class="mt-4 text-xs font-mono text-emerald">1 live · 2 planned</div></a>
+        <a href="/protect/ai/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3"><svg class="w-5 h-5 text-cyan" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M12 8V4H8" /> <rect width="16" height="12" x="4" y="8" rx="2" /> <path d="M2 14h2" /> <path d="M20 14h2" /> <path d="M15 13v2" /> <path d="M9 13v2" /> </svg><span class="font-display text-xl font-semibold">AI privacy</span></div><p class="mt-3 text-sm leading-6 text-slate-400">What you hand to AI assistants, and how to hand over less.</p><div class="mt-4 text-xs font-mono text-emerald">6 live · 1 planned</div></a>
       </div>
     </section>
 
@@ -93,25 +107,32 @@
       </ul>
     </section>
 
-    <section id="guides" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
+    <section id="offline" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
       <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Latest tested guide</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">Build a Breakout game with AI in one HTML file</h2><p class="mt-3 text-slate-400">A prompt set, the finished game and an automated test, re-run from scratch with every result logged, including the failures.</p><p class="mt-2 text-sm text-emerald">Re-run from scratch on 2026-10-20; pass rate in the test log</p></div>
-        <div class="flex flex-col gap-3 lg:w-72"><a href="/guides/breakout-game-with-ai/play/" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold text-center">Play the result</a><a href="/guides/breakout-game-with-ai/" class="px-5 py-3 rounded-xl glass font-semibold text-center">See what is in the guide</a></div>
+        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-amber-300 mb-3">When the network goes down</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">Mobile networks fail. Keep talking securely anyway.</h2><p class="mt-3 text-slate-400">In 2025 Spain lost mobile service for hours, twice. What still works without a network, what Briar and Meshtastic really encrypt, and what to set up this week.</p></div>
+        <a href="/blog/encrypted-messaging-when-networks-fail/" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold text-center lg:w-72">Read the offline guide</a>
       </div>
     </section>
 
     <section id="blog" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
       <div class="flex items-end justify-between mb-6"><h2 class="font-display text-3xl font-semibold">Latest from the blog</h2><a href="/blog/" class="text-sm text-cyan hover:text-white">All posts →</a></div>
       <div class="grid md:grid-cols-3 gap-4">
+        <a href="/blog/encrypted-messaging-when-networks-fail/" class="block p-5 rounded-2xl glass hover:border-cyan/40 transition"><h3 class="font-display text-lg font-semibold">When mobile networks go down: how to keep messaging securely without a network</h3><p class="mt-2 text-sm leading-6 text-slate-400">Mobile networks can fail for hours, as Spain saw twice in 2025. What still works without a network, what Briar and Meshtastic actually encry…</p></a>
         <a href="/blog/bank-statement-before-ai-upload/" class="block p-5 rounded-2xl glass hover:border-cyan/40 transition"><h3 class="font-display text-lg font-semibold">Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses</h3><p class="mt-2 text-sm leading-6 text-slate-400">We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account n…</p></a>
         <a href="/blog/photo-before-ai-upload/" class="block p-5 rounded-2xl glass hover:border-cyan/40 transition"><h3 class="font-display text-lg font-semibold">What a photo reveals when you upload it to an AI chatbot, and how to remove it first</h3><p class="mt-2 text-sm leading-6 text-slate-400">Phone photos usually carry hidden EXIF data such as GPS position, device and time. What it contains, what removal does and does not cover, a…</p></a>
-        <a href="/blog/cv-before-ai-upload/" class="block p-5 rounded-2xl glass hover:border-cyan/40 transition"><h3 class="font-display text-lg font-semibold">Before you paste your CV into an AI tool: what to take out</h3><p class="mt-2 text-sm leading-6 text-slate-400">A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to…</p></a>
+      </div>
+    </section>
+
+    <section id="guides" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
+      <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Tested guide</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">Build a Breakout game with AI in one HTML file</h2><p class="mt-3 text-slate-400">A prompt set, the finished game and an automated test, re-run from scratch with every result logged, including the failures.</p><p class="mt-2 text-sm text-emerald">Re-run from scratch on 2026-10-20; pass rate in the test log</p></div>
+        <div class="flex flex-col gap-3 lg:w-72"><a href="/guides/breakout-game-with-ai/play/" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold text-center">Play the result</a><a href="/guides/breakout-game-with-ai/" class="px-5 py-3 rounded-xl glass font-semibold text-center">See what is in the guide</a></div>
       </div>
     </section>
 
     <section id="chat" class="max-w-7xl mx-auto px-5 sm:px-8 pt-8 pb-10">
-      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-indigo-300 mb-3">Also building</div>
-      <h2 class="font-display text-3xl sm:text-4xl font-semibold max-w-3xl">SecureInChat: a zero-knowledge blind-relay messenger.</h2>
+      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-indigo-300 mb-3">Communication layer</div>
+      <h2 class="font-display text-3xl sm:text-4xl font-semibold max-w-3xl">SecureInChat messenger: a zero-knowledge blind relay.</h2>
       <p class="mt-4 max-w-2xl text-slate-400">Keys stay on your devices and the relay only forwards ciphertext. The clients are in development; the relay diagnostics below are live and run in your browser.</p>
     </section>
 
@@ -160,6 +181,7 @@
     <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
       <div>© 2026 SecureInChat. Zero-Knowledge Blind Relay Architecture.</div>
       <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
+        <a href="/mission/" class="hover:text-white">Mission</a><a href="/protect/" class="hover:text-white">Protect</a>
         <a href="/tools/" class="hover:text-white">Tools</a>
         <a href="/guides/" class="hover:text-white">Guides</a>
         <a href="/blog/" class="hover:text-white">Blog</a>
