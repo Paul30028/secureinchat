@@ -39,6 +39,9 @@ a:hover { color: var(--accent); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip { position: absolute; left: 8px; top: -60px; background: var(--ink); color: var(--ground); padding: 10px 14px; border-radius: 6px; z-index: 10; }
 .skip:focus { top: 8px; }
+.skip:hover { color: var(--ground); }
+::selection { background: #F2B544; color: var(--ink); }
+html { accent-color: var(--ink); caret-color: var(--ink); }
 .mono { font-family: var(--mono); }
 .wrap { width: min(100% - 2 * var(--gut), 1120px); margin-inline: auto; }
 [hidden] { display: none !important; }
@@ -145,7 +148,7 @@ tr[data-status="running"] .pill::before { background: var(--accent); border-radi
 .prose h2 { margin: 0 0 14px; font-size: 1.75rem; line-height: 1.2; letter-spacing: -0.02em; }
 .prose h3 { margin: 32px 0 12px; font-size: 1.2rem; }
 .prose p { margin: 0 0 14px; }
-.callout { border-left: 5px solid var(--accent); background: var(--surface); padding: 14px 18px; font-size: 1.15rem; font-weight: 600; max-width: 62ch; }
+.callout { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 14px 18px; font-size: 1.15rem; font-weight: 600; max-width: 62ch; }
 
 .defs { display: grid; gap: 0; border-top: 1px solid var(--line); margin: 0; }
 .defs > div { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 70ch); gap: 8px 32px; padding: 16px 0; border-bottom: 1px solid var(--line); }
