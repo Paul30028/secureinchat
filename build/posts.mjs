@@ -173,7 +173,7 @@ export const POSTS = [
     desc: 'The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch.',
     date: '2026-10-20',
     body: `
-    <p>A leak test is only useful if you know what it actually measures. This is a plain description of every check in our <a href="/tools/ip-leak-test/">IP leak test</a>, how it reaches its verdict, and where it can be wrong. The full source is in the <a href="https://github.com/Paul30028/secureinchat">site repository</a>.</p>
+    <p>A leak test is only useful if you know what it actually measures. This is a plain description of every check in our <a href="/tools/ip-leak-test/">IP leak test</a>, how it reaches its verdict, and where it can be wrong.</p>
 
     <h2>The premise</h2>
     <p>If you use a VPN or proxy, websites should see the address of your VPN exit, not the address your internet provider gave you. A leak is any address, name or setting that still points at your real connection. The test runs entirely in your browser and compares several independent views of your connection.</p>

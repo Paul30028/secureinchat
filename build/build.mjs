@@ -8,7 +8,6 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const PUB = path.join(ROOT, 'public');
 const SITE = 'https://secureinchat.com';
 const DATE = '2026-10-21';
-const REPO = 'https://github.com/Paul30028/secureinchat';
 
 const iconDir = path.join(import.meta.dirname, 'node_modules/lucide-static/icons');
 const icon = (name, cls = 'icon') => {
@@ -35,6 +34,7 @@ const SEC = [
   { title: 'No message storage', tag: 'Data minimisation', copy: 'The relay is designed without persistent storage of message content.' },
 ];
 const TOOLS_HOME = [
+  { name: 'Link checker', href: '/tools/link-checker/', copy: 'Remove tracking from a link and see the warning signs of phishing before you click. The link is never opened or sent.', k: ['tested', 'Runs on your device'] },
   { name: 'Photo metadata remover', href: '/tools/photo-metadata-remover/', copy: 'See and remove the location, device and dates hidden in a photo.', k: ['tested', 'Runs on your device'] },
   { name: 'Text redactor', href: '/tools/text-redactor/', copy: 'Replace emails, numbers and keys with placeholders before you share text or paste it into AI.', k: ['tested', 'Runs on your device'] },
   { name: 'IP leak test', href: '/tools/ip-leak-test/', copy: 'Check whether your VPN or proxy leaks your real address through WebRTC, IPv6 or DNS.', k: ['lim', 'Contacts lookup services'] },
@@ -90,7 +90,7 @@ function footer() {
     <div class="wrap foot__in">
       <div>© 2026 SecureInChat. Privacy, one layer at a time.</div>
       <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/guides/">AI build guides</a><a href="/contact/">Contact</a><a href="${REPO}" rel="noopener">GitHub</a>
+        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a>
       </nav>
     </div>
   </footer>`;
@@ -152,7 +152,7 @@ function home() {
   const tools = `    <section class="wrap sec" id="tools">
       <p class="eyebrow">Free tools</p>
       <h2>Check something in the next two minutes.</h2>
-      <div class="grid grid--3">
+      <div class="grid grid--4">
         ${TOOLS_HOME.map((t) => `<a class="card" href="${t.href}"><h3>${t.name}</h3><p>${t.copy}</p><div class="tags">${tagHtml(t.k[0], t.k[1])}</div></a>`).join('\n        ')}
       </div>
       <p class="sec__lead"><a href="/tools/">All nine tools</a></p>
@@ -169,7 +169,7 @@ function home() {
     </section>`;
   const trust = `    <section class="wrap sec" id="data">
       <div class="trust">
-        <div><p class="eyebrow">How we handle your data</p><h2>Don't just trust us. Check us.</h2><p>Every tool lists what stays on your device and what leaves it. The code is public, and you can watch your browser's network panel while you use a tool. <a href="/principles/">Tool-by-tool details</a>.</p></div>
+        <div><p class="eyebrow">How we handle your data</p><h2>Don't just trust us. Check us.</h2><p>Every tool lists what stays on your device and what leaves it. You can watch your browser's network panel while you use a tool and compare. <a href="/principles/">Tool-by-tool details</a>.</p></div>
         <table><thead><tr><th scope="col">Tool</th><th scope="col">Stays on your device</th><th scope="col">Sent to others</th></tr></thead><tbody>
           ${FLOW.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('\n          ')}
         </tbody></table>
@@ -296,7 +296,7 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <p>The site does not currently show advertising. If we add ads or affiliate links, they will be labeled, this page will be updated first, and third-party ad providers may then use cookies under their own policies.</p>
 
     <h2>Your choices and contact</h2>
-    <p>Because we do not keep personal data about visitors, there is little to access or delete. For privacy questions, open an issue on <a href="${REPO}/issues" rel="noopener">GitHub</a>. Our contact details are on the <a href="/contact/">contact page</a>.</p>
+    <p>Because we do not keep personal data about visitors, there is little to access or delete. For privacy questions, email <a href="mailto:x@secureinchat.com">x@secureinchat.com</a>.</p>
 `;
 
 const ABOUT = `    <h1>About SecureInChat</h1>
@@ -315,7 +315,6 @@ const ABOUT = `    <h1>About SecureInChat</h1>
       <li>We explain why and how to verify, not only conclusions.</li>
       <li>We say what a test cannot see. Our DNS check, for example, compares with an earlier run to judge a leak, and the page says when it cannot tell.</li>
       <li>We separate design goals from independent audits. SecureInChat has not been through a third-party audit, and we do not claim SOC 2, ISO 27001 or similar certifications.</li>
-      <li>The tools' source code is public in the <a href="${REPO}" rel="noopener">site repository</a>.</li>
     </ul>
 
     <h2>Who runs this</h2>
@@ -326,11 +325,7 @@ const ABOUT = `    <h1>About SecureInChat</h1>
 
 const CONTACT = `    <h1>Contact</h1>
     <p class="meta">Last updated: ${DATE}</p>
-    <p>The fastest way to reach us is to open an issue in the public repository. It works for bug reports, factual corrections, tool feedback and privacy questions.</p>
-    <ul>
-      <li><a href="${REPO}/issues" rel="noopener">Open an issue on GitHub</a></li>
-      <li>Email: <a href="mailto:x@secureinchat.com">x@secureinchat.com</a></li>
-    </ul>
+    <p>Email us at <a href="mailto:x@secureinchat.com">x@secureinchat.com</a> for bug reports, factual corrections, tool feedback and privacy questions.</p>
     <h2>Sponsorship and partnerships</h2>
     <p>Privacy-respecting products can sponsor the free tools and guides. Any sponsored or affiliate placement is labelled as such and never changes a test result. See <a href="/sponsor/">how sponsorship works</a> and our <a href="/mission/">mission</a>.</p>
     <p>Please do not post sensitive personal information in a public issue. We will never ask for passwords, keys or private messages.</p>
@@ -382,7 +377,7 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
       <li>Results depend on your browser and network. A pass is not proof of anonymity.</li>
     </ul>
     <h2>Checking it yourself</h2>
-    <p>The tools are plain scripts without a build step on the page. Open your browser's network panel while using one and compare the requests with the table. The source is public in the <a href="https://github.com/Paul30028/secureinchat">repository</a>.</p>
+    <p>The tools are plain scripts without a build step on the page. Open your browser's network panel while using one and compare the requests with the table.</p>
 `;
 
 const SPONSOR = `    <h1>Sponsorship and partnerships</h1>
@@ -519,7 +514,7 @@ write('assets/site.css', fs.readFileSync(path.join(ROOT, 'src/site.css')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/guides/', 0], ['/guides/breakout-game-with-ai/', 0], ['/guides/breakout-game-with-ai/play/', 0], ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">

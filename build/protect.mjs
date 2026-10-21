@@ -11,7 +11,7 @@ export const MISSION = `    <h1>Our mission</h1>
     <ul>
       <li><strong>Privacy is a basic right, not a premium feature.</strong> What you say, where you go and who you talk to belong to you.</li>
       <li><strong>Protection works in layers.</strong> A strong password does not help if your camera is uncovered, and an encrypted app does not help if your phone shares your location. We cover the whole stack: physical, device, accounts, communication, offline and AI.</li>
-      <li><strong>Trust should be checkable.</strong> Tools run in your browser where possible, the code is public, and every guide says what was tested and what was not.</li>
+      <li><strong>Trust should be checkable.</strong> Tools run in your browser where possible, every tool lists what it sends, and every guide says what was tested and what was not.</li>
       <li><strong>Privacy must work for ordinary people.</strong> One clear action at a time, explained without jargon or fear.</li>
     </ul>
 
@@ -39,7 +39,7 @@ export const MISSION = `    <h1>Our mission</h1>
     </ul>
 
     <h2>Hold us to it</h2>
-    <p>If anything on this site falls short of this page, tell us on <a href="https://github.com/Paul30028/secureinchat/issues" rel="noopener">GitHub</a> or by <a href="/contact/">email</a>. We will fix it or explain why in public.</p>
+    <p>If anything on this site falls short of this page, email us at <a href="mailto:x@secureinchat.com">x@secureinchat.com</a>. We will fix it or explain why in public.</p>
 `;
 
 export const LAYERS = [
