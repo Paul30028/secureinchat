@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#F3F5F4" />
+  <title>AI apps on your phone: what they can access, and the settings that keep your chats out of training | SecureInChat</title>
+  <meta name="description" content="AI assistants ask for your microphone, camera, photos and sometimes control of your screen. Which permissions matter, and where ChatGPT and Gemini let you stop your chats being used for training, with what the settings do not do." />
+  <link rel="canonical" href="https://secureinchat.com/blog/ai-apps-permissions-and-data/" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="AI apps on your phone: what they can access, and the settings that keep your chats out of training | SecureInChat" />
+  <meta property="og:description" content="AI assistants ask for your microphone, camera, photos and sometimes control of your screen. Which permissions matter, and where ChatGPT and Gemini let you stop your chats being used for training, with what the settings do not do." />
+  <meta property="og:url" content="https://secureinchat.com/blog/ai-apps-permissions-and-data/" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/main.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"AI apps on your phone: what they can access, and the settings that keep your chats out of training","description":"AI assistants ask for your microphone, camera, photos and sometimes control of your screen. Which permissions matter, and where ChatGPT and Gemini let you stop your chats being used for training, with what the settings do not do.","datePublished":"2026-10-22","dateModified":"2026-10-22","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/ai-apps-permissions-and-data/"}</script>
+
+</head>
+<body>
+  <a href="#top" class="skip">Skip to content</a>
+  <header class="top">
+    <div class="wrap top__in">
+      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
+      <nav class="nav" aria-label="Main">
+        <a href="/protect/">Protect</a>
+        <a href="/tools/">Tools</a>
+        <a href="/blog/" aria-current="page">Guides</a>
+        <a href="/messaging/">Messaging</a>
+        <a href="/about/">About</a>
+      </nav>
+    </div>
+  </header>
+  <main id="top">
+    <div class="wrap doc">
+    <p class="meta"><a href="/blog/">Blog</a></p>
+    <h1>AI apps on your phone: what they can access, and the settings that keep your chats out of training</h1>
+    <p class="meta">By Paul · 2026-10-22</p>
+    <p>An AI assistant is useful because you give it things: your voice, your photos, your documents, sometimes your screen. Two separate questions follow. What can the app reach on your phone? And what happens to what you send it? This page covers both, with each fact linked to the company's own documentation.</p>
+
+    <h2>Part 1: permissions on your phone</h2>
+    <p>Review AI apps the same way as any other app, using our <a href="/blog/check-app-permissions-android-iphone/">permission review for Android and iPhone</a>. Pay extra attention to these:</p>
+    <ul>
+      <li><strong>Microphone.</strong> Set it to "Allow only while using the app" or "Ask every time" unless you rely on hands-free use.</li>
+      <li><strong>Photos and files.</strong> Share selected items instead of the whole library. Check photos for hidden location data first with our <a href="/tools/photo-metadata-remover/">photo metadata remover</a>.</li>
+      <li><strong>Accessibility access (Android).</strong> This is not an ordinary permission. Google Play's policy treats it as access that can reach what is on your screen and act on your behalf, and requires apps that are not accessibility tools to explain in the app what data they collect through it and to get your explicit consent. Turn it on only for an app you trust with everything on your screen, and only if you need the feature.</li>
+      <li><strong>Notification access and "display over other apps".</strong> Both go beyond ordinary permissions. Check which apps have them under Special app access, and remove any you do not recognise.</li>
+    </ul>
+    <p>Source: <a href="https://support.google.com/googleplay/android-developer/answer/10964491" rel="noopener">Google Play policy on the AccessibilityService API</a>.</p>
+
+    <h2>Part 2: what happens to your chats</h2>
+    <h3>ChatGPT</h3>
+    <ul>
+      <li><strong>Training:</strong> Settings, then Data controls, then turn off "Improve the model for everyone". On the phone app: sidebar, profile icon, Settings, Data controls.</li>
+      <li><strong>Temporary chat:</strong> does not appear in history, does not create or update memories and is not used to improve models. OpenAI says it may keep these chats for up to 30 days for safety purposes.</li>
+      <li><strong>Memory</strong> is a separate setting from training. Turning off one does not turn off the other.</li>
+    </ul>
+    <p>Source: <a href="https://help.openai.com/en/articles/7730893-data-controls-faq" rel="noopener">OpenAI data controls FAQ</a>.</p>
+    <h3>Gemini</h3>
+    <ul>
+      <li><strong>Keep Activity</strong> is managed in Gemini Apps Activity at myactivity.google.com/product/gemini. When it is on, Google says it uses your activity to improve its services, including training generative AI models, and that a subset of chats is reviewed by people.</li>
+      <li><strong>When it is off,</strong> new chats are still kept for 72 hours and are not used for training unless you send feedback.</li>
+      <li><strong>Chats already reviewed by people</strong> are kept for up to three years, even if you delete your activity.</li>
+      <li><strong>Auto-delete</strong> defaults to 18 months; you can choose 3 or 36 months, or none.</li>
+    </ul>
+    <p>Source: <a href="https://support.google.com/gemini/answer/13594961" rel="noopener">Gemini Apps Privacy Hub</a>.</p>
+
+    <h2>What these settings do not do</h2>
+    <ul>
+      <li>Turning off training does not mean nothing is stored. Both companies keep chats for a period for safety and operations, as described above.</li>
+      <li>They do not protect anything you pasted before you changed the setting.</li>
+      <li>They do not stop you from sharing more than you meant to. Before you paste, use our <a href="/tools/text-redactor/">text redactor</a> and the <a href="/blog/before-you-paste-into-ai-checklist/">checklist before you paste into AI</a>.</li>
+    </ul>
+    <p>We checked these settings against the linked pages on 22 October 2026. Companies change them; if a menu has moved, the linked page is the one to trust.</p>
+
+    </div>
+  </main>
+  <footer class="foot">
+    <div class="wrap foot__in">
+      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
+      <nav aria-label="Footer">
+        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

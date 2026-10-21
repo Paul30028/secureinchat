@@ -54,7 +54,7 @@ export const LAYERS = [
   {
     slug: 'devices', icon: 'smartphone', name: 'Devices and network', tagline: 'What your phone, computer and browser give away.',
     threat: 'Your IP address, location, browser fingerprint and app permissions reveal more than most people expect, even behind a VPN.',
-    live: [['Browser privacy report: leaks and fingerprint in one run', '/tools/privacy-report/', 'net'], ['IP leak test', '/tools/ip-leak-test/', 'net'], ['WebRTC leak test', '/tools/webrtc-leak-test/', 'net'], ['IPv6 leak test', '/tools/ipv6-leak-test/', 'net'], ['Browser fingerprint test', '/tools/browser-fingerprint-test/', 'local'], ['Link checker: remove tracking, spot phishing signs', '/tools/link-checker/', 'local'], ['How to test a VPN yourself', '/blog/how-to-test-a-vpn-yourself/', 'guide']],
+    live: [['Browser privacy report: leaks and fingerprint in one run', '/tools/privacy-report/', 'net'], ['IP leak test', '/tools/ip-leak-test/', 'net'], ['WebRTC leak test', '/tools/webrtc-leak-test/', 'net'], ['IPv6 leak test', '/tools/ipv6-leak-test/', 'net'], ['Browser fingerprint test', '/tools/browser-fingerprint-test/', 'local'], ['Link checker: remove tracking, spot phishing signs', '/tools/link-checker/', 'local'], ['How to test a VPN yourself', '/blog/how-to-test-a-vpn-yourself/', 'guide'], ['Check what your phone apps can access (Android and iPhone)', '/blog/check-app-permissions-android-iphone/', 'guide']],
     planned: ['Privacy reset checklists for iPhone, Android, Windows and macOS: each setting, what it protects, what it costs you and how to undo it'],
   },
   {
@@ -78,7 +78,7 @@ export const LAYERS = [
   {
     slug: 'ai', icon: 'bot', name: 'AI privacy', tagline: 'What you hand to AI assistants, and how to hand over less.',
     threat: 'Documents and chats pasted into AI tools can include names, account numbers and other people’s data you never meant to share.',
-    live: [['Text redactor', '/tools/text-redactor/', 'local'], ['Photo metadata remover', '/tools/photo-metadata-remover/', 'local'], ['Before you paste into AI: checklist', '/blog/before-you-paste-into-ai-checklist/', 'guide'], ['Bank statements and AI', '/blog/bank-statement-before-ai-upload/', 'tested'], ['Photos and AI', '/blog/photo-before-ai-upload/', 'guide'], ['CVs and AI', '/blog/cv-before-ai-upload/', 'guide']],
+    live: [['AI apps: permissions and the settings that keep chats out of training', '/blog/ai-apps-permissions-and-data/', 'guide'], ['Text redactor', '/tools/text-redactor/', 'local'], ['Photo metadata remover', '/tools/photo-metadata-remover/', 'local'], ['Before you paste into AI: checklist', '/blog/before-you-paste-into-ai-checklist/', 'guide'], ['Bank statements and AI', '/blog/bank-statement-before-ai-upload/', 'tested'], ['Photos and AI', '/blog/photo-before-ai-upload/', 'guide'], ['CVs and AI', '/blog/cv-before-ai-upload/', 'guide']],
     planned: ['A one-step local checker that flags sensitive text before you paste it into an AI assistant'],
   },
 ];

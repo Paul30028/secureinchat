@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#F3F5F4" />
+  <title>Check what your phone apps can access: a 15-minute permission review for Android and iPhone | SecureInChat</title>
+  <meta name="description" content="Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation." />
+  <link rel="canonical" href="https://secureinchat.com/blog/check-app-permissions-android-iphone/" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="Check what your phone apps can access: a 15-minute permission review for Android and iPhone | SecureInChat" />
+  <meta property="og:description" content="Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation." />
+  <meta property="og:url" content="https://secureinchat.com/blog/check-app-permissions-android-iphone/" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/main.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Check what your phone apps can access: a 15-minute permission review for Android and iPhone","description":"Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation.","datePublished":"2026-10-22","dateModified":"2026-10-22","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/check-app-permissions-android-iphone/"}</script>
+
+</head>
+<body>
+  <a href="#top" class="skip">Skip to content</a>
+  <header class="top">
+    <div class="wrap top__in">
+      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
+      <nav class="nav" aria-label="Main">
+        <a href="/protect/">Protect</a>
+        <a href="/tools/">Tools</a>
+        <a href="/blog/" aria-current="page">Guides</a>
+        <a href="/messaging/">Messaging</a>
+        <a href="/about/">About</a>
+      </nav>
+    </div>
+  </header>
+  <main id="top">
+    <div class="wrap doc">
+    <p class="meta"><a href="/blog/">Blog</a></p>
+    <h1>Check what your phone apps can access: a 15-minute permission review for Android and iPhone</h1>
+    <p class="meta">By Paul · 2026-10-22</p>
+    <p>Most apps ask for access once, and you agree without thinking. Months later the app still has it. This review takes about fifteen minutes. Every step below comes from Google's or Apple's own documentation, linked at each section. Menu names can differ slightly between phone makers and system versions.</p>
+
+    <h2>What to look for</h2>
+    <ul>
+      <li><strong>Location set to "All the time" or "Always".</strong> The app can know where you are even when you are not using it.</li>
+      <li><strong>Camera and microphone.</strong> Keep these only for apps whose main job needs them.</li>
+      <li><strong>Contacts, call logs and SMS.</strong> Giving an app your contacts also gives it information about people who never agreed.</li>
+      <li><strong>Photos and files.</strong> Photos can carry location data. Our <a href="/tools/photo-metadata-remover/">photo metadata remover</a> shows what is in one.</li>
+      <li><strong>Apps you no longer use.</strong> Delete them, or let the system remove their permissions.</li>
+    </ul>
+
+    <h2>Android</h2>
+    <h3>Review one app</h3>
+    <ol>
+      <li>Open Settings and tap Apps. Tap the app (tap See all apps if it is not listed).</li>
+      <li>Tap Permissions, then tap a permission and choose Allow or Don't allow.</li>
+    </ol>
+    <p>For location, camera and microphone you may see "Allow only while using the app", "Ask every time" and, for location only, "All the time". "Allow only while using the app" is the right default for most apps.</p>
+    <h3>Review by permission type</h3>
+    <p>Settings, then Security &amp; privacy, then Privacy, then Permission manager. Tap a type such as Location, Microphone or Contacts to see every app that has it. This is the fastest way to spot an app that should not be on the list.</p>
+    <h3>See what apps actually used</h3>
+    <p>The privacy dashboard (Settings, then Security and privacy or Privacy) shows which apps accessed your data, which permission they used and when: the last 24 hours on Android 12, the last 7 days on Android 13 and later.</p>
+    <h3>Other protections built in</h3>
+    <ul>
+      <li><strong>Unused apps:</strong> on Android 11 and later, the system resets the sensitive permissions of apps you have not used for a few months. For a single app: Apps, the app, then turn on "Pause app activity if unused".</li>
+      <li><strong>Approximate location:</strong> on Android 12 and later, the permission prompt lets you choose Approximate instead of Precise. Google's developer documentation puts approximate location within about 3 square kilometres.</li>
+      <li><strong>Camera and microphone switches:</strong> on Android 12 and later, a status-bar icon appears when an app uses the camera or microphone, and Quick Settings or Privacy controls can turn camera or microphone access off for every app at once.</li>
+      <li><strong>Clipboard:</strong> on Android 12 and later, a short message appears when an app reads something you copied in another app.</li>
+    </ul>
+    <p>Sources: <a href="https://support.google.com/android/answer/9431959" rel="noopener">Change app permissions on your Android phone</a>, <a href="https://support.google.com/android/answer/13530434" rel="noopener">Manage permissions from the privacy dashboard</a>, <a href="https://developer.android.com/about/versions/11/privacy/permissions" rel="noopener">Android 11 permission updates</a>, <a href="https://developer.android.com/about/versions/12/behavior-changes-all" rel="noopener">Android 12 behaviour changes</a>, <a href="https://developer.android.com/develop/sensors-and-location/location/permissions" rel="noopener">Location permissions</a>.</p>
+
+    <h2>iPhone</h2>
+    <h3>Location</h3>
+    <p>Settings, then Privacy &amp; Security, then Location Services. Each app is listed with its setting. On iOS 13 and later an app can be allowed once, for one session. A blue pill in the status bar means an app is using your location in the background.</p>
+    <h3>Camera, microphone, contacts, photos and more</h3>
+    <p>Settings, then Privacy &amp; Security. Each category lists the apps that asked for it, and you can switch each one off.</p>
+    <h3>See what apps actually used</h3>
+    <p>App Privacy Report (iOS 15.2 and later): Settings, then Privacy &amp; Security, scroll down, then App Privacy Report, then "Turn on App Privacy Report". It starts recording only after you turn it on, and covers the past 7 days: how often apps used location, photos, camera, microphone and contacts, and which internet domains they contacted. Turning it off deletes the report from the phone.</p>
+    <h3>If someone else may have access</h3>
+    <p>Safety Check (iOS 16 and later): Settings, then Privacy &amp; Security, then Safety Check. "Manage Sharing &amp; Access" lets you review and stop sharing with specific people and apps. "Emergency Reset" stops sharing with all people and apps at once and lets you review your devices, emergency contacts and Apple Account password. If you think someone is watching your phone, read our <a href="/start/being-tracked/">being tracked</a> page before you change anything.</p>
+    <p>Sources: <a href="https://support.apple.com/en-us/102515" rel="noopener">About privacy and Location Services</a>, <a href="https://support.apple.com/en-us/102188" rel="noopener">About App Privacy Report</a>, <a href="https://support.apple.com/guide/personal-safety/use-safety-check-ips2aad835e1/web" rel="noopener">Use Safety Check</a>.</p>
+
+    <h2>A simple rule for each permission</h2>
+    <table>
+      <thead><tr><th>Permission</th><th>Keep it when</th><th>Remove it when</th></tr></thead>
+      <tbody>
+        <tr><td>Location</td><td>Maps, ride, delivery while you use them</td><td>Any app set to "All the time" without a clear reason</td></tr>
+        <tr><td>Camera, microphone</td><td>Calls, camera, scanning apps</td><td>Games, shopping, flashlight, wallpaper apps</td></tr>
+        <tr><td>Contacts</td><td>Your phone and messaging apps</td><td>Apps that only want to "find friends"</td></tr>
+        <tr><td>Photos</td><td>Selected photos only, where the phone offers it</td><td>Apps that ask for your whole library</td></tr>
+        <tr><td>SMS, call logs</td><td>Your default phone and SMS apps</td><td>Almost every other app</td></tr>
+      </tbody>
+    </table>
+
+    <h2>What this guide does not cover yet</h2>
+    <p>Android's "Special app access" settings (display over other apps, accessibility, device admin) carry more power than ordinary permissions; our <a href="/blog/ai-apps-permissions-and-data/">AI apps guide</a> covers accessibility. We are also building an Android app that lists risky permissions on your phone without sending anything anywhere. It is not released yet.</p>
+
+    </div>
+  </main>
+  <footer class="foot">
+    <div class="wrap foot__in">
+      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
+      <nav aria-label="Footer">
+        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,6 +1,114 @@
 // Blog posts. Body is HTML using the .doc styles. Keep claims verifiable and scoped.
 export const POSTS = [
   {
+    slug: 'check-app-permissions-android-iphone',
+    title: 'Check what your phone apps can access: a 15-minute permission review for Android and iPhone',
+    desc: 'Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation.',
+    date: '2026-10-22',
+    body: `
+    <p>Most apps ask for access once, and you agree without thinking. Months later the app still has it. This review takes about fifteen minutes. Every step below comes from Google's or Apple's own documentation, linked at each section. Menu names can differ slightly between phone makers and system versions.</p>
+
+    <h2>What to look for</h2>
+    <ul>
+      <li><strong>Location set to "All the time" or "Always".</strong> The app can know where you are even when you are not using it.</li>
+      <li><strong>Camera and microphone.</strong> Keep these only for apps whose main job needs them.</li>
+      <li><strong>Contacts, call logs and SMS.</strong> Giving an app your contacts also gives it information about people who never agreed.</li>
+      <li><strong>Photos and files.</strong> Photos can carry location data. Our <a href="/tools/photo-metadata-remover/">photo metadata remover</a> shows what is in one.</li>
+      <li><strong>Apps you no longer use.</strong> Delete them, or let the system remove their permissions.</li>
+    </ul>
+
+    <h2>Android</h2>
+    <h3>Review one app</h3>
+    <ol>
+      <li>Open Settings and tap Apps. Tap the app (tap See all apps if it is not listed).</li>
+      <li>Tap Permissions, then tap a permission and choose Allow or Don't allow.</li>
+    </ol>
+    <p>For location, camera and microphone you may see "Allow only while using the app", "Ask every time" and, for location only, "All the time". "Allow only while using the app" is the right default for most apps.</p>
+    <h3>Review by permission type</h3>
+    <p>Settings, then Security &amp; privacy, then Privacy, then Permission manager. Tap a type such as Location, Microphone or Contacts to see every app that has it. This is the fastest way to spot an app that should not be on the list.</p>
+    <h3>See what apps actually used</h3>
+    <p>The privacy dashboard (Settings, then Security and privacy or Privacy) shows which apps accessed your data, which permission they used and when: the last 24 hours on Android 12, the last 7 days on Android 13 and later.</p>
+    <h3>Other protections built in</h3>
+    <ul>
+      <li><strong>Unused apps:</strong> on Android 11 and later, the system resets the sensitive permissions of apps you have not used for a few months. For a single app: Apps, the app, then turn on "Pause app activity if unused".</li>
+      <li><strong>Approximate location:</strong> on Android 12 and later, the permission prompt lets you choose Approximate instead of Precise. Google's developer documentation puts approximate location within about 3 square kilometres.</li>
+      <li><strong>Camera and microphone switches:</strong> on Android 12 and later, a status-bar icon appears when an app uses the camera or microphone, and Quick Settings or Privacy controls can turn camera or microphone access off for every app at once.</li>
+      <li><strong>Clipboard:</strong> on Android 12 and later, a short message appears when an app reads something you copied in another app.</li>
+    </ul>
+    <p>Sources: <a href="https://support.google.com/android/answer/9431959" rel="noopener">Change app permissions on your Android phone</a>, <a href="https://support.google.com/android/answer/13530434" rel="noopener">Manage permissions from the privacy dashboard</a>, <a href="https://developer.android.com/about/versions/11/privacy/permissions" rel="noopener">Android 11 permission updates</a>, <a href="https://developer.android.com/about/versions/12/behavior-changes-all" rel="noopener">Android 12 behaviour changes</a>, <a href="https://developer.android.com/develop/sensors-and-location/location/permissions" rel="noopener">Location permissions</a>.</p>
+
+    <h2>iPhone</h2>
+    <h3>Location</h3>
+    <p>Settings, then Privacy &amp; Security, then Location Services. Each app is listed with its setting. On iOS 13 and later an app can be allowed once, for one session. A blue pill in the status bar means an app is using your location in the background.</p>
+    <h3>Camera, microphone, contacts, photos and more</h3>
+    <p>Settings, then Privacy &amp; Security. Each category lists the apps that asked for it, and you can switch each one off.</p>
+    <h3>See what apps actually used</h3>
+    <p>App Privacy Report (iOS 15.2 and later): Settings, then Privacy &amp; Security, scroll down, then App Privacy Report, then "Turn on App Privacy Report". It starts recording only after you turn it on, and covers the past 7 days: how often apps used location, photos, camera, microphone and contacts, and which internet domains they contacted. Turning it off deletes the report from the phone.</p>
+    <h3>If someone else may have access</h3>
+    <p>Safety Check (iOS 16 and later): Settings, then Privacy &amp; Security, then Safety Check. "Manage Sharing &amp; Access" lets you review and stop sharing with specific people and apps. "Emergency Reset" stops sharing with all people and apps at once and lets you review your devices, emergency contacts and Apple Account password. If you think someone is watching your phone, read our <a href="/start/being-tracked/">being tracked</a> page before you change anything.</p>
+    <p>Sources: <a href="https://support.apple.com/en-us/102515" rel="noopener">About privacy and Location Services</a>, <a href="https://support.apple.com/en-us/102188" rel="noopener">About App Privacy Report</a>, <a href="https://support.apple.com/guide/personal-safety/use-safety-check-ips2aad835e1/web" rel="noopener">Use Safety Check</a>.</p>
+
+    <h2>A simple rule for each permission</h2>
+    <table>
+      <thead><tr><th>Permission</th><th>Keep it when</th><th>Remove it when</th></tr></thead>
+      <tbody>
+        <tr><td>Location</td><td>Maps, ride, delivery while you use them</td><td>Any app set to "All the time" without a clear reason</td></tr>
+        <tr><td>Camera, microphone</td><td>Calls, camera, scanning apps</td><td>Games, shopping, flashlight, wallpaper apps</td></tr>
+        <tr><td>Contacts</td><td>Your phone and messaging apps</td><td>Apps that only want to "find friends"</td></tr>
+        <tr><td>Photos</td><td>Selected photos only, where the phone offers it</td><td>Apps that ask for your whole library</td></tr>
+        <tr><td>SMS, call logs</td><td>Your default phone and SMS apps</td><td>Almost every other app</td></tr>
+      </tbody>
+    </table>
+
+    <h2>What this guide does not cover yet</h2>
+    <p>Android's "Special app access" settings (display over other apps, accessibility, device admin) carry more power than ordinary permissions; our <a href="/blog/ai-apps-permissions-and-data/">AI apps guide</a> covers accessibility. We are also building an Android app that lists risky permissions on your phone without sending anything anywhere. It is not released yet.</p>
+`,
+  },
+  {
+    slug: 'ai-apps-permissions-and-data',
+    title: 'AI apps on your phone: what they can access, and the settings that keep your chats out of training',
+    desc: 'AI assistants ask for your microphone, camera, photos and sometimes control of your screen. Which permissions matter, and where ChatGPT and Gemini let you stop your chats being used for training, with what the settings do not do.',
+    date: '2026-10-22',
+    body: `
+    <p>An AI assistant is useful because you give it things: your voice, your photos, your documents, sometimes your screen. Two separate questions follow. What can the app reach on your phone? And what happens to what you send it? This page covers both, with each fact linked to the company's own documentation.</p>
+
+    <h2>Part 1: permissions on your phone</h2>
+    <p>Review AI apps the same way as any other app, using our <a href="/blog/check-app-permissions-android-iphone/">permission review for Android and iPhone</a>. Pay extra attention to these:</p>
+    <ul>
+      <li><strong>Microphone.</strong> Set it to "Allow only while using the app" or "Ask every time" unless you rely on hands-free use.</li>
+      <li><strong>Photos and files.</strong> Share selected items instead of the whole library. Check photos for hidden location data first with our <a href="/tools/photo-metadata-remover/">photo metadata remover</a>.</li>
+      <li><strong>Accessibility access (Android).</strong> This is not an ordinary permission. Google Play's policy treats it as access that can reach what is on your screen and act on your behalf, and requires apps that are not accessibility tools to explain in the app what data they collect through it and to get your explicit consent. Turn it on only for an app you trust with everything on your screen, and only if you need the feature.</li>
+      <li><strong>Notification access and "display over other apps".</strong> Both go beyond ordinary permissions. Check which apps have them under Special app access, and remove any you do not recognise.</li>
+    </ul>
+    <p>Source: <a href="https://support.google.com/googleplay/android-developer/answer/10964491" rel="noopener">Google Play policy on the AccessibilityService API</a>.</p>
+
+    <h2>Part 2: what happens to your chats</h2>
+    <h3>ChatGPT</h3>
+    <ul>
+      <li><strong>Training:</strong> Settings, then Data controls, then turn off "Improve the model for everyone". On the phone app: sidebar, profile icon, Settings, Data controls.</li>
+      <li><strong>Temporary chat:</strong> does not appear in history, does not create or update memories and is not used to improve models. OpenAI says it may keep these chats for up to 30 days for safety purposes.</li>
+      <li><strong>Memory</strong> is a separate setting from training. Turning off one does not turn off the other.</li>
+    </ul>
+    <p>Source: <a href="https://help.openai.com/en/articles/7730893-data-controls-faq" rel="noopener">OpenAI data controls FAQ</a>.</p>
+    <h3>Gemini</h3>
+    <ul>
+      <li><strong>Keep Activity</strong> is managed in Gemini Apps Activity at myactivity.google.com/product/gemini. When it is on, Google says it uses your activity to improve its services, including training generative AI models, and that a subset of chats is reviewed by people.</li>
+      <li><strong>When it is off,</strong> new chats are still kept for 72 hours and are not used for training unless you send feedback.</li>
+      <li><strong>Chats already reviewed by people</strong> are kept for up to three years, even if you delete your activity.</li>
+      <li><strong>Auto-delete</strong> defaults to 18 months; you can choose 3 or 36 months, or none.</li>
+    </ul>
+    <p>Source: <a href="https://support.google.com/gemini/answer/13594961" rel="noopener">Gemini Apps Privacy Hub</a>.</p>
+
+    <h2>What these settings do not do</h2>
+    <ul>
+      <li>Turning off training does not mean nothing is stored. Both companies keep chats for a period for safety and operations, as described above.</li>
+      <li>They do not protect anything you pasted before you changed the setting.</li>
+      <li>They do not stop you from sharing more than you meant to. Before you paste, use our <a href="/tools/text-redactor/">text redactor</a> and the <a href="/blog/before-you-paste-into-ai-checklist/">checklist before you paste into AI</a>.</li>
+    </ul>
+    <p>We checked these settings against the linked pages on 22 October 2026. Companies change them; if a menu has moved, the linked page is the one to trust.</p>
+`,
+  },
+  {
     slug: 'encrypted-messaging-when-networks-fail',
     title: 'When mobile networks go down: how to keep messaging securely without a network',
     desc: 'Mobile networks can fail for hours, as Spain saw twice in 2025. What still works without a network, what Briar and Meshtastic actually encrypt, and what to set up before you need it.',
