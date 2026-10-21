@@ -54,8 +54,8 @@ export const LAYERS = [
   {
     slug: 'devices', icon: 'smartphone', name: 'Devices and network', tagline: 'What your phone, computer and browser give away.',
     threat: 'Your IP address, location, browser fingerprint and app permissions reveal more than most people expect, even behind a VPN.',
-    live: [['Browser privacy report: leaks and fingerprint in one run', '/tools/privacy-report/', 'net'], ['IP leak test', '/tools/ip-leak-test/', 'net'], ['WebRTC leak test', '/tools/webrtc-leak-test/', 'net'], ['IPv6 leak test', '/tools/ipv6-leak-test/', 'net'], ['Browser fingerprint test', '/tools/browser-fingerprint-test/', 'local'], ['Link checker: remove tracking, spot phishing signs', '/tools/link-checker/', 'local'], ['How to test a VPN yourself', '/blog/how-to-test-a-vpn-yourself/', 'guide'], ['Check what your phone apps can access (Android and iPhone)', '/blog/check-app-permissions-android-iphone/', 'guide']],
-    planned: ['Privacy reset checklists for iPhone, Android, Windows and macOS: each setting, what it protects, what it costs you and how to undo it'],
+    live: [['Browser privacy report: leaks and fingerprint in one run', '/tools/privacy-report/', 'net'], ['IP leak test', '/tools/ip-leak-test/', 'net'], ['WebRTC leak test', '/tools/webrtc-leak-test/', 'net'], ['IPv6 leak test', '/tools/ipv6-leak-test/', 'net'], ['Browser fingerprint test', '/tools/browser-fingerprint-test/', 'local'], ['Link checker: remove tracking, spot phishing signs', '/tools/link-checker/', 'local'], ['How to test a VPN yourself', '/blog/how-to-test-a-vpn-yourself/', 'guide'], ['Check what your phone apps can access (Android and iPhone)', '/blog/check-app-permissions-android-iphone/', 'guide'], ['Privacy reset checklist for iPhone and Android: what each reset protects, costs and how to undo it', '/blog/privacy-reset-checklist-iphone-android/', 'guide']],
+    planned: ['Privacy reset checklists for Windows and macOS: each setting, what it protects, what it costs you and how to undo it'],
   },
   {
     slug: 'accounts', icon: 'key-round', name: 'Accounts and email', tagline: 'Who can get into your accounts, and what your inbox reveals.',

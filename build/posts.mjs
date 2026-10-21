@@ -1,6 +1,98 @@
 // Blog posts. Body is HTML using the .doc styles. Keep claims verifiable and scoped.
 export const POSTS = [
   {
+    slug: 'privacy-reset-checklist-iphone-android',
+    title: 'Privacy reset checklist for iPhone and Android: what each reset protects, what it costs, how to undo it',
+    desc: 'Eight built-in resets and switches on iPhone and Android, from Safety Check and the tracking prompt to deleting the advertising ID and clearing saved networks. For each: what it protects, what you lose, how to undo it, and the system version it needs. Steps from Apple and Google documentation.',
+    date: '2026-10-22',
+    body: `
+    <p>Phones collect permissions, shared locations, saved networks and advertising identifiers over years. Both iPhone and Android have built-in ways to clear them, but some resets cannot be undone and some cost you saved settings. This checklist gives, for each one, what it protects, what it costs, how to undo it and which system version it needs. Paths are taken from Apple's and Google's own help pages, checked in October 2026, when Apple's iPhone User Guide covers up to iOS 27. Menu names can differ on older versions and on Android phones from other makers; if you cannot find an item, search for its name in Settings. To review individual app permissions instead, see <a href="/blog/check-app-permissions-android-iphone/">our 15-minute permission review</a>.</p>
+
+    <h2>iPhone</h2>
+    <h3>1. Safety Check</h3>
+    <ul>
+      <li><strong>Where:</strong> Settings, Privacy &amp; Security, Safety Check (scroll down). Needs iOS 16 or later and an Apple Account with two-factor authentication.</li>
+      <li><strong>Protects:</strong> against people you once shared with. "Manage Sharing &amp; Access" lets you review sharing person by person and app by app, and check your devices, trusted phone numbers, password and emergency contacts. "Emergency Reset" stops sharing with all people and apps at once.</li>
+      <li><strong>Costs:</strong> Emergency Reset stops everything, including sharing you wanted to keep. Apple advises considering the possible impact on your safety and privacy before you change anything.</li>
+      <li><strong>Undo:</strong> there is no single undo. Changes are saved as you go; to share again, share from each app as you normally would.</li>
+    </ul>
+    <p>Source: <a href="https://support.apple.com/guide/personal-safety/safety-check-iphone-ios-16-ips2aad835e1/web" rel="noopener">Apple: Safety Check for an iPhone with iOS 16 or later</a>.</p>
+
+    <h3>2. Turn off "Allow Apps to Request to Track"</h3>
+    <ul>
+      <li><strong>Where:</strong> Settings, Privacy &amp; Security, Tracking. Apps have had to ask before tracking you since iOS 14.5.</li>
+      <li><strong>Protects:</strong> with the switch off, apps cannot show the tracking prompt, and any app that asks is treated as if you chose "Ask App Not to Track", so it cannot read your device's advertising identifier.</li>
+      <li><strong>Costs:</strong> nothing on your side. Apps can still show ads.</li>
+      <li><strong>Undo:</strong> turn the switch back on.</li>
+    </ul>
+    <p>Source: <a href="https://support.apple.com/en-us/102420" rel="noopener">Apple: If an app asks to track your activity</a>.</p>
+
+    <h3>3. Reset Location &amp; Privacy</h3>
+    <ul>
+      <li><strong>Where:</strong> Settings, General, Transfer or Reset iPhone, Reset, Reset Location &amp; Privacy.</li>
+      <li><strong>Protects:</strong> returns location and privacy settings to factory defaults, so permissions you granted years ago and forgot about are gone. Apps lose access to Location Services until you allow it again.</li>
+      <li><strong>Costs:</strong> every app asks again. Apps that need location, such as maps, stop working properly until you answer.</li>
+      <li><strong>Undo:</strong> the reset itself cannot be undone; grant access again app by app when asked.</li>
+    </ul>
+    <p>Source: <a href="https://support.apple.com/en-us/102515" rel="noopener">Apple: About privacy and Location Services</a>.</p>
+
+    <h3>4. Reset Network Settings</h3>
+    <ul>
+      <li><strong>Where:</strong> Settings, General, Transfer or Reset iPhone, Reset, Reset Network Settings.</li>
+      <li><strong>Protects:</strong> clears every saved Wi-Fi network and VPN setting, including old networks your phone would otherwise join automatically and VPN profiles you no longer recognise.</li>
+      <li><strong>Costs:</strong> it resets all Wi-Fi networks and passwords, cellular settings, and VPN and APN settings, including networks set up by your work or school. Ask their IT team first if they manage your phone.</li>
+      <li><strong>Undo:</strong> none; join networks and set up VPNs again.</li>
+    </ul>
+    <p>Source: <a href="https://support.apple.com/en-us/111786" rel="noopener">Apple: If you can't connect to Wi-Fi on your iPhone or iPad</a>.</p>
+
+    <h2>Android</h2>
+    <p>Paths below are from Google's Android and Pixel help pages. Samsung, Xiaomi and other makers often place these items elsewhere.</p>
+    <h3>5. Delete the advertising ID</h3>
+    <ul>
+      <li><strong>Where:</strong> Settings, Privacy, Ads, Delete advertising ID, then confirm. Available on Android 12 and later, and on other devices with Google Play services since April 2022.</li>
+      <li><strong>Protects:</strong> apps that ask for the advertising ID get a string of zeros instead, so they cannot use it to link your activity. "Reset advertising ID" is the milder option: it replaces the ID with a new one.</li>
+      <li><strong>Costs:</strong> nothing on your side. You still see ads, possibly less tailored for a while, and apps can still use their own identifiers and settings.</li>
+      <li><strong>Undo:</strong> Google's pages do not describe getting an ID back after deleting it. We have not tested it.</li>
+    </ul>
+    <p>Sources: <a href="https://support.google.com/googleplay/android-developer/answer/6048248?hl=en" rel="noopener">Google: Advertising ID</a>, <a href="https://support.google.com/ads/answer/1660762" rel="noopener">Google: How personalized ads work on Android</a>.</p>
+
+    <h3>6. Ad privacy: ad topics, app-suggested ads, ad measurement</h3>
+    <ul>
+      <li><strong>Where:</strong> Settings, Google, All services, Ads, Ads privacy.</li>
+      <li><strong>Protects:</strong> these are separate from the advertising ID. Removing an ad topic stops Android sharing it (topics are deleted after 4 weeks anyway); blocking an app deletes its ad-suggestion data; ad measurement can be switched off.</li>
+      <li><strong>Costs:</strong> nothing on your side.</li>
+      <li><strong>Undo:</strong> switch each one back on.</li>
+    </ul>
+    <p>Source: <a href="https://support.google.com/android/answer/13720755?hl=en" rel="noopener">Google: Manage your ad privacy settings on Android</a>.</p>
+
+    <h3>7. Let Android remove permissions from apps you stopped using</h3>
+    <ul>
+      <li><strong>Where:</strong> check Settings, Apps, Unused apps for the apps Android has already paused. For each app, App info, "Pause app activity if unused" controls it.</li>
+      <li><strong>Protects:</strong> for apps you have not opened for a long time, Android removes their permissions, stops them running in the background and stops their notifications.</li>
+      <li><strong>Costs:</strong> an app you rarely open, such as a travel or emergency app, may need its permissions again when you need it. Turn the setting off for those apps.</li>
+      <li><strong>Undo:</strong> turn "Pause app activity if unused" off for the app and grant its permissions again.</li>
+    </ul>
+    <p>Source: <a href="https://support.google.com/android/answer/13627979" rel="noopener">Google: Manage unused apps on your Android device</a>.</p>
+
+    <h3>8. Reset Bluetooth &amp; Wi-Fi</h3>
+    <ul>
+      <li><strong>Where (Pixel):</strong> Settings, System, Reset options, Reset Bluetooth &amp; Wi-Fi, then Reset settings.</li>
+      <li><strong>Protects:</strong> the same idea as the iPhone network reset: clears saved network and connection settings you no longer recognise.</li>
+      <li><strong>Costs and undo:</strong> Google's page does not list exactly what is erased. Expect to join Wi-Fi networks and pair Bluetooth devices again; we have not tested it. There is no undo.</li>
+    </ul>
+    <p>Source: <a href="https://support.google.com/pixelphone/answer/6183600?hl=en" rel="noopener">Google: How to fix Wi-Fi connection problems on Pixel</a>.</p>
+
+    <h2>Before and after</h2>
+    <ul>
+      <li>Before a reset that cannot be undone, note your Wi-Fi passwords and VPN details, and make sure you can still sign in to your Apple or Google account.</li>
+      <li>Your SIM and carrier account deserve the same attention; see <a href="/blog/protect-your-phone-number-sim-swap/">protecting your phone number</a>. For accounts and sessions, use the <a href="/tools/account-checkup/">account security checkup</a>.</li>
+    </ul>
+
+    <h2>What we have not tested</h2>
+    <p>We have not run these resets on test phones yet, so the costs listed come from Apple's and Google's descriptions, not our own observation. Windows and macOS checklists are planned. If a path is wrong on your phone, email us with the model and system version and we will correct it.</p>
+`,
+  },
+  {
     slug: 'protect-your-phone-number-sim-swap',
     title: 'Protect your phone number: SIM PIN, carrier locks and the SIM-swap scam',
     desc: 'Someone who takes over your phone number receives your calls and text codes. Five steps that make that harder: a SIM PIN, an account PIN with your carrier, the free number and SIM locks US carriers now offer, codes that do not travel by SMS, and messenger settings that keep your number private.',
