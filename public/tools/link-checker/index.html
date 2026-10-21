@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Link Checker: Remove Tracking and Spot Phishing Signs Locally</title>
+<meta name="description" content="Paste a link to remove tracking parameters and see warning signs of phishing: lookalike names, hidden destinations, brand names on other sites. Runs in your browser; the link is never opened or sent.">
+<link rel="canonical" href="https://secureinchat.com/tools/link-checker/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Link Checker: Remove Tracking and Spot Phishing Signs Locally">
+<meta property="og:description" content="Paste a link to remove tracking parameters and see warning signs of phishing: lookalike names, hidden destinations, brand names on other sites. Runs in your browser; the link is never opened or sent.">
+<meta property="og:url" content="https://secureinchat.com/tools/link-checker/">
+<meta name="theme-color" content="#F5F4EF">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Link checker",
+      "url": "https://secureinchat.com/tools/link-checker/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Paste a link to remove tracking parameters and see warning signs of phishing: lookalike names, hidden destinations, brand names on other sites. Runs in your browser; the link is never opened or sent.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-21"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is the link opened or sent anywhere?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The checks run in this page. The link is not opened, fetched, sent to us or to a reputation service, and nothing is stored."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does \"no warning signs\" mean the link is safe?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. These are local checks for common tricks. A new phishing site on an ordinary-looking name will pass. Check that the site name is exactly the one you expect, and when in doubt open the service from your own bookmark instead of the link."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does removing tracking parameters break the link?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Usually not. The tool only removes parameters known to be used for tracking, such as utm_source or fbclid. If a page stops working, use the original link."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why not check the link against a phishing database?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A database lookup would send your link to a third party, and links can contain personal tokens. We may add it as an option you have to switch on, with the service named on the page."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">Link checker</h1>
+    <p class="lede">Before you click a link from a message or an email: remove the tracking, and see the warning signs of phishing. The link is never opened or sent anywhere.</p>
+    <div class="rd-grid">
+      <div><label for="lk-in">Link to check</label><textarea id="lk-in" class="rd-text lk-text" spellcheck="false" autocomplete="off" placeholder="Paste a link, for example https://example.com/offer?utm_source=email"></textarea></div>
+      <div><label for="lk-out">Clean link (tracking removed)</label><textarea id="lk-out" class="rd-text lk-text" readonly spellcheck="false"></textarea></div>
+    </div>
+    <p class="lk-site">The site this link opens: <strong id="lk-site">—</strong></p>
+    <div class="rd-actions"><button id="lk-copy" class="btn" type="button" disabled>Copy clean link</button><button id="lk-clear" class="btn btn--quiet" type="button">Clear</button></div>
+    <p class="hint">Checked in your browser only. No warning signs does not mean safe: check that the site name above is exactly the one you expect. See <a href="/principles/">what each tool sends</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Paste a link to check it.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">Warning signs found in the link</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="rows">
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">What it checks</h2>
+    <p>Tracking parameters such as utm_source, fbclid and gclid; text before an @ that hides the real site; raw IP addresses; international characters that imitate a familiar name (shown decoded); unencrypted http; unusual ports; link shorteners that hide the destination; a well-known brand name on someone else's site; long chains of subdomains; and a second address hidden inside the link.</p>
+    <h2>What it does not do</h2>
+    <p>It does not open the link, look it up in a phishing database or check the page content. A brand-new scam site with an ordinary name will show no warning signs. The brand check covers a short list of companies often imitated, and only whole words. The safest habit stays the same: for anything involving a login or a payment, open the service from your own bookmark or app instead of the link.</p>
+    <h2>How your link is handled</h2>
+    <p>The link is processed in this page. It is not sent to us or anyone else, and the page loads no analytics. Related: <a href="/tools/text-redactor/">redact text before you share it</a>, <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>Is the link opened or sent anywhere?</h3>
+    <p>No. The checks run in this page. The link is not opened, fetched, sent to us or to a reputation service, and nothing is stored.</p>
+    <h3>Does "no warning signs" mean the link is safe?</h3>
+    <p>No. These are local checks for common tricks. A new phishing site on an ordinary-looking name will pass. Check that the site name is exactly the one you expect, and when in doubt open the service from your own bookmark instead of the link.</p>
+    <h3>Does removing tracking parameters break the link?</h3>
+    <p>Usually not. The tool only removes parameters known to be used for tracking, such as utm_source or fbclid. If a page stops working, use the original link.</p>
+    <h3>Why not check the link against a phishing database?</h3>
+    <p>A database lookup would send your link to a third party, and links can contain personal tokens. We may add it as an option you have to switch on, with the service named on the page.</p>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>SecureInChat</p>
+    <nav aria-label="Footer"><a href="/tools/">Tools</a><a href="/about/">About</a><a href="/privacy/">Privacy policy</a><a href="/blog/">Blog</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/link.js" defer></script>
+<script src="/tools/assets/link-app.js" defer></script>
+</body>
+</html>

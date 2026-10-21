@@ -54,7 +54,7 @@ export const LAYERS = [
   {
     slug: 'devices', icon: 'smartphone', name: 'Devices and network', tagline: 'What your phone, computer and browser give away.',
     threat: 'Your IP address, location, browser fingerprint and app permissions reveal more than most people expect, even behind a VPN.',
-    live: [['IP leak test', '/tools/ip-leak-test/', 'net'], ['WebRTC leak test', '/tools/webrtc-leak-test/', 'net'], ['IPv6 leak test', '/tools/ipv6-leak-test/', 'net'], ['Browser fingerprint test', '/tools/browser-fingerprint-test/', 'local'], ['How to test a VPN yourself', '/blog/how-to-test-a-vpn-yourself/', 'guide']],
+    live: [['IP leak test', '/tools/ip-leak-test/', 'net'], ['WebRTC leak test', '/tools/webrtc-leak-test/', 'net'], ['IPv6 leak test', '/tools/ipv6-leak-test/', 'net'], ['Browser fingerprint test', '/tools/browser-fingerprint-test/', 'local'], ['Link checker: remove tracking, spot phishing signs', '/tools/link-checker/', 'local'], ['How to test a VPN yourself', '/blog/how-to-test-a-vpn-yourself/', 'guide']],
     planned: ['Privacy reset checklists for iPhone, Android, Windows and macOS: each setting, what it protects, what it costs you and how to undo it'],
   },
   {
@@ -143,13 +143,13 @@ export const SITUATIONS = [
   {
     slug: 'account-hacked', title: 'My account may be hacked', short: 'Passwords, recovery, keys',
     intro: 'Most account takeovers start with a reused or leaked password. Start by checking the passwords you use most.',
-    steps: [['Check a password against known breaches without sending it', '/tools/password-checker/', 'local'], ['How password breach checks work, and what they cannot tell you', '/blog/how-password-breach-checks-work/', 'guide']],
+    steps: [['Check a password against known breaches without sending it', '/tools/password-checker/', 'local'], ['Check a login link for phishing signs before you use it', '/tools/link-checker/', 'local'], ['How password breach checks work, and what they cannot tell you', '/blog/how-password-breach-checks-work/', 'guide']],
     layers: ['accounts'],
   },
   {
     slug: 'less-tracking', title: 'I want less tracking every day', short: 'Settings, browser, data brokers',
     intro: 'Everyday tracking comes from your browser, your network connection and the data you hand to services, including AI assistants.',
-    steps: [['See what your browser exposes', '/tools/browser-fingerprint-test/', 'local'], ['Check whether your VPN or proxy leaks your real address', '/tools/ip-leak-test/', 'net'], ['Before you paste anything into an AI assistant', '/blog/before-you-paste-into-ai-checklist/', 'guide'], ['What data brokers know about you', '/blog/what-data-brokers-know-about-you/', 'guide']],
+    steps: [['Remove tracking from links before you click or share them', '/tools/link-checker/', 'local'], ['See what your browser exposes', '/tools/browser-fingerprint-test/', 'local'], ['Check whether your VPN or proxy leaks your real address', '/tools/ip-leak-test/', 'net'], ['Before you paste anything into an AI assistant', '/blog/before-you-paste-into-ai-checklist/', 'guide'], ['What data brokers know about you', '/blog/what-data-brokers-know-about-you/', 'guide']],
     layers: ['devices', 'ai', 'accounts'],
   },
   {

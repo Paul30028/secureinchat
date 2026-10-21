@@ -259,3 +259,7 @@ tr[data-status="running"] .pill::before { background: var(--accent); border-radi
 .sc-input { width: 100%; box-sizing: border-box; font: 400 1rem/1.5 var(--mono); padding: 12px 14px; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: 8px; }
 .sc-input:focus-visible { border-color: var(--accent); }
 .sc-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+/* link checker */
+.lk-text { min-height: 6.5rem; }
+.lk-site { margin: 14px 0 0; font-size: 1.05rem; }
+.lk-site strong { font-family: var(--mono); overflow-wrap: anywhere; }

@@ -155,7 +155,7 @@ function home() {
       <div class="grid grid--3">
         ${TOOLS_HOME.map((t) => `<a class="card" href="${t.href}"><h3>${t.name}</h3><p>${t.copy}</p><div class="tags">${tagHtml(t.k[0], t.k[1])}</div></a>`).join('\n        ')}
       </div>
-      <p class="sec__lead"><a href="/tools/">All eight tools</a></p>
+      <p class="sec__lead"><a href="/tools/">All nine tools</a></p>
     </section>`;
   const featured = ['encrypted-messaging-when-networks-fail', 'bank-statement-before-ai-upload', 'what-data-brokers-know-about-you'].map((s) => POSTS.find((p) => p.slug === s));
   const ftag = { 'encrypted-messaging-when-networks-fail': tagHtml('doc', 'Documented') + tagHtml('untested', 'Field test pending'), 'bank-statement-before-ai-upload': tagHtml('tested', 'We ran the test'), 'what-data-brokers-know-about-you': tagHtml('doc', 'Guide') };
@@ -371,6 +371,7 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
         <tr><td><a href="/tools/browser-fingerprint-test/">Fingerprint test</a></td><td>All signals</td><td>Nothing</td></tr>
         <tr><td><a href="/tools/password-checker/">Password checker</a></td><td>The password and its full hash</td><td>The first five characters of its SHA-1 hash to Pwned Passwords</td></tr>
         <tr><td><a href="/tools/text-redactor/">Text redactor</a></td><td>The text you paste</td><td>Nothing</td></tr>
+        <tr><td><a href="/tools/link-checker/">Link checker</a></td><td>The link you paste; it is never opened</td><td>Nothing</td></tr>
         <tr><td><a href="/tools/site-health-check/">Website health check</a></td><td>The report</td><td>The address you enter goes to this site, which fetches that site's public pages. Our code does not store or log it</td></tr>
       </tbody>
     </table>
@@ -518,7 +519,7 @@ write('assets/site.css', fs.readFileSync(path.join(ROOT, 'src/site.css')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/guides/', 0], ['/guides/breakout-game-with-ai/', 0], ['/guides/breakout-game-with-ai/play/', 0], ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/guides/', 0], ['/guides/breakout-game-with-ai/', 0], ['/guides/breakout-game-with-ai/play/', 0], ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
