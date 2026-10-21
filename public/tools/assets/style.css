@@ -248,3 +248,20 @@ tr[data-status="running"] .pill::before { background: var(--accent); border-radi
 .fix__t { margin: 0 0 8px; font-size: 1.1rem; }
 .fix__l { margin: 0; padding-left: 1.4em; display: grid; gap: 10px; max-width: 75ch; }
 .fix__l a { white-space: normal; }
+
+/* account checkup */
+.ac-list { display: grid; gap: 16px; margin: 0; }
+.ac-item { margin: 0; padding: 18px 20px 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); min-width: 0; }
+.ac-item legend { float: left; width: 100%; padding: 0; margin: 0 0 4px; font-weight: 800; font-size: 1.15rem; line-height: 1.35; max-width: 100%; white-space: normal; }
+.ac-n { display: inline-block; min-width: 1.6em; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ac-opts { clear: both; display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 6px 0 10px; }
+.ac-opt { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 600; cursor: pointer; }
+.ac-opt input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.ac-item p { margin: 0 0 12px; max-width: 75ch; }
+.ac-why { color: var(--ink); }
+.ac-how { color: var(--ink-2); }
+.ac-src { font-size: 0.92rem; color: var(--ink-3); }
+.ac-item[data-state="yes"] { background: var(--pass-bg); }
+.ac-item[data-state="no"] { background: var(--fail-bg); }
+.ac-item[data-state="unsure"] { background: var(--warn-bg); }
+.ac-item a { overflow-wrap: anywhere; }

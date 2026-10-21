@@ -60,7 +60,7 @@ export const LAYERS = [
   {
     slug: 'accounts', icon: 'key-round', name: 'Accounts and email', tagline: 'Who can get into your accounts, and what your inbox reveals.',
     threat: 'Reused passwords, SMS codes and an email provider that can read every message are the usual way accounts and identities are taken over.',
-    live: [['Password breach checker', '/tools/password-checker/', 'local'], ['How password breach checks work', '/blog/how-password-breach-checks-work/', 'guide'], ['What data brokers know about you', '/blog/what-data-brokers-know-about-you/', 'guide']],
+    live: [['Account security checkup: eight checks, official Google, Apple and Microsoft steps', '/tools/account-checkup/', 'local'], ['Password breach checker', '/tools/password-checker/', 'local'], ['How password breach checks work', '/blog/how-password-breach-checks-work/', 'guide'], ['What data brokers know about you', '/blog/what-data-brokers-know-about-you/', 'guide']],
     planned: ['Moving to encrypted email, step by step', 'An account recovery plan you keep offline: recovery codes, security keys and trusted devices'],
   },
   {
@@ -143,7 +143,7 @@ export const SITUATIONS = [
   {
     slug: 'account-hacked', title: 'My account may be hacked', short: 'Passwords, recovery, keys',
     intro: 'Most account takeovers start with a reused or leaked password. Start by checking the passwords you use most.',
-    steps: [['Check a password against known breaches without sending it', '/tools/password-checker/', 'local'], ['Check a login link for phishing signs before you use it', '/tools/link-checker/', 'local'], ['How password breach checks work, and what they cannot tell you', '/blog/how-password-breach-checks-work/', 'guide']],
+    steps: [['Run the account checkup: two-step verification, recovery details, signed-in devices', '/tools/account-checkup/', 'local'], ['Check a password against known breaches without sending it', '/tools/password-checker/', 'local'], ['Check a login link for phishing signs before you use it', '/tools/link-checker/', 'local'], ['How password breach checks work, and what they cannot tell you', '/blog/how-password-breach-checks-work/', 'guide']],
     layers: ['accounts'],
   },
   {
