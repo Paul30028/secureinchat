@@ -3,10 +3,30 @@
   <url>
     <loc>https://secureinchat.com/</loc>
     <lastmod>2026-10-21</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
-    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/" />
+  </url>
+  <url>
+    <loc>https://secureinchat.com/start/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/start/being-tracked/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/start/account-hacked/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/start/less-tracking/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/start/network-down/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/messaging/</loc>
+    <lastmod>2026-10-21</lastmod>
   </url>
   <url>
     <loc>https://secureinchat.com/mission/</loc>
@@ -63,18 +83,10 @@
   <url>
     <loc>https://secureinchat.com/zh/</loc>
     <lastmod>2026-10-21</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
-    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/" />
   </url>
   <url>
     <loc>https://secureinchat.com/ja/</loc>
     <lastmod>2026-10-21</lastmod>
-    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
-    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
-    <xhtml:link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/" />
   </url>
   <url>
     <loc>https://secureinchat.com/tools/</loc>

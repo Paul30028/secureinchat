@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#070A11" />
+  <meta name="theme-color" content="#F5F4EF" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111816" media="(prefers-color-scheme: dark)" />
   <title>How the IP leak test works, and what it cannot see | SecureInChat</title>
   <meta name="description" content="The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch." />
   <link rel="canonical" href="https://secureinchat.com/blog/how-the-ip-leak-test-works/" />
-
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preload" href="/assets/fonts/source-serif-4-600.woff2" as="font" type="font/woff2" crossorigin />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SecureInChat" />
   <meta property="og:title" content="How the IP leak test works, and what it cannot see | SecureInChat" />
@@ -16,43 +17,27 @@
   <meta property="og:url" content="https://secureinchat.com/blog/how-the-ip-leak-test-works/" />
   <meta property="og:locale" content="en_US" />
   <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="How the IP leak test works, and what it cannot see | SecureInChat" />
-  <meta name="twitter:description" content="The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch." />
   <link rel="stylesheet" href="/assets/site.css" />
   <script src="/assets/main.js"></script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How the IP leak test works, and what it cannot see","description":"The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/how-the-ip-leak-test-works/"}</script>
 
 </head>
-<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
+<body>
   <a href="#top" class="skip">Skip to content</a>
-  <div class="fixed inset-0 grid-overlay pointer-events-none"></div>
-  <div class="fixed -top-24 left-[8%] w-96 h-96 rounded-full bg-indigo ambient pointer-events-none"></div>
-  <div class="fixed top-[30%] right-[4%] w-80 h-80 rounded-full bg-cyan ambient pointer-events-none"></div>
-  <div class="fixed bottom-0 left-[35%] w-96 h-80 rounded-full bg-emerald ambient pointer-events-none"></div>
-  <header class="fixed top-4 inset-x-0 z-50 px-4">
-    <nav class="max-w-7xl mx-auto glass rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between shadow-2xl" aria-label="Main">
-      <a href="/" class="flex items-center gap-3 group" aria-label="SecureInChat home">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo"><svg class="w-5 h-5 text-white" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></div>
-        <div>
-          <div class="font-display font-bold tracking-tight">SecureInChat</div>
-          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">PRIVACY, LAYER BY LAYER</div>
-        </div>
-      </a>
-      <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
-        <a href="/protect/" class="hover:text-white transition">Protect</a>
-        <a href="/tools/" class="hover:text-white transition">Tools</a>
-        <a href="/#chat" class="hover:text-white transition">Messenger</a>
-        <a href="/guides/" class="hover:text-white transition">Guides</a>
-        <a href="/blog/" class="hover:text-white transition text-white" aria-current="page">Blog</a>
-        <a href="/mission/" class="hover:text-white transition">Mission</a>
-      </div>
-      <div class="flex items-center gap-3">
-        
-        
-      </div>
-    </nav>
+  <header class="top">
+    <div class="wrap top__in">
+      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></span>SecureInChat</a>
+      <nav class="nav" aria-label="Main">
+        <a href="/protect/">Protect</a>
+        <a href="/tools/">Tools</a>
+        <a href="/blog/" aria-current="page">Guides</a>
+        <a href="/messaging/">Messaging</a>
+        <a href="/about/">About</a>
+      </nav>
+    </div>
   </header>
-  <main id="top" class="relative z-10 doc max-w-3xl mx-auto px-5 sm:px-8 pt-36 pb-24">
+  <main id="top">
+    <div class="wrap doc">
     <p class="meta"><a href="/blog/">Blog</a></p>
     <h1>How the IP leak test works, and what it cannot see</h1>
     <p class="meta">By Paul · 2026-10-20</p>
@@ -102,21 +87,14 @@
     <p>Run the test twice: once without the VPN to record your real network, and once with it on. A clean result means the checks above found nothing, not that nothing exists. If something fails, the tool page has a fix for each type of leak.</p>
     <p><a href="/tools/ip-leak-test/">Run the IP leak test</a></p>
 
+    </div>
   </main>
-  <footer class="relative z-10 border-t border-white/10 py-8">
-    <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
-      <div>© 2026 SecureInChat. Zero-Knowledge Blind Relay Architecture.</div>
-      <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
-        <a href="/mission/" class="hover:text-white">Mission</a><a href="/protect/" class="hover:text-white">Protect</a>
-        <a href="/tools/" class="hover:text-white">Tools</a>
-        <a href="/guides/" class="hover:text-white">Guides</a>
-        <a href="/blog/" class="hover:text-white">Blog</a>
-        <a href="/privacy/" class="hover:text-white">Privacy</a>
-        <a href="/about/" class="hover:text-white">About</a>
-        <a href="/contact/" class="hover:text-white">Contact</a>
-        <a href="https://github.com/Paul30028/secureinchat" class="hover:text-white" rel="noopener">GitHub</a>
+  <footer class="foot">
+    <div class="wrap foot__in">
+      <div>© 2026 SecureInChat. Privacy, one layer at a time.</div>
+      <nav aria-label="Footer">
+        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/guides/">AI build guides</a><a href="/contact/">Contact</a><a href="https://github.com/Paul30028/secureinchat" rel="noopener">GitHub</a>
       </nav>
-      <div class="flex gap-4"><a href="/" hreflang="en" lang="en" class="hover:text-white">EN</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN" class="hover:text-white">ZH</a><a href="/ja/" hreflang="ja" lang="ja" class="hover:text-white">JA</a></div>
     </div>
   </footer>
 </body>

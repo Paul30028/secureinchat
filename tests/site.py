@@ -33,7 +33,7 @@ BASE = f'http://127.0.0.1:{srv.server_address[1]}'
 WS_OK = """(()=>{class W{constructor(u){this.u=u;setTimeout(()=>{this.onopen&&this.onopen();setTimeout(()=>{this.onmessage&&this.onmessage({data:JSON.stringify({type:'auth_challenge',challenge:'abcdef0123456789abcdef'})})},40)},60)}close(){}}window.WebSocket=W})();"""
 WS_BAD = """(()=>{class W{constructor(u){setTimeout(()=>{this.onerror&&this.onerror();this.onclose&&this.onclose({code:1006})},60)}close(){}}window.WebSocket=W})();"""
 
-PAGES = ['/', '/zh/', '/ja/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/site-health-check/', '/guides/', '/guides/breakout-game-with-ai/', '/guides/breakout-game-with-ai/play/', '/refund/', '/terms/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/blog/encrypted-messaging-when-networks-fail/']
+PAGES = ['/', '/zh/', '/ja/', '/messaging/', '/start/', '/start/being-tracked/', '/start/account-hacked/', '/start/less-tracking/', '/start/network-down/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/site-health-check/', '/guides/', '/guides/breakout-game-with-ai/', '/guides/breakout-game-with-ai/play/', '/refund/', '/terms/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/blog/encrypted-messaging-when-networks-fail/']
 fails = []
 def check(cond, msg):
     print(('ok   ' if cond else 'FAIL ') + msg)
@@ -63,7 +63,7 @@ with sync_playwright() as p:
             check(ov <= 0, f'{tag} no horizontal overflow ({ov})')
             if not path.startswith('/tools/ip-leak'):
                 check(not [u for u in external if not u.startswith('wss')], f'{tag} no external requests {external[:3]}')
-            if path in ('/', '/zh/', '/ja/'):
+            if path == '/messaging/':
                 page.wait_for_timeout(400)
                 net = page.inner_text('#net-label')
                 lat = page.inner_text('#node-latency')
@@ -71,11 +71,16 @@ with sync_playwright() as p:
                 check(net == 'Network: Operational', f'{tag} badge operational (got {net})')
                 check(lat.isdigit(), f'{tag} latency numeric ({lat})')
                 check(chal == 'Verified', f'{tag} challenge verified')
-                check(page.evaluate("document.fonts.check('700 20px \"Space Grotesk\"')"), f'{tag} display font loaded')
+                check(page.evaluate("document.fonts.check('600 20px \"Source Serif 4\"')"), f'{tag} heading font loaded')
                 h1 = page.inner_text('h1').strip().replace('\n', ' ')
                 check(len(h1) > 8, f'{tag} h1 rendered in static HTML: {h1}')
                 if vpname == 'desktop':
                     page.screenshot(path=f"{OUT}/{path.strip('/').replace('/','_') or 'home'}-{vpname}.png")
+            if path in ('/', '/zh/', '/ja/'):
+                h1 = page.inner_text('h1').strip()
+                check(len(h1) > 4, f'{tag} h1 rendered: {h1}')
+                if vpname == 'desktop':
+                    page.screenshot(path=f"{OUT}/{path.strip('/').replace('/','_') or 'home'}-{vpname}.png", full_page=True)
             if path == '/' and vpname == 'mobile':
                 page.screenshot(path=f'{OUT}/home-mobile.png')
             if path in ('/privacy/', '/tools/ip-leak-test/') and vpname == 'desktop':
@@ -83,15 +88,16 @@ with sync_playwright() as p:
             ctx.close()
     # failure path
     ctx = b.new_context(viewport={'width': 1280, 'height': 800}); page = ctx.new_page()
-    page.add_init_script(WS_BAD); page.goto(BASE + '/'); page.wait_for_timeout(600)
+    page.add_init_script(WS_BAD); page.goto(BASE + '/messaging/'); page.wait_for_timeout(600)
     check(page.inner_text('#net-label') == 'Network: Unreachable', 'relay failure shows Unreachable')
     check('Unable to establish' in page.inner_text('#node-log'), 'relay failure message shown')
     # no-JS: content must be visible
-    ctx2 = b.new_context(java_script_enabled=False, viewport={'width': 1280, 'height': 800}); pg2 = ctx2.new_page(); pg2.goto(BASE + '/')
+    ctx2 = b.new_context(java_script_enabled=False, viewport={'width': 1280, 'height': 800}); pg2 = ctx2.new_page(); pg2.goto(BASE + '/messaging/')
     check(pg2.is_visible('#architecture h2'), 'no-JS: architecture heading visible')
+    pg2.goto(BASE + '/'); check(pg2.is_visible('#layers h2'), 'no-JS: home layers visible')
     # language select navigates
     ctx3 = b.new_context(viewport={'width': 1280, 'height': 800}); pg3 = ctx3.new_page(); pg3.add_init_script(WS_OK); pg3.goto(BASE + '/')
-    pg3.select_option('#lang', '/zh/'); pg3.wait_for_url('**/zh/'); check('沟通不留痕迹' in pg3.inner_text('h1'), 'language select goes to /zh/')
+    pg3.goto(BASE + '/zh/'); check('沟通不留痕迹' in pg3.inner_text('h1') and pg3.is_visible('.notice'), '/zh/ shows notice and heading')
     b.close()
 
 print('\nFAILED:' if fails else '\nSITE TESTS PASSED', *fails, sep='\n')

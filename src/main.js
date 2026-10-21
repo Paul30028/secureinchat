@@ -30,28 +30,22 @@
     var el = {
       label: $('node-btn-label'), conn: $('node-conn'), latency: $('node-latency'),
       chal: $('node-chal'), chalDetail: $('node-chal-detail'), log: $('node-log'),
-      net: $('net-label'), dot: $('net-dot'), dotPing: $('net-dot-ping'),
+      net: $('net-label'), status: $('net-status'),
     };
     var testing = false;
 
     function setNet(kind) {
-      var map = {
-        check: ['Network: Checking', 'bg-amber-300'],
-        ok: ['Network: Operational', 'bg-emerald'],
-        bad: ['Network: Unreachable', 'bg-rose-400'],
-      };
-      el.net.textContent = map[kind][0];
-      [el.dot, el.dotPing].forEach(function (d) {
-        d.className = d.className.replace(/bg-(amber-300|emerald|rose-400)/g, map[kind][1]);
-      });
+      var map = { check: 'Network: Checking', ok: 'Network: Operational', bad: 'Network: Unreachable' };
+      el.net.textContent = map[kind];
+      if (el.status) el.status.setAttribute('data-state', kind);
     }
     function setConn(ok) {
       el.conn.textContent = ok ? 'Connected' : 'Awaiting test';
-      el.conn.className = 'mt-4 text-xs ' + (ok ? 'text-emerald' : 'text-slate-500');
+      el.conn.className = 'diag__note' + (ok ? ' ok' : '');
     }
     function fail(msg) {
       el.log.textContent = msg;
-      el.log.className = 'mt-5 p-4 rounded-xl font-mono text-xs border bg-rose-500/5 border-rose-500/20 text-rose-300';
+      el.log.setAttribute('data-state', 'bad');
       setNet('bad');
     }
     function done() { testing = false; btn.disabled = false; el.label.textContent = btn.getAttribute('data-retest'); }
@@ -62,10 +56,10 @@
       btn.disabled = true;
       el.label.textContent = btn.getAttribute('data-testing');
       el.latency.textContent = '—';
-      el.chal.textContent = 'Pending'; el.chal.className = 'mt-3 font-display text-xl text-slate-300';
+      el.chal.textContent = 'Pending'; el.chal.className = 'diag__val';
       el.chalDetail.textContent = 'Waiting for auth_challenge';
       el.log.textContent = 'Opening secure WebSocket channel…';
-      el.log.className = 'mt-5 p-4 rounded-xl font-mono text-xs border bg-white/[.02] border-white/10 text-slate-500';
+      el.log.removeAttribute('data-state');
       setConn(false); setNet('check');
 
       var started = performance.now(), connected = false, errored = false, ws, timer;
@@ -82,7 +76,7 @@
         try {
           var data = JSON.parse(event.data);
           if (data.type === 'auth_challenge') {
-            el.chal.textContent = 'Verified'; el.chal.className = 'mt-3 font-display text-xl text-emerald';
+            el.chal.textContent = 'Verified'; el.chal.className = 'diag__val ok'; el.log.setAttribute('data-state', 'ok');
             el.chalDetail.textContent = String(data.challenge || '').slice(0, 20) + '…';
             el.log.textContent = 'Relay auth_challenge received and verified.';
           } else { el.log.textContent = 'Relay returned a valid message.'; }

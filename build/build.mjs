@@ -1,9 +1,8 @@
 // Generates the static site into ../public. Run: node build.mjs
 import fs from 'node:fs';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { POSTS } from './posts.mjs';
-import { MISSION, MISSION_SHORT, LAYERS, layerBody, protectIndexBody } from './protect.mjs';
+import { MISSION, MISSION_SHORT, LAYERS, layerBody, layerTags, protectIndexBody, SITUATIONS, situationBody, startIndexBody } from './protect.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const PUB = path.join(ROOT, 'public');
@@ -12,7 +11,7 @@ const DATE = '2026-10-21';
 const REPO = 'https://github.com/Paul30028/secureinchat';
 
 const iconDir = path.join(import.meta.dirname, 'node_modules/lucide-static/icons');
-const icon = (name, cls = 'w-5 h-5') => {
+const icon = (name, cls = 'icon') => {
   let s = fs.readFileSync(path.join(iconDir, name + '.svg'), 'utf8');
   s = s.replace(/<!--[\s\S]*?-->/, '').replace(/\s+/g, ' ').trim();
   s = s.replace(/ class="[^"]*"/, '').replace(/ width="24"/, '').replace(/ height="24"/, '');
@@ -21,402 +20,239 @@ const icon = (name, cls = 'w-5 h-5') => {
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // ---------------------------------------------------------------------------------------------
-const LANGS = {
-  en: {
-    code: 'en', html: 'en', path: '/', label: 'EN',
-    title: 'SecureInChat: Personal Privacy Protection, Layer by Layer',
-    desc: 'Protect your privacy from the device in your hand to the messages you send: free tools that run in your browser, tested guides, offline and emergency messaging, and a zero-knowledge encrypted messenger.',
-    navArchitecture: 'Architecture', navSecurity: 'Security', navDiagnostics: 'Diagnostics', navTools: 'Tools', navBlog: 'Blog',
-    hero1: 'Communication Without Trace.', hero2: 'Trust Without Compromise.',
-    heroCopy: 'A zero-knowledge blind relay protocol where encryption keys remain on your devices and the relay only forwards unreadable ciphertext.',
-    runDiag: 'Run relay diagnostics', explore: 'Explore the architecture',
-    diagTitle: 'Verify the relay in real time.',
-    diagCopy: 'This browser performs a real WSS connection test, measures handshake latency, and validates the relay challenge response.',
-    testing: 'Testing…', retest: 'Run diagnostics',
-    toolsTitle: 'Free privacy tools that run in your browser.',
-    toolsCopy: 'Check what your connection gives away. Nothing you test is stored, and no cookies are set.',
-    toolName: 'IP leak test', toolDesc: 'Public IP, WebRTC, IPv6, time zone and request headers, checked against your VPN or proxy.',
-    toolCta: 'Run the test', toolsAll: 'All tools',
-    archTitle: 'The server forwards. It never understands.',
-    archCopy: 'Every sensitive operation stays at the edge. The relay receives only encrypted payloads required for delivery.',
-    securityTitle: 'Modern cryptography. Minimal trust surface.',
-    securityCopy: 'SecureInChat combines established primitives with client-side key custody and a relay architecture designed to minimize data exposure.',
-    ctaTitle: 'Move private communication back to the edge.',
-    ctaCopy: 'Choose your platform and connect through a blind relay designed to know as little as possible.',
-    ctaNote: 'Clients are in development. The relay diagnostics and tools on this site are live today.',
-    ctaTools: 'Try the IP leak test',
-    footLine: 'Zero-Knowledge Blind Relay Architecture.', fPrivacy: 'Privacy', fAbout: 'About', fContact: 'Contact',
-    skip: 'Skip to content',
-  },
-  zh: {
-    code: 'zh', html: 'zh-CN', path: '/zh/', label: 'ZH',
-    title: 'SecureInChat：零知识盲中继加密通信',
-    desc: 'SecureInChat 是基于盲中继的端到端加密通信：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。可在线运行中继诊断和免费隐私工具。',
-    navArchitecture: '工作原理', navSecurity: '安全矩阵', navDiagnostics: '节点诊断', navTools: '工具', navBlog: '博客',
-    hero1: '沟通不留痕迹。', hero2: '信任无需妥协。',
-    heroCopy: '零知识盲中继通信协议：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。',
-    runDiag: '运行节点诊断', explore: '查看工作原理',
-    diagTitle: '实时验证盲中继状态。',
-    diagCopy: '浏览器会发起真实 WSS 连接，测量握手延迟，并验证中继返回的挑战消息。',
-    testing: '检测中…', retest: '运行节点诊断',
-    toolsTitle: '在浏览器里运行的免费隐私工具。',
-    toolsCopy: '查看你的连接泄露了哪些信息。测试内容不会被保存，也不会设置 Cookie。',
-    toolName: 'IP 泄漏测试', toolDesc: '检查公网 IP、WebRTC、IPv6、时区和请求头，并对照你的 VPN 或代理。',
-    toolCta: '开始测试', toolsAll: '全部工具',
-    archTitle: '服务器负责转发，但永远无法理解内容。',
-    archCopy: '所有敏感操作都在终端本地完成，中继只接收完成投递所必需的加密载荷。',
-    securityTitle: '现代密码学，更小的信任边界。',
-    securityCopy: 'SecureInChat 采用成熟密码原语、客户端密钥控制和数据暴露最小化的盲中继架构。',
-    ctaTitle: '让私密通信重新回到终端。',
-    ctaCopy: '通过一个尽可能少知道信息的盲中继建立连接。',
-    ctaNote: '客户端仍在开发中。本站的节点诊断和工具现已可用。',
-    ctaTools: '试试 IP 泄漏测试',
-    footLine: '零知识盲中继架构。', fPrivacy: '隐私', fAbout: '关于', fContact: '联系',
-    skip: '跳到正文',
-  },
-  ja: {
-    code: 'ja', html: 'ja', path: '/ja/', label: 'JA',
-    title: 'SecureInChat：ゼロ知識ブラインドリレー通信',
-    desc: 'SecureInChat は、暗号鍵を端末内に保持し、リレーは暗号文だけを転送するエンドツーエンド暗号化メッセンジャーです。リレー診断と無料のプライバシーツールをお試しください。',
-    navArchitecture: '仕組み', navSecurity: 'セキュリティ', navDiagnostics: '診断', navTools: 'ツール', navBlog: 'ブログ',
-    hero1: '痕跡を残さない通信。', hero2: '妥協のない信頼。',
-    heroCopy: '暗号鍵は端末内に保持され、リレーは解読不能な暗号文だけを転送するゼロ知識型ブラインドリレープロトコル。',
-    runDiag: '診断を実行', explore: '仕組みを見る',
-    diagTitle: 'リレーをリアルタイム検証。',
-    diagCopy: '実際のWSS接続、ハンドシェイク遅延、リレーチャレンジ応答をブラウザで確認します。',
-    testing: '診断中…', retest: '診断を実行',
-    toolsTitle: 'ブラウザで動く無料のプライバシーツール。',
-    toolsCopy: '接続が何を漏らしているかを確認できます。テスト内容は保存されず、Cookie も使いません。',
-    toolName: 'IP リークテスト', toolDesc: '公開 IP、WebRTC、IPv6、タイムゾーン、リクエストヘッダーを VPN やプロキシと照らして確認します。',
-    toolCta: 'テストを実行', toolsAll: 'すべてのツール',
-    archTitle: 'サーバーは転送するだけ。内容は理解しない。',
-    archCopy: '機密処理は端末側で完結。リレーが受け取るのは配送に必要な暗号化ペイロードだけです。',
-    securityTitle: '現代暗号と最小限の信頼境界。',
-    securityCopy: '確立された暗号プリミティブ、端末側の鍵管理、露出を最小化するリレー設計を組み合わせています。',
-    ctaTitle: 'プライベート通信を端末側へ。',
-    ctaCopy: '必要な情報だけを知るブラインドリレーを通じて接続します。',
-    ctaNote: 'クライアントは開発中です。このサイトのリレー診断とツールは現在ご利用いただけます。',
-    ctaTools: 'IP リークテストを試す',
-    footLine: 'ゼロ知識ブラインドリレー アーキテクチャ。', fPrivacy: 'プライバシー', fAbout: '概要', fContact: 'お問い合わせ',
-    skip: '本文へ移動',
-  },
-};
+const HOME_TITLE = 'SecureInChat: Protect Your Privacy, One Layer at a Time';
+const HOME_DESC = 'Practical privacy protection for your devices, accounts, conversations and AI use: free tools that run on your own device, guides with honest notes on what was tested, offline messaging and a zero-knowledge messenger.';
 
 const ARCH = [
-  { icon: 'lock-keyhole', title: 'Sender Local Encryption', copy: 'Message content and session keys are processed locally before any network transmission.', status: 'PLAINTEXT NEVER LEAVES DEVICE' },
-  { icon: 'server-off', title: 'Blind Relay Server', copy: 'The relay routes opaque cipher payloads without possessing the keys required to decrypt them.', status: 'CANNOT READ MESSAGE CONTENT' },
-  { icon: 'lock-keyhole-open', title: 'Recipient Local Decryption', copy: 'Only the intended recipient device reconstructs and decrypts the authenticated message.', status: 'DECRYPTED AT THE EDGE' },
+  { icon: 'lock-keyhole', title: 'Sender encrypts locally', copy: 'Message content and session keys are processed on the device before anything is sent.', status: 'Plaintext never leaves the device' },
+  { icon: 'server-off', title: 'Blind relay forwards', copy: 'The relay routes encrypted payloads without the keys needed to decrypt them.', status: 'Cannot read message content' },
+  { icon: 'lock-keyhole-open', title: 'Recipient decrypts locally', copy: 'Only the intended recipient device decrypts and checks the message.', status: 'Decrypted at the edge' },
 ];
 const SEC = [
-  { icon: 'git-branch', title: 'Curve25519', tag: 'KEY AGREEMENT', copy: 'Efficient elliptic-curve key agreement for modern client devices.' },
-  { icon: 'shield-check', title: 'AES-256-GCM', tag: 'AEAD', copy: 'Authenticated encryption designed to protect confidentiality and integrity.' },
-  { icon: 'key-round', title: 'HKDF', tag: 'KEY DERIVATION', copy: 'Context-separated key derivation for session and message-key workflows.' },
-  { icon: 'database-zap', title: 'No-Log Assurance', tag: 'DATA MINIMIZATION', copy: 'Relay operation is designed without persistent message-content storage.' },
+  { title: 'Curve25519', tag: 'Key agreement', copy: 'Elliptic-curve key agreement for modern client devices.' },
+  { title: 'AES-256-GCM', tag: 'Authenticated encryption', copy: 'Protects both confidentiality and integrity of each message.' },
+  { title: 'HKDF', tag: 'Key derivation', copy: 'Context-separated key derivation for session and message keys.' },
+  { title: 'No message storage', tag: 'Data minimisation', copy: 'The relay is designed without persistent storage of message content.' },
 ];
-
-// ---------------------------------------------------------------------------------------------
-function head({ title, desc, canonical, alternates = [], ogLocale = 'en_US', jsonld }) {
-  const alt = alternates.map((a) => `  <link rel="alternate" hreflang="${a.hreflang}" href="${SITE}${a.path}" />`).join('\n');
-  return `<meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#070A11" />
-  <title>${esc(title)}</title>
-  <meta name="description" content="${esc(desc)}" />
-  <link rel="canonical" href="${SITE}${canonical}" />
-${alt}
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="${esc(title)}" />
-  <meta property="og:description" content="${esc(desc)}" />
-  <meta property="og:url" content="${SITE}${canonical}" />
-  <meta property="og:locale" content="${ogLocale}" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="${esc(title)}" />
-  <meta name="twitter:description" content="${esc(desc)}" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
-${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ''}`;
-}
-
-const logo = () => `<a href="/" class="flex items-center gap-3 group" aria-label="SecureInChat home">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo via-cyan to-emerald flex items-center justify-center shadow-indigo">${icon('shield-check', 'w-5 h-5 text-white')}</div>
-        <div>
-          <div class="font-display font-bold tracking-tight">SecureInChat</div>
-          <div class="font-mono text-[9px] tracking-[.22em] text-slate-500">PRIVACY, LAYER BY LAYER</div>
-        </div>
-      </a>`;
-
-function header(t, { home, current }) {
-  const pre = home ? '' : '/';
-  const link = (href, text, key) => `<a href="${href}" class="hover:text-white transition${current === key ? ' text-white' : ''}"${current === key ? ' aria-current="page"' : ''}>${text}</a>`;
-  const langs = home
-    ? `<select id="lang" aria-label="Language" class="bg-white/[.04] hairline rounded-xl px-2.5 py-2 text-xs text-slate-300 outline-none">
-          ${Object.values(LANGS).map((l) => `<option value="${l.path}"${l.code === t.code ? ' selected' : ''}>${l.label}</option>`).join('')}
-        </select>` : '';
-  const status = home
-    ? `<div class="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[.035] hairline font-mono text-[10px]" role="status">
-          <span class="relative flex w-2 h-2"><span id="net-dot-ping" class="absolute inline-flex w-full h-full rounded-full bg-amber-300 opacity-70 animate-ping"></span><span id="net-dot" class="relative inline-flex w-2 h-2 rounded-full bg-amber-300"></span></span>
-          <span id="net-label" class="text-slate-300">Network: Checking</span><span class="text-slate-600">|</span><span class="text-emerald">100% Zero-Knowledge</span>
-        </div>` : '';
-  return `<header class="fixed top-4 inset-x-0 z-50 px-4">
-    <nav class="max-w-7xl mx-auto glass rounded-2xl px-4 sm:px-6 h-16 flex items-center justify-between shadow-2xl" aria-label="Main">
-      ${logo()}
-      <div class="hidden lg:flex items-center gap-7 text-sm text-slate-400">
-        ${t.code === 'en' ? `${link('/protect/', 'Protect', 'protect')}
-        ${link('/tools/', t.navTools, 'tools')}
-        ${link(pre + '#chat', 'Messenger', 'm')}
-        ${link('/guides/', 'Guides', 'guides')}
-        ${link('/blog/', t.navBlog, 'blog')}
-        ${link('/mission/', 'Mission', 'mission')}` : `${link(pre + '#architecture', t.navArchitecture, 'a')}
-        ${link(pre + '#security', t.navSecurity, 's')}
-        ${link(pre + '#diagnostics', t.navDiagnostics, 'd')}
-        ${link('/tools/', t.navTools, 'tools')}
-        ${link('/blog/', t.navBlog, 'blog')}`}
-      </div>
-      <div class="flex items-center gap-3">
-        ${status}
-        ${langs}
-      </div>
-    </nav>
-  </header>`;
-}
-
-function footer(t) {
-  const langLinks = Object.values(LANGS).map((l) => `<a href="${l.path}" hreflang="${l.html}" lang="${l.html}" class="hover:text-white">${l.label}</a>`).join('');
-  return `<footer class="relative z-10 border-t border-white/10 py-8">
-    <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col lg:flex-row items-center justify-between gap-5 text-xs text-slate-500">
-      <div>© 2026 SecureInChat. ${t.footLine}</div>
-      <nav class="flex flex-wrap justify-center gap-x-6 gap-y-2" aria-label="Footer">
-        ${t.code === 'en' ? '<a href="/mission/" class="hover:text-white">Mission</a><a href="/protect/" class="hover:text-white">Protect</a>' : ''}
-        <a href="/tools/" class="hover:text-white">${t.navTools}</a>
-        ${t.code === 'en' ? '<a href="/guides/" class="hover:text-white">Guides</a>' : ''}
-        <a href="/blog/" class="hover:text-white">${t.navBlog}</a>
-        <a href="/privacy/" class="hover:text-white">${t.fPrivacy}</a>
-        <a href="/about/" class="hover:text-white">${t.fAbout}</a>
-        <a href="/contact/" class="hover:text-white">${t.fContact}</a>
-        <a href="${REPO}" class="hover:text-white" rel="noopener">GitHub</a>
-      </nav>
-      <div class="flex gap-4">${langLinks}</div>
-    </div>
-  </footer>`;
-}
-
-const backdrop = `<div class="fixed inset-0 grid-overlay pointer-events-none"></div>
-  <div class="fixed -top-24 left-[8%] w-96 h-96 rounded-full bg-indigo ambient pointer-events-none"></div>
-  <div class="fixed top-[30%] right-[4%] w-80 h-80 rounded-full bg-cyan ambient pointer-events-none"></div>
-  <div class="fixed bottom-0 left-[35%] w-96 h-80 rounded-full bg-emerald ambient pointer-events-none"></div>`;
-
+const TOOLS_HOME = [
+  { name: 'Photo metadata remover', href: '/tools/photo-metadata-remover/', copy: 'See and remove the location, device and dates hidden in a photo.', k: ['tested', 'Runs on your device'] },
+  { name: 'Text redactor', href: '/tools/text-redactor/', copy: 'Replace emails, numbers and keys with placeholders before you share text or paste it into AI.', k: ['tested', 'Runs on your device'] },
+  { name: 'IP leak test', href: '/tools/ip-leak-test/', copy: 'Check whether your VPN or proxy leaks your real address through WebRTC, IPv6 or DNS.', k: ['lim', 'Contacts lookup services'] },
+];
+const FLOW = [
+  ['Photo metadata remover', 'The photo and its metadata', 'Nothing'],
+  ['Text redactor', 'The text you paste', 'Nothing'],
+  ['Password checker', 'The password and its full hash', 'First 5 characters of its SHA-1 hash, to Pwned Passwords'],
+  ['IP leak test', 'Verdicts and comparisons', 'Your IP to the lookup services it lists'],
+];
 
 const GUIDES = [
   { slug: 'breakout-game-with-ai', title: 'Build a Breakout game with AI in one HTML file', blurb: 'A prompt set, the finished game and an automated test, re-run from scratch with every result logged, including the failures.',
     status: 'Re-run from scratch on 2026-10-20; pass rate in the test log', price: '0.99', buyUrl: '' },
 ];
 
-function enMain({ secHero, secDiag, secArch, secSec, secTools, secCta }) {
-  const g = GUIDES[0];
-  const hero = `    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-14">
-      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-5">Personal privacy, layer by layer</div>
-      <h1 class="font-display font-bold text-5xl sm:text-6xl leading-[1.04] tracking-[-.04em] max-w-4xl">Your privacy is a right. We help you protect it, layer by layer.</h1>
-      <p class="mt-6 max-w-2xl text-lg leading-8 text-slate-400">From the camera on your laptop to the messages you send: free tools that run on your own device, guides where every step was actually tested, and a messenger whose server cannot read you.</p>
-      <div class="mt-9 flex flex-col sm:flex-row gap-3">
-        <a href="/protect/" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-slate-950 font-semibold">${icon('layers', 'w-5 h-5')}<span>Start with a layer</span></a>
-        <a href="/tools/" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl glass font-semibold text-slate-200">${icon('shield-check', 'w-5 h-5 text-cyan')}<span>Run a free check</span></a>
-        <a href="/mission/" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl glass font-semibold text-slate-200"><span>Our mission</span></a>
-      </div>
-      <p class="mt-6 text-xs text-slate-500 font-mono">No cookies · No accounts · Tools run in your browser · Untested steps are marked untested</p>
-    </section>`;
-  const layerCards = LAYERS.map((L) => `<a href="/protect/${L.slug}/" class="group block p-6 rounded-2xl glass hover:border-cyan/40 transition"><div class="flex items-center gap-3">${icon(L.icon, 'w-5 h-5 text-cyan')}<span class="font-display text-xl font-semibold">${esc(L.name)}</span></div><p class="mt-3 text-sm leading-6 text-slate-400">${esc(L.tagline)}</p><div class="mt-4 text-xs font-mono ${L.live.length ? 'text-emerald' : 'text-slate-500'}">${L.live.length ? L.live.length + ' live' : 'Coming soon'} · ${L.planned.length} planned</div></a>`).join('\n        ');
-  const layers = `    <section id="layers" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24">
-      <div class="max-w-3xl mb-8"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Six layers of protection</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">From the hardware in your hands to the software on it.</h2><p class="mt-3 text-slate-400">One weak layer undoes the others. Pick the one that worries you most; each page lists what works today and what is still being built or tested.</p></div>
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        ${layerCards}
-      </div>
-    </section>`;
-  const offline = `    <section id="offline" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
-      <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-amber-300 mb-3">When the network goes down</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">Mobile networks fail. Keep talking securely anyway.</h2><p class="mt-3 text-slate-400">In 2025 Spain lost mobile service for hours, twice. What still works without a network, what Briar and Meshtastic really encrypt, and what to set up this week.</p></div>
-        <a href="/blog/encrypted-messaging-when-networks-fail/" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold text-center lg:w-72">Read the offline guide</a>
-      </div>
-    </section>`;
-  const guide = `    <section id="guides" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
-      <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Tested guide</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">${g.title}</h2><p class="mt-3 text-slate-400">${g.blurb}</p><p class="mt-2 text-sm text-emerald">${g.status}</p></div>
-        <div class="flex flex-col gap-3 lg:w-72"><a href="/guides/${g.slug}/play/" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold text-center">Play the result</a><a href="/guides/${g.slug}/" class="px-5 py-3 rounded-xl glass font-semibold text-center">See what is in the guide</a></div>
-      </div>
-    </section>`;
-  const posts = POSTS.slice(0, 3).map((p) => `<a href="/blog/${p.slug}/" class="block p-5 rounded-2xl glass hover:border-cyan/40 transition"><h3 class="font-display text-lg font-semibold">${esc(p.title)}</h3><p class="mt-2 text-sm leading-6 text-slate-400">${esc(p.desc.slice(0, 140))}…</p></a>`).join('\n        ');
-  const blog = `    <section id="blog" class="max-w-7xl mx-auto px-5 sm:px-8 pb-24 fade-up">
-      <div class="flex items-end justify-between mb-6"><h2 class="font-display text-3xl font-semibold">Latest from the blog</h2><a href="/blog/" class="text-sm text-cyan hover:text-white">All posts →</a></div>
-      <div class="grid md:grid-cols-3 gap-4">
-        ${posts}
-      </div>
-    </section>`;
-  const chat = `    <section id="chat" class="max-w-7xl mx-auto px-5 sm:px-8 pt-8 pb-10">
-      <div class="font-mono text-[11px] uppercase tracking-[.2em] text-indigo-300 mb-3">Communication layer</div>
-      <h2 class="font-display text-3xl sm:text-4xl font-semibold max-w-3xl">SecureInChat messenger: a zero-knowledge blind relay.</h2>
-      <p class="mt-4 max-w-2xl text-slate-400">Keys stay on your devices and the relay only forwards ciphertext. The clients are in development; the relay diagnostics below are live and run in your browser.</p>
-    </section>`;
-  return [hero, layers, secTools, offline, blog, guide, chat, secDiag, secArch, secSec].join('\n\n');
+// ---------------------------------------------------------------------------------------------
+function head({ title, desc, canonical, jsonld, lang = 'en' }) {
+  return `<meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#F5F4EF" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111816" media="(prefers-color-scheme: dark)" />
+  <title>${esc(title)}</title>
+  <meta name="description" content="${esc(desc)}" />
+  <link rel="canonical" href="${SITE}${canonical}" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preload" href="/assets/fonts/source-serif-4-600.woff2" as="font" type="font/woff2" crossorigin />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="${esc(title)}" />
+  <meta property="og:description" content="${esc(desc)}" />
+  <meta property="og:url" content="${SITE}${canonical}" />
+  <meta property="og:locale" content="${lang === 'en' ? 'en_US' : lang.replace('-', '_')}" />
+  <meta name="twitter:card" content="summary" />
+  <link rel="stylesheet" href="/assets/site.css" />
+  <script src="/assets/main.js"></script>
+${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ''}`;
 }
 
-function home(t) {
-  const alternates = [...Object.values(LANGS).map((l) => ({ hreflang: l.html, path: l.path })), { hreflang: 'x-default', path: '/' }];
-  const jsonld = {
-    '@context': 'https://schema.org',
-    '@graph': [
-      { '@type': 'Organization', '@id': SITE + '/#org', name: 'SecureInChat', url: SITE + '/' },
-      { '@type': 'WebSite', '@id': SITE + '/#site', url: SITE + '/', name: 'SecureInChat', publisher: { '@id': SITE + '/#org' }, inLanguage: t.html },
-    ],
-  };
-  const archCards = ARCH.map((s, i) => `<article class="group relative glass rounded-3xl p-7 hover:-translate-y-2 transition duration-500"><div class="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition bg-gradient-to-br from-indigo/10 via-transparent to-emerald/10"></div><div class="relative"><div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-white/[.05] hairline mb-6">${icon(s.icon, 'w-6 h-6 text-cyan')}</div><div class="font-mono text-[10px] text-slate-500 mb-2">0${i + 1} / 03</div><h3 class="font-display text-xl font-semibold">${s.title}</h3><p class="mt-3 text-sm leading-6 text-slate-400">${s.copy}</p><div class="mt-6 text-xs font-mono text-emerald">${s.status}</div></div></article>`).join('\n        ');
-  const secCards = SEC.map((s) => `<article class="glass rounded-2xl p-6 hover:border-emerald/30 transition"><div class="flex items-center justify-between">${icon(s.icon, 'w-5 h-5 text-emerald')}<span class="font-mono text-[9px] text-slate-600 uppercase tracking-widest">${s.tag}</span></div><h3 class="mt-5 font-display text-xl font-semibold">${s.title}</h3><p class="mt-2 text-sm leading-6 text-slate-400">${s.copy}</p></article>`).join('\n          ');
-  const secHero = `    <section class="max-w-7xl mx-auto px-5 sm:px-8 pt-36 lg:pt-44 pb-24 lg:pb-32">
-      <div class="grid lg:grid-cols-[1.08fr_.92fr] gap-14 items-center">
-        <div>
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-[11px] font-mono uppercase tracking-[.16em] text-cyan mb-7">
-            ${icon('radio-tower', 'w-3.5 h-3.5')}
-            <span>Blind Relay Protocol / E2EE Native</span>
-          </div>
-          <h1 class="font-display font-bold text-5xl sm:text-6xl xl:text-7xl leading-[1.02] tracking-[-.045em] max-w-4xl">
-            <span>${t.hero1}</span><br>
-            <span class="bg-clip-text text-transparent bg-gradient-to-r from-white via-cyan-200 to-emerald-300">${t.hero2}</span>
-          </h1>
-          <p class="mt-7 max-w-2xl text-lg leading-8 text-slate-400">${t.heroCopy}</p>
-          <div class="mt-7 flex flex-wrap gap-2.5">
-            <span class="px-3 py-1.5 rounded-lg bg-white/[.035] hairline font-mono text-xs text-slate-300">End-to-End Encrypted</span><span class="px-3 py-1.5 rounded-lg bg-white/[.035] hairline font-mono text-xs text-slate-300">Blind Relay Engine</span><span class="px-3 py-1.5 rounded-lg bg-white/[.035] hairline font-mono text-xs text-slate-300">Zero Metadata</span>
-          </div>
-          <div class="mt-10 flex flex-col sm:flex-row gap-3">
-            <a href="#diagnostics" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-white text-slate-950 font-semibold hover:scale-[1.02] transition shadow-xl">${icon('activity', 'w-5 h-5')}<span>${t.runDiag}</span></a>
-            <a href="#architecture" class="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl glass font-semibold text-slate-200 hover:bg-white/[.08] transition">${icon('circle-play', 'w-5 h-5 text-cyan')}<span>${t.explore}</span></a>
-          </div>
-          <div class="mt-9 flex items-center gap-5 text-xs text-slate-500 font-mono">
-            <span class="flex items-center gap-1.5">${icon('database-zap', 'w-4 h-4 text-emerald')}No message storage</span>
-            <span class="flex items-center gap-1.5">${icon('user-round-x', 'w-4 h-4 text-cyan')}No identity binding</span>
-          </div>
-        </div>
-
-        <div class="relative float" aria-hidden="true">
-          <div class="absolute -inset-8 bg-gradient-to-br from-indigo/20 via-cyan/5 to-emerald/20 blur-3xl rounded-full"></div>
-          <div class="relative glass rounded-3xl overflow-hidden shadow-2xl">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-white/10 bg-black/20">
-              <div class="flex gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-400/70"></span><span class="w-2.5 h-2.5 rounded-full bg-amber-300/70"></span><span class="w-2.5 h-2.5 rounded-full bg-emerald/80"></span></div>
-              <div class="font-mono text-[10px] text-slate-500">secure-client://encryption-pipeline</div>
-              ${icon('lock-keyhole', 'w-4 h-4 text-emerald')}
-            </div>
-            <div class="p-6 sm:p-8 font-mono text-xs sm:text-sm leading-7 min-h-[420px] bg-gradient-to-b from-slate-950/50 to-transparent">
-              <div class="terminal-line text-slate-500">$ secureinchat --compose</div>
-              <div class="terminal-line"><span class="text-cyan">plaintext</span> <span class="text-slate-600">→</span> <span class="text-slate-300">“Meet at 21:00.”</span></div>
-              <div class="terminal-line"><span class="text-indigo-300">key_agreement</span> <span class="text-slate-600">→</span> <span class="text-slate-300">Curve25519 / HKDF</span></div>
-              <div class="terminal-line"><span class="text-emerald">client_encrypt</span> <span class="text-slate-600">→</span> <span class="text-slate-300">AES-256-GCM</span></div>
-              <div class="terminal-line mt-3 p-4 rounded-xl bg-emerald/5 border border-emerald/20 break-all text-emerald-200/80">7f2a9c01:e8d4...blind-cipher-payload...31f9</div>
-              <div class="mt-7 grid grid-cols-3 gap-3 text-center">
-                <div class="p-3 rounded-xl bg-white/[.025] hairline"><div class="text-slate-500 text-[9px] uppercase tracking-widest">Server sees</div><div class="mt-1 text-emerald">Ciphertext</div></div>
-                <div class="p-3 rounded-xl bg-white/[.025] hairline"><div class="text-slate-500 text-[9px] uppercase tracking-widest">Metadata</div><div class="mt-1 text-emerald">Minimized</div></div>
-                <div class="p-3 rounded-xl bg-white/[.025] hairline"><div class="text-slate-500 text-[9px] uppercase tracking-widest">Retention</div><div class="mt-1 text-emerald">None</div></div>
-              </div>
-              <div class="mt-7 flex items-center gap-2 text-slate-500"><span class="w-2 h-2 rounded-full bg-emerald animate-pulse"></span>WSS relay channel ready</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>`;
-  const secDiag = `    <section id="diagnostics" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
-      <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 shadow-emerald">
-        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
-          <div><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-3">Live Node Diagnostics</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">${t.diagTitle}</h2><p class="mt-3 text-slate-400 max-w-2xl">${t.diagCopy}</p></div>
-          <button id="node-btn" type="button" data-testing="${esc(t.testing)}" data-retest="${esc(t.retest)}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald text-slate-950 font-semibold disabled:opacity-60">${icon('activity', 'w-4 h-4')}<span id="node-btn-label">${t.retest}</span></button>
-        </div>
-        <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div class="p-5 rounded-2xl bg-black/20 hairline"><div class="text-xs text-slate-500 uppercase tracking-widest">Relay Endpoint</div><div class="mt-3 font-mono text-sm text-cyan break-all">wss://ws.secureinchat.com</div><div id="node-conn" class="mt-4 text-xs text-slate-500">Awaiting test</div></div>
-          <div class="p-5 rounded-2xl bg-black/20 hairline"><div class="text-xs text-slate-500 uppercase tracking-widest">Handshake Latency</div><div class="mt-3 font-display text-3xl"><span id="node-latency">—</span><span class="text-sm text-slate-500 ml-1">ms</span></div><div class="mt-4 text-xs text-slate-500">Browser-to-relay WSS open time</div></div>
-          <div class="p-5 rounded-2xl bg-black/20 hairline"><div class="text-xs text-slate-500 uppercase tracking-widest">TLS Transport</div><div class="mt-3 flex items-center gap-2 text-lg">${icon('badge-check', 'w-5 h-5 text-emerald')}<span>WSS / TLS</span></div><div class="mt-4 text-xs text-slate-500">Certificate validated by browser</div></div>
-          <div class="p-5 rounded-2xl bg-black/20 hairline"><div class="text-xs text-slate-500 uppercase tracking-widest">Relay Challenge</div><div id="node-chal" class="mt-3 font-display text-xl text-slate-300">Pending</div><div id="node-chal-detail" class="mt-4 text-xs text-slate-500 truncate">Waiting for auth_challenge</div></div>
-        </div>
-        <div id="node-log" role="status" aria-live="polite" class="mt-5 p-4 rounded-xl font-mono text-xs border bg-white/[.02] border-white/10 text-slate-500">Ready to test the blind relay endpoint.</div>
-      </div>
-    </section>`;
-  const secArch = `    <section id="architecture" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
-      <div class="text-center max-w-3xl mx-auto mb-12"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-3">Zero-Knowledge Architecture</div><h2 class="font-display text-4xl sm:text-5xl font-semibold">${t.archTitle}</h2><p class="mt-4 text-slate-400">${t.archCopy}</p></div>
-      <div class="relative grid lg:grid-cols-3 gap-5 items-stretch">
-        <svg class="hidden lg:block absolute inset-x-[16%] top-1/2 -translate-y-1/2 w-[68%] h-16 pointer-events-none" viewBox="0 0 1000 80" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40H1000" stroke="rgba(6,182,212,.4)" stroke-width="2" class="flow-line" fill="none"/></svg>
-        ${archCards}
-      </div>
-    </section>`;
-  const secSec = `    <section id="security" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
-      <div class="grid lg:grid-cols-[.8fr_1.2fr] gap-10 items-start">
-        <div class="lg:sticky lg:top-28"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-indigo-300 mb-3">Security Matrix</div><h2 class="font-display text-4xl font-semibold">${t.securityTitle}</h2><p class="mt-4 text-slate-400 leading-7">${t.securityCopy}</p></div>
-        <div class="grid sm:grid-cols-2 gap-4">
-          ${secCards}
-        </div>
-      </div>
-      <div class="mt-8 glass rounded-2xl p-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-xs text-slate-400 font-mono"><span>Privacy-by-Design</span><span>Data Minimization</span><span>No-Log Architecture</span><span>Open Cryptographic Primitives</span><span>Client-Side Key Control</span></div>
-      <p class="mt-3 text-center text-[11px] text-slate-600">Compatibility statements describe design alignment, not legal certification or regulatory approval.</p>
-    </section>`;
-  const secTools = `    <section id="tools" class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
-      <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-        <div class="max-w-2xl"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-cyan mb-3">Tools</div><h2 class="font-display text-3xl sm:text-4xl font-semibold">${t.toolsTitle}</h2><p class="mt-3 text-slate-400">${t.toolsCopy}</p></div>
-        <a href="/tools/ip-leak-test/" class="group block lg:w-96 p-5 rounded-2xl bg-black/20 hairline hover:border-cyan/40 transition">
-          <div class="flex items-center gap-3">${icon('globe', 'w-5 h-5 text-cyan')}<span class="font-display text-xl font-semibold">${t.toolName}</span></div>
-          <p class="mt-3 text-sm leading-6 text-slate-400">${t.toolDesc}</p>
-          <div class="mt-4 text-sm font-semibold text-cyan group-hover:text-white transition">${t.toolCta} →</div>
-        </a>
-      </div>
-      <ul class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400" aria-label="All tools">
-        <li><a class="hover:text-white" href="/tools/webrtc-leak-test/">WebRTC leak test</a></li>
-        <li><a class="hover:text-white" href="/tools/ipv6-leak-test/">IPv6 leak test</a></li>
-        <li><a class="hover:text-white" href="/tools/password-checker/">Password checker</a></li>
-        <li><a class="hover:text-white" href="/tools/photo-metadata-remover/">Photo metadata remover</a></li>
-        <li><a class="hover:text-white" href="/tools/text-redactor/">Text redactor</a></li>
-        <li><a class="hover:text-white" href="/tools/browser-fingerprint-test/">Fingerprint test</a></li>
-        <li><a class="hover:text-white" href="/tools/site-health-check/">Website health check</a></li>
-        <li><a class="hover:text-white" href="/tools/">All tools</a></li>
-      </ul>
-    </section>`;
-  const secCta = `    <section class="max-w-7xl mx-auto px-5 sm:px-8 pb-28 fade-up">
-      <div class="relative overflow-hidden rounded-[2rem] glass p-8 sm:p-12 lg:p-16 text-center"><div class="absolute inset-0 bg-gradient-to-r from-indigo/10 via-cyan/5 to-emerald/10"></div><div class="relative"><div class="font-mono text-[11px] uppercase tracking-[.2em] text-emerald mb-4">Private by architecture</div><h2 class="font-display text-4xl sm:text-5xl font-semibold max-w-3xl mx-auto">${t.ctaTitle}</h2><p class="mt-5 max-w-2xl mx-auto text-slate-400">${t.ctaCopy}</p><p class="mt-3 max-w-2xl mx-auto text-sm text-slate-500">${t.ctaNote}</p><div class="mt-9 flex flex-wrap justify-center gap-3"><a href="#diagnostics" class="px-5 py-3 rounded-xl bg-white text-slate-950 font-semibold inline-flex items-center gap-2">${icon('activity', 'w-4 h-4')}${t.runDiag}</a><a href="/tools/ip-leak-test/" class="px-5 py-3 rounded-xl glass font-semibold inline-flex items-center gap-2">${icon('globe', 'w-4 h-4 text-cyan')}${t.ctaTools}</a></div></div></div>
-    </section>
-`;
-  let mainBody = [secHero, secDiag, secArch, secSec, secTools, secCta].join('\n\n');
-  if (t.code === 'en') mainBody = enMain({ secHero, secDiag, secArch, secSec, secTools, secCta });
+const NAV = [['/protect/', 'Protect', 'protect'], ['/tools/', 'Tools', 'tools'], ['/blog/', 'Guides', 'blog'], ['/messaging/', 'Messaging', 'messaging'], ['/about/', 'About', 'about']];
+function header(current) {
+  return `<header class="top">
+    <div class="wrap top__in">
+      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark">${icon('shield-check')}</span>SecureInChat</a>
+      <nav class="nav" aria-label="Main">
+        ${NAV.map(([h, t, k]) => `<a href="${h}"${current === k ? ' aria-current="page"' : ''}>${t}</a>`).join('\n        ')}
+      </nav>
+    </div>
+  </header>`;
+}
+function footer() {
+  return `<footer class="foot">
+    <div class="wrap foot__in">
+      <div>© 2026 SecureInChat. Privacy, one layer at a time.</div>
+      <nav aria-label="Footer">
+        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/guides/">AI build guides</a><a href="/contact/">Contact</a><a href="${REPO}" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </footer>`;
+}
+function page({ lang = 'en', title, desc, canonical, jsonld, current, main }) {
   return `<!DOCTYPE html>
-<html lang="${t.html}">
+<html lang="${lang}">
 <head>
-  ${head({ title: t.title, desc: t.desc, canonical: t.path, alternates, ogLocale: t.html.replace('-', '_'), jsonld })}
+  ${head({ title, desc, canonical, jsonld, lang })}
 </head>
-<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
-  <a href="#top" class="skip">${t.skip}</a>
-  ${backdrop}
-  ${header(t, { home: true })}
-
-  <main id="top" class="relative z-10">
-${mainBody}
+<body>
+  <a href="#top" class="skip">Skip to content</a>
+  ${header(current)}
+  <main id="top">
+${main}
   </main>
-
-  ${footer(t)}
+  ${footer()}
 </body>
 </html>
 `;
+}
+const tagHtml = (k, t) => `<span class="tag tag--${k}">${t}</span>`;
+
+// ---------------------------------------------------------------------------------------------
+function home() {
+  const jsonld = { '@context': 'https://schema.org', '@graph': [
+    { '@type': 'Organization', '@id': SITE + '/#org', name: 'SecureInChat', url: SITE + '/' },
+    { '@type': 'WebSite', '@id': SITE + '/#site', url: SITE + '/', name: 'SecureInChat', publisher: { '@id': SITE + '/#org' }, inLanguage: 'en' },
+  ] };
+  const hero = `    <section class="wrap hero">
+      <div>
+        <h1>Protect your privacy, one layer at a time.</h1>
+        <p class="hero__sub">Practical protection for your devices, accounts, conversations and AI use, with free tools that run on your own device and honest notes on what we have and have not tested.</p>
+        <div class="hero__cta"><a class="btn btn--p" href="/start/">Find where to start</a><a class="btn btn--s" href="/tools/">Use a free tool</a></div>
+        <p class="hero__trust">No cookies · No accounts · Tools run in your browser · Untested steps are labelled</p>
+      </div>
+      <a class="quick" href="/tools/photo-metadata-remover/">
+        ${tagHtml('tested', 'Runs on your device')}
+        <h2>Clean a photo before you share it</h2>
+        <p>Remove the location, device and time hidden in a photo. The photo never leaves your browser.</p>
+        <div class="quick__drop">Open the photo cleaner →</div>
+      </a>
+    </section>`;
+  const sit = `    <section class="wrap sec" id="start">
+      <p class="eyebrow">Start from your situation</p>
+      <h2>What worries you most right now?</h2>
+      <div class="grid grid--4">
+        ${SITUATIONS.map((S) => `<a class="card card--sit" href="/start/${S.slug}/"><h3>${esc(S.title)}</h3><p>${esc(S.short)}</p></a>`).join('\n        ')}
+      </div>
+    </section>`;
+  const layers = `    <section class="wrap sec" id="layers">
+      <p class="eyebrow">Six layers of protection</p>
+      <h2>From the hardware in your hands to the software on it.</h2>
+      <p class="sec__lead">One weak layer undoes the others. Each layer page lists what works today and what is still being built or tested.</p>
+      <div class="grid grid--3">
+        ${LAYERS.map((L, i) => `<a class="card layer layer--${i + 1}" href="/protect/${L.slug}/"><div class="layer__num">${String(i + 1).padStart(2, '0')}</div><h3>${esc(L.name)}</h3><p>${esc(L.tagline)}</p><div class="tags">${layerTags(L)}</div></a>`).join('\n        ')}
+      </div>
+    </section>`;
+  const tools = `    <section class="wrap sec" id="tools">
+      <p class="eyebrow">Free tools</p>
+      <h2>Check something in the next two minutes.</h2>
+      <div class="grid grid--3">
+        ${TOOLS_HOME.map((t) => `<a class="card" href="${t.href}"><h3>${t.name}</h3><p>${t.copy}</p><div class="tags">${tagHtml(t.k[0], t.k[1])}</div></a>`).join('\n        ')}
+      </div>
+      <p class="sec__lead"><a href="/tools/">All eight tools</a></p>
+    </section>`;
+  const featured = ['encrypted-messaging-when-networks-fail', 'bank-statement-before-ai-upload', 'what-data-brokers-know-about-you'].map((s) => POSTS.find((p) => p.slug === s));
+  const ftag = { 'encrypted-messaging-when-networks-fail': tagHtml('doc', 'Documented') + tagHtml('untested', 'Field test pending'), 'bank-statement-before-ai-upload': tagHtml('tested', 'We ran the test'), 'what-data-brokers-know-about-you': tagHtml('doc', 'Guide') };
+  const guides = `    <section class="wrap sec" id="guides">
+      <p class="eyebrow">Guides</p>
+      <h2>The risk, then exactly what to do about it.</h2>
+      <div class="grid grid--3">
+        ${featured.map((p) => `<a class="card" href="/blog/${p.slug}/"><h3>${esc(p.title)}</h3><p>Updated ${p.date}</p><div class="tags">${ftag[p.slug]}</div></a>`).join('\n        ')}
+      </div>
+      <p class="sec__lead"><a href="/blog/">All guides</a></p>
+    </section>`;
+  const trust = `    <section class="wrap sec" id="data">
+      <div class="trust">
+        <div><p class="eyebrow">How we handle your data</p><h2>Don't just trust us. Check us.</h2><p>Every tool lists what stays on your device and what leaves it. The code is public, and you can watch your browser's network panel while you use a tool. <a href="/principles/">Tool-by-tool details</a>.</p></div>
+        <table><thead><tr><th scope="col">Tool</th><th scope="col">Stays on your device</th><th scope="col">Sent to others</th></tr></thead><tbody>
+          ${FLOW.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('\n          ')}
+        </tbody></table>
+      </div>
+    </section>`;
+  const msg = `    <section class="wrap sec" id="messaging">
+      <div class="band">
+        <div><p class="eyebrow">Communication layer</p><h2>SecureInChat messenger: the server forwards, it never reads.</h2><p>Keys stay on your devices and a blind relay only forwards ciphertext. The apps are in development; you can test the live relay from your browser today.</p></div>
+        <a class="btn btn--s" href="/messaging/">See how it works</a>
+      </div>
+    </section>`;
+  const mission = `    <section class="wrap sec">
+      <p class="eyebrow">Our mission</p>
+      <h2>Privacy is a right, not a premium feature.</h2>
+      <p class="sec__lead">${esc(MISSION_SHORT)} <a href="/mission/">Read our mission and what we will never do</a>.</p>
+    </section>`;
+  return page({ title: HOME_TITLE, desc: HOME_DESC, canonical: '/', jsonld, main: [hero, sit, layers, tools, guides, trust, msg, mission].join('\n\n') });
+}
+
+function messaging() {
+  const body = `    <section class="wrap doc doc--top">
+      <p class="meta"><a href="/protect/communication/">Communication layer</a></p>
+      <h1>SecureInChat messenger</h1>
+      <p class="lead">An end-to-end encrypted messenger built on a blind relay: keys stay on your devices and the relay only forwards ciphertext it cannot read.</p>
+      <p>${tagHtml('lim', 'Apps in development')}${tagHtml('untested', 'No third-party audit yet')}</p>
+      <p>The apps are not released yet. What you can check today is the production relay itself, below, from your own browser. We have not had an independent security audit and do not claim certifications.</p>
+    </section>
+    <section class="wrap wide" id="diagnostics">
+      <div class="diag">
+        <div class="diag__head">
+          <div><p class="eyebrow">Live relay test</p><h2>Check the relay from your browser.</h2><p class="sec__lead">Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay's challenge. No message content is involved.</p></div>
+          <div>
+            <p class="status" id="net-status" data-state="check" role="status"><span class="status__dot" aria-hidden="true"></span><span id="net-label">Network: Checking</span></p>
+            <button id="node-btn" type="button" class="btn btn--p" data-testing="Testing…" data-retest="Run the relay test"><span id="node-btn-label">Run the relay test</span></button>
+          </div>
+        </div>
+        <div class="diag__grid">
+          <div class="diag__cell"><div class="diag__label">Relay endpoint</div><div class="diag__val diag__val--sm mono">wss://ws.secureinchat.com</div><div id="node-conn" class="diag__note">Awaiting test</div></div>
+          <div class="diag__cell"><div class="diag__label">Handshake time</div><div class="diag__val"><span id="node-latency">—</span> <span class="diag__unit">ms</span></div><div class="diag__note">Browser-to-relay open time</div></div>
+          <div class="diag__cell"><div class="diag__label">Transport</div><div class="diag__val">WSS / TLS</div><div class="diag__note">Certificate checked by your browser</div></div>
+          <div class="diag__cell"><div class="diag__label">Relay challenge</div><div id="node-chal" class="diag__val">Pending</div><div id="node-chal-detail" class="diag__note">Waiting for auth_challenge</div></div>
+        </div>
+        <div id="node-log" class="diag__log" role="status" aria-live="polite">Ready to test the blind relay endpoint.</div>
+      </div>
+    </section>
+    <section class="wrap sec" id="architecture">
+      <p class="eyebrow">Architecture</p>
+      <h2>The server forwards. It never understands.</h2>
+      <div class="grid grid--3">
+        ${ARCH.map((a, i) => `<article class="card"><div class="layer__num">0${i + 1} / 03</div><h3>${icon(a.icon)} ${a.title}</h3><p>${a.copy}</p><div class="tags">${tagHtml('doc', a.status)}</div></article>`).join('\n        ')}
+      </div>
+    </section>
+    <section class="wrap sec" id="security">
+      <p class="eyebrow">Cryptography</p>
+      <h2>Established primitives, minimal trust surface.</h2>
+      <div class="grid grid--4">
+        ${SEC.map((s) => `<article class="card"><p class="eyebrow eyebrow--sm">${s.tag}</p><h3>${s.title}</h3><p>${s.copy}</p></article>`).join('\n        ')}
+      </div>
+      <p class="sec__lead">These describe the design. They are not a legal certification or an independent audit. What the relay can and cannot see is explained in <a href="/blog/what-a-blind-relay-can-and-cannot-know/">what a blind relay can and cannot know</a>.</p>
+    </section>`;
+  return page({ title: 'SecureInChat messenger: zero-knowledge blind relay | SecureInChat', desc: 'How the SecureInChat messenger works: end-to-end encryption, a blind relay that cannot read messages, current status and a live relay test you can run in your browser.', canonical: '/messaging/', current: 'messaging', main: body });
+}
+
+const LOCAL = {
+  zh: { lang: 'zh-CN', title: 'SecureInChat：零知识盲中继加密通信', h1: '沟通不留痕迹。', notice: '本页尚未更新，只介绍我们的加密聊天软件。完整的个人隐私防护内容（六层防护、免费工具和指南）目前只有英文版。',
+    copy: '零知识盲中继通信协议：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。客户端仍在开发中。', en: '前往英文网站', msg: '查看加密聊天的工作原理和在线中继测试（英文）' },
+  ja: { lang: 'ja', title: 'SecureInChat：ゼロ知識ブラインドリレー通信', h1: '痕跡を残さない通信。', notice: 'このページはまだ更新されておらず、暗号化メッセンジャーのみを紹介しています。個人のプライバシー保護に関する全コンテンツ（6 層の保護、無料ツール、ガイド）は現在英語版のみです。',
+    copy: '暗号鍵は端末内に保持され、リレーは解読不能な暗号文だけを転送します。クライアントは開発中です。', en: '英語版サイトへ', msg: 'メッセンジャーの仕組みとリレー診断（英語）' },
+};
+function localPage(code) {
+  const t = LOCAL[code];
+  const main = `    <div class="wrap doc">
+      <p class="notice">${t.notice}</p>
+      <h1>${t.h1}</h1>
+      <p class="lead">${t.copy}</p>
+      <p><a class="btn btn--p" href="/" hreflang="en" lang="en">${t.en}</a></p>
+      <p><a href="/messaging/" hreflang="en">${t.msg}</a></p>
+    </div>`;
+  return page({ lang: t.lang, title: t.title, desc: t.copy, canonical: `/${code}/`, main });
 }
 
 function docPage({ slug, title, desc, body, current = null, article = null }) {
-  const t = LANGS.en;
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  ${head({ title: `${title} | SecureInChat`, desc, canonical: `/${slug}/`, jsonld: article })}
-</head>
-<body class="noise min-h-screen overflow-x-hidden bg-obsidian text-slate-100 font-sans antialiased selection:bg-emerald/30">
-  <a href="#top" class="skip">${t.skip}</a>
-  ${backdrop}
-  ${header(t, { home: false, current })}
-  <main id="top" class="relative z-10 doc max-w-3xl mx-auto px-5 sm:px-8 pt-36 pb-24">
-${body}
-  </main>
-  ${footer(t)}
-</body>
-</html>
-`;
+  return page({ title: `${title} | SecureInChat`, desc, canonical: `/${slug}/`, jsonld: article, current, main: `    <div class="wrap doc">\n${body}\n    </div>` });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -441,7 +277,7 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <p>The main pages use Cloudflare Web Analytics, which measures page views and performance without cookies and without tracking you across sites. The tools pages under /tools/ load no analytics.</p>
 
     <h2>Relay diagnostics</h2>
-    <p>The home page opens a WebSocket connection from your browser to our relay at ws.secureinchat.com to measure latency and verify the relay's challenge. No message content is involved. The relay and Cloudflare see the connection the way any server sees a visitor, including your IP address.</p>
+    <p>The <a href="/messaging/">messaging page</a> opens a WebSocket connection from your browser to our relay at ws.secureinchat.com when it loads to measure latency and verify the relay's challenge. No message content is involved. The relay and Cloudflare see the connection the way any server sees a visitor, including your IP address.</p>
 
     <h2>The IP leak test</h2>
     <p>The test runs in your browser. When you press the button, your browser contacts these services, and each of them necessarily sees your IP address:</p>
@@ -469,7 +305,7 @@ const ABOUT = `    <h1>About SecureInChat</h1>
 
     <h2>What you can use today</h2>
     <ul>
-      <li><strong>Relay diagnostics</strong> on the <a href="/">home page</a>: a real WebSocket test against the production relay, with measured latency.</li>
+      <li><strong>Relay diagnostics</strong> on the <a href="/messaging/">messaging page</a>: a real WebSocket test against the production relay, with measured latency.</li>
       <li><strong>Privacy tools</strong> in <a href="/tools/">/tools/</a>, starting with the <a href="/tools/ip-leak-test/">IP leak test</a>. They run in your browser and store nothing.</li>
       <li>The <a href="/blog/">blog</a>, with notes on end-to-end encryption and zero-knowledge design.</li>
     </ul>
@@ -509,6 +345,14 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
       <li>No cookies, no accounts and no advertising or analytics scripts on the tools pages.</li>
       <li>Test results are not stored on our side. The DNS test keeps resolver addresses in memory for ten minutes, plus a daily count of tests with no addresses in it.</li>
       <li>Every outside service a tool contacts is listed below. A page security policy blocks any other.</li>
+    </ul>
+    <h2 id="labels">Status labels</h2>
+    <ul>
+      <li><span class="tag tag--tested">Tested</span> We ran it ourselves and the page says when and how. For tools: it runs on your device and is covered by our automated tests.</li>
+      <li><span class="tag tag--doc">Documented</span> Taken from the project's or vendor's own documentation, linked on the page. We have not tested it ourselves.</li>
+      <li><span class="tag tag--untested">Untested</span> Planned, or not checked yet. Do not rely on it.</li>
+      <li><span class="tag tag--lim">Limitations</span> Works, with known limits or outside services involved. The limits are listed on the page.</li>
+      <li><span class="tag tag--aff">Affiliate</span> We may earn a commission. It never changes a verdict.</li>
     </ul>
     <h2>Recommendations, sponsors and products</h2>
     <ul>
@@ -575,15 +419,19 @@ function write(rel, content) {
   fs.writeFileSync(f, content);
 }
 
-for (const t of Object.values(LANGS)) write(t.code === 'en' ? 'index.html' : `${t.code}/index.html`, home(t));
-write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', desc: 'What secureinchat.com and its tools do with your data: no cookies, no accounts, no stored test results.', body: PRIVACY }));
-write('about/index.html', docPage({ slug: 'about', title: 'About', desc: 'About SecureInChat: an end-to-end encrypted blind-relay messenger in development, plus free privacy tools.', body: ABOUT }));
-write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'Sponsorship and partnerships', desc: 'How VPN, proxy and privacy-tool vendors can sponsor SecureInChat tools, and the rules that keep test results independent.', body: SPONSOR }));
-write('principles/index.html', docPage({ slug: 'principles', title: 'Privacy principles for the tools', desc: 'What each SecureInChat tool processes on your device, what it sends to outside services, and the limits we cannot remove.', body: PRINCIPLES }));
-write('mission/index.html', docPage({ slug: 'mission', title: 'Our mission', desc: 'What SecureInChat believes, what we are building toward, who we build for and what we will never do.', body: MISSION, current: 'mission' }));
+write('index.html', home());
+for (const c of Object.keys(LOCAL)) write(`${c}/index.html`, localPage(c));
+write('messaging/index.html', messaging());
+write('start/index.html', docPage({ slug: 'start', title: 'Start from your situation', desc: 'Pick what worries you most and get the first privacy steps you can take today.', body: startIndexBody(esc), current: 'protect' }));
+for (const S of SITUATIONS) write(`start/${S.slug}/index.html`, docPage({ slug: `start/${S.slug}`, title: S.title, desc: S.intro.slice(0, 155), body: situationBody(S, esc), current: 'protect' }));
+write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', desc: 'What secureinchat.com and its tools do with your data: no cookies, no accounts, no stored test results.', body: PRIVACY, current: 'about' }));
+write('about/index.html', docPage({ slug: 'about', title: 'About', desc: 'About SecureInChat: an end-to-end encrypted blind-relay messenger in development, plus free privacy tools.', body: ABOUT, current: 'about' }));
+write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'Sponsorship and partnerships', desc: 'How VPN, proxy and privacy-tool vendors can sponsor SecureInChat tools, and the rules that keep test results independent.', body: SPONSOR, current: 'about' }));
+write('principles/index.html', docPage({ slug: 'principles', title: 'Privacy principles for the tools', desc: 'What each SecureInChat tool processes on your device, what it sends to outside services, and the limits we cannot remove.', body: PRINCIPLES, current: 'about' }));
+write('mission/index.html', docPage({ slug: 'mission', title: 'Our mission', desc: 'What SecureInChat believes, what we are building toward, who we build for and what we will never do.', body: MISSION, current: 'about' }));
 write('protect/index.html', docPage({ slug: 'protect', title: 'Protect your privacy, layer by layer', desc: 'Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy.', body: protectIndexBody(esc), current: 'protect' }));
-for (const L of LAYERS) write(`protect/${L.slug}/index.html`, docPage({ slug: `protect/${L.slug}`, title: `${L.name} privacy`, desc: `${L.tagline} ${L.threat}`.slice(0, 155), body: layerBody(L, esc), current: 'protect' }));
-write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT }));
+LAYERS.forEach((L, i) => write(`protect/${L.slug}/index.html`, docPage({ slug: `protect/${L.slug}`, title: `${L.name} privacy`, desc: `${L.tagline} ${L.threat}`.slice(0, 155), body: layerBody(L, esc, i + 1), current: 'protect' })));
+write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT, current: 'about' }));
 
 // guides (new section; checkout is a third-party link set by the owner)
 const buyBtn = (g) => g.buyUrl
@@ -650,13 +498,14 @@ ${POSTS.map((p) => `    <h2><a href="/blog/${p.slug}/">${p.title}</a></h2>\n    
 `,
 }));
 
-write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366F1"/><stop offset=".5" stop-color="#06B6D4"/><stop offset="1" stop-color="#10B981"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#g)"/><g transform="translate(6 6) scale(.833)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g></svg>\n`);
+write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#23483E"/><g transform="translate(6 6) scale(.833)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g></svg>
+`);
 
 // fonts + script
 const fonts = [
-  ['inter', 'inter', [400, 500, 600, 700, 800]],
-  ['space-grotesk', 'space-grotesk', [500, 600, 700]],
-  ['jetbrains-mono', 'jetbrains-mono', [400, 500, 600]],
+  ['inter', 'inter', [400, 600, 700]],
+  ['source-serif-4', 'source-serif-4', [600, 700]],
+  ['jetbrains-mono', 'jetbrains-mono', [400]],
 ];
 for (const [pkg, name, weights] of fonts) {
   for (const w of weights) {
@@ -665,15 +514,15 @@ for (const [pkg, name, weights] of fonts) {
   }
 }
 write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
+write('assets/site.css', fs.readFileSync(path.join(ROOT, 'src/site.css')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/guides/', 0], ['/guides/breakout-game-with-ai/', 0], ['/guides/breakout-game-with-ai/play/', 0], ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/guides/', 0], ['/guides/breakout-game-with-ai/', 0], ['/guides/breakout-game-with-ai/play/', 0], ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
 ];
-const homeAlts = Object.values(LANGS).map((l) => `    <xhtml:link rel="alternate" hreflang="${l.html}" href="${SITE}${l.path}" />`).join('\n') + `\n    <xhtml:link rel="alternate" hreflang="x-default" href="${SITE}/" />`;
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${urls.map(([u]) => `  <url>\n    <loc>${SITE}${u}</loc>\n    <lastmod>${DATE}</lastmod>${['/', '/zh/', '/ja/'].includes(u) ? '\n' + homeAlts : ''}\n  </url>`).join('\n')}
+${urls.map(([u]) => `  <url>\n    <loc>${SITE}${u}</loc>\n    <lastmod>${DATE}</lastmod>\n  </url>`).join('\n')}
 </urlset>
 `);
 write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
@@ -681,7 +530,7 @@ write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 
@@ -711,6 +560,4 @@ ${common}
   Cache-Control: public, max-age=0, must-revalidate
 `);
 
-// compile CSS
-execFileSync('npx', ['tailwindcss', '-c', 'tailwind.config.cjs', '-i', '../src/input.css', '-o', '../public/assets/site.css', '--minify'], { cwd: import.meta.dirname, stdio: 'inherit' });
 console.log('built');
