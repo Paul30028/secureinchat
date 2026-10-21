@@ -3,16 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F5F4EF" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#111816" media="(prefers-color-scheme: dark)" />
-  <title>SecureInChat: Protect Your Privacy, One Layer at a Time</title>
+  <meta name="theme-color" content="#F3F5F4" />
+  <title>SecureInChat: See What You Give Away, Then Switch It Off</title>
   <meta name="description" content="Practical privacy protection for your devices, accounts, conversations and AI use: free tools that run on your own device, guides with honest notes on what was tested, offline messaging and a zero-knowledge messenger." />
   <link rel="canonical" href="https://secureinchat.com/" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/source-serif-4-600.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="SecureInChat: Protect Your Privacy, One Layer at a Time" />
+  <meta property="og:title" content="SecureInChat: See What You Give Away, Then Switch It Off" />
   <meta property="og:description" content="Practical privacy protection for your devices, accounts, conversations and AI use: free tools that run on your own device, guides with honest notes on what was tested, offline messaging and a zero-knowledge messenger." />
   <meta property="og:url" content="https://secureinchat.com/" />
   <meta property="og:locale" content="en_US" />
@@ -26,7 +25,7 @@
   <a href="#top" class="skip">Skip to content</a>
   <header class="top">
     <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></span>SecureInChat</a>
+      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
       <nav class="nav" aria-label="Main">
         <a href="/protect/">Protect</a>
         <a href="/tools/">Tools</a>
@@ -39,70 +38,75 @@
   <main id="top">
     <section class="wrap hero">
       <div>
-        <h1>Protect your privacy, one layer at a time.</h1>
-        <p class="hero__sub">Practical protection for your devices, accounts, conversations and AI use, with free tools that run on your own device and honest notes on what we have and have not tested.</p>
-        <div class="hero__cta"><a class="btn btn--p" href="/start/">Find where to start</a><a class="btn btn--s" href="/tools/">Use a free tool</a></div>
-        <p class="hero__trust">No cookies · No accounts · Tools run in your browser · Untested steps are labelled</p>
+        <h1>See what you give away. Then switch it off.</h1>
+        <p class="hero__sub">Your phone, browser, accounts and AI tools leak more than you think. We show you exactly what, and walk you through closing it, one layer at a time.</p>
+        <div class="hero__cta"><a class="btn btn--p" href="/start/">Find where to start</a><a class="btn btn--s" href="/tools/">Run a free check</a></div>
+        <ul class="hero__promise"><li>No cookies</li><li>No accounts</li><li>Checks run on your device</li><li>Untested steps are labelled</li></ul>
       </div>
-      <a class="quick" href="/tools/photo-metadata-remover/">
-        <span class="tag tag--tested">Runs on your device</span>
-        <h2>Clean a photo before you share it</h2>
-        <p>Remove the location, device and time hidden in a photo. The photo never leaves your browser.</p>
-        <div class="quick__drop">Open the photo cleaner →</div>
-      </a>
+      <aside class="readout" aria-labelledby="readout-h">
+        <div class="readout__head"><h2 id="readout-h">What this page can read about you</h2><p>Any website can read these without asking.</p></div>
+        <dl id="readout">
+          <div class="readout__row"><dt>Time zone</dt><dd id="ro-tz">…</dd></div>
+          <div class="readout__row"><dt>Languages</dt><dd id="ro-lang">…</dd></div>
+          <div class="readout__row"><dt>Screen</dt><dd id="ro-screen">…</dd></div>
+          <div class="readout__row"><dt>Device</dt><dd id="ro-platform">…</dd></div>
+          <div class="readout__row"><dt>Processor cores</dt><dd id="ro-cores">…</dd></div>
+          <div class="readout__row"><dt>Touch screen</dt><dd id="ro-touch">…</dd></div>
+          <div class="readout__row"><dt>Cookies</dt><dd id="ro-cookies">…</dd></div>
+          <div class="readout__row"><dt>Do Not Track</dt><dd id="ro-dnt">…</dd></div>
+        </dl>
+        <p class="readout__nojs">Turn on JavaScript to see the values. With it off, a site can read less, which is one of the protections we explain.</p>
+        <p class="readout__foot">Read inside this tab only. Nothing here was sent to us or anyone else.</p>
+      </aside>
     </section>
 
     <section class="wrap sec" id="start">
-      <p class="eyebrow">Start from your situation</p>
       <h2>What worries you most right now?</h2>
-      <div class="grid grid--4">
-        <a class="card card--sit" href="/start/being-tracked/"><h3>Someone may be tracking me</h3><p>Phone, location and accounts</p></a>
-        <a class="card card--sit" href="/start/account-hacked/"><h3>My account may be hacked</h3><p>Passwords, recovery, keys</p></a>
-        <a class="card card--sit" href="/start/less-tracking/"><h3>I want less tracking every day</h3><p>Settings, browser, data brokers</p></a>
-        <a class="card card--sit" href="/start/network-down/"><h3>The network might go down</h3><p>Offline, encrypted messaging</p></a>
-      </div>
+      <ul class="situations">
+        <li><a href="/start/being-tracked/"><strong>Someone may be tracking me</strong><span>Phone, location and accounts</span></a></li>
+        <li><a href="/start/account-hacked/"><strong>My account may be hacked</strong><span>Passwords, recovery, keys</span></a></li>
+        <li><a href="/start/less-tracking/"><strong>I want less tracking every day</strong><span>Settings, browser, data brokers</span></a></li>
+        <li><a href="/start/network-down/"><strong>The network might go down</strong><span>Offline, encrypted messaging</span></a></li>
+      </ul>
     </section>
 
     <section class="wrap sec" id="layers">
-      <p class="eyebrow">Six layers of protection</p>
-      <h2>From the hardware in your hands to the software on it.</h2>
-      <p class="sec__lead">One weak layer undoes the others. Each layer page lists what works today and what is still being built or tested.</p>
-      <div class="grid grid--3">
-        <a class="card layer layer--1" href="/protect/physical/"><div class="layer__num">01</div><h3>Physical</h3><p>What people and devices near you can see and pick up.</p><div class="tags"><span class="tag tag--untested">Planned</span></div></a>
-        <a class="card layer layer--2" href="/protect/devices/"><div class="layer__num">02</div><h3>Devices and network</h3><p>What your phone, computer and browser give away.</p><div class="tags"><span class="tag tag--tested">5 tools</span><span class="tag tag--doc">1 guide</span></div></a>
-        <a class="card layer layer--3" href="/protect/accounts/"><div class="layer__num">03</div><h3>Accounts and email</h3><p>Who can get into your accounts, and what your inbox reveals.</p><div class="tags"><span class="tag tag--tested">1 tool</span><span class="tag tag--doc">2 guides</span></div></a>
-        <a class="card layer layer--4" href="/protect/communication/"><div class="layer__num">04</div><h3>Communication</h3><p>Messages only the people in the conversation can read.</p><div class="tags"><span class="tag tag--doc">1 guide</span><span class="tag tag--lim">Messenger in development</span></div></a>
-        <a class="card layer layer--5" href="/protect/offline/"><div class="layer__num">05</div><h3>Offline and emergency</h3><p>Staying in touch securely when mobile networks fail.</p><div class="tags"><span class="tag tag--doc">Documented</span><span class="tag tag--untested">Field test pending</span></div></a>
-        <a class="card layer layer--6" href="/protect/ai/"><div class="layer__num">06</div><h3>AI privacy</h3><p>What you hand to AI assistants, and how to hand over less.</p><div class="tags"><span class="tag tag--tested">2 tools</span><span class="tag tag--doc">4 guides</span></div></a>
-      </div>
+      <h2>Six layers, from the things around you to the apps you use.</h2>
+      <p class="sec__lead">One weak layer undoes the others. Each layer page says what works today and what is still being built or tested.</p>
+      <ul class="stack">
+        <li><a class="depth-1" href="/protect/physical/"><div><h3>Physical</h3><p>What people and devices near you can see and pick up.</p></div><div class="tags"><span class="tag tag--untested">Planned</span></div></a></li>
+        <li><a class="depth-2" href="/protect/devices/"><div><h3>Devices and network</h3><p>What your phone, computer and browser give away.</p></div><div class="tags"><span class="tag tag--tested">5 tools</span><span class="tag tag--doc">1 guide</span></div></a></li>
+        <li><a class="depth-3" href="/protect/accounts/"><div><h3>Accounts and email</h3><p>Who can get into your accounts, and what your inbox reveals.</p></div><div class="tags"><span class="tag tag--tested">1 tool</span><span class="tag tag--doc">2 guides</span></div></a></li>
+        <li><a class="depth-4" href="/protect/communication/"><div><h3>Communication</h3><p>Messages only the people in the conversation can read.</p></div><div class="tags"><span class="tag tag--doc">1 guide</span><span class="tag tag--lim">Messenger in development</span></div></a></li>
+        <li><a class="depth-5" href="/protect/offline/"><div><h3>Offline and emergency</h3><p>Staying in touch securely when mobile networks fail.</p></div><div class="tags"><span class="tag tag--doc">Documented</span><span class="tag tag--untested">Field test pending</span></div></a></li>
+        <li><a class="depth-6" href="/protect/ai/"><div><h3>AI privacy</h3><p>What you hand to AI assistants, and how to hand over less.</p></div><div class="tags"><span class="tag tag--tested">2 tools</span><span class="tag tag--doc">4 guides</span></div></a></li>
+      </ul>
     </section>
 
     <section class="wrap sec" id="tools">
-      <p class="eyebrow">Free tools</p>
       <h2>Check something in the next two minutes.</h2>
-      <div class="grid grid--4">
-        <a class="card" href="/tools/link-checker/"><h3>Link checker</h3><p>Remove tracking from a link and see the warning signs of phishing before you click. The link is never opened or sent.</p><div class="tags"><span class="tag tag--tested">Runs on your device</span></div></a>
-        <a class="card" href="/tools/photo-metadata-remover/"><h3>Photo metadata remover</h3><p>See and remove the location, device and dates hidden in a photo.</p><div class="tags"><span class="tag tag--tested">Runs on your device</span></div></a>
-        <a class="card" href="/tools/text-redactor/"><h3>Text redactor</h3><p>Replace emails, numbers and keys with placeholders before you share text or paste it into AI.</p><div class="tags"><span class="tag tag--tested">Runs on your device</span></div></a>
-        <a class="card" href="/tools/ip-leak-test/"><h3>IP leak test</h3><p>Check whether your VPN or proxy leaks your real address through WebRTC, IPv6 or DNS.</p><div class="tags"><span class="tag tag--lim">Contacts lookup services</span></div></a>
-      </div>
-      <p class="sec__lead"><a href="/tools/">All nine tools</a></p>
+      <ul class="rows">
+        <li><a href="/tools/link-checker/"><strong>Link checker</strong><span>Remove tracking from a link and see the warning signs of phishing before you click. The link is never opened or sent.</span><span class="tag tag--tested">Runs on your device</span></a></li>
+        <li><a href="/tools/photo-metadata-remover/"><strong>Photo metadata remover</strong><span>See and remove the location, device and dates hidden in a photo.</span><span class="tag tag--tested">Runs on your device</span></a></li>
+        <li><a href="/tools/text-redactor/"><strong>Text redactor</strong><span>Replace emails, numbers and keys with placeholders before you share text or paste it into AI.</span><span class="tag tag--tested">Runs on your device</span></a></li>
+        <li><a href="/tools/ip-leak-test/"><strong>IP leak test</strong><span>Check whether your VPN or proxy leaks your real address through WebRTC, IPv6 or DNS.</span><span class="tag tag--lim">Contacts lookup services</span></a></li>
+      </ul>
+      <p class="sec__more"><a href="/tools/">All nine tools</a></p>
     </section>
 
     <section class="wrap sec" id="guides">
-      <p class="eyebrow">Guides</p>
-      <h2>The risk, then exactly what to do about it.</h2>
+      <h2>The risk first, then exactly what to do.</h2>
       <div class="grid grid--3">
-        <a class="card" href="/blog/encrypted-messaging-when-networks-fail/"><h3>When mobile networks go down: how to keep messaging securely without a network</h3><p>Updated 2026-10-21</p><div class="tags"><span class="tag tag--doc">Documented</span><span class="tag tag--untested">Field test pending</span></div></a>
-        <a class="card" href="/blog/bank-statement-before-ai-upload/"><h3>Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses</h3><p>Updated 2026-10-20</p><div class="tags"><span class="tag tag--tested">We ran the test</span></div></a>
-        <a class="card" href="/blog/what-data-brokers-know-about-you/"><h3>What data brokers know about you, and how to find out</h3><p>Updated 2026-10-20</p><div class="tags"><span class="tag tag--doc">Guide</span></div></a>
+        <a class="card" href="/blog/encrypted-messaging-when-networks-fail/"><p class="card__kicker">Updated 2026-10-21</p><h3>When mobile networks go down: how to keep messaging securely without a network</h3><div class="tags"><span class="tag tag--doc">Documented</span><span class="tag tag--untested">Field test pending</span></div></a>
+        <a class="card" href="/blog/bank-statement-before-ai-upload/"><p class="card__kicker">Updated 2026-10-20</p><h3>Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses</h3><div class="tags"><span class="tag tag--tested">We ran the test</span></div></a>
+        <a class="card" href="/blog/what-data-brokers-know-about-you/"><p class="card__kicker">Updated 2026-10-20</p><h3>What data brokers know about you, and how to find out</h3><div class="tags"><span class="tag tag--doc">Guide</span></div></a>
       </div>
-      <p class="sec__lead"><a href="/blog/">All guides</a></p>
+      <p class="sec__more"><a href="/blog/">All guides</a></p>
     </section>
 
     <section class="wrap sec" id="data">
       <div class="trust">
-        <div><p class="eyebrow">How we handle your data</p><h2>Don't just trust us. Check us.</h2><p>Every tool lists what stays on your device and what leaves it. You can watch your browser's network panel while you use a tool and compare. <a href="/principles/">Tool-by-tool details</a>.</p></div>
+        <div><h2>Don't just trust us. Check us.</h2><p>Every tool lists what stays on your device and what leaves it. Open your browser's network panel while you use one and compare. <a href="/principles/">Tool-by-tool details</a>.</p></div>
         <table><thead><tr><th scope="col">Tool</th><th scope="col">Stays on your device</th><th scope="col">Sent to others</th></tr></thead><tbody>
           <tr><td>Photo metadata remover</td><td>The photo and its metadata</td><td>Nothing</td></tr>
           <tr><td>Text redactor</td><td>The text you paste</td><td>Nothing</td></tr>
@@ -114,20 +118,19 @@
 
     <section class="wrap sec" id="messaging">
       <div class="band">
-        <div><p class="eyebrow">Communication layer</p><h2>SecureInChat messenger: the server forwards, it never reads.</h2><p>Keys stay on your devices and a blind relay only forwards ciphertext. The apps are in development; you can test the live relay from your browser today.</p></div>
+        <div><h2>SecureInChat messenger: the server forwards, it never reads.</h2><p>Keys stay on your devices and a blind relay only forwards ciphertext. The apps are in development; you can test the live relay from your browser today.</p></div>
         <a class="btn btn--s" href="/messaging/">See how it works</a>
       </div>
     </section>
 
     <section class="wrap sec">
-      <p class="eyebrow">Our mission</p>
       <h2>Privacy is a right, not a premium feature.</h2>
       <p class="sec__lead">Protect your privacy layer by layer, from the device in your hand to the messages you send, with tools that run on your own device and guides where every step was actually tested. <a href="/mission/">Read our mission and what we will never do</a>.</p>
     </section>
   </main>
   <footer class="foot">
     <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. Privacy, one layer at a time.</div>
+      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
       <nav aria-label="Footer">
         <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a>
       </nav>

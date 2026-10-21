@@ -71,7 +71,7 @@ with sync_playwright() as p:
                 check(net == 'Network: Operational', f'{tag} badge operational (got {net})')
                 check(lat.isdigit(), f'{tag} latency numeric ({lat})')
                 check(chal == 'Verified', f'{tag} challenge verified')
-                check(page.evaluate("document.fonts.check('600 20px \"Source Serif 4\"')"), f'{tag} heading font loaded')
+                check(page.evaluate("document.fonts.check('800 20px \"Atkinson Next\"')"), f'{tag} heading font loaded')
                 h1 = page.inner_text('h1').strip().replace('\n', ' ')
                 check(len(h1) > 8, f'{tag} h1 rendered in static HTML: {h1}')
                 if vpname == 'desktop':

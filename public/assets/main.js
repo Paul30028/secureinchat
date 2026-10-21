@@ -19,6 +19,22 @@
       fades.forEach(function (el) { el.classList.add('visible'); });
     }
 
+    // home readout: values any page can read, computed here and never sent
+    var ro = function (id, v) { var el = document.getElementById('ro-' + id); if (el) el.textContent = v; };
+    if (document.getElementById('readout')) {
+      var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+      ro('tz', tz || 'Not available');
+      ro('lang', (navigator.languages && navigator.languages.length ? navigator.languages.slice(0, 3).join(', ') : navigator.language) || 'Not available');
+      ro('screen', screen.width + ' × ' + screen.height + (window.devicePixelRatio ? ' at ' + Math.round(window.devicePixelRatio * 100) / 100 + 'x' : ''));
+      var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+      ro('platform', plat || 'Not available');
+      ro('cores', navigator.hardwareConcurrency ? String(navigator.hardwareConcurrency) : 'Hidden');
+      ro('touch', navigator.maxTouchPoints > 0 ? 'Yes (' + navigator.maxTouchPoints + ' points)' : 'No');
+      ro('cookies', navigator.cookieEnabled ? 'Allowed' : 'Blocked');
+      var dnt = navigator.doNotTrack || window.doNotTrack;
+      ro('dnt', dnt === '1' || dnt === 'yes' ? 'On' : 'Off');
+    }
+
     // language switch: plain navigation to the language's own URL
     var sel = document.getElementById('lang');
     if (sel) sel.addEventListener('change', function () { window.location.href = sel.value; });

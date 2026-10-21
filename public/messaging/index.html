@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F5F4EF" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#111816" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#F3F5F4" />
   <title>SecureInChat messenger: zero-knowledge blind relay | SecureInChat</title>
   <meta name="description" content="How the SecureInChat messenger works: end-to-end encryption, a blind relay that cannot read messages, current status and a live relay test you can run in your browser." />
   <link rel="canonical" href="https://secureinchat.com/messaging/" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/source-serif-4-600.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SecureInChat" />
   <meta property="og:title" content="SecureInChat messenger: zero-knowledge blind relay | SecureInChat" />
@@ -25,7 +24,7 @@
   <a href="#top" class="skip">Skip to content</a>
   <header class="top">
     <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /> <path d="m9 12 2 2 4-4" /> </svg></span>SecureInChat</a>
+      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
       <nav class="nav" aria-label="Main">
         <a href="/protect/">Protect</a>
         <a href="/tools/">Tools</a>
@@ -46,7 +45,7 @@
     <section class="wrap wide" id="diagnostics">
       <div class="diag">
         <div class="diag__head">
-          <div><p class="eyebrow">Live relay test</p><h2>Check the relay from your browser.</h2><p class="sec__lead">Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay's challenge. No message content is involved.</p></div>
+          <div><h2>Check the relay from your browser.</h2><p class="sec__lead">Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay's challenge. No message content is involved.</p></div>
           <div>
             <p class="status" id="net-status" data-state="check" role="status"><span class="status__dot" aria-hidden="true"></span><span id="net-label">Network: Checking</span></p>
             <button id="node-btn" type="button" class="btn btn--p" data-testing="Testing…" data-retest="Run the relay test"><span id="node-btn-label">Run the relay test</span></button>
@@ -62,29 +61,27 @@
       </div>
     </section>
     <section class="wrap sec" id="architecture">
-      <p class="eyebrow">Architecture</p>
       <h2>The server forwards. It never understands.</h2>
       <div class="grid grid--3">
-        <article class="card"><div class="layer__num">01 / 03</div><h3><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="16" r="1" /> <rect x="3" y="10" width="18" height="12" rx="2" /> <path d="M7 10V7a5 5 0 0 1 10 0v3" /> </svg> Sender encrypts locally</h3><p>Message content and session keys are processed on the device before anything is sent.</p><div class="tags"><span class="tag tag--doc">Plaintext never leaves the device</span></div></article>
-        <article class="card"><div class="layer__num">02 / 03</div><h3><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M7 2h13a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-5" /> <path d="M10 10 2.5 2.5C2 2 2 2.5 2 5v3a2 2 0 0 0 2 2h6z" /> <path d="M22 17v-1a2 2 0 0 0-2-2h-1" /> <path d="M4 14a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16.5l1-.5.5.5-8-8H4z" /> <path d="M6 18h.01" /> <path d="m2 2 20 20" /> </svg> Blind relay forwards</h3><p>The relay routes encrypted payloads without the keys needed to decrypt them.</p><div class="tags"><span class="tag tag--doc">Cannot read message content</span></div></article>
-        <article class="card"><div class="layer__num">03 / 03</div><h3><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="16" r="1" /> <rect width="18" height="12" x="3" y="10" rx="2" /> <path d="M7 10V7a5 5 0 0 1 9.33-2.5" /> </svg> Recipient decrypts locally</h3><p>Only the intended recipient device decrypts and checks the message.</p><div class="tags"><span class="tag tag--doc">Decrypted at the edge</span></div></article>
+        <article class="card"><p class="card__kicker">Step 1 of 3</p><h3><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="16" r="1" /> <rect x="3" y="10" width="18" height="12" rx="2" /> <path d="M7 10V7a5 5 0 0 1 10 0v3" /> </svg> Sender encrypts locally</h3><p>Message content and session keys are processed on the device before anything is sent.</p><div class="tags"><span class="tag tag--doc">Plaintext never leaves the device</span></div></article>
+        <article class="card"><p class="card__kicker">Step 2 of 3</p><h3><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M7 2h13a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-5" /> <path d="M10 10 2.5 2.5C2 2 2 2.5 2 5v3a2 2 0 0 0 2 2h6z" /> <path d="M22 17v-1a2 2 0 0 0-2-2h-1" /> <path d="M4 14a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16.5l1-.5.5.5-8-8H4z" /> <path d="M6 18h.01" /> <path d="m2 2 20 20" /> </svg> Blind relay forwards</h3><p>The relay routes encrypted payloads without the keys needed to decrypt them.</p><div class="tags"><span class="tag tag--doc">Cannot read message content</span></div></article>
+        <article class="card"><p class="card__kicker">Step 3 of 3</p><h3><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="16" r="1" /> <rect width="18" height="12" x="3" y="10" rx="2" /> <path d="M7 10V7a5 5 0 0 1 9.33-2.5" /> </svg> Recipient decrypts locally</h3><p>Only the intended recipient device decrypts and checks the message.</p><div class="tags"><span class="tag tag--doc">Decrypted at the edge</span></div></article>
       </div>
     </section>
     <section class="wrap sec" id="security">
-      <p class="eyebrow">Cryptography</p>
       <h2>Established primitives, minimal trust surface.</h2>
       <div class="grid grid--4">
-        <article class="card"><p class="eyebrow eyebrow--sm">Key agreement</p><h3>Curve25519</h3><p>Elliptic-curve key agreement for modern client devices.</p></article>
-        <article class="card"><p class="eyebrow eyebrow--sm">Authenticated encryption</p><h3>AES-256-GCM</h3><p>Protects both confidentiality and integrity of each message.</p></article>
-        <article class="card"><p class="eyebrow eyebrow--sm">Key derivation</p><h3>HKDF</h3><p>Context-separated key derivation for session and message keys.</p></article>
-        <article class="card"><p class="eyebrow eyebrow--sm">Data minimisation</p><h3>No message storage</h3><p>The relay is designed without persistent storage of message content.</p></article>
+        <article class="card"><p class="card__kicker">Key agreement</p><h3>Curve25519</h3><p>Elliptic-curve key agreement for modern client devices.</p></article>
+        <article class="card"><p class="card__kicker">Authenticated encryption</p><h3>AES-256-GCM</h3><p>Protects both confidentiality and integrity of each message.</p></article>
+        <article class="card"><p class="card__kicker">Key derivation</p><h3>HKDF</h3><p>Context-separated key derivation for session and message keys.</p></article>
+        <article class="card"><p class="card__kicker">Data minimisation</p><h3>No message storage</h3><p>The relay is designed without persistent storage of message content.</p></article>
       </div>
       <p class="sec__lead">These describe the design. They are not a legal certification or an independent audit. What the relay can and cannot see is explained in <a href="/blog/what-a-blind-relay-can-and-cannot-know/">what a blind relay can and cannot know</a>.</p>
     </section>
   </main>
   <footer class="foot">
     <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. Privacy, one layer at a time.</div>
+      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
       <nav aria-label="Footer">
         <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a>
       </nav>

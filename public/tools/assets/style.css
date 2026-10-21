@@ -6,16 +6,16 @@
 @font-face { font-family: "Atkinson Mono"; font-weight: 600; font-style: normal; font-display: swap; src: url("/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2") format("woff2"); }
 
 :root {
-  color-scheme: light dark;
-  --ground: #F5F4EF;
+  color-scheme: light;
+  --ground: #F3F5F4;
   --surface: #FFFFFF;
-  --head: #FAFAF6;
-  --ink: #1C2B27;
-  --ink-2: #44534E;
-  --ink-3: #5F6D68;
-  --line: #DCDDD3;
-  --accent: #23483E;
-  --accent-deep: #1F5A49;
+  --head: #E8EDEB;
+  --ink: #12343B;
+  --ink-2: #4A5B5E;
+  --ink-3: #5E6E70;
+  --line: #D3DBDA;
+  --accent: #12343B;
+  --accent-deep: #145A6B;
   --on-accent: #FFFFFF;
 
   --pass-bg: #DCEFE3;  --pass-ink: #1E5A3E;  --pass-shape: #2F8A5C;
@@ -27,31 +27,6 @@
   --sans: "Atkinson Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: "Atkinson Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --gut: clamp(16px, 4vw, 40px);
-}
-@media (prefers-color-scheme: dark) {
-:root {
-  --head: #0B111B;
-  --on-accent: #04121A;
-  --accent: #7FC3A2;
-  --accent-deep: #8FD1B1;
-  color-scheme: dark;
-  --ground: #070A11;
-  --surface: #0E1420;
-  --ink: #F1F5F9;
-  --ink-2: #B4C0CE;
-  --ink-3: #94A3B8;
-  --line: rgba(255, 255, 255, 0.12);
-    
-  --pass-bg: #0F2A1E;  --pass-ink: #86EFAC;  --pass-shape: #34D399;
-  --warn-bg: #2E2410;  --warn-ink: #FCD34D;  --warn-shape: #F59E0B;
-  --fail-bg: #331616;  --fail-ink: #FCA5A5;  --fail-shape: #F87171;
-  --info-bg: #14202F;  --info-ink: #BAC8DA;  --info-shape: #7C9CC0;
-  --na-bg:   #121823;  --na-ink:   #94A3B8;  --na-shape:   #64748B;
-
-  --sans: "Atkinson Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: "Atkinson Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  --gut: clamp(16px, 4vw, 40px);
-}
 }
 
 *, *::before, *::after { box-sizing: border-box; }

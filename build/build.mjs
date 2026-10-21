@@ -19,7 +19,7 @@ const icon = (name, cls = 'icon') => {
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // ---------------------------------------------------------------------------------------------
-const HOME_TITLE = 'SecureInChat: Protect Your Privacy, One Layer at a Time';
+const HOME_TITLE = 'SecureInChat: See What You Give Away, Then Switch It Off';
 const HOME_DESC = 'Practical privacy protection for your devices, accounts, conversations and AI use: free tools that run on your own device, guides with honest notes on what was tested, offline messaging and a zero-knowledge messenger.';
 
 const ARCH = [
@@ -55,13 +55,12 @@ const GUIDES = [
 function head({ title, desc, canonical, jsonld, lang = 'en' }) {
   return `<meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F5F4EF" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#111816" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#F3F5F4" />
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />
   <link rel="canonical" href="${SITE}${canonical}" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/source-serif-4-600.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SecureInChat" />
   <meta property="og:title" content="${esc(title)}" />
@@ -78,7 +77,7 @@ const NAV = [['/protect/', 'Protect', 'protect'], ['/tools/', 'Tools', 'tools'],
 function header(current) {
   return `<header class="top">
     <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark">${icon('shield-check')}</span>SecureInChat</a>
+      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark">${icon('eye-off')}</span>SecureInChat</a>
       <nav class="nav" aria-label="Main">
         ${NAV.map(([h, t, k]) => `<a href="${h}"${current === k ? ' aria-current="page"' : ''}>${t}</a>`).join('\n        ')}
       </nav>
@@ -88,7 +87,7 @@ function header(current) {
 function footer() {
   return `<footer class="foot">
     <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. Privacy, one layer at a time.</div>
+      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
       <nav aria-label="Footer">
         <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a>
       </nav>
@@ -120,56 +119,55 @@ function home() {
     { '@type': 'Organization', '@id': SITE + '/#org', name: 'SecureInChat', url: SITE + '/' },
     { '@type': 'WebSite', '@id': SITE + '/#site', url: SITE + '/', name: 'SecureInChat', publisher: { '@id': SITE + '/#org' }, inLanguage: 'en' },
   ] };
+  const READ = [['Time zone', 'tz'], ['Languages', 'lang'], ['Screen', 'screen'], ['Device', 'platform'], ['Processor cores', 'cores'], ['Touch screen', 'touch'], ['Cookies', 'cookies'], ['Do Not Track', 'dnt']];
   const hero = `    <section class="wrap hero">
       <div>
-        <h1>Protect your privacy, one layer at a time.</h1>
-        <p class="hero__sub">Practical protection for your devices, accounts, conversations and AI use, with free tools that run on your own device and honest notes on what we have and have not tested.</p>
-        <div class="hero__cta"><a class="btn btn--p" href="/start/">Find where to start</a><a class="btn btn--s" href="/tools/">Use a free tool</a></div>
-        <p class="hero__trust">No cookies · No accounts · Tools run in your browser · Untested steps are labelled</p>
+        <h1>See what you give away. Then switch it off.</h1>
+        <p class="hero__sub">Your phone, browser, accounts and AI tools leak more than you think. We show you exactly what, and walk you through closing it, one layer at a time.</p>
+        <div class="hero__cta"><a class="btn btn--p" href="/start/">Find where to start</a><a class="btn btn--s" href="/tools/">Run a free check</a></div>
+        <ul class="hero__promise"><li>No cookies</li><li>No accounts</li><li>Checks run on your device</li><li>Untested steps are labelled</li></ul>
       </div>
-      <a class="quick" href="/tools/photo-metadata-remover/">
-        ${tagHtml('tested', 'Runs on your device')}
-        <h2>Clean a photo before you share it</h2>
-        <p>Remove the location, device and time hidden in a photo. The photo never leaves your browser.</p>
-        <div class="quick__drop">Open the photo cleaner →</div>
-      </a>
+      <aside class="readout" aria-labelledby="readout-h">
+        <div class="readout__head"><h2 id="readout-h">What this page can read about you</h2><p>Any website can read these without asking.</p></div>
+        <dl id="readout">
+          ${READ.map(([k, id]) => `<div class="readout__row"><dt>${k}</dt><dd id="ro-${id}">…</dd></div>`).join('\n          ')}
+        </dl>
+        <p class="readout__nojs">Turn on JavaScript to see the values. With it off, a site can read less, which is one of the protections we explain.</p>
+        <p class="readout__foot">Read inside this tab only. Nothing here was sent to us or anyone else.</p>
+      </aside>
     </section>`;
   const sit = `    <section class="wrap sec" id="start">
-      <p class="eyebrow">Start from your situation</p>
       <h2>What worries you most right now?</h2>
-      <div class="grid grid--4">
-        ${SITUATIONS.map((S) => `<a class="card card--sit" href="/start/${S.slug}/"><h3>${esc(S.title)}</h3><p>${esc(S.short)}</p></a>`).join('\n        ')}
-      </div>
+      <ul class="situations">
+        ${SITUATIONS.map((S) => `<li><a href="/start/${S.slug}/"><strong>${esc(S.title)}</strong><span>${esc(S.short)}</span></a></li>`).join('\n        ')}
+      </ul>
     </section>`;
   const layers = `    <section class="wrap sec" id="layers">
-      <p class="eyebrow">Six layers of protection</p>
-      <h2>From the hardware in your hands to the software on it.</h2>
-      <p class="sec__lead">One weak layer undoes the others. Each layer page lists what works today and what is still being built or tested.</p>
-      <div class="grid grid--3">
-        ${LAYERS.map((L, i) => `<a class="card layer layer--${i + 1}" href="/protect/${L.slug}/"><div class="layer__num">${String(i + 1).padStart(2, '0')}</div><h3>${esc(L.name)}</h3><p>${esc(L.tagline)}</p><div class="tags">${layerTags(L)}</div></a>`).join('\n        ')}
-      </div>
+      <h2>Six layers, from the things around you to the apps you use.</h2>
+      <p class="sec__lead">One weak layer undoes the others. Each layer page says what works today and what is still being built or tested.</p>
+      <ul class="stack">
+        ${LAYERS.map((L, i) => `<li><a class="depth-${i + 1}" href="/protect/${L.slug}/"><div><h3>${esc(L.name)}</h3><p>${esc(L.tagline)}</p></div><div class="tags">${layerTags(L)}</div></a></li>`).join('\n        ')}
+      </ul>
     </section>`;
   const tools = `    <section class="wrap sec" id="tools">
-      <p class="eyebrow">Free tools</p>
       <h2>Check something in the next two minutes.</h2>
-      <div class="grid grid--4">
-        ${TOOLS_HOME.map((t) => `<a class="card" href="${t.href}"><h3>${t.name}</h3><p>${t.copy}</p><div class="tags">${tagHtml(t.k[0], t.k[1])}</div></a>`).join('\n        ')}
-      </div>
-      <p class="sec__lead"><a href="/tools/">All nine tools</a></p>
+      <ul class="rows">
+        ${TOOLS_HOME.map((t) => `<li><a href="${t.href}"><strong>${t.name}</strong><span>${t.copy}</span>${tagHtml(t.k[0], t.k[1])}</a></li>`).join('\n        ')}
+      </ul>
+      <p class="sec__more"><a href="/tools/">All nine tools</a></p>
     </section>`;
   const featured = ['encrypted-messaging-when-networks-fail', 'bank-statement-before-ai-upload', 'what-data-brokers-know-about-you'].map((s) => POSTS.find((p) => p.slug === s));
   const ftag = { 'encrypted-messaging-when-networks-fail': tagHtml('doc', 'Documented') + tagHtml('untested', 'Field test pending'), 'bank-statement-before-ai-upload': tagHtml('tested', 'We ran the test'), 'what-data-brokers-know-about-you': tagHtml('doc', 'Guide') };
   const guides = `    <section class="wrap sec" id="guides">
-      <p class="eyebrow">Guides</p>
-      <h2>The risk, then exactly what to do about it.</h2>
+      <h2>The risk first, then exactly what to do.</h2>
       <div class="grid grid--3">
-        ${featured.map((p) => `<a class="card" href="/blog/${p.slug}/"><h3>${esc(p.title)}</h3><p>Updated ${p.date}</p><div class="tags">${ftag[p.slug]}</div></a>`).join('\n        ')}
+        ${featured.map((p) => `<a class="card" href="/blog/${p.slug}/"><p class="card__kicker">Updated ${p.date}</p><h3>${esc(p.title)}</h3><div class="tags">${ftag[p.slug]}</div></a>`).join('\n        ')}
       </div>
-      <p class="sec__lead"><a href="/blog/">All guides</a></p>
+      <p class="sec__more"><a href="/blog/">All guides</a></p>
     </section>`;
   const trust = `    <section class="wrap sec" id="data">
       <div class="trust">
-        <div><p class="eyebrow">How we handle your data</p><h2>Don't just trust us. Check us.</h2><p>Every tool lists what stays on your device and what leaves it. You can watch your browser's network panel while you use a tool and compare. <a href="/principles/">Tool-by-tool details</a>.</p></div>
+        <div><h2>Don't just trust us. Check us.</h2><p>Every tool lists what stays on your device and what leaves it. Open your browser's network panel while you use one and compare. <a href="/principles/">Tool-by-tool details</a>.</p></div>
         <table><thead><tr><th scope="col">Tool</th><th scope="col">Stays on your device</th><th scope="col">Sent to others</th></tr></thead><tbody>
           ${FLOW.map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('\n          ')}
         </tbody></table>
@@ -177,12 +175,11 @@ function home() {
     </section>`;
   const msg = `    <section class="wrap sec" id="messaging">
       <div class="band">
-        <div><p class="eyebrow">Communication layer</p><h2>SecureInChat messenger: the server forwards, it never reads.</h2><p>Keys stay on your devices and a blind relay only forwards ciphertext. The apps are in development; you can test the live relay from your browser today.</p></div>
+        <div><h2>SecureInChat messenger: the server forwards, it never reads.</h2><p>Keys stay on your devices and a blind relay only forwards ciphertext. The apps are in development; you can test the live relay from your browser today.</p></div>
         <a class="btn btn--s" href="/messaging/">See how it works</a>
       </div>
     </section>`;
   const mission = `    <section class="wrap sec">
-      <p class="eyebrow">Our mission</p>
       <h2>Privacy is a right, not a premium feature.</h2>
       <p class="sec__lead">${esc(MISSION_SHORT)} <a href="/mission/">Read our mission and what we will never do</a>.</p>
     </section>`;
@@ -200,7 +197,7 @@ function messaging() {
     <section class="wrap wide" id="diagnostics">
       <div class="diag">
         <div class="diag__head">
-          <div><p class="eyebrow">Live relay test</p><h2>Check the relay from your browser.</h2><p class="sec__lead">Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay's challenge. No message content is involved.</p></div>
+          <div><h2>Check the relay from your browser.</h2><p class="sec__lead">Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay's challenge. No message content is involved.</p></div>
           <div>
             <p class="status" id="net-status" data-state="check" role="status"><span class="status__dot" aria-hidden="true"></span><span id="net-label">Network: Checking</span></p>
             <button id="node-btn" type="button" class="btn btn--p" data-testing="Testing…" data-retest="Run the relay test"><span id="node-btn-label">Run the relay test</span></button>
@@ -216,17 +213,15 @@ function messaging() {
       </div>
     </section>
     <section class="wrap sec" id="architecture">
-      <p class="eyebrow">Architecture</p>
       <h2>The server forwards. It never understands.</h2>
       <div class="grid grid--3">
-        ${ARCH.map((a, i) => `<article class="card"><div class="layer__num">0${i + 1} / 03</div><h3>${icon(a.icon)} ${a.title}</h3><p>${a.copy}</p><div class="tags">${tagHtml('doc', a.status)}</div></article>`).join('\n        ')}
+        ${ARCH.map((a, i) => `<article class="card"><p class="card__kicker">Step ${i + 1} of 3</p><h3>${icon(a.icon)} ${a.title}</h3><p>${a.copy}</p><div class="tags">${tagHtml('doc', a.status)}</div></article>`).join('\n        ')}
       </div>
     </section>
     <section class="wrap sec" id="security">
-      <p class="eyebrow">Cryptography</p>
       <h2>Established primitives, minimal trust surface.</h2>
       <div class="grid grid--4">
-        ${SEC.map((s) => `<article class="card"><p class="eyebrow eyebrow--sm">${s.tag}</p><h3>${s.title}</h3><p>${s.copy}</p></article>`).join('\n        ')}
+        ${SEC.map((s) => `<article class="card"><p class="card__kicker">${s.tag}</p><h3>${s.title}</h3><p>${s.copy}</p></article>`).join('\n        ')}
       </div>
       <p class="sec__lead">These describe the design. They are not a legal certification or an independent audit. What the relay can and cannot see is explained in <a href="/blog/what-a-blind-relay-can-and-cannot-know/">what a blind relay can and cannot know</a>.</p>
     </section>`;
@@ -499,10 +494,10 @@ write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32
 
 // fonts + script
 const fonts = [
-  ['inter', 'inter', [400, 600, 700]],
-  ['source-serif-4', 'source-serif-4', [600, 700]],
-  ['jetbrains-mono', 'jetbrains-mono', [400]],
 ];
+for (const [src, dst] of [['atkinson-hyperlegible-next-latin-400-normal', 'atkinson-next-400'], ['atkinson-hyperlegible-next-latin-600-normal', 'atkinson-next-600'], ['atkinson-hyperlegible-next-latin-800-normal', 'atkinson-next-800'], ['atkinson-hyperlegible-mono-latin-400-normal', 'atkinson-mono-400']]) {
+  write(`assets/fonts/${dst}.woff2`, fs.readFileSync(path.join(PUB, 'tools/fonts', src + '.woff2')));
+}
 for (const [pkg, name, weights] of fonts) {
   for (const w of weights) {
     const src = path.join(import.meta.dirname, `node_modules/@fontsource/${pkg}/files/${name}-latin-${w}-normal.woff2`);
