@@ -49,6 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
+      fail-fast: false
       matrix:
         api: [29, 34]
     steps:
@@ -65,7 +66,7 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: sh android/permcheck/tests/emulator_smoke.sh apk/app/build/outputs/apk/debug/app-debug.apk
+          script: sh android/permcheck/tests/emulator_smoke.sh "$(find apk -name app-debug.apk | head -1)"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
