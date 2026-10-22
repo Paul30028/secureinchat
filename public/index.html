@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F3F5F4" />
+  <meta name="theme-color" content="#F4F6F3" />
   <title>SecureInChat: See What You Give Away, Then Switch It Off</title>
   <meta name="description" content="Practical privacy protection for your devices, accounts, conversations and AI use: free tools that run on your own device, guides with honest notes on what was tested, offline messaging and a zero-knowledge messenger." />
   <link rel="canonical" href="https://secureinchat.com/" />
@@ -43,12 +43,12 @@
     <section class="wrap hero">
       <div>
         <h1>See what you give away. Then switch it off.</h1>
-        <p class="hero__sub">Your phone, browser, accounts and AI tools leak more than you think. We show you exactly what, and walk you through closing it, one layer at a time.</p>
-        <div class="hero__cta"><a class="btn btn--p" href="/start/">Find where to start</a><a class="btn btn--s" href="/tools/">Run a free check</a></div>
-        <ul class="hero__promise"><li>No cookies</li><li>No accounts</li><li>Checks run on your device</li><li>Untested steps are labelled</li></ul>
+        <p class="hero__sub">Run a 12-check browser privacy report, see what this page can read, and get practical next steps. Results are worked out in your browser and never uploaded.</p>
+        <div class="hero__cta"><a class="btn btn--p" href="/tools/privacy-report/">Run the privacy report</a><a class="btn btn--s" href="/tools/">Explore privacy tools</a></div>
+        <ul class="hero__promise"><li>Free</li><li>No cookies or accounts</li><li>No user-level tracking</li><li>Untested steps are labelled</li></ul>
       </div>
       <aside class="readout" aria-labelledby="readout-h">
-        <div class="readout__head"><h2 id="readout-h">What this page can read about you</h2><p>Any website can read these without asking.</p></div>
+        <div class="readout__head"><h2 id="readout-h">What this page can read</h2><p>Worked out in this browser. Any website can read these without asking.</p></div>
         <dl id="readout">
           <div class="readout__row"><dt>Time zone</dt><dd id="ro-tz">…</dd></div>
           <div class="readout__row"><dt>Languages</dt><dd id="ro-lang">…</dd></div>
@@ -62,6 +62,28 @@
         <p class="readout__nojs">Turn on JavaScript to see the values. With it off, a site can read less, which is one of the protections we explain.</p>
         <p class="readout__foot">Read inside this tab only. Nothing here was sent to us or anyone else.</p>
       </aside>
+    </section>
+
+    <section class="wrap sec" id="tools">
+      <h2>Check something in the next two minutes.</h2>
+      <div class="tooldir">
+        <a class="tool-featured" href="/tools/privacy-report/">
+          <h3>Browser privacy report</h3>
+          <p>One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser gives away, then lists what to look at first.</p>
+          <span class="btn btn--p">Run the report</span>
+          <p class="tool-featured__note"><span class="tag tag--lim">Contacts lookup services</span> The connection checks use the same lookup services as the IP leak test; results stay in your tab.</p>
+        </a>
+        <div class="tool-quick">
+          <h3>Other quick checks</h3>
+          <ul>
+            <li><a href="/tools/link-checker/"><strong>Link checker</strong><span>Remove tracking from a link and see the warning signs of phishing before you click. The link is never opened or sent.</span></a></li>
+            <li><a href="/tools/photo-metadata-remover/"><strong>Photo metadata remover</strong><span>See and remove the location, device and dates hidden in a photo.</span></a></li>
+            <li><a href="/tools/text-redactor/"><strong>Text redactor</strong><span>Replace emails, numbers and keys with placeholders before you share text or paste it into AI.</span></a></li>
+            <li><a href="/tools/ip-leak-test/"><strong>IP leak test</strong><span>Check whether your VPN or proxy leaks your real address through WebRTC, IPv6 or DNS.</span></a></li>
+          </ul>
+          <p class="sec__more"><a href="/tools/">All eleven tools</a></p>
+        </div>
+      </div>
     </section>
 
     <section class="wrap sec" id="start">
@@ -85,18 +107,6 @@
         <li><a class="depth-5" href="/protect/offline/"><div><h3>Offline and emergency</h3><p>Staying in touch securely when mobile networks fail.</p></div><div class="tags"><span class="tag tag--doc">Documented</span><span class="tag tag--untested">Field test pending</span></div></a></li>
         <li><a class="depth-6" href="/protect/ai/"><div><h3>AI privacy</h3><p>What you hand to AI assistants, and how to hand over less.</p></div><div class="tags"><span class="tag tag--tested">2 tools</span><span class="tag tag--doc">5 guides</span></div></a></li>
       </ul>
-    </section>
-
-    <section class="wrap sec" id="tools">
-      <h2>Check something in the next two minutes.</h2>
-      <ul class="rows">
-        <li><a href="/tools/privacy-report/"><strong>Browser privacy report</strong><span>One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser gives away, then lists what to look at first.</span><span class="tag tag--lim">Contacts lookup services</span></a></li>
-        <li><a href="/tools/link-checker/"><strong>Link checker</strong><span>Remove tracking from a link and see the warning signs of phishing before you click. The link is never opened or sent.</span><span class="tag tag--tested">Runs on your device</span></a></li>
-        <li><a href="/tools/photo-metadata-remover/"><strong>Photo metadata remover</strong><span>See and remove the location, device and dates hidden in a photo.</span><span class="tag tag--tested">Runs on your device</span></a></li>
-        <li><a href="/tools/text-redactor/"><strong>Text redactor</strong><span>Replace emails, numbers and keys with placeholders before you share text or paste it into AI.</span><span class="tag tag--tested">Runs on your device</span></a></li>
-        <li><a href="/tools/ip-leak-test/"><strong>IP leak test</strong><span>Check whether your VPN or proxy leaks your real address through WebRTC, IPv6 or DNS.</span><span class="tag tag--lim">Contacts lookup services</span></a></li>
-      </ul>
-      <p class="sec__more"><a href="/tools/">All eleven tools</a></p>
     </section>
 
     <section class="wrap sec" id="guides">

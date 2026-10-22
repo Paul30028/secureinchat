@@ -56,7 +56,7 @@ const GUIDES = [
 function head({ title, desc, canonical, jsonld, lang = 'en' }) {
   return `<meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F3F5F4" />
+  <meta name="theme-color" content="#F4F6F3" />
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />
   <link rel="canonical" href="${SITE}${canonical}" />
@@ -128,12 +128,12 @@ function home() {
   const hero = `    <section class="wrap hero">
       <div>
         <h1>See what you give away. Then switch it off.</h1>
-        <p class="hero__sub">Your phone, browser, accounts and AI tools leak more than you think. We show you exactly what, and walk you through closing it, one layer at a time.</p>
-        <div class="hero__cta"><a class="btn btn--p" href="/start/">Find where to start</a><a class="btn btn--s" href="/tools/">Run a free check</a></div>
-        <ul class="hero__promise"><li>No cookies</li><li>No accounts</li><li>Checks run on your device</li><li>Untested steps are labelled</li></ul>
+        <p class="hero__sub">Run a 12-check browser privacy report, see what this page can read, and get practical next steps. Results are worked out in your browser and never uploaded.</p>
+        <div class="hero__cta"><a class="btn btn--p" href="/tools/privacy-report/">Run the privacy report</a><a class="btn btn--s" href="/tools/">Explore privacy tools</a></div>
+        <ul class="hero__promise"><li>Free</li><li>No cookies or accounts</li><li>No user-level tracking</li><li>Untested steps are labelled</li></ul>
       </div>
       <aside class="readout" aria-labelledby="readout-h">
-        <div class="readout__head"><h2 id="readout-h">What this page can read about you</h2><p>Any website can read these without asking.</p></div>
+        <div class="readout__head"><h2 id="readout-h">What this page can read</h2><p>Worked out in this browser. Any website can read these without asking.</p></div>
         <dl id="readout">
           ${READ.map(([k, id]) => `<div class="readout__row"><dt>${k}</dt><dd id="ro-${id}">…</dd></div>`).join('\n          ')}
         </dl>
@@ -154,12 +154,24 @@ function home() {
         ${LAYERS.map((L, i) => `<li><a class="depth-${i + 1}" href="/protect/${L.slug}/"><div><h3>${esc(L.name)}</h3><p>${esc(L.tagline)}</p></div><div class="tags">${layerTags(L)}</div></a></li>`).join('\n        ')}
       </ul>
     </section>`;
+  const [lead, ...quick] = TOOLS_HOME;
   const tools = `    <section class="wrap sec" id="tools">
       <h2>Check something in the next two minutes.</h2>
-      <ul class="rows">
-        ${TOOLS_HOME.map((t) => `<li><a href="${t.href}"><strong>${t.name}</strong><span>${t.copy}</span>${tagHtml(t.k[0], t.k[1])}</a></li>`).join('\n        ')}
-      </ul>
-      <p class="sec__more"><a href="/tools/">All eleven tools</a></p>
+      <div class="tooldir">
+        <a class="tool-featured" href="${lead.href}">
+          <h3>${lead.name}</h3>
+          <p>${lead.copy}</p>
+          <span class="btn btn--p">Run the report</span>
+          <p class="tool-featured__note">${tagHtml(lead.k[0], lead.k[1])} The connection checks use the same lookup services as the IP leak test; results stay in your tab.</p>
+        </a>
+        <div class="tool-quick">
+          <h3>Other quick checks</h3>
+          <ul>
+            ${quick.map((t) => `<li><a href="${t.href}"><strong>${t.name}</strong><span>${t.copy}</span></a></li>`).join('\n            ')}
+          </ul>
+          <p class="sec__more"><a href="/tools/">All eleven tools</a></p>
+        </div>
+      </div>
     </section>`;
   const featured = ['encrypted-messaging-when-networks-fail', 'bank-statement-before-ai-upload', 'what-data-brokers-know-about-you'].map((s) => POSTS.find((p) => p.slug === s));
   const ftag = { 'encrypted-messaging-when-networks-fail': tagHtml('doc', 'Documented') + tagHtml('untested', 'Field test pending'), 'bank-statement-before-ai-upload': tagHtml('tested', 'We ran the test'), 'what-data-brokers-know-about-you': tagHtml('doc', 'Guide') };
@@ -188,7 +200,7 @@ function home() {
       <h2>Privacy is a right, not a premium feature.</h2>
       <p class="sec__lead">${esc(MISSION_SHORT)} <a href="/mission/">Read our mission and what we will never do</a>.</p>
     </section>`;
-  return page({ title: HOME_TITLE, desc: HOME_DESC, canonical: '/', jsonld, main: [hero, sit, layers, tools, guides, trust, msg, mission].join('\n\n') });
+  return page({ title: HOME_TITLE, desc: HOME_DESC, canonical: '/', jsonld, main: [hero, tools, sit, layers, guides, trust, msg, mission].join('\n\n') });
 }
 
 function messaging() {

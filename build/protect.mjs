@@ -105,6 +105,15 @@ export function layerTags(L) {
   return out.join('');
 }
 
+const DIAGRAM = {
+  physical: 'A person beside a desk can see a laptop screen and a phone left on the desk. The dotted gold lines are the view.',
+  devices: 'Data leaves a phone, goes through the home router and crosses the dashed line into the internet. The gold line is the path.',
+  accounts: 'An email inbox opens an account; a key and a recovery phone are other ways in. The dotted gold line is the recovery route attackers target.',
+  communication: 'Two phones exchange locked packets through a relay. The relay, inside the dashed box, only passes sealed packets along.',
+  offline: 'The mobile tower link is broken. Two nearby phones still reach each other directly, and a paper checklist is ready in advance.',
+  ai: 'Sensitive parts of a document are blacked out by a local step before the text crosses the dashed line to an AI service.',
+};
+
 export function layerBody(L, esc, n) {
   const live = L.live.length
     ? `<ul class="items">\n${L.live.map(([t, h, k]) => `      <li><a href="${h}">${esc(t)}</a> ${tag(KIND[k][0], KIND[k][1])}</li>`).join('\n')}\n    </ul>`
@@ -112,6 +121,7 @@ export function layerBody(L, esc, n) {
   return `    <p class="meta"><a href="/protect/">Protect</a> · Layer ${String(n).padStart(2, '0')} of 06</p>
     <h1>${esc(L.name)}</h1>
     <p class="lead">${esc(L.tagline)}</p>
+    <figure class="diagram"><img src="/assets/diagrams/${L.slug}.svg" width="640" height="320" alt="${esc(DIAGRAM[L.slug])}"><figcaption>${esc(DIAGRAM[L.slug])}</figcaption></figure>
     <h2>The risk</h2>
     <p>${esc(L.threat)}</p>
     <h2>Use it today</h2>
