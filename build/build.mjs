@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { POSTS } from './posts.mjs';
+import { PRODUCTS, validateProduct, productBody, shopIndexBody } from './shop.mjs';
 import { MISSION, MISSION_SHORT, LAYERS, layerBody, layerTags, protectIndexBody, SITUATIONS, situationBody, startIndexBody } from './protect.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -53,9 +54,9 @@ const GUIDES = [
 ];
 
 // ---------------------------------------------------------------------------------------------
-function head({ title, desc, canonical, jsonld, lang = 'en' }) {
+function head({ title, desc, canonical, jsonld, lang = 'en', robots = '' }) {
   return `<meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />${robots ? `\n  <meta name="robots" content="${robots}" />` : ''}
   <meta name="theme-color" content="#F4F6F3" />
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />
@@ -99,11 +100,11 @@ function footer() {
     </div>
   </footer>`;
 }
-function page({ lang = 'en', title, desc, canonical, jsonld, current, main }) {
+function page({ lang = 'en', title, desc, canonical, jsonld, current, main, robots = '' }) {
   return `<!DOCTYPE html>
 <html lang="${lang}">
 <head>
-  ${head({ title, desc, canonical, jsonld, lang })}
+  ${head({ title, desc, canonical, jsonld, lang, robots })}
 </head>
 <body>
   <a href="#top" class="skip">${{ 'zh-CN': '跳到正文', ja: '本文へ移動' }[lang] || 'Skip to content'}</a>
@@ -387,8 +388,8 @@ function localPage(code) {
   return page({ lang: t.lang, title: t.title, desc: t.desc, canonical: `/${code}/`, jsonld, main });
 }
 
-function docPage({ slug, title, desc, body, current = null, article = null }) {
-  return page({ title: `${title} | SecureInChat`, desc, canonical: `/${slug}/`, jsonld: article, current, main: `    <div class="wrap doc">\n${body}\n    </div>` });
+function docPage({ slug, title, desc, body, current = null, article = null, robots = '' }) {
+  return page({ title: `${title} | SecureInChat`, desc, canonical: `/${slug}/`, jsonld: article, current, robots, main: `    <div class="wrap doc">\n${body}\n    </div>` });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -565,6 +566,11 @@ write('principles/index.html', docPage({ slug: 'principles', title: 'Privacy pri
 write('mission/index.html', docPage({ slug: 'mission', title: 'Our mission', desc: 'What SecureInChat believes, what we are building toward, who we build for and what we will never do.', body: MISSION, current: 'about' }));
 write('protect/index.html', docPage({ slug: 'protect', title: 'Protect your privacy, layer by layer', desc: 'Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy.', body: protectIndexBody(esc), current: 'protect' }));
 LAYERS.forEach((L, i) => write(`protect/${L.slug}/index.html`, docPage({ slug: `protect/${L.slug}`, title: `${L.name} privacy`, desc: `${L.tagline} ${L.threat}`.slice(0, 155), body: layerBody(L, esc, i + 1), current: 'protect' })));
+// Shop (T10): not in the navigation; noindex and out of the sitemap until a real product passes validation.
+for (const p of PRODUCTS) { const errs = validateProduct(p); if (errs.length) throw new Error(`shop product ${p.slug}: ${errs.join('; ')}`); }
+const SHOP_ROBOTS = PRODUCTS.length ? '' : 'noindex';
+write('shop/index.html', docPage({ slug: 'shop', title: 'Shop', desc: 'Privacy gear and software we can explain and you can check yourself. Every product page shows what it protects against, our test evidence, limits and any commission.', body: shopIndexBody(PRODUCTS, esc, DATE), robots: SHOP_ROBOTS }));
+for (const p of PRODUCTS) write(`shop/${p.slug}/index.html`, docPage({ slug: `shop/${p.slug}`, title: p.name, desc: p.protects.slice(0, 155), body: productBody(p, esc) }));
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT, current: 'about' }));
 
 // guides (new section; checkout is a third-party link set by the owner)
@@ -653,6 +659,7 @@ write('assets/site.css', fs.readFileSync(path.join(ROOT, 'src/site.css')));
 // sitemap, robots, headers
 const urls = [
   ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
+  ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
@@ -664,7 +671,7 @@ write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 
