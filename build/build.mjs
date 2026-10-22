@@ -408,8 +408,6 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <h2>Hosting and server logs</h2>
     <p>The site is served by Cloudflare. Like any web host, Cloudflare receives your IP address and request details when your browser loads a page, and processes them to deliver the site and protect it from abuse. See <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a>.</p>
 
-    <h2>Guides and checkout</h2>
-    <p>The guides pages under /guides/ load no analytics and set no cookies. When a guide has a purchase button, it leads to a third-party checkout provider. That provider handles payment, processes your payment details and personal data under its own privacy policy, and may set its own cookies. We do not receive your card details.</p>
     <h2>Aggregate analytics</h2>
     <p>The main pages use Cloudflare Web Analytics, which measures page views and performance without cookies and without tracking you across sites. The tools pages under /tools/ load no analytics.</p>
 
@@ -464,7 +462,7 @@ const CONTACT = `    <h1>Contact</h1>
     <p class="meta">Last updated: ${DATE}</p>
     <p>Email us at <a href="mailto:x@secureinchat.com">x@secureinchat.com</a> for bug reports, factual corrections, tool feedback and privacy questions.</p>
     <h2>Sponsorship and partnerships</h2>
-    <p>Privacy-respecting products can sponsor the free tools and guides. Any sponsored or affiliate placement is labelled as such and never changes a test result. See <a href="/sponsor/">how sponsorship works</a> and our <a href="/mission/">mission</a>.</p>
+    <p>Privacy-respecting products can sponsor the free tools. Any sponsored placement is labelled as such and never changes a test result. See <a href="/sponsor/">how SecureInChat is funded</a> and our <a href="/mission/">mission</a>.</p>
     <p>Please do not post sensitive personal information in a public issue. We will never ask for passwords, keys or private messages.</p>
 `;
 
@@ -519,32 +517,25 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
     <p>The tools are plain scripts without a build step on the page. Open your browser's network panel while using one and compare the requests with the table.</p>
 `;
 
-const SPONSOR = `    <h1>Sponsorship and partnerships</h1>
+const SPONSOR = `    <h1>How SecureInChat is funded</h1>
     <p class="meta">Last updated: ${DATE}</p>
-    <p>SecureInChat helps people protect their privacy layer by layer, from physical gear to accounts, messaging and AI use. We accept a small number of sponsors and affiliate partners whose products respect the same principle. See our <a href="/mission/">mission</a>.</p>
-    <h2>Who can sponsor</h2>
+    <p>SecureInChat is free to use and does not track you. If money ever changes hands, this page says how. See our <a href="/mission/">mission</a>.</p>
+    <h2>What sponsors can and cannot do</h2>
+    <p>Sponsors may support the project or a clearly labelled piece of content. Sponsors:</p>
     <ul>
-      <li>Products that collect no more data than they need to work, explain their data handling clearly and do not sell user data.</li>
-      <li>Examples of categories we cover: encrypted email, password managers, security keys, privacy-respecting browsers and software, and physical privacy gear.</li>
-      <li>We decline products whose business depends on tracking users, and we may decline any product we cannot test or describe accurately.</li>
+      <li>cannot buy a ranking, a "best" or "safest" label, or a test result;</li>
+      <li>do not review, edit or approve content before it is published;</li>
+      <li>cannot ask us to add any script, pixel, cookie or tracking link;</li>
+      <li>receive no visitor data. At most, they get our aggregate page-view counts.</li>
     </ul>
-    <h2>What we offer</h2>
-    <ul>
-      <li>A labelled sponsor placement on the tools pages, at most one per page.</li>
-      <li>A mention in a blog post that explains a technical topic, marked as sponsored.</li>
-      <li>Affiliate links in articles, with a visible disclosure next to each link.</li>
-    </ul>
-    <h2>Our rules</h2>
-    <ul>
-      <li>Test results are computed in the visitor's browser. A sponsor cannot change them or the wording of a verdict.</li>
-      <li>Every paid or affiliate placement is labelled as such.</li>
-      <li>We only list products we can describe accurately. We may ask to test a product before we mention it.</li>
-      <li>We do not add trackers for sponsors. Any measurement is aggregate, such as clicks, and is described in the <a href="/privacy/">privacy policy</a> before it starts.</li>
-    </ul>
-    <h2>Traffic</h2>
-    <p>The site is new. We will share real figures on request once there are enough to be meaningful, and we will not quote numbers we cannot show.</p>
+    <h2>Who we do not accept</h2>
+    <p>We do not accept money from ad networks, data brokers, surveillance vendors, or companies whose main business is behavioural tracking. We can end a sponsorship at any time if it conflicts with these rules. Past sponsorships stay listed on this page.</p>
+    <h2>Commission links</h2>
+    <p>We do not use affiliate or commission links at present. If we ever do, the sentence "We may earn a commission from this link" will appear next to each one, along with a plain link to the same site.</p>
+    <h2>Current sponsors</h2>
+    <p>None.</p>
     <h2>Get in touch</h2>
-    <p>Email <a href="mailto:x@secureinchat.com">x@secureinchat.com</a> with the product, the audience you want to reach and what you would like to run.</p>
+    <p>Email <a href="mailto:x@secureinchat.com">x@secureinchat.com</a> with the product and what you would like to support.</p>
 `;
 
 // ---------------------------------------------------------------------------------------------
@@ -613,7 +604,7 @@ write('start/index.html', docPage({ slug: 'start', title: 'Start from your situa
 for (const S of SITUATIONS) write(`start/${S.slug}/index.html`, docPage({ slug: `start/${S.slug}`, title: S.title, desc: S.intro.slice(0, 155), body: situationBody(S, esc), current: 'protect' }));
 write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', desc: 'What secureinchat.com and its tools do with your data: no cookies, no accounts, no stored test results.', body: PRIVACY, current: 'about' }));
 write('about/index.html', docPage({ slug: 'about', title: 'About', desc: 'About SecureInChat: an end-to-end encrypted blind-relay messenger in development, plus free privacy tools.', body: ABOUT, current: 'about' }));
-write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'Sponsorship and partnerships', desc: 'How VPN, proxy and privacy-tool vendors can sponsor SecureInChat tools, and the rules that keep test results independent.', body: SPONSOR, current: 'about' }));
+write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'How SecureInChat is funded', desc: 'How SecureInChat is funded, what sponsors can and cannot do, and how any commission link would be disclosed.', body: SPONSOR, current: 'about' }));
 write('principles/index.html', docPage({ slug: 'principles', title: 'Privacy principles for the tools', desc: 'What each SecureInChat tool processes on your device, what it sends to outside services, and the limits we cannot remove.', body: PRINCIPLES, current: 'about' }));
 write('mission/index.html', docPage({ slug: 'mission', title: 'Our mission', desc: 'What SecureInChat believes, what we are building toward, who we build for and what we will never do.', body: MISSION, current: 'about' }));
 write('protect/index.html', docPage({ slug: 'protect', title: 'Protect your privacy, layer by layer', desc: 'Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy.', body: protectIndexBody(esc), current: 'protect' }));
@@ -625,46 +616,8 @@ write('shop/index.html', docPage({ slug: 'shop', title: 'Shop', desc: 'Privacy g
 for (const p of PRODUCTS) write(`shop/${p.slug}/index.html`, docPage({ slug: `shop/${p.slug}`, title: p.name, desc: p.protects.slice(0, 155), body: productBody(p, esc) }));
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT, current: 'about' }));
 
-// guides (new section; checkout is a third-party link set by the owner)
-const buyBtn = (g) => g.buyUrl
-  ? `<a href="${g.buyUrl}" rel="noopener" class="inline-block px-6 py-3 rounded-xl bg-white text-slate-950 font-semibold">Get the pack: $${g.price}</a>`
-  : `<span class="inline-block px-6 py-3 rounded-xl bg-white/10 text-slate-400 font-semibold" aria-disabled="true">Get the pack: $${g.price} (coming soon)</span>`;
-const GUIDE_INDEX = `    <h1>Tested AI guides</h1>
-    <p>Step-by-step guides for building things with AI. Each one ships with the prompts, the working result, an automated test and the real test log, including the failures. We say what was verified and what was not. All content is original.</p>
-${GUIDES.map((g) => `    <h2><a href="/guides/${g.slug}/">${g.title}</a></h2>\n    <p>${g.blurb}</p>\n    <p><strong>${g.status}</strong></p>`).join('\n')}`;
-write('guides/index.html', docPage({ slug: 'guides', title: 'Tested AI guides', desc: 'Step-by-step guides for building with AI, each with the prompts, a working result and the automated test that proves it.', body: GUIDE_INDEX, current: 'guides' }));
-for (const g of GUIDES) {
-  const body = `    <h1>${g.title}</h1>
-    <p><strong>${g.status}</strong></p>
-    <p><a href="/guides/${g.slug}/play/">Play the finished game</a> (this is what you build; it is a demo of the result, not proof that every step passes).</p>
-    <h2>What you build</h2>
-    <p>A complete Breakout game in a single HTML file: paddle, 40 bricks, three lives, scoring, keyboard, mouse and touch control. You paste prompts into an AI and check the result; you do not write the code by hand.</p>
-    <h2>Free preview: Prompt 1</h2>
-    <pre><code>Write a single-file HTML5 canvas Breakout game (no libraries, no external assets). 480x560 canvas; 8 columns x 5 rows of bricks; ... Expose window.__game = { get(), reset(), start() } ... Return only the file.</code></pre>
-    <h2>In the pack</h2>
-    <ul><li>The full prompt sequence: build, test, fix, variations</li><li>game.html, ready to open in a browser</li><li>test_game.py, an automated Playwright test</li><li>TEST_LOG.txt with every real run: 14 runs, a bug in the test itself, and the failures</li></ul>
-    <h2>What was verified, and what was not</h2>
-    <ul><li>Verified: on 2026-10-20 a separate AI session that had not seen the original ran the prompts from scratch. Prompt 1 produced a working game on the first try.</li><li>Verified: in 13 of 13 runs the game passed the checks for starting, launching, paddle limits, losing a life, game over, restart and console errors.</li><li>Not stable: the check that an autoplayer wins within 120 seconds passed in 9 of 14 runs. The game was always winnable; a simple autoplayer is slow to hit the last brick. The log shows every failure.</li><li>Not yet done: running the fix and variation prompts end to end. AI tools change, so steps may need small adjustments.</li></ul>
-    <h2>Price and refunds</h2>
-    <p>$${g.price} test price. Refund terms are on the <a href="/refund/">refunds page</a> and apply before you buy. Payment is handled by a third-party checkout provider; see the <a href="/privacy/">privacy policy</a>.</p>
-    <p>${buyBtn(g)}</p>`;
-  write(`guides/${g.slug}/index.html`, docPage({ slug: `guides/${g.slug}`, title: g.title, desc: g.blurb, body, current: 'guides' }));
-  const play = `    <link rel="stylesheet" href="/guides/assets/breakout.css">
-    <h1>Breakout (built with AI)</h1>
-    <p>Arrow keys or A/D, mouse or touch. Space or tap to start. <a href="/guides/${g.slug}/">Back to the guide</a>.</p>
-    <div id="hud" class="gh"><span>Score <b id="score">0</b></span> · <span>Lives <b id="lives">3</b></span> · <span id="msg">Press Space or tap to start</span></div>
-    <canvas id="c" width="480" height="560"></canvas>
-    <script src="/guides/assets/breakout.js" defer></script>`;
-  write(`guides/${g.slug}/play/index.html`, docPage({ slug: `guides/${g.slug}/play`, title: 'Play: Breakout built with AI', desc: 'Play the finished game from the Breakout AI build guide.', body: play, current: 'guides' }));
-}
-write('guides/assets/breakout.js', fs.readFileSync(path.join(ROOT, 'src/guides/breakout.js')));
-write('guides/assets/breakout.css', fs.readFileSync(path.join(ROOT, 'src/guides/breakout.css')));
-write('refund/index.html', docPage({ slug: 'refund', title: 'Refunds', desc: 'Refund terms for tested AI guide packs.', body: `    <h1>Refunds</h1>
-    <p><strong>Draft for owner review before go-live.</strong></p>
-    <p>Proposed: if a pack does not run as described, ask within 14 days of purchase and it is refunded. Statutory consumer rights where you live are not affected. Contact: x@secureinchat.com.</p>` }));
-write('terms/index.html', docPage({ slug: 'terms', title: 'Terms for guide packs', desc: 'Licence terms for tested AI guide packs.', body: `    <h1>Terms for guide packs</h1>
-    <p><strong>Draft for owner review before go-live.</strong></p>
-    <p>You may use the code in a pack for personal and commercial projects. You may not resell or redistribute the pack itself. Packs are provided as is; AI tools change and steps may need adjusting. All content is original; we do not copy or resell anyone else's courses.</p>` }));
+// /guides/, /refund/ and /terms/ removed 2026-10-22 (owner decision: AI build guides do not belong on this site).
+write('_redirects', ['/guides /blog/ 301', '/guides/ /blog/ 301', '/guides/* /blog/ 301', '/refund/ / 301', '/terms/ / 301', ''].join('\n'));
 
 
 // blog
@@ -710,7 +663,7 @@ write('assets/site.css', fs.readFileSync(path.join(ROOT, 'src/site.css')));
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/refund/', 0], ['/terms/', 0], ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -726,17 +679,6 @@ const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-ori
 const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/phone-checkup/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
-
-# Guides and policies: self-hosted assets only, no analytics.
-/guides/*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'
-${common}
-/refund/
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'
-${common}
-/terms/
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'
-${common}
 
 # Tools: no analytics, only the lookups the tests need.
 /tools/*

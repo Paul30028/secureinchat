@@ -1,0 +1,5 @@
+/guides /blog/ 301
+/guides/ /blog/ 301
+/guides/* /blog/ 301
+/refund/ / 301
+/terms/ / 301
