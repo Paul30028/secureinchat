@@ -101,7 +101,7 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.015em; line-height: 1.12; marg
 .stack a { display: grid; grid-template-columns: 14px 1fr auto; gap: 20px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px 16px 0; color: var(--ink); text-decoration: none; overflow: hidden; }
 .stack a::before { content: ""; align-self: stretch; margin-block: -16px; background: var(--depth); }
 .stack a:hover { border-color: var(--d4); }
-.stack h3 { font-size: 20px; }
+.stack h3 { font-size: 21.5px; }
 .stack p { margin: 2px 0 0; color: var(--muted); font-size: 16px; }
 .stack .tags { text-align: right; }
 .depth-1 { --depth: var(--d1); } .depth-2 { --depth: var(--d2); } .depth-3 { --depth: var(--d3); } .depth-4 { --depth: var(--d4); } .depth-5 { --depth: var(--d5); } .depth-6 { --depth: var(--d6); }
