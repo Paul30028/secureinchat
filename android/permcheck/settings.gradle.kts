@@ -8,3 +8,6 @@ dependencyResolutionManagement {
 }
 rootProject.name = "permcheck"
 include(":app")
+// Test-only target app for the emulator flow test (tests/emulator_flow.py); not shipped.
+include(":testtarget")
+project(":testtarget").projectDir = file("tests/testtarget")
