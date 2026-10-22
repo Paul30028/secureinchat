@@ -1,119 +1,343 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
-  <title>Blog | SecureInChat</title>
-  <meta name="description" content="Notes on how our privacy tools work and on the design of a blind-relay encrypted messenger." />
-  <link rel="canonical" href="https://secureinchat.com/blog/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="Blog | SecureInChat" />
-  <meta property="og:description" content="Notes on how our privacy tools work and on the design of a blind-relay encrypted messenger." />
-  <meta property="og:url" content="https://secureinchat.com/blog/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/" aria-current="page">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>Privacy guides | SecureInChat</title>
+  <meta content="Practical privacy guides with official sources: phone numbers, accounts, data brokers, AI sharing, network leaks and offline messaging." name="description"/>
+  <link href="https://secureinchat.com/blog/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="Privacy guides | SecureInChat" property="og:title"/>
+  <meta content="Practical privacy guides with official sources: phone numbers, accounts, data brokers, AI sharing, network leaks and offline messaging." property="og:description"/>
+  <meta content="https://secureinchat.com/blog/" property="og:url"/>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a aria-current="page" href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <h1>Blog</h1>
-    <p>Notes from building SecureInChat and its privacy tools. We publish few posts and revise them when they are wrong.</p>
-    <h2><a href="/blog/data-broker-opt-out-guide/">Data broker opt-out guide: the US, the UK and the EU, with official removal pages</a></h2>
-    <p class="meta">2026-10-22</p>
-    <p>How to ask data brokers to delete or stop selling your information, by region. In the US: California's free DROP request, prescreened offer and mail opt-outs, and the removal pages of Spokeo, Acxiom and LexisNexis. In the UK: the open register opt-out and your rights under UK data protection law. In the EU: erasure and objection under the GDPR and how to complain. Every step links to the official page.</p>
-    <h2><a href="/blog/privacy-reset-checklist-iphone-android/">Privacy reset checklist for iPhone and Android: what each reset protects, what it costs, how to undo it</a></h2>
-    <p class="meta">2026-10-22</p>
-    <p>Eight built-in resets and switches on iPhone and Android, from Safety Check and the tracking prompt to deleting the advertising ID and clearing saved networks. For each: what it protects, what you lose, how to undo it, and the system version it needs. Steps from Apple and Google documentation.</p>
-    <h2><a href="/blog/protect-your-phone-number-sim-swap/">Protect your phone number: SIM PIN, carrier locks and the SIM-swap scam</a></h2>
-    <p class="meta">2026-10-22</p>
-    <p>Someone who takes over your phone number receives your calls and text codes. Five steps that make that harder: a SIM PIN, an account PIN with your carrier, the free number and SIM locks US carriers now offer, codes that do not travel by SMS, and messenger settings that keep your number private.</p>
-    <h2><a href="/blog/move-to-encrypted-email/">Moving to encrypted email: what it protects, what it does not, and how to switch without losing mail</a></h2>
-    <p class="meta">2026-10-22</p>
-    <p>What Proton Mail and Tuta actually encrypt, why mail to ordinary addresses is still readable by the other provider, and a step-by-step move: import old mail, forward new mail, update accounts in order, keep the old address for a while.</p>
-    <h2><a href="/blog/email-aliases-hide-your-address/">Email aliases: give every site its own address and switch off the ones that leak</a></h2>
-    <p class="meta">2026-10-22</p>
-    <p>An email alias forwards to your real inbox, so a shop or app never sees your address. How Apple Hide My Email and Firefox Relay work, what they cost, how to turn an alias off, and the accounts that should never use one.</p>
-    <h2><a href="/blog/check-app-permissions-android-iphone/">Check what your phone apps can access: a 15-minute permission review for Android and iPhone</a></h2>
-    <p class="meta">2026-10-22</p>
-    <p>Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation.</p>
-    <h2><a href="/blog/ai-apps-permissions-and-data/">AI apps on your phone: what they can access, and the settings that keep your chats out of training</a></h2>
-    <p class="meta">2026-10-22</p>
-    <p>AI assistants ask for your microphone, camera, photos and sometimes control of your screen. Which permissions matter, and where ChatGPT and Gemini let you stop your chats being used for training, with what the settings do not do.</p>
-    <h2><a href="/blog/encrypted-messaging-when-networks-fail/">When mobile networks go down: how to keep messaging securely without a network</a></h2>
-    <p class="meta">2026-10-21</p>
-    <p>Mobile networks can fail for hours, as Spain saw twice in 2025. What still works without a network, what Briar and Meshtastic actually encrypt, and what to set up before you need it.</p>
-    <h2><a href="/blog/bank-statement-before-ai-upload/">Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant.</p>
-    <h2><a href="/blog/photo-before-ai-upload/">What a photo reveals when you upload it to an AI chatbot, and how to remove it first</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>Phone photos usually carry hidden EXIF data such as GPS position, device and time. What it contains, what removal does and does not cover, and a step-by-step way to clean a photo in your browser before you upload it.</p>
-    <h2><a href="/blog/cv-before-ai-upload/">Before you paste your CV into an AI tool: what to take out</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to improve it, and what automatic redaction can and cannot do.</p>
-    <h2><a href="/blog/before-you-paste-into-ai-checklist/">A one-minute checklist before you paste anything into an AI assistant</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>A short checklist of what to remove before pasting text, documents or photos into an AI assistant, with the free browser tools that help and the things no tool can find for you.</p>
-    <h2><a href="/blog/how-the-ip-leak-test-works/">How the IP leak test works, and what it cannot see</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch.</p>
-    <h2><a href="/blog/what-a-blind-relay-can-and-cannot-know/">What a blind relay can and cannot know</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>A blind relay forwards encrypted messages it cannot read. That still leaves metadata, and some jobs, like enforcing admin rights, cannot be done on the server. Design notes on what the trade-offs look like in practice.</p>
-    <h2><a href="/blog/webrtc-leak-explained/">WebRTC leaks explained: what a page can read and how to read your result</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it.</p>
-    <h2><a href="/blog/ipv6-leaks-explained/">IPv6 leaks explained: why a VPN can show one address and expose another</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>Why a connection with both IPv4 and IPv6 can leak around a VPN that tunnels only IPv4, how the IPv6 leak test decides, and the fixes in order of preference.</p>
-    <h2><a href="/blog/how-to-test-a-vpn-yourself/">How to test a VPN yourself without trusting the vendor</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>A short checklist for checking what a VPN does and does not hide: public IP, WebRTC, IPv6, DNS, a dropped connection, and what no test can tell you.</p>
-    <h2><a href="/blog/dns-leaks-explained/">DNS leaks explained: what they are and how to read a DNS leak test</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>What a DNS leak is, why a VPN can still send lookups to your internet provider, how our DNS check reaches its verdict, and what to do about each result.</p>
-    <h2><a href="/blog/how-password-breach-checks-work/">How a password breach check works without sending your password</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>How k-anonymity lets a breach check compare your password against billions of leaked ones by sending only a five-character hash prefix, what it reveals, and what it cannot tell you.</p>
-    <h2><a href="/blog/what-data-brokers-know-about-you/">What data brokers know about you, and how to find out</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>What data brokers are, how they collect information, why a VPN does not stop them, and the practical ways to check what they hold and ask for removal.</p>
-    <h2><a href="/blog/leak-test-sites-compared/">IP and DNS leak test sites compared: ipleak.net, BrowserLeaks, dnsleaktest and SecureInChat</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>A plain comparison of four leak test sites: what each one tests, what it says about data handling, and which to use for which job. Includes what ours cannot do.</p>
-    <h2><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it: what to remove from logs, emails and configs</a></h2>
-    <p class="meta">2026-10-20</p>
-    <p>What personal data and secrets hide in logs, emails and config files, what a redaction tool can and cannot find, and a short checklist before you paste text into a forum or an AI assistant.</p>
+  <main class="subpage-main" id="main">
 
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+      <a href="/">
+       Home
+      </a>
+      <span aria-hidden="true" class="breadcrumb-separator">
+       /
+      </span>
+      <span aria-current="page">
+       Guides
+      </span>
+     </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">
+        Practical guides for the moments privacy matters.
+       </h1>
+       <p class="page-lead">
+        Start from a real situation—an unfamiliar link, a phone number that is too exposed, a document to share with AI—and work through the choices in order.
+       </p>
+      </div>
+      <aside class="page-intro-note">
+       <h2>
+        How these guides work
+       </h2>
+       <p>
+        We separate official documentation, steps we have tested ourselves, and limits we have not independently verified. Use the source links on each article to check the original guidance.
+       </p>
+      </aside>
+     </div>
     </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell">
+     <div class="guide-feature-band">
+      <div class="guide-feature-copy">
+       <h2>
+        When your information is already out there
+       </h2>
+       <p>
+        Understand what data brokers collect, what a removal request can change, and what it cannot remove from the original source.
+       </p>
+       <div class="page-actions">
+        <a class="button button--primary" href="/blog/data-broker-opt-out-guide/">
+         Read the opt-out guide
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </div>
+      </div>
+      <div class="guide-feature-art">
+       <img alt="Separate pieces of information being linked into a data broker profile" height="360" src="/assets/illustrations/data-broker.svg" width="760"/>
+      </div>
+     </div>
+     <ul aria-label="Guide topics" class="guide-filter-list">
+      <li>
+       <a class="guide-filter" href="#network">Network &amp; connection · 6</a>
+      </li>
+      <li>
+       <a class="guide-filter" href="#ai">AI &amp; privacy · 6</a>
+      </li>
+      <li>
+       <a class="guide-filter" href="#accounts">Accounts &amp; phones · 6</a>
+      </li>
+      <li>
+       <a class="guide-filter" href="#tracking">Data &amp; tracking · 2</a>
+      </li>
+      <li>
+       <a class="guide-filter" href="#offline">Offline communication · 1</a>
+      </li>
+      <li>
+       <a class="guide-filter" href="#relay">Blind relay · 1</a>
+      </li>
+     </ul>
+     <div class="page-rule-heading">
+      <div>
+       <h2>
+        Latest guides
+       </h2>
+       <p>
+        Useful explanations, practical steps and clear limits.
+       </p>
+      </div>
+     </div>
+     <div class="guide-feed">
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Data &amp; tracking</span><span>2026-10-22</span></div><h2><a href="/blog/data-broker-opt-out-guide/">Data broker opt-out guide: the US, the UK and the EU, with official removal pages</a></h2><p>How to ask data brokers to delete or stop selling your information, by region. In the US: California's free DROP request, prescreened offer and mail opt-outs, and the removal pages of Spokeo, Acxiom and LexisNexis. In the UK: the open register opt-out and your rights under UK data protection law. In the EU: erasure and objection under the GDPR and how to complain. Every step links to the official page.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Accounts &amp; phones</span><span>2026-10-22</span></div><h2><a href="/blog/privacy-reset-checklist-iphone-android/">Privacy reset checklist for iPhone and Android: what each reset protects, what it costs, how to undo it</a></h2><p>Eight built-in resets and switches on iPhone and Android, from Safety Check and the tracking prompt to deleting the advertising ID and clearing saved networks. For each: what it protects, what you lose, how to undo it, and the system version it needs. Steps from Apple and Google documentation.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Accounts &amp; phones</span><span>2026-10-22</span></div><h2><a href="/blog/protect-your-phone-number-sim-swap/">Protect your phone number: SIM PIN, carrier locks and the SIM-swap scam</a></h2><p>Someone who takes over your phone number receives your calls and text codes. Five steps that make that harder: a SIM PIN, an account PIN with your carrier, the free number and SIM locks US carriers now offer, codes that do not travel by SMS, and messenger settings that keep your number private.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Accounts &amp; phones</span><span>2026-10-22</span></div><h2><a href="/blog/move-to-encrypted-email/">Moving to encrypted email: what it protects, what it does not, and how to switch without losing mail</a></h2><p>What Proton Mail and Tuta actually encrypt, why mail to ordinary addresses is still readable by the other provider, and a step-by-step move: import old mail, forward new mail, update accounts in order, keep the old address for a while.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Accounts &amp; phones</span><span>2026-10-22</span></div><h2><a href="/blog/email-aliases-hide-your-address/">Email aliases: give every site its own address and switch off the ones that leak</a></h2><p>An email alias forwards to your real inbox, so a shop or app never sees your address. How Apple Hide My Email and Firefox Relay work, what they cost, how to turn an alias off, and the accounts that should never use one.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Accounts &amp; phones</span><span>2026-10-22</span></div><h2><a href="/blog/check-app-permissions-android-iphone/">Check what your phone apps can access: a 15-minute permission review for Android and iPhone</a></h2><p>Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>AI &amp; privacy</span><span>2026-10-22</span></div><h2><a href="/blog/ai-apps-permissions-and-data/">AI apps on your phone: what they can access, and the settings that keep your chats out of training</a></h2><p>AI assistants ask for your microphone, camera, photos and sometimes control of your screen. Which permissions matter, and where ChatGPT and Gemini let you stop your chats being used for training, with what the settings do not do.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Offline communication</span><span>2026-10-21</span></div><h2><a href="/blog/encrypted-messaging-when-networks-fail/">When mobile networks go down: how to keep messaging securely without a network</a></h2><p>Mobile networks can fail for hours, as Spain saw twice in 2025. What still works without a network, what Briar and Meshtastic actually encrypt, and what to set up before you need it.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>AI &amp; privacy</span><span>2026-10-20</span></div><h2><a href="/blog/bank-statement-before-ai-upload/">Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses</a></h2><p>We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>AI &amp; privacy</span><span>2026-10-20</span></div><h2><a href="/blog/photo-before-ai-upload/">What a photo reveals when you upload it to an AI chatbot, and how to remove it first</a></h2><p>Phone photos usually carry hidden EXIF data such as GPS position, device and time. What it contains, what removal does and does not cover, and a step-by-step way to clean a photo in your browser before you upload it.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>AI &amp; privacy</span><span>2026-10-20</span></div><h2><a href="/blog/cv-before-ai-upload/">Before you paste your CV into an AI tool: what to take out</a></h2><p>A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to improve it, and what automatic redaction can and cannot do.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>AI &amp; privacy</span><span>2026-10-20</span></div><h2><a href="/blog/before-you-paste-into-ai-checklist/">A one-minute checklist before you paste anything into an AI assistant</a></h2><p>A short checklist of what to remove before pasting text, documents or photos into an AI assistant, with the free browser tools that help and the things no tool can find for you.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Network &amp; connection</span><span>2026-10-20</span></div><h2><a href="/blog/how-the-ip-leak-test-works/">How the IP leak test works, and what it cannot see</a></h2><p>The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Blind relay</span><span>2026-10-20</span></div><h2><a href="/blog/what-a-blind-relay-can-and-cannot-know/">What a blind relay can and cannot know</a></h2><p>A blind relay forwards encrypted messages it cannot read. That still leaves metadata, and some jobs, like enforcing admin rights, cannot be done on the server. Design notes on what the trade-offs look like in practice.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Network &amp; connection</span><span>2026-10-20</span></div><h2><a href="/blog/webrtc-leak-explained/">WebRTC leaks explained: what a page can read and how to read your result</a></h2><p>What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Network &amp; connection</span><span>2026-10-20</span></div><h2><a href="/blog/ipv6-leaks-explained/">IPv6 leaks explained: why a VPN can show one address and expose another</a></h2><p>Why a connection with both IPv4 and IPv6 can leak around a VPN that tunnels only IPv4, how the IPv6 leak test decides, and the fixes in order of preference.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Network &amp; connection</span><span>2026-10-20</span></div><h2><a href="/blog/how-to-test-a-vpn-yourself/">How to test a VPN yourself without trusting the vendor</a></h2><p>A short checklist for checking what a VPN does and does not hide: public IP, WebRTC, IPv6, DNS, a dropped connection, and what no test can tell you.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Network &amp; connection</span><span>2026-10-20</span></div><h2><a href="/blog/dns-leaks-explained/">DNS leaks explained: what they are and how to read a DNS leak test</a></h2><p>What a DNS leak is, why a VPN can still send lookups to your internet provider, how our DNS check reaches its verdict, and what to do about each result.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Accounts &amp; phones</span><span>2026-10-20</span></div><h2><a href="/blog/how-password-breach-checks-work/">How a password breach check works without sending your password</a></h2><p>How k-anonymity lets a breach check compare your password against billions of leaked ones by sending only a five-character hash prefix, what it reveals, and what it cannot tell you.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Data &amp; tracking</span><span>2026-10-20</span></div><h2><a href="/blog/what-data-brokers-know-about-you/">What data brokers know about you, and how to find out</a></h2><p>What data brokers are, how they collect information, why a VPN does not stop them, and the practical ways to check what they hold and ask for removal.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>Network &amp; connection</span><span>2026-10-20</span></div><h2><a href="/blog/leak-test-sites-compared/">IP and DNS leak test sites compared: ipleak.net, BrowserLeaks, dnsleaktest and SecureInChat</a></h2><p>A plain comparison of four leak test sites: what each one tests, what it says about data handling, and which to use for which job. Includes what ours cannot do.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>AI &amp; privacy</span><span>2026-10-20</span></div><h2><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it: what to remove from logs, emails and configs</a></h2><p>What personal data and secrets hide in logs, emails and config files, what a redaction tool can and cannot find, and a short checklist before you paste text into a forum or an AI assistant.</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>
+</div>
+<div class="tool-group">
+      <div class="page-rule-heading">
+       <div>
+        <h2>
+         Browse by situation
+        </h2>
+        <p>
+         Choose a topic, then use the guides and tools together.
+        </p>
+       </div>
+      </div>
+      <div class="info-content">
+       <section id="network">
+        <h3>
+         Network and connection
+        </h3>
+        <p>
+         Understand browser-visible connection signals, and read each test's limitations before changing a setting.
+        </p>
+       <ul><li><a href="/blog/how-the-ip-leak-test-works/">How the IP leak test works, and what it cannot see</a></li><li><a href="/blog/webrtc-leak-explained/">WebRTC leaks explained: what a page can read and how to read your result</a></li><li><a href="/blog/ipv6-leaks-explained/">IPv6 leaks explained: why a VPN can show one address and expose another</a></li><li><a href="/blog/how-to-test-a-vpn-yourself/">How to test a VPN yourself without trusting the vendor</a></li><li><a href="/blog/dns-leaks-explained/">DNS leaks explained: what they are and how to read a DNS leak test</a></li><li><a href="/blog/leak-test-sites-compared/">IP and DNS leak test sites compared: ipleak.net, BrowserLeaks, dnsleaktest and SecureInChat</a></li></ul></section>
+       <section id="ai">
+        <h3>
+         AI and privacy
+        </h3>
+        <p>
+         Check text and files before sharing them; automatic redaction finds patterns, not every personal detail.
+        </p>
+       <ul><li><a href="/blog/ai-apps-permissions-and-data/">AI apps on your phone: what they can access, and the settings that keep your chats out of training</a></li><li><a href="/blog/bank-statement-before-ai-upload/">Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses</a></li><li><a href="/blog/photo-before-ai-upload/">What a photo reveals when you upload it to an AI chatbot, and how to remove it first</a></li><li><a href="/blog/cv-before-ai-upload/">Before you paste your CV into an AI tool: what to take out</a></li><li><a href="/blog/before-you-paste-into-ai-checklist/">A one-minute checklist before you paste anything into an AI assistant</a></li><li><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it: what to remove from logs, emails and configs</a></li></ul></section>
+       <section id="accounts">
+        <h3>
+         Accounts and phones
+        </h3>
+        <p>
+         Work through recovery routes, SIM-related protections and app permissions.
+        </p>
+       <ul><li><a href="/blog/privacy-reset-checklist-iphone-android/">Privacy reset checklist for iPhone and Android: what each reset protects, what it costs, how to undo it</a></li><li><a href="/blog/protect-your-phone-number-sim-swap/">Protect your phone number: SIM PIN, carrier locks and the SIM-swap scam</a></li><li><a href="/blog/move-to-encrypted-email/">Moving to encrypted email: what it protects, what it does not, and how to switch without losing mail</a></li><li><a href="/blog/email-aliases-hide-your-address/">Email aliases: give every site its own address and switch off the ones that leak</a></li><li><a href="/blog/check-app-permissions-android-iphone/">Check what your phone apps can access: a 15-minute permission review for Android and iPhone</a></li><li><a href="/blog/how-password-breach-checks-work/">How a password breach check works without sending your password</a></li></ul></section>
+       <section id="tracking">
+        <h3>
+         Data and tracking
+        </h3>
+        <p>
+         Learn how profiles are built and what opting out of a source can accomplish.
+        </p>
+       <ul><li><a href="/blog/data-broker-opt-out-guide/">Data broker opt-out guide: the US, the UK and the EU, with official removal pages</a></li><li><a href="/blog/what-data-brokers-know-about-you/">What data brokers know about you, and how to find out</a></li></ul></section>
+       <section id="offline">
+        <h3>
+         Offline communication
+        </h3>
+        <p>
+         Prepare before connectivity is lost and distinguish what functions work locally.
+        </p>
+       <ul><li><a href="/blog/encrypted-messaging-when-networks-fail/">When mobile networks go down: how to keep messaging securely without a network</a></li></ul></section>
+       <section id="relay">
+        <h3>
+         Blind relay
+        </h3>
+        <p>
+         Understand the difference between message content and routing metadata.
+        </p>
+       <ul><li><a href="/blog/what-a-blind-relay-can-and-cannot-know/">What a blind relay can and cannot know</a></li></ul></section>
+      </div>
+     </div>
+    </div>
+   </section>
+  
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

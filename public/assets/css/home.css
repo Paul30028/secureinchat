@@ -140,6 +140,7 @@ p:last-child { margin-bottom: 0; }
 .section { padding-block: var(--space-12); }
 .skip-link { position: absolute; z-index: 100; top: var(--space-2); left: var(--space-2); padding: var(--space-3) var(--space-4); transform: translateY(-160%); border-radius: var(--radius-md); background: var(--color-brand); color: #FFFFFF; }
 .skip-link:focus { transform: translateY(0); }
+.skip-link:hover { color: #FFFFFF; } /* fix: a:hover made the skip link dark on dark (Claude, 2026-10-22) */
 
 /* Header */
 .site-header { position: relative; z-index: 10; background: var(--color-canvas); border-bottom: 1px solid rgb(23 61 50 / 8%); }

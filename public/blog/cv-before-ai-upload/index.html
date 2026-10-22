@@ -1,55 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>Before you paste your CV into an AI tool: what to take out | SecureInChat</title>
-  <meta name="description" content="A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to improve it, and what automatic redaction can and cannot do." />
-  <link rel="canonical" href="https://secureinchat.com/blog/cv-before-ai-upload/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="Before you paste your CV into an AI tool: what to take out | SecureInChat" />
-  <meta property="og:description" content="A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to improve it, and what automatic redaction can and cannot do." />
-  <meta property="og:url" content="https://secureinchat.com/blog/cv-before-ai-upload/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
+  <meta content="A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to improve it, and what automatic redaction can and cannot do." name="description"/>
+  <link href="https://secureinchat.com/blog/cv-before-ai-upload/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="Before you paste your CV into an AI tool: what to take out | SecureInChat" property="og:title"/>
+  <meta content="A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to improve it, and what automatic redaction can and cannot do." property="og:description"/>
+  <meta content="https://secureinchat.com/blog/cv-before-ai-upload/" property="og:url"/>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Before you paste your CV into an AI tool: what to take out","description":"A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to improve it, and what automatic redaction can and cannot do.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/cv-before-ai-upload/"}</script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/" aria-current="page">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a aria-current="page" href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <p class="meta"><a href="/blog/">Blog</a></p>
-    <h1>Before you paste your CV into an AI tool: what to take out</h1>
-    <p class="meta">By Paul · 2026-10-20</p>
-    <p>People paste CVs into AI assistants to get them rewritten or tailored. A CV is dense with personal data. We make no claim about what any provider does with it; check the current data-controls page of the service you use. Here is what you control.</p>
+  <main class="subpage-main" id="main">
+   <section class="article-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <a href="/blog/">Guides</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">Before you paste your CV into an AI tool: what to take out</span>
+      </nav>
+     <div class="article-hero-grid">
+      <header class="article-heading">
+       <h1 class="page-title">Before you paste your CV into an AI tool: what to take out</h1>
+       <p class="article-deck">A CV holds your name, contact details, addresses, dates and employer history. What to remove or generalise before you ask an AI assistant to improve it, and what automatic redaction can and cannot do.</p>
+       <div class="article-byline"><span>By Paul</span><span>2026-10-20</span></div>
+       
+      </header>
+      <figure class="article-cover">
+       <img alt="Text with sensitive details covered before it is shared" height="360" src="/assets/illustrations/text-redaction.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <div class="subpage-shell article-layout">
+    <article class="article-main">
+     <div class="article-body">
+<p>People paste CVs into AI assistants to get them rewritten or tailored. A CV is dense with personal data. We make no claim about what any provider does with it; check the current data-controls page of the service you use. Here is what you control.</p>
 
-    <h2>What a CV usually contains</h2>
+    <h2 id="what-a-cv-usually-contains">What a CV usually contains</h2>
     <ul>
       <li>Full name, email, phone number, home address and links to profiles.</li>
       <li>Employers, job titles and dates, which together can identify you even without your name.</li>
       <li>Sometimes date of birth, nationality, photo, and references with their contact details.</li>
     </ul>
 
-    <h2>What to take out first</h2>
+    <h2 id="what-to-take-out-first">What to take out first</h2>
     <ol>
       <li>Run the text through our <a href="/tools/text-redactor/">text redactor</a> in your browser. It replaces emails and phone numbers with placeholders. Nothing is uploaded.</li>
       <li>Replace your name and address with [NAME] and [ADDRESS] yourself. A pattern tool does not recognise names or street addresses.</li>
@@ -57,20 +146,91 @@
       <li>Leave out references' contact details and anything you would not post publicly.</li>
     </ol>
 
-    <h2>Put the details back afterwards</h2>
+    <h2 id="put-the-details-back-afterwards">Put the details back afterwards</h2>
     <p>The redactor gives equal values the same placeholder, such as [EMAIL_1], so the improved text keeps its structure. When the assistant returns the text, put your real details back by hand.</p>
 
-    <h2>Limits</h2>
+    <h2 id="limits">Limits</h2>
     <p>Redaction finds formats, not meaning, so read the result. Rewriting a CV without personal data does not stop the content itself from being yours: unusual projects or employers can still point to you.</p>
-    </div>
+     </div>
+     <section class="related-content" aria-labelledby="related-h">
+      <h2 id="related-h">Keep going</h2>
+      <ul class="related-content-list">
+       <li><a href="/checkup/">Start the privacy checkup</a></li>
+       <li><a href="/tools/">Browse the free privacy tools</a></li>
+       <li><a href="/principles/">See how SecureInChat tools handle data</a></li>
+      </ul>
+     </section>
+    </article>
+    <aside aria-label="On this page" class="article-toc">
+     <h2>On this page</h2>
+     <ol>
+      <li><a href="#what-a-cv-usually-contains">What a CV usually contains</a></li>
+      <li><a href="#what-to-take-out-first">What to take out first</a></li>
+      <li><a href="#put-the-details-back-afterwards">Put the details back afterwards</a></li>
+      <li><a href="#limits">Limits</a></li>
+     </ol>
+    </aside>
+   </div>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

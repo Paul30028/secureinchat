@@ -1,68 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>Communication privacy | SecureInChat</title>
-  <meta name="description" content="Messages only the people in the conversation can read. Many messaging services can read message content or keep detailed records of who talks to whom and w" />
-  <link rel="canonical" href="https://secureinchat.com/protect/communication/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="Communication privacy | SecureInChat" />
-  <meta property="og:description" content="Messages only the people in the conversation can read. Many messaging services can read message content or keep detailed records of who talks to whom and w" />
-  <meta property="og:url" content="https://secureinchat.com/protect/communication/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/" aria-current="page">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <meta content="Messages only the people in the conversation can read. Many messaging services can read message content or keep detailed records of who talks to whom and w" name="description"/>
+  <link href="https://secureinchat.com/protect/communication/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="Communication privacy | SecureInChat" property="og:title"/>
+  <meta content="Messages only the people in the conversation can read. Many messaging services can read message content or keep detailed records of who talks to whom and w" property="og:description"/>
+  <meta content="https://secureinchat.com/protect/communication/" property="og:url"/>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <p class="meta"><a href="/protect/">Protect</a> · Layer 04 of 06</p>
-    <h1>Communication</h1>
-    <p class="lead">Messages only the people in the conversation can read.</p>
-    <figure class="diagram"><img src="/assets/diagrams/communication.svg" width="640" height="320" alt="Two phones exchange locked packets through a relay. The relay, inside the dashed box, only passes sealed packets along."><figcaption>Two phones exchange locked packets through a relay. The relay, inside the dashed box, only passes sealed packets along.</figcaption></figure>
-    <h2>The risk</h2>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <a href="/protect/">Protect</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">Communication privacy</span>
+      </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">Communication</h1>
+       <p class="page-lead">Messages only the people in the conversation can read.</p>
+       
+      </div>
+      <figure class="editorial-figure">
+       <img alt="Sender encrypts locally, an intermediate relay forwards encrypted payloads, and recipient decrypts locally" height="340" src="/assets/illustrations/relay-architecture.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell info-layout">
+     <nav aria-label="On this page" class="info-nav">
+      <h2>On this page</h2>
+      <ul>
+       <li><a href="#the-risk">The risk</a></li>
+       <li><a href="#use-it-today">Use it today</a></li>
+       <li><a href="#coming-next">Coming next</a></li>
+      </ul>
+     </nav>
+     <article class="info-content">
+<h2 id="the-risk">The risk</h2>
     <p>Many messaging services can read message content or keep detailed records of who talks to whom and when.</p>
-    <h2>Use it today</h2>
+    <h2 id="use-it-today">Use it today</h2>
     <ul class="items">
-      <li><a href="/messaging/">SecureInChat messenger: design, status and live relay test</a> <span class="tag tag--lim">In development</span></li>
-      <li><a href="/blog/what-a-blind-relay-can-and-cannot-know/">What a blind relay can and cannot know</a> <span class="tag tag--doc">Guide</span></li>
+      <li><a href="/messaging/">SecureInChat messenger: design, status and live relay test</a> <span class="state-label state-label--network">In development</span></li>
+      <li><a href="/blog/what-a-blind-relay-can-and-cannot-know/">What a blind relay can and cannot know</a> <span class="state-label state-label--info">Guide</span></li>
     </ul>
-    <h2>Coming next</h2>
+    <h2 id="coming-next">Coming next</h2>
     <ul class="items">
-      <li>SecureInChat clients (in development): end-to-end encryption with keys that never leave your device <span class="tag tag--untested">Not built or not tested yet</span></li>
-      <li>An offline mode for SecureInChat that works over Wi-Fi Direct or Bluetooth without a network (research stage) <span class="tag tag--untested">Not built or not tested yet</span></li>
+      <li>SecureInChat clients (in development): end-to-end encryption with keys that never leave your device <span class="state-label state-label--neutral">Not built or not tested yet</span></li>
+      <li>An offline mode for SecureInChat that works over Wi-Fi Direct or Bluetooth without a network (research stage) <span class="state-label state-label--neutral">Not built or not tested yet</span></li>
     </ul>
     <p>Every page on this site follows our <a href="/mission/">mission and commitments</a>. What the labels mean: <a href="/principles/#labels">status labels</a>.</p>
-
+     </article>
     </div>
+   </section>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

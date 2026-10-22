@@ -1,48 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>What data brokers know about you, and how to find out | SecureInChat</title>
-  <meta name="description" content="What data brokers are, how they collect information, why a VPN does not stop them, and the practical ways to check what they hold and ask for removal." />
-  <link rel="canonical" href="https://secureinchat.com/blog/what-data-brokers-know-about-you/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="What data brokers know about you, and how to find out | SecureInChat" />
-  <meta property="og:description" content="What data brokers are, how they collect information, why a VPN does not stop them, and the practical ways to check what they hold and ask for removal." />
-  <meta property="og:url" content="https://secureinchat.com/blog/what-data-brokers-know-about-you/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
+  <meta content="What data brokers are, how they collect information, why a VPN does not stop them, and the practical ways to check what they hold and ask for removal." name="description"/>
+  <link href="https://secureinchat.com/blog/what-data-brokers-know-about-you/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="What data brokers know about you, and how to find out | SecureInChat" property="og:title"/>
+  <meta content="What data brokers are, how they collect information, why a VPN does not stop them, and the practical ways to check what they hold and ask for removal." property="og:description"/>
+  <meta content="https://secureinchat.com/blog/what-data-brokers-know-about-you/" property="og:url"/>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"What data brokers know about you, and how to find out","description":"What data brokers are, how they collect information, why a VPN does not stop them, and the practical ways to check what they hold and ask for removal.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/what-data-brokers-know-about-you/"}</script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/" aria-current="page">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a aria-current="page" href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <p class="meta"><a href="/blog/">Blog</a></p>
-    <h1>What data brokers know about you, and how to find out</h1>
-    <p class="meta">By Paul · 2026-10-20</p>
-    <p>A data broker is a company that collects personal information from many sources, combines it into profiles and sells or licenses it. Most people never dealt with them directly, which is why it is hard to know what they hold. A VPN or a private browser does not change that, because brokers mostly work with information that was already collected elsewhere.</p>
+  <main class="subpage-main" id="main">
+   <section class="article-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <a href="/blog/">Guides</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">What data brokers know about you, and how to find out</span>
+      </nav>
+     <div class="article-hero-grid">
+      <header class="article-heading">
+       <h1 class="page-title">What data brokers know about you, and how to find out</h1>
+       <p class="article-deck">What data brokers are, how they collect information, why a VPN does not stop them, and the practical ways to check what they hold and ask for removal.</p>
+       <div class="article-byline"><span>By Paul</span><span>2026-10-20</span></div>
+       
+      </header>
+      <figure class="article-cover">
+       <img alt="Separate pieces of information being linked into a data broker profile" height="360" src="/assets/illustrations/data-broker.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <div class="subpage-shell article-layout">
+    <article class="article-main">
+     <div class="article-body">
+<p>A data broker is a company that collects personal information from many sources, combines it into profiles and sells or licenses it. Most people never dealt with them directly, which is why it is hard to know what they hold. A VPN or a private browser does not change that, because brokers mostly work with information that was already collected elsewhere.</p>
 
-    <h2>Where the information comes from</h2>
+    <h2 id="where-the-information-comes-from">Where the information comes from</h2>
     <ul>
       <li><strong>Public records:</strong> property records, court records, voter files in some countries, business registrations.</li>
       <li><strong>Commercial sources:</strong> purchase and loyalty data, warranty cards, surveys and sign-up forms that were sold on.</li>
@@ -50,13 +139,13 @@
       <li><strong>Other brokers:</strong> profiles are resold and merged, so one source feeds many sites.</li>
     </ul>
 
-    <h2>What a profile can contain</h2>
+    <h2 id="what-a-profile-can-contain">What a profile can contain</h2>
     <p>It varies by broker and country. Typical entries are name, past and current addresses, phone numbers, email addresses, age range, relatives and sometimes estimated income or interests. The accuracy is uneven, and mistakes are common.</p>
 
-    <h2>Why a VPN does not help</h2>
+    <h2 id="why-a-vpn-does-not-help">Why a VPN does not help</h2>
     <p>A VPN hides your network address from the sites you visit and from your internet provider. It does not remove records that already exist, and it does not stop a person who signs up with their real name and phone number. Our <a href="/tools/browser-fingerprint-test/">fingerprint test</a> shows the other half: even without an address, a browser can be recognised from its own characteristics.</p>
 
-    <h2>How to find out what is held about you</h2>
+    <h2 id="how-to-find-out-what-is-held-about-you">How to find out what is held about you</h2>
     <p>For removal pages and request rights in the US, UK and EU, see the <a href="/blog/data-broker-opt-out-guide/">data broker opt-out guide</a>.</p>
     <ol>
       <li>Search your name, with your city, on a search engine and on the main people-search sites in your country. Note which ones list you.</li>
@@ -64,25 +153,97 @@
       <li>Where a privacy law applies to you, such as the GDPR in the EU and UK or state laws in parts of the US, you can send an access or deletion request. The right to do so depends on where you live.</li>
     </ol>
 
-    <h2>Removal in practice</h2>
+    <h2 id="removal-in-practice">Removal in practice</h2>
     <p>Each broker has its own process, some need an email or a form, and profiles can reappear because the underlying sources still hold the data. Doing it by hand is free but takes time. Paid removal services repeat the requests on your behalf. They can save effort, but they cannot remove data from every source, and none of them makes a person anonymous. Treat them as upkeep, not a guarantee.</p>
 
-    <h2>What reduces the problem at the source</h2>
+    <h2 id="what-reduces-the-problem-at-the-source">What reduces the problem at the source</h2>
     <ul>
       <li>Give out a real phone number and address less often. Use an alias email for sign-ups.</li>
       <li>Remove location data from photos before you share them with our <a href="/tools/photo-metadata-remover/">photo metadata remover</a>.</li>
       <li>Use a unique password for each account and check old ones with the <a href="/tools/password-checker/">password checker</a>, so a breach in one place does not feed a profile elsewhere.</li>
     </ul>
-
-    </div>
+     </div>
+     <section class="related-content" aria-labelledby="related-h">
+      <h2 id="related-h">Keep going</h2>
+      <ul class="related-content-list">
+       <li><a href="/checkup/">Start the privacy checkup</a></li>
+       <li><a href="/tools/">Browse the free privacy tools</a></li>
+       <li><a href="/principles/">See how SecureInChat tools handle data</a></li>
+      </ul>
+     </section>
+    </article>
+    <aside aria-label="On this page" class="article-toc">
+     <h2>On this page</h2>
+     <ol>
+      <li><a href="#where-the-information-comes-from">Where the information comes from</a></li>
+      <li><a href="#what-a-profile-can-contain">What a profile can contain</a></li>
+      <li><a href="#why-a-vpn-does-not-help">Why a VPN does not help</a></li>
+      <li><a href="#how-to-find-out-what-is-held-about-you">How to find out what is held about you</a></li>
+      <li><a href="#removal-in-practice">Removal in practice</a></li>
+      <li><a href="#what-reduces-the-problem-at-the-source">What reduces the problem at the source</a></li>
+     </ol>
+    </aside>
+   </div>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

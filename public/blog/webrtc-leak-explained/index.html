@@ -1,52 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>WebRTC leaks explained: what a page can read and how to read your result | SecureInChat</title>
-  <meta name="description" content="What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it." />
-  <link rel="canonical" href="https://secureinchat.com/blog/webrtc-leak-explained/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="WebRTC leaks explained: what a page can read and how to read your result | SecureInChat" />
-  <meta property="og:description" content="What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it." />
-  <meta property="og:url" content="https://secureinchat.com/blog/webrtc-leak-explained/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
+  <meta content="What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it." name="description"/>
+  <link href="https://secureinchat.com/blog/webrtc-leak-explained/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="WebRTC leaks explained: what a page can read and how to read your result | SecureInChat" property="og:title"/>
+  <meta content="What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it." property="og:description"/>
+  <meta content="https://secureinchat.com/blog/webrtc-leak-explained/" property="og:url"/>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"WebRTC leaks explained: what a page can read and how to read your result","description":"What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/webrtc-leak-explained/"}</script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/" aria-current="page">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a aria-current="page" href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <p class="meta"><a href="/blog/">Blog</a></p>
-    <h1>WebRTC leaks explained: what a page can read and how to read your result</h1>
-    <p class="meta">By Paul · 2026-10-20</p>
-    <p>WebRTC is the browser feature behind video calls and some file-sharing sites. It is also the most common reason a VPN user sees a second address in a leak test. This post explains what the <a href="/tools/webrtc-leak-test/">WebRTC leak test</a> reports and what to do with each result.</p>
+  <main class="subpage-main" id="main">
+   <section class="article-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <a href="/blog/">Guides</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">WebRTC leaks explained: what a page can read and how to read your result</span>
+      </nav>
+     <div class="article-hero-grid">
+      <header class="article-heading">
+       <h1 class="page-title">WebRTC leaks explained: what a page can read and how to read your result</h1>
+       <p class="article-deck">What a WebRTC leak is, why a VPN can miss it, how to tell a real leak from a harmless local address, and the browser-by-browser options for closing it.</p>
+       <div class="article-byline"><span>By Paul</span><span>2026-10-20</span></div>
+       
+      </header>
+      <figure class="article-cover">
+       <img alt="Separate data flows for encrypted messaging and privacy tools that use outside lookups" height="400" src="/assets/illustrations/data-flows.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <div class="subpage-shell article-layout">
+    <article class="article-main">
+     <div class="article-body">
+<p>WebRTC is the browser feature behind video calls and some file-sharing sites. It is also the most common reason a VPN user sees a second address in a leak test. This post explains what the <a href="/tools/webrtc-leak-test/">WebRTC leak test</a> reports and what to do with each result.</p>
 
-    <h2>What actually happens</h2>
+    <h2 id="what-actually-happens">What actually happens</h2>
     <p>To connect two browsers directly, each side needs to know which addresses it can be reached on. The browser gathers these candidates, including the address a STUN server sees. Any web page can start this process through JavaScript, and no permission prompt appears for the address lookup itself.</p>
     <p>A VPN client usually routes ordinary web traffic through its tunnel. If the STUN request, which is UDP, leaves through your normal connection instead, the page learns an address that is not your VPN exit.</p>
 
-    <h2>Reading the result</h2>
+    <h2 id="reading-the-result">Reading the result</h2>
     <ul>
       <li><strong>The address matches your public IP.</strong> Nothing leaks beyond what every website already sees.</li>
       <li><strong>A different public address, with the VPN box ticked.</strong> This is a leak. A page can read your real network without asking.</li>
@@ -55,22 +144,92 @@
       <li><strong>No addresses.</strong> Either WebRTC is off, or UDP to the STUN server is blocked. It means the question could not be asked, not that you are certain to be safe.</li>
     </ul>
 
-    <h2>Closing a leak</h2>
+    <h2 id="closing-a-leak">Closing a leak</h2>
     <p>The options differ by browser. Firefox lets you turn WebRTC off in <code>about:config</code> by setting <code>media.peerconnection.enabled</code> to false, at the cost of browser video calls. Chrome and Edge have no built-in switch, but an extension can restrict WebRTC to the default public interface. Brave has a WebRTC IP handling policy in its privacy settings. A VPN client with a kill switch that blocks all traffic outside the tunnel, UDP included, can close the leak for every browser at once.</p>
     <p>After any change, run the test again. The result is the only proof that matters, because settings and extensions change between versions.</p>
 
-    <h2>What this test cannot tell you</h2>
+    <h2 id="what-this-test-cannot-tell-you">What this test cannot tell you</h2>
     <p>It runs from one browser on one network at one moment. A different browser, or the same device on a different network, can behave differently. It does not test DNS. The <a href="/tools/ip-leak-test/">full IP leak test</a> does, using a DNS server we run. For the rest of the checks, use the <a href="/tools/ip-leak-test/">full IP leak test</a>, and read <a href="/blog/how-the-ip-leak-test-works/">how it works</a> for what each check can and cannot see.</p>
-
-    </div>
+     </div>
+     <section class="related-content" aria-labelledby="related-h">
+      <h2 id="related-h">Keep going</h2>
+      <ul class="related-content-list">
+       <li><a href="/checkup/">Start the privacy checkup</a></li>
+       <li><a href="/tools/">Browse the free privacy tools</a></li>
+       <li><a href="/principles/">See how SecureInChat tools handle data</a></li>
+      </ul>
+     </section>
+    </article>
+    <aside aria-label="On this page" class="article-toc">
+     <h2>On this page</h2>
+     <ol>
+      <li><a href="#what-actually-happens">What actually happens</a></li>
+      <li><a href="#reading-the-result">Reading the result</a></li>
+      <li><a href="#closing-a-leak">Closing a leak</a></li>
+      <li><a href="#what-this-test-cannot-tell-you">What this test cannot tell you</a></li>
+     </ol>
+    </aside>
+   </div>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

@@ -1,48 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses | SecureInChat</title>
-  <meta name="description" content="We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant." />
-  <link rel="canonical" href="https://secureinchat.com/blog/bank-statement-before-ai-upload/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses | SecureInChat" />
-  <meta property="og:description" content="We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant." />
-  <meta property="og:url" content="https://secureinchat.com/blog/bank-statement-before-ai-upload/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
+  <meta content="We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant." name="description"/>
+  <link href="https://secureinchat.com/blog/bank-statement-before-ai-upload/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses | SecureInChat" property="og:title"/>
+  <meta content="We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant." property="og:description"/>
+  <meta content="https://secureinchat.com/blog/bank-statement-before-ai-upload/" property="og:url"/>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses","description":"We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/bank-statement-before-ai-upload/"}</script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/" aria-current="page">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a aria-current="page" href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <p class="meta"><a href="/blog/">Blog</a></p>
-    <h1>Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses</h1>
-    <p class="meta">By Paul · 2026-10-20</p>
-    <p>Many people ask an AI assistant to summarise a bank or card statement. Before you do, decide what the assistant needs to see. This page does not claim what any AI provider does with uploads: policies differ and change, so read the provider's current data-controls page. It covers the part you control, which is what you hand over.</p>
+  <main class="subpage-main" id="main">
+   <section class="article-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <a href="/blog/">Guides</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses</span>
+      </nav>
+     <div class="article-hero-grid">
+      <header class="article-heading">
+       <h1 class="page-title">Before you upload a bank statement to an AI chatbot: what to remove, and what our redactor misses</h1>
+       <p class="article-deck">We ran our text redactor on a made-up bank statement. It caught the card, email and phone number, and missed the name, address and account number. What to remove by hand before you paste or upload financial text to an AI assistant.</p>
+       <div class="article-byline"><span>By Paul</span><span>2026-10-20</span></div>
+       
+      </header>
+      <figure class="article-cover">
+       <img alt="Text with sensitive details covered before it is shared" height="360" src="/assets/illustrations/text-redaction.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <div class="subpage-shell article-layout">
+    <article class="article-main">
+     <div class="article-body">
+<p>Many people ask an AI assistant to summarise a bank or card statement. Before you do, decide what the assistant needs to see. This page does not claim what any AI provider does with uploads: policies differ and change, so read the provider's current data-controls page. It covers the part you control, which is what you hand over.</p>
 
-    <h2>What we tested</h2>
+    <h2 id="what-we-tested">What we tested</h2>
     <p>We wrote a fake statement and ran it through our <a href="/tools/text-redactor/">text redactor</a>, which works in your browser and uploads nothing. The made-up input had a name, a street address, an account number, a sort code, an IBAN, a card number, an email, a phone number and two transactions.</p>
     <ul>
       <li><strong>Found and replaced:</strong> the card number (after a checksum check), the email address and the phone number. After this test we also added IBAN detection, with the standard checksum, so a valid IBAN is now replaced too.</li>
@@ -50,7 +139,7 @@
     </ul>
     <p>That is the honest limit of any automatic redaction: it finds formats, not meaning. Read the result yourself.</p>
 
-    <h2>Remove by hand before you share</h2>
+    <h2 id="remove-by-hand-before-you-share">Remove by hand before you share</h2>
     <ul>
       <li>Your name and address, and the names of people you pay or receive from.</li>
       <li>Account numbers, sort codes, routing numbers and IBANs. Card numbers, even partial ones.</li>
@@ -58,24 +147,95 @@
       <li>Employer names in payroll lines, and unusual merchant names that point to where you live or work.</li>
     </ul>
 
-    <h2>A safer way to ask</h2>
+    <h2 id="a-safer-way-to-ask">A safer way to ask</h2>
     <ol>
       <li>Copy only the lines you need, not the whole document. A PDF cannot be pasted into our tool as a file; copy the text out of it.</li>
       <li>Run the text through the redactor, then read the output and replace names and addresses yourself, for example with [NAME] and [ADDRESS].</li>
       <li>Ask the question about the pattern, such as "which of these are subscriptions", rather than uploading the original.</li>
     </ol>
 
-    <h2>What this does not do</h2>
+    <h2 id="what-this-does-not-do">What this does not do</h2>
     <p>It does not make an upload safe, and it does not remove information that can be worked out from context. If a statement is truly sensitive, think twice about sharing it at all. Related: <a href="/blog/redact-text-before-you-share-it/">redact text before you share it</a>.</p>
-    </div>
+     </div>
+     <section class="related-content" aria-labelledby="related-h">
+      <h2 id="related-h">Keep going</h2>
+      <ul class="related-content-list">
+       <li><a href="/checkup/">Start the privacy checkup</a></li>
+       <li><a href="/tools/">Browse the free privacy tools</a></li>
+       <li><a href="/principles/">See how SecureInChat tools handle data</a></li>
+      </ul>
+     </section>
+    </article>
+    <aside aria-label="On this page" class="article-toc">
+     <h2>On this page</h2>
+     <ol>
+      <li><a href="#what-we-tested">What we tested</a></li>
+      <li><a href="#remove-by-hand-before-you-share">Remove by hand before you share</a></li>
+      <li><a href="#a-safer-way-to-ask">A safer way to ask</a></li>
+      <li><a href="#what-this-does-not-do">What this does not do</a></li>
+     </ol>
+    </aside>
+   </div>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

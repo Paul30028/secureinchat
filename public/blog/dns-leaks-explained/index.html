@@ -1,51 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>DNS leaks explained: what they are and how to read a DNS leak test | SecureInChat</title>
-  <meta name="description" content="What a DNS leak is, why a VPN can still send lookups to your internet provider, how our DNS check reaches its verdict, and what to do about each result." />
-  <link rel="canonical" href="https://secureinchat.com/blog/dns-leaks-explained/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="DNS leaks explained: what they are and how to read a DNS leak test | SecureInChat" />
-  <meta property="og:description" content="What a DNS leak is, why a VPN can still send lookups to your internet provider, how our DNS check reaches its verdict, and what to do about each result." />
-  <meta property="og:url" content="https://secureinchat.com/blog/dns-leaks-explained/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
+  <meta content="What a DNS leak is, why a VPN can still send lookups to your internet provider, how our DNS check reaches its verdict, and what to do about each result." name="description"/>
+  <link href="https://secureinchat.com/blog/dns-leaks-explained/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="DNS leaks explained: what they are and how to read a DNS leak test | SecureInChat" property="og:title"/>
+  <meta content="What a DNS leak is, why a VPN can still send lookups to your internet provider, how our DNS check reaches its verdict, and what to do about each result." property="og:description"/>
+  <meta content="https://secureinchat.com/blog/dns-leaks-explained/" property="og:url"/>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"DNS leaks explained: what they are and how to read a DNS leak test","description":"What a DNS leak is, why a VPN can still send lookups to your internet provider, how our DNS check reaches its verdict, and what to do about each result.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/dns-leaks-explained/"}</script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/" aria-current="page">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a aria-current="page" href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <p class="meta"><a href="/blog/">Blog</a></p>
-    <h1>DNS leaks explained: what they are and how to read a DNS leak test</h1>
-    <p class="meta">By Paul · 2026-10-20</p>
-    <p>Every time you open a site, your device first asks a DNS resolver to turn the name into an address. That resolver sees which sites you visit even if everything after it is encrypted. A DNS leak is when those questions go to a resolver you did not mean to use, usually your internet provider's, while you think a VPN is covering you. Our <a href="/tools/ip-leak-test/">IP leak test</a> checks for it.</p>
+  <main class="subpage-main" id="main">
+   <section class="article-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <a href="/blog/">Guides</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">DNS leaks explained: what they are and how to read a DNS leak test</span>
+      </nav>
+     <div class="article-hero-grid">
+      <header class="article-heading">
+       <h1 class="page-title">DNS leaks explained: what they are and how to read a DNS leak test</h1>
+       <p class="article-deck">What a DNS leak is, why a VPN can still send lookups to your internet provider, how our DNS check reaches its verdict, and what to do about each result.</p>
+       <div class="article-byline"><span>By Paul</span><span>2026-10-20</span></div>
+       
+      </header>
+      <figure class="article-cover">
+       <img alt="Separate data flows for encrypted messaging and privacy tools that use outside lookups" height="400" src="/assets/illustrations/data-flows.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <div class="subpage-shell article-layout">
+    <article class="article-main">
+     <div class="article-body">
+<p>Every time you open a site, your device first asks a DNS resolver to turn the name into an address. That resolver sees which sites you visit even if everything after it is encrypted. A DNS leak is when those questions go to a resolver you did not mean to use, usually your internet provider's, while you think a VPN is covering you. Our <a href="/tools/ip-leak-test/">IP leak test</a> checks for it.</p>
 
-    <h2>How the check works</h2>
+    <h2 id="how-the-check-works">How the check works</h2>
     <p>The page asks your system to look up six random names under a domain we run. We run the DNS server for that domain, so we see which resolver asks for them, and only that. The page reads that list back and looks up whose network each resolver is on. The names are unique to each run, so nothing is answered from a cache. The resolver address is kept in memory for ten minutes and is not logged. A small counter per resolver, used only to limit abuse of the usage count, stays in memory for up to an hour.</p>
 
-    <h2>Reading the result</h2>
+    <h2 id="reading-the-result">Reading the result</h2>
     <ul>
       <li><strong>Pass:</strong> every resolver is on the same network as your exit address, so lookups are answered inside your VPN or proxy network.</li>
       <li><strong>Fail:</strong> a resolver that answered when you ran the test without a VPN also answers with it on. For this the page remembers the first run in your tab, in memory only.</li>
@@ -53,29 +142,100 @@
       <li><strong>Warning:</strong> a resolver on a different network answered, no lookups reached us, or the network of a resolver could not be identified. A different network is normal if it belongs to your VPN provider.</li>
     </ul>
 
-    <h2>Why it is not a plain pass or fail</h2>
+    <h2 id="why-it-is-not-a-plain-pass-or-fail">Why it is not a plain pass or fail</h2>
     <p>The test cannot know who your internet provider is. Judging a resolver as a leak only because it sits on another network than your exit would flag many VPNs that use their own resolvers elsewhere. So the clear failure case needs a comparison: the same resolver with and without the VPN.</p>
 
-    <h2>Browsers that use DNS over HTTPS</h2>
+    <h2 id="browsers-that-use-dns-over-https">Browsers that use DNS over HTTPS</h2>
     <p>Some browsers send lookups to a provider such as Cloudflare or Google over HTTPS, bypassing the system resolver. That is not a bug in the test. The provider's resolver is what is actually answering, and it is what you will see.</p>
 
-    <h2>Fixing a leak</h2>
+    <h2 id="fixing-a-leak">Fixing a leak</h2>
     <ol>
       <li>Turn on DNS leak protection in your VPN client and do not override the DNS servers it sets.</li>
       <li>Use the kill switch so lookups cannot leave outside the tunnel when it drops.</li>
       <li>Check the browser's secure DNS setting, which can send lookups around the VPN to a provider you did not choose.</li>
     </ol>
     <p>Run the test again after each change, with the VPN box unticked first and ticked second. For the other routes around a tunnel, see <a href="/blog/webrtc-leak-explained/">WebRTC</a> and <a href="/blog/ipv6-leaks-explained/">IPv6</a>.</p>
-
-    </div>
+     </div>
+     <section class="related-content" aria-labelledby="related-h">
+      <h2 id="related-h">Keep going</h2>
+      <ul class="related-content-list">
+       <li><a href="/checkup/">Start the privacy checkup</a></li>
+       <li><a href="/tools/">Browse the free privacy tools</a></li>
+       <li><a href="/principles/">See how SecureInChat tools handle data</a></li>
+      </ul>
+     </section>
+    </article>
+    <aside aria-label="On this page" class="article-toc">
+     <h2>On this page</h2>
+     <ol>
+      <li><a href="#how-the-check-works">How the check works</a></li>
+      <li><a href="#reading-the-result">Reading the result</a></li>
+      <li><a href="#why-it-is-not-a-plain-pass-or-fail">Why it is not a plain pass or fail</a></li>
+      <li><a href="#browsers-that-use-dns-over-https">Browsers that use DNS over HTTPS</a></li>
+      <li><a href="#fixing-a-leak">Fixing a leak</a></li>
+     </ol>
+    </aside>
+   </div>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
+<title id="title">Account sign-in and recovery paths</title>
+<desc id="desc">An account is connected to multiple sign-in and recovery methods, showing why one weak route can affect the whole account.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g fill="none" stroke="#A7B7AB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M185 91 298 151M185 270 298 209M462 151 575 91M462 209 575 270" stroke-dasharray="4 7"/>
+ <path d="M190 91h60M190 270h60M510 91h60M510 270h60" stroke="#B58A3A"/>
+</g>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <rect x="48" y="57" width="143" height="70" rx="12" fill="#FFFFFF"/><rect x="63" y="72" width="37" height="28" rx="4" fill="#E7E9E2"/><path d="M70 82h23M70 89h16"/><path d="M111 78h61M111 89h45M111 100h52" stroke="#A7B7AB"/>
+ <rect x="48" y="235" width="143" height="70" rx="12" fill="#FFFFFF"/><rect x="63" y="250" width="37" height="28" rx="4" fill="#F8EBD0" stroke="#B58A3A"/><path d="m71 262 7 6 14-16" fill="none" stroke="#79551B"/><path d="M111 256h61M111 267h45M111 278h52" stroke="#A7B7AB"/>
+ <rect x="298" y="112" width="164" height="136" rx="18" fill="#173D32" stroke="#173D32"/><circle cx="380" cy="153" r="17" fill="none" stroke="#E5C989"/><path d="M350 202c2-21 12-31 30-31s28 10 30 31Z" fill="none" stroke="#E5C989"/><rect x="358" y="211" width="44" height="22" rx="5" fill="#173D32" stroke="#E5C989"/><path d="M368 211v-7a12 12 0 0 1 24 0v7" fill="none" stroke="#E5C989"/>
+ <rect x="569" y="57" width="143" height="70" rx="12" fill="#FFFFFF"/><rect x="583" y="72" width="36" height="39" rx="4" fill="#E7E9E2"/><rect x="591" y="78" width="20" height="19" rx="2" fill="none"/><path d="M597 101h8"/><path d="M631 78h65M631 89h47M631 100h59" stroke="#A7B7AB"/>
+ <rect x="569" y="235" width="143" height="70" rx="12" fill="#FFFFFF"/><rect x="583" y="250" width="36" height="39" rx="4" fill="#E7E9E2"/><path d="M590 261h22M590 268h22M590 275h14"/><path d="M631 256h65M631 267h47M631 278h59" stroke="#A7B7AB"/>
+</g>
+</svg>

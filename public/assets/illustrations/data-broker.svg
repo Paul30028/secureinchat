@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
+<title id="title">Separate data sources linked into a profile</title>
+<desc id="desc">Information from separate sources may be linked into a broker profile. An opt-out request can remove a listing from one source but may not erase the original information.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+ <rect x="48" y="53" width="162" height="65" rx="10" fill="#FFFFFF"/><circle cx="72" cy="75" r="9" fill="#E7E9E2"/><path d="M60 100c1-9 5-14 12-14s11 5 12 14Z" fill="none"/><path d="M96 70h91M96 82h72M96 94h82" stroke="#A7B7AB"/>
+ <rect x="48" y="147" width="162" height="65" rx="10" fill="#FFFFFF"/><rect x="60" y="160" width="24" height="36" rx="3" fill="#E7E9E2"/><path d="M65 168h14M65 175h14M65 182h10"/><path d="M96 164h91M96 176h72M96 188h82" stroke="#A7B7AB"/>
+ <rect x="48" y="241" width="162" height="65" rx="10" fill="#FFFFFF"/><circle cx="73" cy="266" r="11" fill="#F8EBD0" stroke="#B58A3A"/><path d="M64 282h19M96 258h91M96 270h72M96 282h82" stroke="#A7B7AB"/>
+ <rect x="302" y="110" width="154" height="141" rx="16" fill="#E7E9E2"/><circle cx="379" cy="151" r="20" fill="#FBFAF6"/><circle cx="379" cy="146" r="7" fill="none"/><path d="M365 165c1-8 6-12 14-12s13 4 14 12Z" fill="none"/><path d="M335 190h88M335 202h70M335 214h80" stroke="#A7B7AB"/>
+ <rect x="548" y="83" width="164" height="189" rx="12" fill="#173D32" stroke="#173D32"/><rect x="566" y="101" width="128" height="30" rx="5" fill="#214B3E" stroke="#668276"/><circle cx="581" cy="116" r="5" fill="#E5C989" stroke="none"/><path d="M594 113h82M594 120h62" stroke="#D1DDD6" stroke-width="2"/><path d="M568 152h124M568 170h100M568 188h115M568 206h93M568 224h120M568 242h83" stroke="#668276" stroke-width="4"/>
+</g>
+<g fill="none" stroke="#B58A3A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M218 85h36v80h31m-9-10 9 10-9 10"/><path d="M218 179h62m-9-10 9 10-9 10"/><path d="M218 273h36v-80h31m-9-10 9 10-9 10"/><path d="M470 179h60m-10-10 10 10-10 10"/></g>
+</svg>

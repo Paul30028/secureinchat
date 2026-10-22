@@ -1,48 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>Check what your phone apps can access: a 15-minute permission review for Android and iPhone | SecureInChat</title>
-  <meta name="description" content="Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation." />
-  <link rel="canonical" href="https://secureinchat.com/blog/check-app-permissions-android-iphone/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="Check what your phone apps can access: a 15-minute permission review for Android and iPhone | SecureInChat" />
-  <meta property="og:description" content="Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation." />
-  <meta property="og:url" content="https://secureinchat.com/blog/check-app-permissions-android-iphone/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
+  <meta content="Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation." name="description"/>
+  <link href="https://secureinchat.com/blog/check-app-permissions-android-iphone/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="Check what your phone apps can access: a 15-minute permission review for Android and iPhone | SecureInChat" property="og:title"/>
+  <meta content="Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation." property="og:description"/>
+  <meta content="https://secureinchat.com/blog/check-app-permissions-android-iphone/" property="og:url"/>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Check what your phone apps can access: a 15-minute permission review for Android and iPhone","description":"Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation.","datePublished":"2026-10-22","dateModified":"2026-10-22","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/check-app-permissions-android-iphone/"}</script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/" aria-current="page">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a aria-current="page" href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <p class="meta"><a href="/blog/">Blog</a></p>
-    <h1>Check what your phone apps can access: a 15-minute permission review for Android and iPhone</h1>
-    <p class="meta">By Paul · 2026-10-22</p>
-    <p>Most apps ask for access once, and you agree without thinking. Months later the app still has it. This review takes about fifteen minutes. Every step below comes from Google's or Apple's own documentation, linked at each section. Menu names can differ slightly between phone makers and system versions.</p>
+  <main class="subpage-main" id="main">
+   <section class="article-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <a href="/blog/">Guides</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">Check what your phone apps can access: a 15-minute permission review for Android and iPhone</span>
+      </nav>
+     <div class="article-hero-grid">
+      <header class="article-heading">
+       <h1 class="page-title">Check what your phone apps can access: a 15-minute permission review for Android and iPhone</h1>
+       <p class="article-deck">Where to see which apps can use your location, camera, microphone, contacts and photos, how to cut them back, and the built-in reports that show what apps actually used. Steps from Google and Apple documentation.</p>
+       <div class="article-byline"><span>By Paul</span><span>2026-10-22</span></div>
+       
+      </header>
+      <figure class="article-cover">
+       <img alt="A phone number moved to another SIM card without the owner" height="360" src="/assets/illustrations/sim-swap.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <div class="subpage-shell article-layout">
+    <article class="article-main">
+     <div class="article-body">
+<p>Most apps ask for access once, and you agree without thinking. Months later the app still has it. This review takes about fifteen minutes. Every step below comes from Google's or Apple's own documentation, linked at each section. Menu names can differ slightly between phone makers and system versions.</p>
 
-    <h2>What to look for</h2>
+    <h2 id="what-to-look-for">What to look for</h2>
     <ul>
       <li><strong>Location set to "All the time" or "Always".</strong> The app can know where you are even when you are not using it.</li>
       <li><strong>Camera and microphone.</strong> Keep these only for apps whose main job needs them.</li>
@@ -51,7 +140,7 @@
       <li><strong>Apps you no longer use.</strong> Delete them, or let the system remove their permissions.</li>
     </ul>
 
-    <h2>Android</h2>
+    <h2 id="android">Android</h2>
     <h3>Review one app</h3>
     <ol>
       <li>Open Settings and tap Apps. Tap the app (tap See all apps if it is not listed).</li>
@@ -71,7 +160,7 @@
     </ul>
     <p>Sources: <a href="https://support.google.com/android/answer/9431959" rel="noopener">Change app permissions on your Android phone</a>, <a href="https://support.google.com/android/answer/13530434" rel="noopener">Manage permissions from the privacy dashboard</a>, <a href="https://developer.android.com/about/versions/11/privacy/permissions" rel="noopener">Android 11 permission updates</a>, <a href="https://developer.android.com/about/versions/12/behavior-changes-all" rel="noopener">Android 12 behaviour changes</a>, <a href="https://developer.android.com/develop/sensors-and-location/location/permissions" rel="noopener">Location permissions</a>.</p>
 
-    <h2>iPhone</h2>
+    <h2 id="iphone">iPhone</h2>
     <h3>Location</h3>
     <p>Settings, then Privacy &amp; Security, then Location Services. Each app is listed with its setting. On iOS 13 and later an app can be allowed once, for one session. A blue pill in the status bar means an app is using your location in the background.</p>
     <h3>Camera, microphone, contacts, photos and more</h3>
@@ -82,7 +171,7 @@
     <p>Safety Check (iOS 16 and later): Settings, then Privacy &amp; Security, then Safety Check. "Manage Sharing &amp; Access" lets you review and stop sharing with specific people and apps. "Emergency Reset" stops sharing with all people and apps at once and lets you review your devices, emergency contacts and Apple Account password. If you think someone is watching your phone, read our <a href="/start/being-tracked/">being tracked</a> page before you change anything.</p>
     <p>Sources: <a href="https://support.apple.com/en-us/102515" rel="noopener">About privacy and Location Services</a>, <a href="https://support.apple.com/en-us/102188" rel="noopener">About App Privacy Report</a>, <a href="https://support.apple.com/guide/personal-safety/use-safety-check-ips2aad835e1/web" rel="noopener">Use Safety Check</a>.</p>
 
-    <h2>A simple rule for each permission</h2>
+    <h2 id="a-simple-rule-for-each-permission">A simple rule for each permission</h2>
     <table>
       <thead><tr><th>Permission</th><th>Keep it when</th><th>Remove it when</th></tr></thead>
       <tbody>
@@ -94,18 +183,89 @@
       </tbody>
     </table>
 
-    <h2>What this guide does not cover yet</h2>
+    <h2 id="what-this-guide-does-not-cover-yet">What this guide does not cover yet</h2>
     <p>Android's "Special app access" settings (display over other apps, accessibility, device admin) carry more power than ordinary permissions; our <a href="/blog/ai-apps-permissions-and-data/">AI apps guide</a> covers accessibility. We are also building an Android app that lists risky permissions on your phone without sending anything anywhere. It is not released yet.</p>
-
-    </div>
+     </div>
+     <section class="related-content" aria-labelledby="related-h">
+      <h2 id="related-h">Keep going</h2>
+      <ul class="related-content-list">
+       <li><a href="/checkup/">Start the privacy checkup</a></li>
+       <li><a href="/tools/">Browse the free privacy tools</a></li>
+       <li><a href="/principles/">See how SecureInChat tools handle data</a></li>
+      </ul>
+     </section>
+    </article>
+    <aside aria-label="On this page" class="article-toc">
+     <h2>On this page</h2>
+     <ol>
+      <li><a href="#what-to-look-for">What to look for</a></li>
+      <li><a href="#android">Android</a></li>
+      <li><a href="#iphone">iPhone</a></li>
+      <li><a href="#a-simple-rule-for-each-permission">A simple rule for each permission</a></li>
+      <li><a href="#what-this-guide-does-not-cover-yet">What this guide does not cover yet</a></li>
+     </ol>
+    </aside>
+   </div>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

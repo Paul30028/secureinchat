@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>
+   隐私原则 | SecureInChat
+  </title>
+  <meta content="逐项查看工具的数据处理方式、外部请求与已知局限。" name="description"/>
+  <link href="/assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">
+   跳至正文
+  </a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat 首页" class="brand" href="/zh/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       更实用的工具，更私密的互联网
+      </span>
+     </span>
+    </a>
+    <nav aria-label="主导航" class="desktop-navigation">
+     <a href="/zh/tools/">
+      隐私工具
+     </a>
+     <a href="/zh/blog/">
+      使用指南
+     </a>
+     <a href="/zh/checkup/">
+      隐私体检
+     </a>
+     <a href="/messaging/">
+      加密通信
+     </a>
+     <a aria-current="page" href="/mission/">
+      我们的使命
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/tools/" lang="en">
+      EN
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/zh/checkup/">
+      开始体检
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="打开导航菜单">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="移动端导航">
+      <a href="/zh/tools/">
+       隐私工具
+      </a>
+      <a href="/zh/blog/">
+       使用指南
+      </a>
+      <a href="/zh/checkup/">
+       隐私体检
+      </a>
+      <a href="/messaging/">
+       加密通信
+      </a>
+      <a href="/mission/">
+       我们的使命
+      </a>
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑导航" class="breadcrumbs">
+      <a href="/zh/">
+       首页
+      </a>
+      <span aria-hidden="true" class="breadcrumb-separator">
+       /
+      </span>
+      <span aria-current="page">
+       原则
+      </span>
+     </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">
+        哪些信息留在这里，哪些会离开？
+       </h1>
+       <p class="page-lead">
+        按工具说明浏览器内处理的内容、会联系哪些外部服务，以及每项检查不能证明什么。
+       </p>
+      </div>
+      <aside class="page-intro-note">
+       <h2>
+        我们的基本做法
+       </h2>
+       <p>
+        工具页面不使用 Cookie、用户账号或分析脚本。需要联网的检查会说明接收方与用途。
+       </p>
+      </aside>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell info-layout">
+     <nav aria-label="本页目录" class="info-nav">
+      <h2>
+       本页目录
+      </h2>
+      <ul>
+       <li>
+        <a href="#principles">
+         我们遵循的规则
+        </a>
+       </li>
+       <li>
+        <a href="#flows">
+         不同的数据路径
+        </a>
+       </li>
+       <li>
+        <a href="#labels">
+         状态标签
+        </a>
+       </li>
+       <li>
+        <a href="#by-tool">
+         逐项查看工具
+        </a>
+       </li>
+       <li>
+        <a href="#limits">
+         我们无法隐藏什么
+        </a>
+       </li>
+      </ul>
+     </nav>
+     <article class="info-content">
+      <section id="principles">
+       <h2>
+        我们遵循的规则
+       </h2>
+       <ul>
+        <li>
+         支持本地处理的工具会在浏览器中处理文件、照片或输入内容，不上传这些材料。
+        </li>
+        <li>
+         工具页面不使用 Cookie、用户账号、广告脚本或分析脚本。
+        </li>
+        <li>
+         测试结果不会作为个人报告储存在服务器端。工具运行时可能会在内存中暂存临时值，具体行为应由各工具页面说明。
+        </li>
+        <li>
+         工具所联系的外部服务需要逐项列明；页面安全策略会阻止清单之外的目标。
+        </li>
+       </ul>
+      </section>
+      <section id="flows">
+       <h2>
+        两条不同的数据路径
+       </h2>
+       <p>
+        聊天中继与工具查询是不同系统。下图用于说明区别，并不是一条从设备持续连接到所有服务的请求链。
+       </p>
+       <figure class="editorial-figure info-illustration">
+        <img alt="加密通信通过中继的路径，与部分工具向外部查询服务发起请求的路径分别显示" height="400" src="/assets/illustrations/data-flows.svg" width="760"/>
+        <figcaption>
+         通信使用独立的中继路径；部分诊断工具会单独发起查询。
+        </figcaption>
+       </figure>
+       <h3>
+        通信中继
+       </h3>
+       <p>
+        客户端的设计是在发送设备上加密内容，向中继发送密文，再由接收设备解密。这说明的是设计目标，不代表已经通过独立安全审计或获得认证。
+       </p>
+       <h3>
+        工具查询
+       </h3>
+       <p>
+        有些连接检查需要外部服务观察公网可见的信息。接收方可能看到请求 IP 等元数据。工具页面应准确说明联系哪项服务、发送了什么数据。
+       </p>
+      </section>
+      <section id="labels">
+       <h2>
+        状态标签
+       </h2>
+       <dl class="status-definition-list">
+        <dt>
+         已测试
+        </dt>
+        <dd>
+         我们实际运行过工具，并说明测试时间与方法；页面在设备端运行，并由页面所列的自动化测试覆盖。
+        </dd>
+        <dt>
+         有文档
+        </dt>
+        <dd>
+         信息来自项目或服务商的官方文档，并附有来源链接；我们尚未独立测试相关声明。
+        </dd>
+        <dt>
+         未测试
+        </dt>
+        <dd>
+         功能仍在规划中或尚未核对。不要把它当成已经验证的行为。
+        </dd>
+        <dt>
+         局限
+        </dt>
+        <dd>
+         工具在明确范围内工作，但存在已知限制或使用外部服务；页面应说明具体限制。
+        </dd>
+        <dt>
+         联盟链接
+        </dt>
+        <dd>
+         链接可能产生佣金，但佣金不会改变测试结论或推荐顺序。
+        </dd>
+       </dl>
+      </section>
+      <section id="by-tool">
+       <h2>
+        逐项查看工具
+       </h2>
+       <div class="tool-row-list">
+        <div class="tool-row">
+         <div>
+          <h3>
+           可疑链接检查
+          </h3>
+          <p>
+           网址在当前页面本地分析，不会打开链接，也不会发送到网址信誉查询服务。
+          </p>
+         </div>
+         <span class="state-label">
+          本地处理
+         </span>
+        </div>
+        <div class="tool-row">
+         <div>
+          <h3>
+           照片元数据清理
+          </h3>
+          <p>
+           检查或移除受支持字段时，照片与元数据保留在浏览器中。
+          </p>
+         </div>
+         <span class="state-label">
+          本地处理
+         </span>
+        </div>
+        <div class="tool-row">
+         <div>
+          <h3>
+           文本脱敏
+          </h3>
+          <p>
+           粘贴文本在页面内处理。模式匹配可能漏掉姓名、地址与不常见格式。
+          </p>
+         </div>
+         <span class="state-label">
+          本地处理
+         </span>
+        </div>
+        <div class="tool-row">
+         <div>
+          <h3>
+           浏览器隐私报告
+          </h3>
+          <p>
+           浏览器检查在本地执行；连接相关检查使用网络诊断所说明的外部请求。
+          </p>
+         </div>
+         <span class="state-label state-label--network">
+          部分检查联网
+         </span>
+        </div>
+        <div class="tool-row">
+         <div>
+          <h3>
+           密码检查
+          </h3>
+          <p>
+           页面应说明密码泄露检查方式，以及由密码派生的哪些数据会被发送。
+          </p>
+         </div>
+         <span class="state-label state-label--network">
+          有限查询
+         </span>
+        </div>
+       </div>
+       <p>
+        本节应与已部署代码及服务配置保持一致，完整列出各工具实际联系的接收方与请求内容。
+       </p>
+      </section>
+      <section id="limits">
+       <h2>
+        我们无法隐藏什么
+       </h2>
+       <ul>
+        <li>
+         网站托管服务与 CDN（包括 Cloudflare）会收到提供网页所必需的网络元数据，例如请求 IP 地址。
+        </li>
+        <li>
+         工具联系的外部服务可以看到它接收到的请求信息。
+        </li>
+        <li>
+         结果会受到浏览器与网络环境影响。检测通过并不证明匿名或完整防护。
+        </li>
+       </ul>
+       <p>
+        你也可以打开浏览器开发者工具中的 Network 面板，对照本页清单检查各工具发出的请求。
+       </p>
+      </section>
+     </article>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat 首页" class="brand brand--footer" href="/zh/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        更实用的工具，更私密的互联网
+       </span>
+      </span>
+     </a>
+     <nav aria-label="页脚导航" class="footer-links">
+      <a href="/mission/">
+       使命
+      </a>
+      <a href="/principles/">
+       原则
+      </a>
+      <a href="/privacy/">
+       隐私
+      </a>
+      <a href="/principles/#labels">
+       状态标签
+      </a>
+      <a href="/sponsor/">
+       赞助与联盟披露
+      </a>
+      <a href="/contact/">
+       联系
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat。保留所有权利。
+     </p>
+     <p>
+      重视隐私，明确说明局限。
+     </p>
+    </div>
+   </div>
+  </footer>
+ </body>
+</html>
+

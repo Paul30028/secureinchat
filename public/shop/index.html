@@ -1,47 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>Shop | SecureInChat</title>
-  <meta name="description" content="Privacy gear and software we can explain and you can check yourself. Every product page shows what it protects against, our test evidence, limits and any commission." />
-  <link rel="canonical" href="https://secureinchat.com/shop/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="Shop | SecureInChat" />
-  <meta property="og:description" content="Privacy gear and software we can explain and you can check yourself. Every product page shows what it protects against, our test evidence, limits and any commission." />
-  <meta property="og:url" content="https://secureinchat.com/shop/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <meta content="Privacy gear and software we can explain and you can check yourself. Every product page shows what it protects against, our test evidence, limits and any commission." name="description"/>
+  <meta name="robots" content="noindex" />
+  <link href="https://secureinchat.com/shop/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="Shop | SecureInChat" property="og:title"/>
+  <meta content="Privacy gear and software we can explain and you can check yourself. Every product page shows what it protects against, our test evidence, limits and any commission." property="og:description"/>
+  <meta content="https://secureinchat.com/shop/" property="og:url"/>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <h1>Shop</h1>
-    <p class="meta">Last updated: 2026-10-21</p>
-    <p class="lead">Privacy gear and software we can explain, and that you can check yourself.</p>
-    <p><strong>There are no products yet.</strong> We will not list anything until we can fill in every section below honestly. Until then this page is not in the menu or the sitemap.</p>
-    <h2>What every product page shows</h2>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">Shop</span>
+      </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">Shop</h1>
+       <p class="page-lead">Privacy gear and software we can explain, and that you can check yourself.</p>
+       <div class="article-byline"><span>Last updated: 2026-10-21</span></div>
+      </div>
+      <figure class="editorial-figure">
+       <img alt="Six connected layers of personal privacy, from physical surroundings to information shared with AI" height="360" src="/assets/illustrations/privacy-layers.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell info-layout">
+     <nav aria-label="On this page" class="info-nav">
+      <h2>On this page</h2>
+      <ul>
+       <li><a href="#what-every-product-page-shows">What every product page shows</a></li>
+       <li><a href="#rules">Rules</a></li>
+       <li><a href="#what-we-do-not-sell">What we do not sell</a></li>
+      </ul>
+     </nav>
+     <article class="info-content">
+<p><strong>There are no products yet.</strong> We will not list anything until we can fill in every section below honestly. Until then this page is not in the menu or the sitemap.</p>
+    <h2 id="what-every-product-page-shows">What every product page shows</h2>
     <table>
       <thead><tr><th>Section</th><th>What it contains</th></tr></thead>
       <tbody>
@@ -54,13 +148,13 @@
         <tr><td>Do we earn a commission?</td><td>Yes or no, and from whom. Shown next to the buy link as well.</td></tr>
       </tbody>
     </table>
-    <h2>Rules</h2>
+    <h2 id="rules">Rules</h2>
     <ul>
-      <li>A product without a test date and method is labelled <span class="tag tag--untested">Untested</span>. One that relies on the maker's claims is labelled <span class="tag tag--doc">Documented</span> and links to them.</li>
-      <li>If we earn a commission, the <span class="tag tag--aff">Affiliate</span> label sits next to the buy link, not only at the bottom of the page.</li>
+      <li>A product without a test date and method is labelled <span class="state-label state-label--neutral">Untested</span>. One that relies on the maker's claims is labelled <span class="state-label state-label--info">Documented</span> and links to them.</li>
+      <li>If we earn a commission, the <span class="state-label state-label--neutral">Affiliate</span> label sits next to the buy link, not only at the bottom of the page.</li>
       <li>The shop pages set no cookies and add no tracking. Checkout, when there is one, is run by a third party and described in the <a href="/privacy/">privacy policy</a> before it goes live.</li>
     </ul>
-    <h2>What we do not sell</h2>
+    <h2 id="what-we-do-not-sell">What we do not sell</h2>
     <table>
       <thead><tr><th>Category</th><th>Why</th></tr></thead>
       <tbody>
@@ -70,16 +164,69 @@
       </tbody>
     </table>
     <p>The full rules are on the <a href="/principles/">principles</a> and <a href="/sponsor/">sponsorship and affiliate disclosure</a> pages.</p>
-
+     </article>
     </div>
+   </section>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

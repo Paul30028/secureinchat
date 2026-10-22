@@ -1,43 +1,718 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy tools that run in your browser | SecureInChat</title>
-<meta name="theme-color" content="#F4F6F3">
-<meta name="description" content="Free privacy and security checks that run in your browser. Nothing stored, no signup.">
-<link rel="canonical" href="https://secureinchat.com/tools/">
-<link rel="stylesheet" href="/tools/assets/style.css">
-</head>
-<body>
-<header class="top">
-  <div class="wrap top__in">
-    <a class="brand" href="/">SecureInChat</a>
-    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
-  </div>
-</header>
-<main class="wrap hero">
-  <h1>Privacy tools</h1>
-  <p class="lede">Checks that run in your browser. They store nothing and need no signup.</p>
-  <ul class="tools-list">
-    <li><a href="/tools/ip-leak-test/"><strong>IP leak test</strong><span>See your public IP, WebRTC, IPv6, time zone and header leaks while a VPN is on.</span></a></li>
-    <li><a href="/tools/webrtc-leak-test/"><strong>WebRTC leak test</strong><span>Check whether a web page can read an address that goes around your VPN or proxy.</span></a></li>
-    <li><a href="/tools/ipv6-leak-test/"><strong>IPv6 leak test</strong><span>Check whether your IPv6 traffic leaves outside your VPN tunnel.</span></a></li>
-    <li><a href="/tools/privacy-report/"><strong>Browser privacy report</strong><span>One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser gives away, then lists what to look at first.</span></a></li>
-    <li><a href="/tools/link-checker/"><strong>Link checker</strong><span>Remove tracking from a link and see the warning signs of phishing before you click. The link is never opened or sent.</span></a></li>
-    <li><a href="/tools/photo-metadata-remover/"><strong>Photo metadata remover</strong><span>See the location, device and dates hidden in a photo and save a clean copy.</span></a></li>
-    <li><a href="/tools/browser-fingerprint-test/"><strong>Browser fingerprint test</strong><span>See what your browser exposes to trackers and whether your defences work.</span></a></li>
-    <li><a href="/tools/account-checkup/"><strong>Account security checkup</strong><span>Eight checks for your most important account, with official Google, Apple and Microsoft steps. Your answers are never sent or saved.</span></a></li>
-    <li><a href="/tools/password-checker/"><strong>Password checker and generator</strong><span>Estimate strength, check known breaches without sending the password, and generate a new one.</span></a></li>
-    <li><a href="/tools/text-redactor/"><strong>Text redactor</strong><span>Replace emails, IP addresses, phone numbers and keys in text with placeholders before you share it.</span></a></li>
-    <li><a href="/tools/site-health-check/"><strong>Website health check</strong><span>Check a public site for HTTPS, redirects, security headers, search basics, robots.txt and a sitemap, then copy the report.</span></a></li>
-  </ul>
-</main>
-<footer class="foot">
-  <div class="wrap foot__in">
-    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
-    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
-  </div>
-</footer>
-</body>
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>Privacy tools | SecureInChat</title>
+  <meta content="Free privacy tools: see what each check does, what stays in your browser and when an outside service is involved." name="description"/>
+  <link href="https://secureinchat.com/tools/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="Privacy tools | SecureInChat" property="og:title"/>
+  <meta content="Free privacy tools: see what each check does, what stays in your browser and when an outside service is involved." property="og:description"/>
+  <meta content="https://secureinchat.com/tools/" property="og:url"/>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a aria-current="page" href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+      <a href="/">
+       Home
+      </a>
+      <span aria-hidden="true" class="breadcrumb-separator">
+       /
+      </span>
+      <span aria-current="page">
+       Privacy tools
+      </span>
+     </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">
+        Small tools for a more private internet.
+       </h1>
+       <p class="page-lead">
+        Choose a tool by the question you want answered. Each page explains what it checks, what stays in your browser, and when another service is involved.
+       </p>
+       <div class="page-actions">
+        <a class="button button--primary" href="/checkup/">
+         Start with the privacy checkup
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+        <a class="button button--secondary" href="/principles/">
+         How we handle data
+        </a>
+       </div>
+      </div>
+      <figure class="editorial-figure">
+       <img alt="Six connected layers of personal privacy, from physical surroundings to information shared with AI" height="360" src="/assets/illustrations/privacy-layers.svg" width="760"/>
+       <figcaption>
+        Privacy is layered. Start with the step that matters to you today.
+       </figcaption>
+      </figure>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell">
+     <div class="tool-feature">
+      <div class="tool-feature-copy">
+       <h2>
+        Not sure where to begin?
+       </h2>
+       <p>
+        The browser privacy report checks 12 items and prioritises what to look at first. Some connection checks use external lookup services; the report explains what leaves your browser.
+       </p>
+       <ul class="state-list">
+        <li>
+         <span class="state-label state-label--network">
+          Some network lookups
+         </span>
+        </li>
+        <li>
+         <span class="state-label state-label--neutral">
+          12 checks
+         </span>
+        </li>
+       </ul>
+       <div class="page-actions">
+        <a class="button button--primary" href="/tools/privacy-report/">
+         Run the report
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </div>
+      </div>
+      <figure class="tool-feature-visual diagram-frame">
+       <img alt="Separate diagram of encrypted messaging and privacy-tool lookup requests" height="400" src="/assets/illustrations/data-flows.svg" width="760"/>
+       <figcaption class="diagram-caption">
+        <strong>
+         Two distinct paths.
+        </strong>
+        <span>
+         The messaging relay and selected tool lookups are not one continuous request.
+        </span>
+       </figcaption>
+      </figure>
+     </div>
+     <div class="tool-group">
+      <div class="tool-group-heading">
+       <span class="tool-group-symbol">
+        <svg aria-hidden="true" class="tool-group-symbol-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+         <circle cx="16" cy="7" r="3">
+         </circle>
+         <circle cx="7" cy="24" r="3">
+         </circle>
+         <circle cx="25" cy="24" r="3">
+         </circle>
+         <path d="M14 10 9 21M18 10l5 11M10 24h12">
+         </path>
+        </svg>
+       </span>
+       <div>
+        <h2>
+         Connection and browser signals
+        </h2>
+        <p>
+         Checks for what a browser or network connection may reveal. Review the limits before relying on a result.
+        </p>
+       </div>
+      </div>
+      <div class="tool-catalogue">
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <circle cx="16" cy="7" r="3">
+           </circle>
+           <circle cx="7" cy="24" r="3">
+           </circle>
+           <circle cx="25" cy="24" r="3">
+           </circle>
+           <path d="M14 10 9 21M18 10l5 11M10 24h12">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           WebRTC leak test
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label state-label--network">
+             Network lookup
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         See whether browser real-time connections expose an address outside your expected network path.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/webrtc-leak-test/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <circle cx="16" cy="16" r="12">
+           </circle>
+           <ellipse cx="16" cy="16" rx="5.5" ry="12">
+           </ellipse>
+           <path d="M4 12h24M4 20h24">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           IPv6 leak test
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label state-label--network">
+             Network lookup
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Check whether IPv6 connectivity is visible through the available network path.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/ipv6-leak-test/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <circle cx="16" cy="7" r="3">
+           </circle>
+           <circle cx="7" cy="24" r="3">
+           </circle>
+           <circle cx="25" cy="24" r="3">
+           </circle>
+           <path d="M14 10 9 21M18 10l5 11M10 24h12">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           IP leak test
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label state-label--network">
+             Network lookup
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Review public IP, network and browser signals. This check contacts outside lookup services.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/ip-leak-test/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M16 4c-7 0-12 5-12 12M16 8c-5 0-8 3-8 8 0 5-1 8-3 10M16 12c-3 0-4 2-4 5 0 5-1 8-3 11M20 5c4 1 7 5 7 10 0 5-1 9-3 12M21 12c2 1 3 3 3 6 0 3 0 5-1 7">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           Browser fingerprint test
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             Local processing
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Inspect browser signals that may make your setup easier to distinguish.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/browser-fingerprint-test/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+      </div>
+     </div>
+     <div class="tool-group">
+      <div class="tool-group-heading">
+       <span class="tool-group-symbol">
+        <svg aria-hidden="true" class="tool-group-symbol-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+         <path d="M16 3 28 8v9c0 7-5 11-12 14C9 28 4 24 4 17V8Z">
+         </path>
+         <path d="m10 16 4 4 8-9">
+         </path>
+        </svg>
+       </span>
+       <div>
+        <h2>
+         Everyday privacy tasks
+        </h2>
+        <p>
+         Inspect links and files, reduce sensitive information, and review account settings.
+        </p>
+       </div>
+      </div>
+      <div class="tool-catalogue">
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M13 19 9.5 22.5a6 6 0 0 1-8.5-8.5l5.5-5.5a6 6 0 0 1 8.5 0M19 13l3.5-3.5a6 6 0 0 1 8.5 8.5l-5.5 5.5a6 6 0 0 1-8.5 0M11 21l10-10">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           Link Checker
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             Local processing
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Inspect a URL for tracking parameters and structural warning signs without opening or sending it.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/link-checker/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <rect height="24" rx="3" width="26" x="3" y="4">
+           </rect>
+           <circle cx="11" cy="11" r="2.5">
+           </circle>
+           <path d="m5 25 8-8 5 5 4-4 5 7">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           Photo Metadata Remover
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             Local processing
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Inspect supported metadata and save a cleaned copy of an image on your device.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/photo-metadata-remover/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M7 3h14l5 5v21H7Z">
+           </path>
+           <path d="M21 3v6h5M11 14h11M11 19h11M11 24h7">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           Text Redactor
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             Local processing
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Replace common sensitive patterns in pasted text before you share it.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/text-redactor/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <rect height="27" rx="3" width="16" x="8" y="2.5">
+           </rect>
+           <path d="M13 6h6M14 25h4">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           Phone Number Privacy Checkup
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             Local checklist
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Review six protective settings without entering or sending your phone number.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/phone-checkup/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <circle cx="11" cy="17" r="7">
+           </circle>
+           <path d="m16 12 11-9M22 7l4 4M19 10l4 4">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           Password Checker
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label state-label--network">
+             Limited lookup
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Estimate strength and check a known-breach corpus using the documented lookup method.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/password-checker/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <circle cx="16" cy="10" r="5">
+           </circle>
+           <path d="M5 28c0-6 4-9 11-9s11 3 11 9Z">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           Account Security Checkup
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             Local checklist
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Review common account-security settings with a checklist that stays in the page.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/account-checkup/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M16 3 28 8v9c0 7-5 11-12 14C9 28 4 24 4 17V8Z">
+           </path>
+           <path d="m10 16 4 4 8-9">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           Website Health Check
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label state-label--network">
+             Site request
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Review public HTTPS, redirect, security-header and basic site-discovery signals.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/site-health-check/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+      </div>
+     </div>
+     <div class="tool-group">
+      <div class="page-rule-heading">
+       <div>
+        <h2>
+         Understand the data flow
+        </h2>
+        <p>
+         “Local processing” means the relevant work happens in your browser. Some tests still need an external request to observe a public-facing value.
+        </p>
+       </div>
+       <a class="text-link" href="/principles/">
+        Read every tool's data flow →
+       </a>
+      </div>
+      <div class="data-handling">
+       <div class="data-handling-row">
+        <span class="data-handling-mark">
+         1
+        </span>
+        <div>
+         <strong>
+          Read the label
+         </strong>
+         <p>
+          Local processing, network lookup and site request describe different behaviours.
+         </p>
+        </div>
+       </div>
+       <div class="data-handling-row">
+        <span class="data-handling-mark">
+         2
+        </span>
+        <div>
+         <strong>
+          Check the limitation
+         </strong>
+         <p>
+          A clean result is not proof of anonymity, and a URL structure check cannot prove that a destination is safe.
+         </p>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section>
+  
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
+  </footer>
+ </body>
 </html>

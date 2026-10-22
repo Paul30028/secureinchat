@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" role="img" aria-labelledby="title desc">
+<title id="title">Two separate data paths</title>
+<desc id="desc">The upper path shows encrypted messaging between two devices through a relay. The lower path shows a privacy tool making a distinct lookup request to an external service.</desc>
+<rect x="14" y="14" width="732" height="372" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<rect x="34" y="36" width="692" height="150" rx="18" fill="#F1F2EC" stroke="#D2D8D0"/>
+<rect x="34" y="212" width="692" height="150" rx="18" fill="#FFFFFF" stroke="#D2D8D0"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="73" y="78" width="88" height="55" rx="5" fill="#FFFFFF"/><path d="M91 145h52M117 133v12M84 91h64M84 101h40M84 112h31" fill="none"/>
+  <path d="M185 106h105m-11-9 11 9-11 9" fill="none" stroke="#B58A3A"/>
+  <rect x="310" y="65" width="138" height="82" rx="12" fill="#173D32" stroke="#173D32"/><path d="m332 90 47-17 47 17-47 18Z" fill="none" stroke="#E5C989"/><path d="m332 103 47 18 47-18M332 116l47 18 47-18" fill="none" stroke="#E5C989"/><rect x="371" y="90" width="30" height="26" rx="5" fill="#173D32" stroke="#E5C989"/><path d="M378 90v-7a8 8 0 0 1 16 0v7" fill="none" stroke="#E5C989"/>
+  <path d="M468 106h105m-11-9 11 9-11 9" fill="none" stroke="#B58A3A"/>
+  <rect x="592" y="78" width="88" height="55" rx="5" fill="#FFFFFF"/><path d="M610 145h52M636 133v12M603 91h64M603 101h40M603 112h31" fill="none"/>
+  <rect x="73" y="253" width="88" height="55" rx="5" fill="#FFFFFF"/><path d="M91 320h52M117 308v12M84 266h64M84 276h40M84 287h31" fill="none"/>
+  <path d="M185 281h105m-11-9 11 9-11 9" fill="none" stroke="#B58A3A"/>
+  <rect x="310" y="244" width="138" height="76" rx="12" fill="#E7E9E2"/><path d="M333 263h91M333 278h72M333 293h84" fill="none"/><circle cx="429" cy="263" r="4" fill="#B58A3A" stroke="none"/>
+  <path d="M468 281h105m-11-9 11 9-11 9" fill="none" stroke="#B58A3A"/>
+  <rect x="592" y="253" width="88" height="55" rx="5" fill="#FFFFFF"/><path d="M610 320h52M636 308v12M603 266h64M603 276h40M603 287h31" fill="none"/>
+</g>
+<g fill="#B58A3A"><circle cx="206" cy="106" r="4"/><circle cx="252" cy="106" r="4"/><circle cx="206" cy="281" r="4"/><circle cx="252" cy="281" r="4"/></g>
+</svg>

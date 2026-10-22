@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>
+   隐私工具 | SecureInChat
+  </title>
+  <meta content="浏览 SecureInChat 隐私工具，了解各项检查的用途与数据处理方式。" name="description"/>
+  <link href="/assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">
+   跳至正文
+  </a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat 首页" class="brand" href="/zh/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       更实用的工具，更私密的互联网
+      </span>
+     </span>
+    </a>
+    <nav aria-label="主导航" class="desktop-navigation">
+     <a aria-current="page" href="/zh/tools/">
+      隐私工具
+     </a>
+     <a href="/zh/blog/">
+      使用指南
+     </a>
+     <a href="/zh/checkup/">
+      隐私体检
+     </a>
+     <a href="/messaging/">
+      加密通信
+     </a>
+     <a href="/mission/">
+      我们的使命
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/tools/" lang="en">
+      EN
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/zh/checkup/">
+      开始体检
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="打开导航菜单">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="移动端导航">
+      <a href="/zh/tools/">
+       隐私工具
+      </a>
+      <a href="/zh/blog/">
+       使用指南
+      </a>
+      <a href="/zh/checkup/">
+       隐私体检
+      </a>
+      <a href="/messaging/">
+       加密通信
+      </a>
+      <a href="/mission/">
+       我们的使命
+      </a>
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑导航" class="breadcrumbs">
+      <a href="/zh/">
+       首页
+      </a>
+      <span aria-hidden="true" class="breadcrumb-separator">
+       /
+      </span>
+      <span aria-current="page">
+       隐私工具
+      </span>
+     </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">
+        从一个具体问题开始，逐步保护隐私。
+       </h1>
+       <p class="page-lead">
+        选择你想解决的问题。每个工具都会说明检查范围、数据处理方式以及可能的局限。
+       </p>
+       <div class="page-actions">
+        <a class="button button--primary" href="/zh/checkup/">
+         开始隐私体检
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+        <a class="button button--secondary" href="/principles/">
+         了解数据处理原则
+        </a>
+       </div>
+      </div>
+      <figure class="editorial-figure">
+       <img alt="个人隐私的六个保护层次，从现实环境到分享给 AI 的信息" height="360" src="/assets/illustrations/privacy-layers.svg" width="760"/>
+       <figcaption>
+        隐私是分层的。先从今天最需要的一步开始。
+       </figcaption>
+      </figure>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell">
+     <div class="tool-feature">
+      <div class="tool-feature-copy">
+       <h2>
+        不确定从哪里开始？
+       </h2>
+       <p>
+        浏览器隐私报告一次检查 12 项内容，并提示值得优先关注的结果。部分连接检查需要外部查询，页面会说明相关数据流。
+       </p>
+       <ul class="state-list">
+        <li>
+         <span class="state-label state-label--network">
+          部分检查需要联网
+         </span>
+        </li>
+        <li>
+         <span class="state-label state-label--neutral">
+          12 项检查
+         </span>
+        </li>
+       </ul>
+       <div class="page-actions">
+        <a class="button button--primary" href="/tools/privacy-report/">
+         运行隐私报告
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </div>
+      </div>
+      <figure class="tool-feature-visual diagram-frame">
+       <img alt="加密通信路径与部分隐私工具查询路径的分离示意图" height="400" src="/assets/illustrations/data-flows.svg" width="760"/>
+       <figcaption class="diagram-caption">
+        <strong>
+         两条不同的数据路径。
+        </strong>
+        <span>
+         聊天中继和部分工具查询并不是同一条连续请求。
+        </span>
+       </figcaption>
+      </figure>
+     </div>
+     <div class="tool-group">
+      <div class="tool-group-heading">
+       <span class="tool-group-symbol">
+        <svg aria-hidden="true" class="tool-group-symbol-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+         <path d="M16 3 28 8v9c0 7-5 11-12 14C9 28 4 24 4 17V8Z">
+         </path>
+         <path d="m10 16 4 4 8-9">
+         </path>
+        </svg>
+       </span>
+       <div>
+        <h2>
+         实用隐私工具
+        </h2>
+        <p>
+         检查链接、照片、文本和账号设置，逐步减少不必要的信息暴露。
+        </p>
+       </div>
+      </div>
+      <div class="tool-catalogue">
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <circle cx="14" cy="14" r="8.5">
+           </circle>
+           <path d="m20.5 20.5 7 7M10 14l2.8 2.8 5.4-6.2">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           浏览器隐私报告
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label state-label--network">
+             部分检查需要联网
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         一次运行 12 项检查，查看浏览器公开的信息，并按优先顺序了解结果。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/privacy-report/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M13 19 9.5 22.5a6 6 0 0 1-8.5-8.5l5.5-5.5a6 6 0 0 1 8.5 0M19 13l3.5-3.5a6 6 0 0 1 8.5 8.5l-5.5 5.5a6 6 0 0 1-8.5 0M11 21l10-10">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           可疑链接检查
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             本地处理
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         在打开之前检查网址结构与常见跟踪参数；不会打开或发送你输入的网址。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/link-checker/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <rect height="24" rx="3" width="26" x="3" y="4">
+           </rect>
+           <circle cx="11" cy="11" r="2.5">
+           </circle>
+           <path d="m5 25 8-8 5 5 4-4 5 7">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           照片元数据清理
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             本地处理
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         检查受支持的照片元数据，并在设备上保存清理后的副本。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/photo-metadata-remover/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M7 3h14l5 5v21H7Z">
+           </path>
+           <path d="M21 3v6h5M11 14h11M11 19h11M11 24h7">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           文本脱敏
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             本地处理
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         分享文本或提交给 AI 之前，替换常见格式的敏感信息。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/text-redactor/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <circle cx="16" cy="10" r="5">
+           </circle>
+           <path d="M5 28c0-6 4-9 11-9s11 3 11 9Z">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           账号安全自查
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             本地清单
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         通过清单检查重要账号的常见安全设置，答案只留在当前页面。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/account-checkup/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <rect height="27" rx="3" width="16" x="8" y="2.5">
+           </rect>
+           <path d="M13 6h6M14 25h4">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           手机号隐私自查
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             本地清单
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         逐项检查 SIM PIN、运营商保护和账号恢复方式，无需输入手机号。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/phone-checkup/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <circle cx="11" cy="17" r="7">
+           </circle>
+           <path d="m16 12 11-9M22 7l4 4M19 10l4 4">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           密码检查
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label state-label--network">
+             有限联网查询
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         评估密码强度，并按页面说明检查已知泄露信息。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/password-checker/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M16 4c-7 0-12 5-12 12M16 8c-5 0-8 3-8 8 0 5-1 8-3 10M16 12c-3 0-4 2-4 5 0 5-1 8-3 11M20 5c4 1 7 5 7 10 0 5-1 9-3 12M21 12c2 1 3 3 3 6 0 3 0 5-1 7">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           浏览器特征检查
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             本地处理
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         查看浏览器公开的特征信号，了解它们可能如何被用于区分设备。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/browser-fingerprint-test/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M16 3 28 8v9c0 7-5 11-12 14C9 28 4 24 4 17V8Z">
+           </path>
+           <path d="m10 16 4 4 8-9">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           网站健康检查
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label state-label--network">
+             会请求目标网站
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         检查公开网站的 HTTPS、跳转、安全响应头和基础站点发现信号。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/website-health-check/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+      </div>
+     </div>
+     <div class="tool-group">
+      <div class="page-rule-heading">
+       <div>
+        <h2>
+         先了解数据怎么处理
+        </h2>
+        <p>
+         “本地处理”“联网查询”和“请求目标网站”代表不同的实际行为。查看标签和限制，再决定是否运行。
+        </p>
+       </div>
+       <a class="text-link" href="/principles/">
+        查看数据处理原则 →
+       </a>
+      </div>
+      <div class="data-handling">
+       <div class="data-handling-row">
+        <span class="data-handling-mark">
+         1
+        </span>
+        <div>
+         <strong>
+          先读处理标签
+         </strong>
+         <p>
+          本地清单不会代替系统设置检测；需要联网的工具会说明查询用途。
+         </p>
+        </div>
+       </div>
+       <div class="data-handling-row">
+        <span class="data-handling-mark">
+         2
+        </span>
+        <div>
+         <strong>
+          再看检查局限
+         </strong>
+         <p>
+          检测通过并不等于绝对安全；网址结构检查也无法证明目标网站可信。
+         </p>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat 首页" class="brand brand--footer" href="/zh/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        更实用的工具，更私密的互联网
+       </span>
+      </span>
+     </a>
+     <nav aria-label="页脚导航" class="footer-links">
+      <a href="/mission/">
+       使命
+      </a>
+      <a href="/principles/">
+       原则
+      </a>
+      <a href="/privacy/">
+       隐私
+      </a>
+      <a href="/principles/#labels">
+       状态标签
+      </a>
+      <a href="/sponsor/">
+       赞助与联盟披露
+      </a>
+      <a href="/contact/">
+       联系
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat。保留所有权利。
+     </p>
+     <p>
+      重视隐私，明确说明局限。
+     </p>
+    </div>
+   </div>
+  </footer>
+ </body>
+</html>
+

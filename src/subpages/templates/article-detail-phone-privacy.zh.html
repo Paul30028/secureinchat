@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>
+   保护手机号 | SecureInChat
+  </title>
+  <meta content="降低 SIM 换卡风险，检查运营商保护与账号恢复方式。" name="description"/>
+  <link href="/assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">
+   跳至正文
+  </a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat 首页" class="brand" href="/zh/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       更实用的工具，更私密的互联网
+      </span>
+     </span>
+    </a>
+    <nav aria-label="主导航" class="desktop-navigation">
+     <a href="/zh/tools/">
+      隐私工具
+     </a>
+     <a aria-current="page" href="/zh/blog/">
+      使用指南
+     </a>
+     <a href="/zh/checkup/">
+      隐私体检
+     </a>
+     <a href="/messaging/">
+      加密通信
+     </a>
+     <a href="/mission/">
+      我们的使命
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/tools/" lang="en">
+      EN
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/zh/checkup/">
+      开始体检
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="打开导航菜单">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="移动端导航">
+      <a href="/zh/tools/">
+       隐私工具
+      </a>
+      <a href="/zh/blog/">
+       使用指南
+      </a>
+      <a href="/zh/checkup/">
+       隐私体检
+      </a>
+      <a href="/messaging/">
+       加密通信
+      </a>
+      <a href="/mission/">
+       我们的使命
+      </a>
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="article-hero">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑导航" class="breadcrumbs">
+      <a href="/zh/">
+       首页
+      </a>
+      <span aria-hidden="true" class="breadcrumb-separator">
+       /
+      </span>
+      <a href="/zh/blog/">
+       使用指南
+      </a>
+      <span aria-hidden="true" class="breadcrumb-separator">
+       /
+      </span>
+      <span aria-current="page">
+       手机号隐私
+      </span>
+     </nav>
+     <div class="article-hero-grid">
+      <header class="article-heading">
+       <h1>
+        保护你的手机号：SIM PIN、运营商保护与换卡诈骗
+       </h1>
+       <p class="article-deck">
+        手机号常常是重要账号的恢复入口。下面这些步骤可以降低号码被接管的风险，也会说明每种保护有什么做不到的地方。
+       </p>
+       <div class="article-byline">
+        <span>
+         作者：Paul
+        </span>
+        <span>
+         更新于 2026 年 10 月 22 日
+        </span>
+        <span>
+         约 8 分钟阅读
+        </span>
+       </div>
+       <ul class="state-list">
+        <li>
+         <span class="state-label state-label--info">
+          附有来源
+         </span>
+        </li>
+        <li>
+         <span class="state-label state-label--neutral">
+          运营商功能因地区而异
+         </span>
+        </li>
+       </ul>
+      </header>
+      <figure class="article-cover">
+       <img alt="登录验证、可信设备与账号恢复路径连接到同一账号" height="360" src="/assets/illustrations/account-recovery.svg" width="760"/>
+       <figcaption>
+        手机号安全只是账号恢复链条中的一部分。
+       </figcaption>
+      </figure>
+     </div>
+    </div>
+   </section>
+   <div class="subpage-shell article-layout">
+    <article class="article-main">
+     <div class="article-body">
+      <h2 id="sim-pin">
+       1. 为 SIM 卡本身设置 PIN
+      </h2>
+      <p>
+       SIM PIN 可以在有人取出 SIM 卡或重新启动被盗设备时增加一道保护，但无法阻止运营商层面的换卡操作；后者需要运营商侧的保护措施。
+      </p>
+      <p>
+       iPhone 可以在“蜂窝网络”设置中寻找 SIM PIN。Android 的菜单名称因厂商而异，可以在设置中搜索“SIM 卡锁”。首次启用之前，请先向运营商确认正确的默认 PIN。不要猜测 PIN 或 PUK；连续输入错误可能导致 SIM 被锁定。
+      </p>
+      <div class="article-note">
+       <h3>
+        开始之前
+       </h3>
+       <p>
+        不要猜测 SIM PIN 或 PUK。先从运营商确认正确代码，再将恢复信息保存在安全的位置。
+       </p>
+      </div>
+      <h2 id="carrier-pin">
+       2. 为运营商账号设置独立 PIN
+      </h2>
+      <p>
+       这是运营商在更改账号信息之前应向你核对的另一种代码。不要重复使用 SIM PIN、银行卡 PIN 或生日。具体要求和设置位置应以你所用运营商的官方说明为准。
+      </p>
+      <h2 id="number-lock">
+       3. 开启可用的号码转出或 SIM 更换保护
+      </h2>
+      <p>
+       部分运营商提供锁定功能，用于阻止 SIM 更换、转网或两者。功能名称和覆盖范围因国家、地区与套餐而异。向运营商确认保护具体阻止什么、如何核验更换请求，以及发生请求时会如何通知你。
+      </p>
+      <h2 id="sms-codes">
+       4. 重要账号不要只依赖短信验证码
+      </h2>
+      <p>
+       号码被接管后，电话和短信可能一起被转移。对邮箱、银行、密码管理器和主要身份账号等重要服务，若服务商支持，可考虑使用验证器应用或安全密钥；同时检查恢复方式，而不只是登录方式。
+      </p>
+      <h2 id="public-number">
+       5. 不要把手机号公开在个人资料中
+      </h2>
+      <p>
+       公开的手机号可能帮助诈骗者定位目标，或回答薄弱的身份验证问题。检查社交资料、二手交易页面、公开简介和旧帖子，在不需要的地方移除号码，并避免默认向所有人公开。
+      </p>
+      <h2 id="messenger-lock">
+       6. 检查通信应用的号码隐私与注册锁
+      </h2>
+      <p>
+       在 Signal 中检查手机号可见范围、“谁可以通过我的号码找到我”等设置，并考虑开启 Registration Lock。其他应用的控制方式并不相同，请以该服务的最新官方说明为准，不要假定所有应用都有相同选项。
+      </p>
+      <h2 id="if-taken">
+       如果你怀疑手机号已被接管
+      </h2>
+      <p>
+       通过你已经确认可信的电话或网站联系运营商，请求恢复号码控制权。之后更改重要账号密码、检查账号恢复信息，并查看银行和支付账户是否出现未经授权的活动。
+      </p>
+      <h2 id="limits">
+       哪些内容尚未测试
+      </h2>
+      <p>
+       本指南根据运营商和监管机构的文档说明步骤。我们没有逐一测试所有运营商的锁定功能，也没有测量其提醒速度。设置菜单会改变，你能使用哪些保护也取决于运营商与所在地区。
+      </p>
+     </div>
+     <section class="article-sources" id="sources">
+      <h2>
+       来源与下一步
+      </h2>
+      <ul>
+       <li>
+        <a href="https://consumer.ftc.gov/consumer-alerts/2019/10/sim-swap-scams-how-protect-yourself">
+         美国联邦贸易委员会：SIM 换卡诈骗及防护建议
+        </a>
+       </li>
+       <li>
+        <a href="https://support.apple.com/en-us/118228">
+         Apple：为 iPhone 或 iPad 使用 SIM PIN
+        </a>
+       </li>
+       <li>
+        <a href="https://support.google.com/pixelphone/answer/2824802">
+         Google：Pixel 手机安全与隐私设置
+        </a>
+       </li>
+       <li>
+        <a href="https://support.signal.org/hc/en-us/articles/6712070553754-Phone-Number-Privacy-and-Usernames">
+         Signal：手机号隐私与用户名
+        </a>
+       </li>
+      </ul>
+      <p>
+       更改设置前，请核对适用于你的设备、运营商和地区的最新官方说明。
+      </p>
+     </section>
+     <section class="related-content">
+      <h2>
+       继续完成其他检查
+      </h2>
+      <ul class="related-content-list">
+       <li>
+        <a href="/zh/tools/phone-checkup/">
+         运行手机号隐私自查 →
+        </a>
+       </li>
+       <li>
+        <a href="/tools/account-checkup/">
+         检查账号登录与恢复设置 →
+        </a>
+       </li>
+       <li>
+        <a href="/blog/data-broker-opt-out-guide/">
+         阅读数据经纪商退出指南 →
+        </a>
+       </li>
+       <li>
+        <a href="/principles/">
+         了解 SecureInChat 如何处理数据 →
+        </a>
+       </li>
+      </ul>
+     </section>
+    </article>
+    <aside aria-label="本页目录" class="article-toc">
+     <h2>
+      本页目录
+     </h2>
+     <ol>
+      <li>
+       <a href="#sim-pin">
+        SIM PIN
+       </a>
+      </li>
+      <li>
+       <a href="#carrier-pin">
+        运营商账号 PIN
+       </a>
+      </li>
+      <li>
+       <a href="#number-lock">
+        转网或换卡保护
+       </a>
+      </li>
+      <li>
+       <a href="#sms-codes">
+        短信验证码
+       </a>
+      </li>
+      <li>
+       <a href="#public-number">
+        公开个人资料
+       </a>
+      </li>
+      <li>
+       <a href="#messenger-lock">
+        通信应用设置
+       </a>
+      </li>
+      <li>
+       <a href="#if-taken">
+        号码被接管时
+       </a>
+      </li>
+      <li>
+       <a href="#limits">
+        尚未测试的部分
+       </a>
+      </li>
+     </ol>
+    </aside>
+   </div>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat 首页" class="brand brand--footer" href="/zh/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        更实用的工具，更私密的互联网
+       </span>
+      </span>
+     </a>
+     <nav aria-label="页脚导航" class="footer-links">
+      <a href="/mission/">
+       使命
+      </a>
+      <a href="/principles/">
+       原则
+      </a>
+      <a href="/privacy/">
+       隐私
+      </a>
+      <a href="/principles/#labels">
+       状态标签
+      </a>
+      <a href="/sponsor/">
+       赞助与联盟披露
+      </a>
+      <a href="/contact/">
+       联系
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat。保留所有权利。
+     </p>
+     <p>
+      重视隐私，明确说明局限。
+     </p>
+    </div>
+   </div>
+  </footer>
+ </body>
+</html>
+

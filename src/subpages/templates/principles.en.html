@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>
+   Privacy principles | SecureInChat
+  </title>
+  <meta content="Tool-by-tool data handling, outside requests and known limitations." name="description"/>
+  <link href="/assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">
+   Skip to content
+  </a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a aria-current="page" href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑导航" class="breadcrumbs">
+      <a href="/">
+       Home
+      </a>
+      <span aria-hidden="true" class="breadcrumb-separator">
+       /
+      </span>
+      <span aria-current="page">
+       Principles
+      </span>
+     </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">
+        Know what stays here—and what leaves.
+       </h1>
+       <p class="page-lead">
+        This page lists, tool by tool, what is processed in your browser, which outside services a check contacts, and what each result cannot prove.
+       </p>
+      </div>
+      <aside class="page-intro-note">
+       <h2>
+        Our baseline
+       </h2>
+       <p>
+        No accounts or analytics scripts on tool pages. Where a tool needs a network request, we name the recipient and describe its purpose.
+       </p>
+      </aside>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell info-layout">
+     <nav aria-label="On this page" class="info-nav">
+      <h2>
+       On this page
+      </h2>
+      <ul>
+       <li>
+        <a href="#principles">
+         Rules we follow
+        </a>
+       </li>
+       <li>
+        <a href="#flows">
+         Separate data paths
+        </a>
+       </li>
+       <li>
+        <a href="#labels">
+         Status labels
+        </a>
+       </li>
+       <li>
+        <a href="#by-tool">
+         Tool by tool
+        </a>
+       </li>
+       <li>
+        <a href="#limits">
+         What we cannot hide
+        </a>
+       </li>
+      </ul>
+     </nav>
+     <article class="info-content">
+      <section id="principles">
+       <h2>
+        Rules we follow
+       </h2>
+       <ul>
+        <li>
+         Files, photos and passwords are processed in your browser and are not uploaded by tools that declare local processing.
+        </li>
+        <li>
+         Tool pages do not use cookies, user accounts, advertising scripts or analytics scripts.
+        </li>
+        <li>
+         Test results are not stored on our side as personal reports. A tool may keep transient values in memory while it runs; the individual page explains its behavior.
+        </li>
+        <li>
+         Every outside service a tool contacts is listed below. The page security policy blocks other destinations.
+        </li>
+       </ul>
+      </section>
+      <section id="flows">
+       <h2>
+        Two different data paths
+       </h2>
+       <p>
+        The messaging relay and tool lookup services are separate systems. The illustration below shows the difference; it is not one continuous request from the device to every service.
+       </p>
+       <figure class="editorial-figure info-illustration">
+        <img alt="The separate messaging path through an encrypted relay and lookup requests made by selected tools" height="400" src="/assets/illustrations/data-flows.svg" width="760"/>
+        <figcaption>
+         Messaging uses an encrypted relay path. Selected diagnostics make their own lookup requests.
+        </figcaption>
+       </figure>
+       <h3>
+        Messaging relay
+       </h3>
+       <p>
+        The client design encrypts content on sender devices, sends ciphertext through the relay, and decrypts on recipient devices. This describes the intended architecture, not an independent security audit or certification.
+       </p>
+       <h3>
+        Tool lookups
+       </h3>
+       <p>
+        Some connection tests need an outside service to observe a public-facing value. The receiver may see the request IP address. The tool page should say which service is contacted and what is sent.
+       </p>
+      </section>
+      <section id="labels">
+       <h2>
+        Status labels
+       </h2>
+       <dl class="status-definition-list">
+        <dt>
+         Tested
+        </dt>
+        <dd>
+         We ran the tool ourselves and show when and how it was tested. The page runs on your device and is covered by the stated automated tests.
+        </dd>
+        <dt>
+         Documented
+        </dt>
+        <dd>
+         The information comes from project or vendor documentation linked on the page; we have not independently tested that claim.
+        </dd>
+        <dt>
+         Untested
+        </dt>
+        <dd>
+         Planned or not checked yet. Do not rely on it as a verified behavior.
+        </dd>
+        <dt>
+         Limitations
+        </dt>
+        <dd>
+         The tool works within a stated scope, but has known limits or uses an outside service. Those limits should be visible near the result.
+        </dd>
+        <dt>
+         Affiliate
+        </dt>
+        <dd>
+         A link may earn a commission. Commission does not change a test verdict or the order of results.
+        </dd>
+       </dl>
+      </section>
+      <section id="by-tool">
+       <h2>
+        Tool by tool
+       </h2>
+       <div class="tool-row-list">
+        <div class="tool-row">
+         <div>
+          <h3>
+           Link Checker
+          </h3>
+          <p>
+           The pasted URL is inspected in the current page. It is not opened or submitted to a reputation service.
+          </p>
+         </div>
+         <span class="state-label">
+          Local processing
+         </span>
+        </div>
+        <div class="tool-row">
+         <div>
+          <h3>
+           Photo Metadata Remover
+          </h3>
+          <p>
+           The photo and metadata stay in the browser while supported fields are inspected or removed.
+          </p>
+         </div>
+         <span class="state-label">
+          Local processing
+         </span>
+        </div>
+        <div class="tool-row">
+         <div>
+          <h3>
+           Text Redactor
+          </h3>
+          <p>
+           Pasted text is processed in the page. Pattern detection can miss names, addresses and unusual formats.
+          </p>
+         </div>
+         <span class="state-label">
+          Local processing
+         </span>
+        </div>
+        <div class="tool-row">
+         <div>
+          <h3>
+           Browser privacy report
+          </h3>
+          <p>
+           Browser checks are local. Connection checks use the same outside requests described for network diagnostics.
+          </p>
+         </div>
+         <span class="state-label state-label--network">
+          Some lookups
+         </span>
+        </div>
+        <div class="tool-row">
+         <div>
+          <h3>
+           IP and related connection tests
+          </h3>
+          <p>
+           Public-IP lookups or STUN/DNS probes contact the named services. Their recipients may see request metadata such as your IP.
+          </p>
+         </div>
+         <span class="state-label state-label--network">
+          Network lookup
+         </span>
+        </div>
+        <div class="tool-row">
+         <div>
+          <h3>
+           Password checker
+          </h3>
+          <p>
+           The page describes its breach-check method and the exact part of a password-derived hash that is sent.
+          </p>
+         </div>
+         <span class="state-label state-label--network">
+          Limited lookup
+         </span>
+        </div>
+       </div>
+       <p>
+        For the complete current list of recipients and the exact request made by each tool, keep this section aligned with the actual deployed code and service configuration.
+       </p>
+      </section>
+      <section id="limits">
+       <h2>
+        What we cannot hide
+       </h2>
+       <ul>
+        <li>
+         The site host and CDN, including Cloudflare, receive the network metadata required to serve a page, including the request IP address.
+        </li>
+        <li>
+         Outside services contacted by a tool can see the request information available to them.
+        </li>
+        <li>
+         Results depend on your browser and network. A passed test is not proof of anonymity or complete protection.
+        </li>
+       </ul>
+       <p>
+        To verify a tool yourself, open your browser's network panel and compare the requests against the list above.
+       </p>
+      </section>
+     </article>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
+  </footer>
+ </body>
+</html>
+

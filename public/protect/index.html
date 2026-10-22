@@ -1,72 +1,200 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>Protect your privacy, layer by layer | SecureInChat</title>
-  <meta name="description" content="Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy." />
-  <link rel="canonical" href="https://secureinchat.com/protect/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="Protect your privacy, layer by layer | SecureInChat" />
-  <meta property="og:description" content="Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy." />
-  <meta property="og:url" content="https://secureinchat.com/protect/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/" aria-current="page">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <meta content="Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy." name="description"/>
+  <link href="https://secureinchat.com/protect/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="Protect your privacy, layer by layer | SecureInChat" property="og:title"/>
+  <meta content="Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy." property="og:description"/>
+  <meta content="https://secureinchat.com/protect/" property="og:url"/>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <h1>Protect your privacy, layer by layer</h1>
-    <p class="lead">Protect your privacy layer by layer, from the device in your hand to the messages you send, with tools that run on your own device and guides where every step was actually tested.</p>
-    <p>Not sure where to begin? <a href="/start/">Start from your situation</a> instead.</p>
-    <h2><a href="/protect/physical/">01 · Physical</a></h2>
-    <p>What people and devices near you can see and pick up.</p>
-    <p><span class="tag tag--untested">Planned</span></p>
-    <h2><a href="/protect/devices/">02 · Devices and network</a></h2>
-    <p>What your phone, computer and browser give away.</p>
-    <p><span class="tag tag--tested">6 tools</span><span class="tag tag--doc">3 guides</span></p>
-    <h2><a href="/protect/accounts/">03 · Accounts and email</a></h2>
-    <p>Who can get into your accounts, and what your inbox reveals.</p>
-    <p><span class="tag tag--tested">2 tools</span><span class="tag tag--doc">6 guides</span></p>
-    <h2><a href="/protect/communication/">04 · Communication</a></h2>
-    <p>Messages only the people in the conversation can read.</p>
-    <p><span class="tag tag--doc">1 guide</span><span class="tag tag--lim">Messenger in development</span></p>
-    <h2><a href="/protect/offline/">05 · Offline and emergency</a></h2>
-    <p>Staying in touch securely when mobile networks fail.</p>
-    <p><span class="tag tag--doc">Documented</span><span class="tag tag--untested">Field test pending</span></p>
-    <h2><a href="/protect/ai/">06 · AI privacy</a></h2>
-    <p>What you hand to AI assistants, and how to hand over less.</p>
-    <p><span class="tag tag--tested">2 tools</span><span class="tag tag--doc">5 guides</span></p>
-
-    </div>
-  </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">Protect your privacy, layer by layer</span>
       </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">Protect your privacy, layer by layer</h1>
+       <p class="page-lead">Protect your privacy layer by layer, from the device in your hand to the messages you send, with tools that run on your own device and guides where every step was actually tested. Not sure where to begin? <a href="/start/">Start from your situation</a>.</p>
+       
+      </div>
+      <figure class="editorial-figure">
+       <img alt="Six connected layers of personal privacy, from physical surroundings to information shared with AI" height="360" src="/assets/illustrations/privacy-layers.svg" width="760"/>
+       
+      </figure>
+     </div>
     </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell">
+     
+     <div class="tool-catalogue">
+<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h3>1. Physical</h3><p class="state-list"><span class="state-label state-label--neutral">Planned</span></p></div></div><p>What people and devices near you can see and pick up.</p><a class="tool-catalogue-action" href="/protect/physical/">Open this layer <span aria-hidden="true">→</span></a></article>
+<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h3>2. Devices and network</h3><p class="state-list"><span class="state-label">6 tools</span><span class="state-label state-label--info">3 guides</span></p></div></div><p>What your phone, computer and browser give away.</p><a class="tool-catalogue-action" href="/protect/devices/">Open this layer <span aria-hidden="true">→</span></a></article>
+<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h3>3. Accounts and email</h3><p class="state-list"><span class="state-label">2 tools</span><span class="state-label state-label--info">6 guides</span></p></div></div><p>Who can get into your accounts, and what your inbox reveals.</p><a class="tool-catalogue-action" href="/protect/accounts/">Open this layer <span aria-hidden="true">→</span></a></article>
+<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h3>4. Communication</h3><p class="state-list"><span class="state-label state-label--info">1 guide</span><span class="state-label state-label--network">Messenger in development</span></p></div></div><p>Messages only the people in the conversation can read.</p><a class="tool-catalogue-action" href="/protect/communication/">Open this layer <span aria-hidden="true">→</span></a></article>
+<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h3>5. Offline and emergency</h3><p class="state-list"><span class="state-label state-label--info">Documented</span><span class="state-label state-label--neutral">Field test pending</span></p></div></div><p>Staying in touch securely when mobile networks fail.</p><a class="tool-catalogue-action" href="/protect/offline/">Open this layer <span aria-hidden="true">→</span></a></article>
+<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h3>6. AI privacy</h3><p class="state-list"><span class="state-label">2 tools</span><span class="state-label state-label--info">5 guides</span></p></div></div><p>What you hand to AI assistants, and how to hand over less.</p><a class="tool-catalogue-action" href="/protect/ai/">Open this layer <span aria-hidden="true">→</span></a></article>
+</div>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

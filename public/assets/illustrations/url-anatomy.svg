@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="title desc">
+<title id="title">Parts of a web address</title>
+<desc id="desc">A browser address bar separates the host from the path and query parameters, which may contain tracking identifiers.</desc>
+<rect x="14" y="14" width="732" height="312" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<rect x="42" y="47" width="676" height="224" rx="16" fill="#FFFFFF" stroke="#D2D8D0" stroke-width="2"/>
+<path d="M42 91h676" fill="none" stroke="#D2D8D0" stroke-width="2"/>
+<g fill="#C8CFC7"><circle cx="64" cy="69" r="5"/><circle cx="82" cy="69" r="5"/><circle cx="100" cy="69" r="5"/></g>
+<rect x="62" y="116" width="636" height="64" rx="10" fill="#F7F5EF" stroke="#D2D8D0" stroke-width="1.5"/>
+<path d="M82 135v11m-5-6 5-5 5 5" fill="none" stroke="#173D32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="103" y="129" width="187" height="36" rx="6" fill="#E7E9E2" stroke="#173D32" stroke-width="1.5"/>
+<rect x="298" y="129" width="117" height="36" rx="6" fill="#FFFFFF" stroke="#D2D8D0" stroke-width="1.5"/>
+<rect x="423" y="129" width="253" height="36" rx="6" fill="#F8EBD0" stroke="#B58A3A" stroke-width="1.5"/>
+<path d="M110 147h82M200 147h60M307 147h83M433 147h90M531 147h50M591 147h72" stroke="#4F5D56" stroke-width="4" stroke-linecap="round"/>
+<path d="M197 181v29M356 181v29M548 181v29" fill="none" stroke="#B58A3A" stroke-width="2" stroke-linecap="round"/>
+<circle cx="197" cy="215" r="4" fill="#B58A3A"/><circle cx="356" cy="215" r="4" fill="#B58A3A"/><circle cx="548" cy="215" r="4" fill="#B58A3A"/>
+<path d="M82 244h118M268 244h159M492 244h173" stroke="#D2D8D0" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -1,55 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>How the IP leak test works, and what it cannot see | SecureInChat</title>
-  <meta name="description" content="The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch." />
-  <link rel="canonical" href="https://secureinchat.com/blog/how-the-ip-leak-test-works/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="How the IP leak test works, and what it cannot see | SecureInChat" />
-  <meta property="og:description" content="The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch." />
-  <meta property="og:url" content="https://secureinchat.com/blog/how-the-ip-leak-test-works/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
+  <meta content="The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch." name="description"/>
+  <link href="https://secureinchat.com/blog/how-the-ip-leak-test-works/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="How the IP leak test works, and what it cannot see | SecureInChat" property="og:title"/>
+  <meta content="The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch." property="og:description"/>
+  <meta content="https://secureinchat.com/blog/how-the-ip-leak-test-works/" property="og:url"/>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How the IP leak test works, and what it cannot see","description":"The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch.","datePublished":"2026-10-20","dateModified":"2026-10-20","inLanguage":"en","author":{"@type":"Person","name":"Paul","url":"https://secureinchat.com/about/"},"publisher":{"@type":"Organization","name":"SecureInChat","url":"https://secureinchat.com/"},"mainEntityOfPage":"https://secureinchat.com/blog/how-the-ip-leak-test-works/"}</script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/" aria-current="page">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a aria-current="page" href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <div class="wrap doc">
-    <p class="meta"><a href="/blog/">Blog</a></p>
-    <h1>How the IP leak test works, and what it cannot see</h1>
-    <p class="meta">By Paul · 2026-10-20</p>
-    <p>A leak test is only useful if you know what it actually measures. This is a plain description of every check in our <a href="/tools/ip-leak-test/">IP leak test</a>, how it reaches its verdict, and where it can be wrong.</p>
+  <main class="subpage-main" id="main">
+   <section class="article-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <a href="/blog/">Guides</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">How the IP leak test works, and what it cannot see</span>
+      </nav>
+     <div class="article-hero-grid">
+      <header class="article-heading">
+       <h1 class="page-title">How the IP leak test works, and what it cannot see</h1>
+       <p class="article-deck">The six checks behind our IP leak test: public IP, WebRTC, IPv6, time zone, request headers and DNS. What each one measures, how it can be wrong, and which leaks a browser test can never catch.</p>
+       <div class="article-byline"><span>By Paul</span><span>2026-10-20</span></div>
+       
+      </header>
+      <figure class="article-cover">
+       <img alt="Separate data flows for encrypted messaging and privacy tools that use outside lookups" height="400" src="/assets/illustrations/data-flows.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <div class="subpage-shell article-layout">
+    <article class="article-main">
+     <div class="article-body">
+<p>A leak test is only useful if you know what it actually measures. This is a plain description of every check in our <a href="/tools/ip-leak-test/">IP leak test</a>, how it reaches its verdict, and where it can be wrong.</p>
 
-    <h2>The premise</h2>
+    <h2 id="the-premise">The premise</h2>
     <p>If you use a VPN or proxy, websites should see the address of your VPN exit, not the address your internet provider gave you. A leak is any address, name or setting that still points at your real connection. The test runs entirely in your browser and compares several independent views of your connection.</p>
 
-    <h2>1. Public IP</h2>
+    <h2 id="1-public-ip">1. Public IP</h2>
     <p>Our own server returns the address Cloudflare saw for your request, plus its network (ASN and organisation) and an approximate location. If you tick "I'm using a VPN or proxy", we check whether the network name looks like a hosting or VPN provider rather than a consumer internet provider.</p>
     <p><strong>How it can be wrong:</strong> that judgement is a guess based on the network's name. Residential VPN exits and some corporate VPNs look like ordinary providers and will be flagged as a warning, not a failure. Location comes from IP geolocation data and is often off by a city or more.</p>
 
-    <h2>2. WebRTC</h2>
+    <h2 id="2-webrtc">2. WebRTC</h2>
     <p>WebRTC lets a browser set up calls directly. To do that, the page asks a STUN server for your public address, and any web page can do this without a permission prompt. We query <code>stun.cloudflare.com</code> and read the candidate addresses the browser returns.</p>
     <ul>
       <li>A <strong>srflx</strong> candidate is the public address as seen by the STUN server. If it differs from the public IP in check 1, WebRTC is going around your VPN or proxy. That is a leak.</li>
@@ -57,44 +146,120 @@
     </ul>
     <p><strong>How it can be wrong:</strong> if UDP to the STUN server is blocked on your network, you will see no public candidate at all. That is not proof you are safe, only that the question could not be asked.</p>
 
-    <h2>3. IPv6</h2>
+    <h2 id="3-ipv6">3. IPv6</h2>
     <p>Some VPNs tunnel IPv4 only. If your device also has IPv6, IPv6-capable sites can reach you through your provider's address, outside the tunnel. We fetch your address over IPv4 and over IPv6 separately, look up the network of the second address, and compare it with the network of your main address. Different networks mean IPv6 traffic is leaving outside your tunnel.</p>
     <p><strong>How it can be wrong:</strong> if the network lookup for the second address fails, we report a warning rather than guess.</p>
 
-    <h2>4. Time zone</h2>
+    <h2 id="4-time-zone">4. Time zone</h2>
     <p>Your browser reports its system time zone no matter what your VPN does. We compare its offset with the time zone of your IP's location. A mismatch is a signal that anti-fraud systems read as "this person is hiding their location". It is a signal, not a leak in the strict sense, so it is shown as a warning.</p>
 
-    <h2>5. Request headers</h2>
+    <h2 id="5-request-headers">5. Request headers</h2>
     <p>Proxies sometimes announce themselves with <code>Via</code>, <code>Forwarded</code> or <code>X-Forwarded-For</code> headers, and your <code>Accept-Language</code> may point at a different country than your IP. We list what arrived. Language mismatch is shown as information only, because it is a weak signal.</p>
 
-    <h2>6. DNS</h2>
+    <h2 id="6-dns">6. DNS</h2>
     <p>A DNS leak means your device asks your internet provider's resolver for domain names instead of your VPN's. A browser cannot observe which resolver answered, so the test needs a server that can. We run the authoritative DNS server for a domain used only for this. Your browser looks up six random names under it, and the server records the address of each resolver that asks. The page reads that list back and looks up whose network each resolver is on.</p>
     <p>The verdict is careful because the test cannot know who your internet provider is. A resolver on the same network as your exit address passes. A resolver on another network is a warning, since it may be your VPN provider's. If you first run the test with the VPN box unticked, the page remembers those resolvers in the tab, and a resolver that answers both times is reported as a leak. A well-known public resolver such as Google or Cloudflare is shown as information, because the test cannot tell whether you or your VPN chose it.</p>
     <p><strong>How it can be wrong:</strong> if no lookup reaches our server, because of caching, filtering or a slow path, the result is a warning, never a pass. Browsers that send DNS over HTTPS to a provider show up as that provider's resolver, which is what is actually answering. The resolver address is kept in memory for ten minutes and not logged. A small counter per resolver, used only to limit abuse of the usage count, stays in memory for up to an hour.</p>
 
-    <h2>What a browser test can never see</h2>
+    <h2 id="what-a-browser-test-can-never-see">What a browser test can never see</h2>
     <ul>
       <li>Traffic from other apps. Only your browser is tested, and a VPN can protect the browser while a torrent client or another program connects directly.</li>
       <li>What happens when the tunnel drops. Kill-switch behaviour has to be tested by disconnecting the VPN yourself.</li>
       <li>Leaks that depend on a specific site, such as a service that embeds your real address in a request.</li>
     </ul>
 
-    <h2>What leaves your browser</h2>
+    <h2 id="what-leaves-your-browser">What leaves your browser</h2>
     <p>When you press the button, your browser contacts our server, <code>api4.ipify.org</code> and <code>api6.ipify.org</code> for your addresses, <code>ipwho.is</code> to look up a second address's network, and <code>stun.cloudflare.com</code> for WebRTC. Each of them necessarily sees your IP address. External requests carry no cookies and no referrer. We store nothing from the test. Details are in the <a href="/privacy/">privacy policy</a>.</p>
 
-    <h2>Reading the result</h2>
+    <h2 id="reading-the-result">Reading the result</h2>
     <p>Run the test twice: once without the VPN to record your real network, and once with it on. A clean result means the checks above found nothing, not that nothing exists. If something fails, the tool page has a fix for each type of leak.</p>
     <p><a href="/tools/ip-leak-test/">Run the IP leak test</a></p>
-
-    </div>
+     </div>
+     <section class="related-content" aria-labelledby="related-h">
+      <h2 id="related-h">Keep going</h2>
+      <ul class="related-content-list">
+       <li><a href="/checkup/">Start the privacy checkup</a></li>
+       <li><a href="/tools/">Browse the free privacy tools</a></li>
+       <li><a href="/principles/">See how SecureInChat tools handle data</a></li>
+      </ul>
+     </section>
+    </article>
+    <aside aria-label="On this page" class="article-toc">
+     <h2>On this page</h2>
+     <ol>
+      <li><a href="#the-premise">The premise</a></li>
+      <li><a href="#1-public-ip">Public IP</a></li>
+      <li><a href="#2-webrtc">WebRTC</a></li>
+      <li><a href="#3-ipv6">IPv6</a></li>
+      <li><a href="#4-time-zone">Time zone</a></li>
+      <li><a href="#5-request-headers">Request headers</a></li>
+      <li><a href="#6-dns">DNS</a></li>
+      <li><a href="#what-a-browser-test-can-never-see">What a browser test can never see</a></li>
+      <li><a href="#what-leaves-your-browser">What leaves your browser</a></li>
+      <li><a href="#reading-the-result">Reading the result</a></li>
+     </ol>
+    </aside>
+   </div>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
     </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

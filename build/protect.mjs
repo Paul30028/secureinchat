@@ -121,7 +121,6 @@ export function layerBody(L, esc, n) {
   return `    <p class="meta"><a href="/protect/">Protect</a> · Layer ${String(n).padStart(2, '0')} of 06</p>
     <h1>${esc(L.name)}</h1>
     <p class="lead">${esc(L.tagline)}</p>
-    <figure class="diagram"><img src="/assets/diagrams/${L.slug}.svg" width="640" height="320" alt="${esc(DIAGRAM[L.slug])}"><figcaption>${esc(DIAGRAM[L.slug])}</figcaption></figure>
     <h2>The risk</h2>
     <p>${esc(L.threat)}</p>
     <h2>Use it today</h2>

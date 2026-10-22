@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="title desc">
+<title id="title">A layered map of personal privacy</title>
+<desc id="desc">Six connected illustrated symbols represent physical space, devices and networks, accounts, communication, offline readiness, and shared information.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<path d="M92 179H668" fill="none" stroke="#B58A3A" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="2 8"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="92" cy="179" r="48" fill="#E7E9E2"/><rect x="67" y="158" width="50" height="34" rx="4" fill="none"/><path d="M77 201H107M92 192v9M75 149l17-9 17 9" fill="none"/>
+  <circle cx="207" cy="179" r="48" fill="#E7E9E2"/><rect x="180" y="151" width="35" height="27" rx="3" fill="none"/><path d="M173 187h49M188 178v9M206 178v9M228 151v29M223 157h10M223 166h10" fill="none"/>
+  <circle cx="322" cy="179" r="48" fill="#E7E9E2"/><circle cx="322" cy="164" r="10" fill="none"/><path d="M302 198c1-13 8-20 20-20s19 7 20 20Z" fill="none"/><circle cx="342" cy="148" r="7" fill="#FBFAF6"/><path d="M339 148h6M342 145v6" stroke-width="1.8"/>
+  <circle cx="437" cy="179" r="48" fill="#E7E9E2"/><rect x="410" y="157" width="54" height="39" rx="5" fill="none"/><path d="m411 162 26 19 26-19M454 151v-7a10 10 0 0 0-20 0v7M430 151h28" fill="none"/>
+  <circle cx="552" cy="179" r="48" fill="#E7E9E2"/><rect x="529" y="151" width="30" height="47" rx="4" fill="none"/><path d="M537 160h14M537 166h14M537 172h9M536 187h16" fill="none"/><path d="m563 148 4-8 4 8 8 4-8 4-4 8-4-8-8-4Z" fill="#FBFAF6" stroke="#B58A3A"/>
+  <circle cx="667" cy="179" r="48" fill="#E7E9E2"/><path d="M642 158h32v42h-32zM649 151h32v42" fill="none"/><path d="M650 170h16M650 178h16M650 186h11" fill="none"/><circle cx="676" cy="151" r="7" fill="#FBFAF6" stroke="#B58A3A"/><path d="m676 146 1.5 3.5 3.5 1.5-3.5 1.5-1.5 3.5-1.5-3.5-3.5-1.5 3.5-1.5Z" fill="#B58A3A" stroke="none"/>
+</g>
+<g fill="#B58A3A"><circle cx="149" cy="179" r="4"/><circle cx="264" cy="179" r="4"/><circle cx="379" cy="179" r="4"/><circle cx="494" cy="179" r="4"/><circle cx="609" cy="179" r="4"/></g>
+</svg>

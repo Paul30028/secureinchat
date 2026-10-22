@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { POSTS } from './posts.mjs';
 import { PRODUCTS, validateProduct, productBody, shopIndexBody } from './shop.mjs';
+import { infoPage, articlePage, mapTags, shell as kitShell } from './subshell.mjs';
 import { MISSION, MISSION_SHORT, LAYERS, layerBody, layerTags, protectIndexBody, SITUATIONS, situationBody, startIndexBody } from './protect.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -388,8 +389,54 @@ function localPage(code) {
   return page({ lang: t.lang, title: t.title, desc: t.desc, canonical: `/${code}/`, jsonld, main });
 }
 
+// Subpages use ChatGPT's Subpages Design Kit v2 (src/subpages/, build/subshell.mjs) since 2026-10-22.
+const FIG = {
+  layers: { src: 'privacy-layers.svg', h: 360, alt: 'Six connected layers of personal privacy, from physical surroundings to information shared with AI' },
+  flows: { src: 'data-flows.svg', h: 400, alt: 'Separate data flows for encrypted messaging and privacy tools that use outside lookups' },
+  relay: { src: 'relay-architecture.svg', h: 340, alt: 'Sender encrypts locally, an intermediate relay forwards encrypted payloads, and recipient decrypts locally' },
+  account: { src: 'account-recovery.svg', h: 360, alt: 'Account sign-in, trusted-device and recovery routes linked to an account' },
+  broker: { src: 'data-broker.svg', h: 360, alt: 'Separate pieces of information being linked into a data broker profile' },
+  url: { src: 'url-anatomy.svg', h: 340, alt: 'A URL separated into its host, path and potentially tracking-related query parameters' },
+  sim: { src: 'sim-swap.svg', h: 360, alt: 'A phone number moved to another SIM card without the owner' },
+  photo: { src: 'photo-metadata.svg', h: 360, alt: 'A photo with hidden metadata fields such as location and device' },
+  redact: { src: 'text-redaction.svg', h: 360, alt: 'Text with sensitive details covered before it is shared' },
+};
+function figFor(slug) {
+  const r = [[/sim-swap|phone/, 'sim'], [/broker/, 'broker'], [/photo/, 'photo'], [/redact|paste|cv-|bank-statement|ai-apps|protect\/ai/, 'redact'],
+    [/relay|messaging|network-down|offline|communication/, 'relay'], [/account|password|email|alias|accounts/, 'account'],
+    [/ip-leak|webrtc|ipv6|dns|vpn|leak-test|principles|privacy$|devices|app-permissions|reset-checklist|being-tracked|less-tracking/, 'flows'], [/link/, 'url']];
+  for (const [re, k] of r) if (re.test(slug)) return FIG[k];
+  return FIG.layers;
+}
+const KIT_CURRENT = { tools: '/tools/', blog: '/blog/', about: '/mission/', messaging: '/messaging/' };
+function headExtra({ canonical, jsonld, robots = '', title, desc }) {
+  return `${robots ? `  <meta name="robots" content="${robots}" />\n` : ''}  <link href="${SITE}${canonical}" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="${esc(title)}" property="og:title"/>
+  <meta content="${esc(desc)}" property="og:description"/>
+  <meta content="${SITE}${canonical}" property="og:url"/>
+${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ''}`;
+}
+function crumbsFor(slug, title) {
+  const parts = slug.split('/');
+  const names = { blog: 'Guides', protect: 'Protect', start: 'Start here', tools: 'Tools', shop: 'Shop' };
+  const out = [['/', 'Home']];
+  if (parts.length > 1) out.push([`/${parts[0]}/`, names[parts[0]] || parts[0]]);
+  out.push([`/${slug}/`, title]);
+  return out;
+}
+function catalogPage({ slug, title, lead, desc, figure, items }) {
+  const full = `${title} | SecureInChat`;
+  const body = `<h1>${title}</h1>\n<p class="lead">${lead}</p>`;
+  const page = infoPage({ title: full, desc, canonical: `/${slug}/`, headExtra: headExtra({ canonical: `/${slug}/`, title: full, desc }), crumbs: crumbsFor(slug, title), body: body + '\n<!--CATALOG-->', figure });
+  const cat = `<div class="tool-catalogue">\n${items.map((it) => `<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h3>${it.title}</h3>${it.labels ? `<p class="state-list">${mapTags(it.labels)}</p>` : ''}</div></div><p>${it.text}</p><a class="tool-catalogue-action" href="${it.href}">${it.action} <span aria-hidden="true">→</span></a></article>`).join('\n')}\n</div>`;
+  return page.replace('<article class="info-content">\n<!--CATALOG-->\n     </article>', cat);
+}
 function docPage({ slug, title, desc, body, current = null, article = null, robots = '' }) {
-  return page({ title: `${title} | SecureInChat`, desc, canonical: `/${slug}/`, jsonld: article, current, robots, main: `    <div class="wrap doc">\n${body}\n    </div>` });
+  const full = `${title} | SecureInChat`;
+  return infoPage({ title: full, desc, canonical: `/${slug}/`, current: KIT_CURRENT[current], headExtra: headExtra({ canonical: `/${slug}/`, jsonld: article, robots, title: full, desc }),
+    crumbs: crumbsFor(slug, title), body, figure: figFor(slug) });
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -594,20 +641,22 @@ write('checkup/index.html', gptPage('src/checkup/checkup-en.html', '/checkup/', 
 write('zh/checkup/index.html', gptPage('src/checkup/checkup-zh.html', '/zh/checkup/', 'zh_CN', 'SecureInChat — 隐私体检', '选择适合你的隐私检查：网址、手机号设置或账号安全。', null, CHECKUP_ALT));
 write('tools/phone-checkup/index.html', gptPage('src/checkup/phone-en.html', '/tools/phone-checkup/', 'en_US', 'Phone Number Privacy Checkup', 'A six-item checklist to protect your phone number from SIM swaps and exposure. You never enter your number; nothing is saved or sent.', null, PHONE_ALT));
 write('zh/tools/phone-checkup/index.html', gptPage('src/checkup/phone-zh.html', '/zh/tools/phone-checkup/', 'zh_CN', '手机号隐私自查', '六项自查，保护手机号免受换卡诈骗和泄露。无需输入号码，不保存、不发送。', null, PHONE_ALT));
+write('assets/css/subpages.css', fs.readFileSync(path.join(ROOT, 'src/subpages/subpages.css')));
+for (const f of fs.readdirSync(path.join(ROOT, 'src/subpages/illustrations'))) write(`assets/illustrations/${f}`, fs.readFileSync(path.join(ROOT, 'src/subpages/illustrations', f)));
 write('assets/css/checkup.css', fs.readFileSync(path.join(ROOT, 'src/checkup/checkup.css')));
 write('assets/js/phone-checkup.js', fs.readFileSync(path.join(ROOT, 'src/checkup/phone-checkup.js')));
 for (const f of ['noto-serif-latin-var.woff2', 'OFL-noto-serif.txt']) write('assets/fonts/' + f, fs.readFileSync(path.join(ROOT, 'src/fonts', f)));
 // GPT's v2 stylesheet names the same subset file noto-serif-subset.woff2.
 write('assets/fonts/noto-serif-subset.woff2', fs.readFileSync(path.join(ROOT, 'src/fonts/noto-serif-latin-var.woff2')));
 write('messaging/index.html', messaging());
-write('start/index.html', docPage({ slug: 'start', title: 'Start from your situation', desc: 'Pick what worries you most and get the first privacy steps you can take today.', body: startIndexBody(esc), current: 'protect' }));
+write('start/index.html', catalogPage({ slug: 'start', title: 'Start from your situation', lead: 'Pick what worries you most. Each page gives the first steps you can take today and the layers that matter for it.', desc: 'Pick what worries you most and get the first privacy steps you can take today.', figure: FIG.layers, items: SITUATIONS.map((S) => ({ href: `/start/${S.slug}/`, title: S.title, text: S.short, action: 'See the first steps' })) }));
 for (const S of SITUATIONS) write(`start/${S.slug}/index.html`, docPage({ slug: `start/${S.slug}`, title: S.title, desc: S.intro.slice(0, 155), body: situationBody(S, esc), current: 'protect' }));
 write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', desc: 'What secureinchat.com and its tools do with your data: no cookies, no accounts, no stored test results.', body: PRIVACY, current: 'about' }));
 write('about/index.html', docPage({ slug: 'about', title: 'About', desc: 'About SecureInChat: an end-to-end encrypted blind-relay messenger in development, plus free privacy tools.', body: ABOUT, current: 'about' }));
 write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'How SecureInChat is funded', desc: 'How SecureInChat is funded, what sponsors can and cannot do, and how commission links are disclosed.', body: SPONSOR, current: 'about' }));
 write('principles/index.html', docPage({ slug: 'principles', title: 'Privacy principles for the tools', desc: 'What each SecureInChat tool processes on your device, what it sends to outside services, and the limits we cannot remove.', body: PRINCIPLES, current: 'about' }));
 write('mission/index.html', docPage({ slug: 'mission', title: 'Our mission', desc: 'What SecureInChat believes, what we are building toward, who we build for and what we will never do.', body: MISSION, current: 'about' }));
-write('protect/index.html', docPage({ slug: 'protect', title: 'Protect your privacy, layer by layer', desc: 'Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy.', body: protectIndexBody(esc), current: 'protect' }));
+write('protect/index.html', catalogPage({ slug: 'protect', title: 'Protect your privacy, layer by layer', lead: `${esc(MISSION_SHORT)} Not sure where to begin? <a href="/start/">Start from your situation</a>.`, desc: 'Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy.', figure: FIG.layers, items: LAYERS.map((L, i) => ({ href: `/protect/${L.slug}/`, title: `${i + 1}. ${esc(L.name)}`, text: esc(L.tagline), labels: layerTags(L), action: 'Open this layer' })) }));
 LAYERS.forEach((L, i) => write(`protect/${L.slug}/index.html`, docPage({ slug: `protect/${L.slug}`, title: `${L.name} privacy`, desc: `${L.tagline} ${L.threat}`.slice(0, 155), body: layerBody(L, esc, i + 1), current: 'protect' })));
 // Shop (T10): not in the navigation; noindex and out of the sitemap until a real product passes validation.
 for (const p of PRODUCTS) { const errs = validateProduct(p); if (errs.length) throw new Error(`shop product ${p.slug}: ${errs.join('; ')}`); }
@@ -628,20 +677,53 @@ const postJsonLd = (p) => ({
   publisher: { '@type': 'Organization', name: 'SecureInChat', url: SITE + '/' },
   mainEntityOfPage: `${SITE}/blog/${p.slug}/`,
 });
+const RELATED = [['/checkup/', 'Start the privacy checkup'], ['/tools/', 'Browse the free privacy tools'], ['/principles/', 'See how SecureInChat tools handle data']];
 for (const p of POSTS) {
-  write(`blog/${p.slug}/index.html`, docPage({
-    slug: `blog/${p.slug}`, title: p.title, desc: p.desc, current: 'blog', article: postJsonLd(p),
-    body: `    <p class="meta"><a href="/blog/">Blog</a></p>\n    <h1>${p.title}</h1>\n    <p class="meta">By Paul · ${p.date}</p>${p.body}`,
+  const full = `${p.title} | SecureInChat`; const canonical = `/blog/${p.slug}/`;
+  write(`blog/${p.slug}/index.html`, articlePage({
+    title: full, desc: p.desc, canonical, headExtra: headExtra({ canonical, jsonld: postJsonLd(p), title: full, desc: p.desc }),
+    crumbs: [['/', 'Home'], ['/blog/', 'Guides'], [canonical, p.title]], figure: figFor(p.slug),
+    body: `    <h1>${p.title}</h1>\n    <p class="meta">By Paul · ${p.date}</p>\n    <p class="lead">${p.desc}</p>${p.body}`,
+    related: RELATED.map(([href, title]) => ({ href, title })),
   }));
 }
-write('blog/index.html', docPage({
-  slug: 'blog', title: 'Blog', current: 'blog',
-  desc: 'Notes on how our privacy tools work and on the design of a blind-relay encrypted messenger.',
-  body: `    <h1>Blog</h1>
-    <p>Notes from building SecureInChat and its privacy tools. We publish few posts and revise them when they are wrong.</p>
-${POSTS.map((p) => `    <h2><a href="/blog/${p.slug}/">${p.title}</a></h2>\n    <p class="meta">${p.date}</p>\n    <p>${p.desc}</p>`).join('\n')}
-`,
-}));
+// Guides index: ChatGPT's guides-index template, with the real post list.
+const KIT_T = (f) => fs.readFileSync(path.join(ROOT, 'src/subpages/templates', f), 'utf8');
+const kitMain = (f) => { const t = KIT_T(f); return t.slice(t.indexOf('<main class="subpage-main" id="main">') + 37, t.lastIndexOf('</main>')); };
+const GUIDE_CATS = [
+  ['network', 'Network &amp; connection', /ip-leak|webrtc|ipv6|dns-leak|vpn|leak-test-sites/],
+  ['ai', 'AI &amp; privacy', /ai-|bank-statement|photo-before|cv-before|before-you-paste|redact/],
+  ['accounts', 'Accounts &amp; phones', /phone|email|alias|app-permissions|password|privacy-reset/],
+  ['tracking', 'Data &amp; tracking', /broker/],
+  ['offline', 'Offline communication', /networks-fail/],
+  ['relay', 'Blind relay', /blind-relay/],
+];
+const catOf = (slug) => (GUIDE_CATS.find(([, , re]) => re.test(slug)) || GUIDE_CATS[0]);
+function blogIndex() {
+  let m = kitMain('guides-index.en.html');
+  const posts = [...POSTS].sort((x, y) => (y.date > x.date ? 1 : y.date < x.date ? -1 : 0));
+  const item = (p) => `<article class="guide-list-item"><div class="guide-list-main"><div class="guide-list-meta"><span>${catOf(p.slug)[1]}</span><span>${p.date}</span></div><h2><a href="/blog/${p.slug}/">${p.title}</a></h2><p>${p.desc}</p></div><span aria-hidden="true" class="guide-list-arrow">↗</span></article>`;
+  const fa = m.indexOf('<div class="guide-feed">'); const fb = m.indexOf('<div class="tool-group">', fa);
+  m = m.slice(0, fa) + `<div class="guide-feed">\n${posts.map(item).join('\n')}\n</div>\n` + m.slice(fb);
+  for (const [id, name, re] of GUIDE_CATS) {
+    const n = POSTS.filter((p) => catOf(p.slug)[0] === id).length;
+    m = m.replace(new RegExp(`(<a class="guide-filter" href="#${id}">)[\\s\\S]*?(</a>)`), `$1${name} · ${n}$2`);
+    const list = POSTS.filter((p) => catOf(p.slug)[0] === id).map((p) => `<li><a href="/blog/${p.slug}/">${p.title}</a></li>`).join('');
+    m = m.replace(new RegExp(`(<section id="${id}">[\\s\\S]*?)(</section>)`), `$1<ul>${list}</ul>$2`);
+  }
+  m = m.replace('aria-label="面包屑导航"', 'aria-label="Breadcrumb"');
+  const title = 'Privacy guides | SecureInChat'; const desc = 'Practical privacy guides with official sources: phone numbers, accounts, data brokers, AI sharing, network leaks and offline messaging.';
+  return kitShell({ title, desc, canonical: '/blog/', current: '/blog/', headExtra: headExtra({ canonical: '/blog/', title, desc }), main: m });
+}
+write('blog/index.html', blogIndex());
+
+// Tools index: ChatGPT's tools-index template (one link fixed: the health check lives at /tools/site-health-check/).
+{
+  const title = 'Privacy tools | SecureInChat'; const desc = 'Free privacy tools: see what each check does, what stays in your browser and when an outside service is involved.';
+  const m = kitMain('tools-index.en.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/').replace('aria-label="面包屑导航"', 'aria-label="Breadcrumb"');
+  write('tools/index.html', kitShell({ title, desc, canonical: '/tools/', current: '/tools/', headExtra: headExtra({ canonical: '/tools/', title, desc }), main: m }));
+}
+
 
 write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#23483E"/><g transform="translate(6 6) scale(.833)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g></svg>
 `);

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>
+   SecureInChat messaging | SecureInChat
+  </title>
+  <meta content="Messaging client development status, live relay diagnostics and architecture limitations." name="description"/>
+  <link href="/assets/img/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">
+   Skip to content
+  </a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a aria-current="page" href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑导航" class="breadcrumbs">
+      <a href="/">
+       Home
+      </a>
+      <span aria-hidden="true" class="breadcrumb-separator">
+       /
+      </span>
+      <span aria-current="page">
+       Messaging
+      </span>
+     </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">
+        A relay that forwards. Devices that hold the keys.
+       </h1>
+       <p class="page-lead">
+        SecureInChat messaging is in development. The client apps are not released yet, and there has been no independent third-party security audit. The production relay can be tested from your browser today.
+       </p>
+       <ul class="state-list">
+        <li>
+         <span class="state-label state-label--info">
+          Apps in development
+         </span>
+        </li>
+        <li>
+         <span class="state-label state-label--network">
+          No third-party audit yet
+         </span>
+        </li>
+       </ul>
+      </div>
+      <figure class="editorial-figure">
+       <img alt="Sender encrypts locally, an intermediate relay forwards encrypted payloads, and recipient decrypts locally" height="340" src="/assets/illustrations/relay-architecture.svg" width="760"/>
+       <figcaption>
+        Message content is designed to be encrypted at the device edge; routing metadata can still exist.
+       </figcaption>
+      </figure>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell">
+     <div class="page-rule-heading">
+      <div>
+       <h2>
+        Check the production relay
+       </h2>
+       <p>
+        Your browser opens a secure WebSocket to the relay, measures the handshake and checks the challenge. No message content is involved in this diagnostic.
+       </p>
+      </div>
+     </div>
+     <div class="tool-detail-layout">
+      <div class="tool-workspace">
+       <!-- INTEGRATION SLOT: Move the existing live relay diagnostic panel here intact. Preserve all current button IDs, status fields, endpoint, WebSocket code and event handlers. Do not replace it with a mock button or hard-coded result. -->
+       <div class="tool-integration-note">
+        <span class="tool-integration-symbol">
+         ↳
+        </span>
+        <div>
+         <strong>
+          Live relay diagnostic goes here
+         </strong>
+         <p>
+          Keep the existing working control and result panel. Restyle its outer container using the classes in subpages.css; do not recreate the test with dummy values.
+         </p>
+         <p class="field-help">
+          Relay endpoint:
+          <code>
+           wss://ws.secureinchat.com
+          </code>
+         </p>
+        </div>
+       </div>
+      </div>
+      <aside class="tool-sidebar">
+       <section class="content-panel">
+        <h2>
+         What the test measures
+        </h2>
+        <div class="data-handling">
+         <div class="data-handling-row">
+          <span class="data-handling-mark">
+           1
+          </span>
+          <div>
+           <strong>
+            Network connection
+           </strong>
+           <p>
+            Whether a secure WebSocket connection can be opened from this browser.
+           </p>
+          </div>
+         </div>
+         <div class="data-handling-row">
+          <span class="data-handling-mark">
+           2
+          </span>
+          <div>
+           <strong>
+            Handshake time
+           </strong>
+           <p>
+            Browser-to-relay open time in milliseconds; it is not an end-to-end message latency measurement.
+           </p>
+          </div>
+         </div>
+         <div class="data-handling-row">
+          <span class="data-handling-mark">
+           3
+          </span>
+          <div>
+           <strong>
+            Relay challenge
+           </strong>
+           <p>
+            Whether the relay sends the expected authentication challenge.
+           </p>
+          </div>
+         </div>
+        </div>
+       </section>
+       <section class="content-panel content-panel--soft">
+        <h2>
+         Read the limits
+        </h2>
+        <p>
+         A successful relay test is not an independent security audit, and it does not prove that a future client is secure.
+        </p>
+        <a class="text-link" href="/blog/">
+         Read the blind-relay guide →
+        </a>
+       </section>
+      </aside>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell">
+     <div class="page-rule-heading">
+      <div>
+       <h2>
+        Three steps at the device edge
+       </h2>
+       <p>
+        The diagram describes the client design, not a claim of third-party certification.
+       </p>
+      </div>
+     </div>
+     <figure class="diagram-frame">
+      <img alt="Three-stage message path: sender encrypts on device, relay forwards ciphertext, recipient decrypts on device" height="340" src="/assets/illustrations/relay-architecture.svg" width="760"/>
+      <figcaption class="diagram-caption">
+       <strong>
+        Design intent.
+       </strong>
+       <span>
+        Plaintext and session keys are intended to remain on client devices. Network and timing metadata may remain visible to systems involved in transport.
+       </span>
+      </figcaption>
+     </figure>
+     <div class="tool-group">
+      <div class="page-rule-heading">
+       <div>
+        <h2>
+         Cryptographic building blocks
+        </h2>
+        <p>
+         These are design descriptions, not an independent audit or a legal certification.
+        </p>
+       </div>
+      </div>
+      <div class="tool-catalogue">
+       <article class="tool-catalogue-item">
+        <h3>
+         Curve25519
+        </h3>
+        <p>
+         Elliptic-curve key agreement for client devices.
+        </p>
+       </article>
+       <article class="tool-catalogue-item">
+        <h3>
+         AES-256-GCM
+        </h3>
+        <p>
+         Authenticated encryption intended to protect confidentiality and integrity of message payloads.
+        </p>
+       </article>
+       <article class="tool-catalogue-item">
+        <h3>
+         HKDF
+        </h3>
+        <p>
+         Context-separated derivation of session and message keys.
+        </p>
+       </article>
+      </div>
+     </div>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
+  </footer>
+ </body>
+</html>
+
