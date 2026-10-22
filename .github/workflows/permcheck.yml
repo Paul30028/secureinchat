@@ -3,7 +3,7 @@ name: permcheck
 on:
   workflow_dispatch:
   push:
-    branches: [feature/T11-a, main]
+    branches: [next, main, "feature/T11-*"]
     paths: ['android/permcheck/**', '.github/workflows/permcheck.yml']
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
           curl -sSL -o /tmp/kc.zip https://github.com/JetBrains/kotlin/releases/download/v2.0.21/kotlin-compiler-2.0.21.zip
           unzip -q /tmp/kc.zip -d /tmp
           /tmp/kotlinc/bin/kotlinc core/src/main/kotlin core/src/test/kotlin -include-runtime -d /tmp/pc.jar
-          for t in RiskRulesTestKt CollectTestKt LedgerTestKt ExecutorTestKt; do java -cp /tmp/pc.jar org.secureinchat.permcheck.core.$t; done
+          for t in RiskRulesTestKt CollectTestKt LedgerTestKt ExecutorTestKt RestoreTestKt; do java -cp /tmp/pc.jar org.secureinchat.permcheck.core.$t; done
       - name: Policy check (no INTERNET permission, no dependencies)
         run: python3 tests/policy_check.py
       - name: Build debug APK and run Android lint

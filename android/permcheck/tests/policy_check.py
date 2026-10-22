@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Static checks for the promises Permission Checkup makes:
-no internet permission, no network code, no third-party libraries, read-only, GPL headers."""
+no internet permission, no network code, no third-party libraries, changes no settings, GPL headers.
+The only file written is the change record (T11-c), in noBackupFilesDir, by LedgerStore.kt."""
 import pathlib, re, sys, xml.etree.ElementTree as ET
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -27,6 +28,8 @@ check(re.search(r"^\s*dependencies\s*\{", gradle, re.M) is None, "app/build.grad
 
 banned = re.compile(r"\b(java\.net|javax\.net|okhttp|HttpURLConnection|Socket|URL\(|WebView|INTERNET|"
                     r"revokeRuntimePermission|grantRuntimePermission|setMode\(|AccessibilityService\b|SharedPreferences|openFileOutput)")
+writes = re.compile(r"\b(writeText|writeBytes|appendText|FileOutputStream|FileWriter|outputStream\(|bufferedWriter|printWriter|"
+                    r"externalCacheDir|getExternalFilesDir|MediaStore|cacheDir)")
 srcs = list((ROOT / "app/src/main/kotlin").rglob("*.kt")) + list((ROOT / "core/src/main/kotlin").rglob("*.kt"))
 check(len(srcs) >= 6, f"expected app and core sources, found {len(srcs)}")
 for p in srcs:
@@ -36,6 +39,12 @@ for p in srcs:
     code = re.sub(r'"[^"\n]*"', '""', code)  # ignore string literals (user-facing text)
     m = banned.search(code)
     check(m is None, f"{p.name}: banned API {m.group(0) if m else ''}")
+    w = writes.search(code)
+    if p.name == "LedgerStore.kt":
+        check("noBackupFilesDir" in code and "filesDir" not in code.replace("noBackupFilesDir", ""),
+              "LedgerStore.kt must write only under noBackupFilesDir")
+    else:
+        check(w is None, f"{p.name}: file write outside LedgerStore.kt: {w.group(0) if w else ''}")
 
 if fails:
     print("\n".join("FAIL " + f for f in fails)); sys.exit(1)
