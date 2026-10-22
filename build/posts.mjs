@@ -1,6 +1,105 @@
 // Blog posts. Body is HTML using the .doc styles. Keep claims verifiable and scoped.
 export const POSTS = [
   {
+    slug: 'data-broker-opt-out-guide',
+    title: 'Data broker opt-out guide: the US, the UK and the EU, with official removal pages',
+    desc: 'How to ask data brokers to delete or stop selling your information, by region. In the US: California\'s free DROP request, prescreened offer and mail opt-outs, and the removal pages of Spokeo, Acxiom and LexisNexis. In the UK: the open register opt-out and your rights under UK data protection law. In the EU: erasure and objection under the GDPR and how to complain. Every step links to the official page.',
+    date: '2026-10-22',
+    body: `
+    <p>Data brokers collect personal details from public records, purchases and online activity and sell or license the result; <a href="/blog/what-data-brokers-know-about-you/">what data brokers know about you</a> explains how. This guide is the practical half: where to send a removal or opt-out request, region by region. Every step links to the page of the government body or company that runs it, checked in October 2026. Where we could not open a company's own page, we left that company out rather than guess its process.</p>
+    <p>Use these pages only for your own records, or for someone who has asked you to act for them. They are not a way to look people up.</p>
+
+    <h2>Before you start</h2>
+    <ul>
+      <li>Use an <a href="/blog/email-aliases-hide-your-address/">email alias</a> for confirmation emails, so the request does not hand a broker a new, verified address.</li>
+      <li>Keep a simple list: site, date, what you asked for, and the reply. Profiles can reappear, and the list tells you when to check again.</li>
+      <li>Give the minimum the form needs. Where a field is marked optional, you can leave it empty.</li>
+    </ul>
+
+    <h2>United States</h2>
+    <p>There is no single national deletion law. What you can ask for depends on your state and on each company's own policy.</p>
+
+    <h3>1. California residents: one request to every registered broker (DROP)</h3>
+    <ul>
+      <li><strong>What it does:</strong> the Delete Request and Opt-out Platform, run by the California Privacy Protection Agency, sends one request to every broker on the state's registry, over 600 of them, asking each to delete your information and not sell it. It is free.</li>
+      <li><strong>Who can use it:</strong> California residents. You confirm residency through the California Identity Gateway; the agency says your verification details are not kept by DROP.</li>
+      <li><strong>Timing:</strong> requests have been open since January 1, 2026. Since August 1, 2026, registered brokers must check DROP at least once every 45 days. The agency says status updates can take up to 90 days to appear and results vary.</li>
+      <li><strong>Limits:</strong> it reaches brokers on California's registry, not every company that holds your data.</li>
+    </ul>
+    <p>Source: <a href="https://privacy.ca.gov/drop/" rel="noopener">California Privacy Protection Agency: Delete Request and Opt-out Platform (DROP)</a>.</p>
+
+    <h3>2. Prescreened credit and insurance offers</h3>
+    <ul>
+      <li><strong>What it does:</strong> stops the national credit bureaus from putting you on lists for prescreened offers, for five years or permanently.</li>
+      <li><strong>How:</strong> optoutprescreen.com or 1-888-567-8688, both run by the credit bureaus. A permanent opt-out needs a signed form you receive afterwards. The FTC notes that the Social Security number and date of birth fields are optional.</li>
+    </ul>
+    <p>Source: <a href="https://consumer.ftc.gov/articles/how-stop-junk-mail" rel="noopener">FTC: How to stop junk mail</a>.</p>
+
+    <h3>3. Marketing mail (DMAchoice)</h3>
+    <ul>
+      <li><strong>What it does:</strong> registration with DMAchoice, run by the Association of National Advertisers, lasts 10 years and stops most, not all, promotional mail.</li>
+      <li><strong>Cost:</strong> the FTC lists a $6 fee online or $7 by mail. Weigh that against how much marketing mail you get.</li>
+    </ul>
+    <p>Source: <a href="https://consumer.ftc.gov/articles/how-stop-junk-mail" rel="noopener">FTC: How to stop junk mail</a>.</p>
+
+    <h3>4. Individual brokers</h3>
+    <table>
+      <thead><tr><th>Company</th><th>What its page offers</th><th>What it needs, and its limits</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://www.spokeo.com/optout" rel="noopener">Spokeo</a> (people-search site)</td><td>Removal of a listing</td><td>The URL of each listing; every listing must be removed separately, and you confirm by email. Spokeo says it takes about 24 to 48 hours, does not remove data from the original sources, and listings can reappear, so check again later.</td></tr>
+        <tr><td><a href="https://www.acxiom.com/optout/" rel="noopener">Acxiom</a> (marketing data)</td><td>For US consumers: see your data, delete it, or opt out of its sale. Separate routes for France, Germany, Italy, Austria, Switzerland and other countries.</td><td>An email address to confirm the request, or (877) 774-2094 without one. Acxiom says processing takes up to two weeks after you confirm and does not recall data already given to marketers.</td></tr>
+        <tr><td><a href="https://consumer.risk.lexisnexis.com/opt" rel="noopener">LexisNexis Risk Solutions</a></td><td>Opt-out from its direct marketing products and its prescreen lists; suppression from restricted public-records products for people whose safety is at risk</td><td>Online, by post or 1-888-497-0011. Safety suppression needs documents, such as a protective order, police report or a letter from a shelter or health professional, and is decided by LexisNexis. It does not cover other companies, the three credit bureaus' prescreen lists, or law enforcement products.</td></tr>
+      </tbody>
+    </table>
+    <p>Many more people-search sites exist. Their removal links are usually in the footer under "Do not sell my info" or "Opt out". We will add companies to this table only after checking their own pages.</p>
+
+    <h2>United Kingdom</h2>
+    <h3>5. Opt out of the open register</h3>
+    <ul>
+      <li><strong>What it is:</strong> the electoral register has two versions. The open register is an extract that anyone can buy; the full register is used for elections and some checks, such as credit applications.</li>
+      <li><strong>How:</strong> online through the GOV.UK register to vote service, even if you are already registered, or through your local electoral registration office. In Northern Ireland, contact the Electoral Office for Northern Ireland.</li>
+      <li><strong>Cost to you:</strong> none. Opting out does not affect your right to vote. You cannot opt out of the full register.</li>
+    </ul>
+    <p>Source: <a href="https://www.gov.uk/electoral-register/opt-out-of-the-open-register" rel="noopener">GOV.UK: Opt out of the open register</a>.</p>
+
+    <h3>6. Ask a company to stop marketing with your data, or to delete it</h3>
+    <ul>
+      <li><strong>Direct marketing:</strong> you can object at any time, and the ICO says organisations cannot refuse an objection to direct marketing. They may keep your name on a suppression list so they do not contact you by mistake.</li>
+      <li><strong>Deletion:</strong> the right to erasure applies in set cases, for example when the data is no longer needed for its original purpose, you withdraw consent, or it was collected unlawfully. It is not absolute; an organisation can refuse when an exemption applies, but must tell you why.</li>
+      <li><strong>How:</strong> write to the company, say which data and which use you object to. No special wording is needed; the ICO publishes templates. The request is normally free.</li>
+      <li><strong>Timing:</strong> one calendar month, extendable by up to two months for complex requests if they tell you why. If they ask for proof of identity, the month starts when they receive it.</li>
+      <li><strong>If they do not act:</strong> complain to the company first, then to the ICO.</li>
+    </ul>
+    <p>Sources: <a href="https://ico.org.uk/for-the-public/the-right-to-object-to-the-use-of-your-data" rel="noopener">ICO: The right to object to the use of your data</a>, <a href="https://ico.org.uk/for-the-public/your-right-to-get-your-data-deleted/" rel="noopener">ICO: Your right to get your data deleted</a>.</p>
+
+    <h2>European Union</h2>
+    <h3>7. Erasure and objection under the GDPR</h3>
+    <ul>
+      <li><strong>Deletion:</strong> you can ask a company to delete your data when it is no longer needed or was used unlawfully. The right is not absolute; for example, a bank may have to keep records for a legal period. A company that made your data public must take reasonable steps to tell others processing it about your request.</li>
+      <li><strong>Direct marketing:</strong> once you object, a company may no longer use your data for direct marketing, and it must tell you that you can object free of charge.</li>
+      <li><strong>How and when:</strong> contact the company, or its Data Protection Officer if it has one. It must respond without undue delay and at the latest within one month.</li>
+    </ul>
+    <p>Sources: <a href="https://commission.europa.eu/law/law-topic/data-protection/information-individuals_en" rel="noopener">European Commission: Information for individuals</a>, <a href="https://commission.europa.eu/law/law-topic/data-protection/reform/rights-citizens/my-rights/can-i-ask-company-delete-my-personal-data_ga" rel="noopener">European Commission: Can I ask a company to delete my personal data?</a>, <a href="https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/dealing-requests-individuals/what-happens-if-someone-objects-my-company-processing-their-personal-data_en" rel="noopener">European Commission: What happens if someone objects to processing</a>.</p>
+
+    <h3>8. If a company ignores you: your national authority</h3>
+    <ul>
+      <li>The European Data Protection Board does not handle individual complaints. Complain to the data protection authority in the country where you live, work, or where the breach happened.</li>
+      <li>The EDPB says an authority should deal with a complaint within three months; if it does not, you can go to the courts in its country.</li>
+    </ul>
+    <p>Sources: <a href="https://www.edpb.europa.eu/contact_en" rel="noopener">EDPB: Contact</a>, <a href="https://www.edpb.europa.eu/about-edpb/our-members_en" rel="noopener">EDPB: list of national authorities</a>, <a href="https://edpb.europa.eu/sme/assess-the-risks/steps-individuals-can-take-against-you_en" rel="noopener">EDPB: Steps individuals can take</a>.</p>
+
+    <h2>What removal can and cannot do</h2>
+    <ul>
+      <li>Removing a listing does not remove the public record or purchase data behind it, which is why profiles come back. Plan to check again every few months.</li>
+      <li>Paid removal services send these same requests for you. They save time but cannot reach every source; we have not tested any of them.</li>
+      <li>Reduce what feeds new profiles: use <a href="/blog/email-aliases-hide-your-address/">aliases</a>, <a href="/blog/protect-your-phone-number-sim-swap/">protect your phone number</a>, and strip location from photos with the <a href="/tools/photo-metadata-remover/">photo metadata remover</a>.</li>
+    </ul>
+
+    <h2>What we have not tested</h2>
+    <p>We have not yet submitted these requests ourselves, so timings and limits come from each organisation's own page, not our observation. Other people-search sites, and other US state registries, are not covered yet. If a link here is broken or a process has changed, email us and we will correct it.</p>
+`,
+  },
+  {
     slug: 'privacy-reset-checklist-iphone-android',
     title: 'Privacy reset checklist for iPhone and Android: what each reset protects, what it costs, how to undo it',
     desc: 'Eight built-in resets and switches on iPhone and Android, from Safety Check and the tracking prompt to deleting the advertising ID and clearing saved networks. For each: what it protects, what you lose, how to undo it, and the system version it needs. Steps from Apple and Google documentation.',
@@ -782,6 +881,7 @@ export const POSTS = [
     <p>A VPN hides your network address from the sites you visit and from your internet provider. It does not remove records that already exist, and it does not stop a person who signs up with their real name and phone number. Our <a href="/tools/browser-fingerprint-test/">fingerprint test</a> shows the other half: even without an address, a browser can be recognised from its own characteristics.</p>
 
     <h2>How to find out what is held about you</h2>
+    <p>For removal pages and request rights in the US, UK and EU, see the <a href="/blog/data-broker-opt-out-guide/">data broker opt-out guide</a>.</p>
     <ol>
       <li>Search your name, with your city, on a search engine and on the main people-search sites in your country. Note which ones list you.</li>
       <li>Look for an opt-out or removal page on each. They are usually in the footer under a name such as "Do not sell my information" or "Opt out".</li>
