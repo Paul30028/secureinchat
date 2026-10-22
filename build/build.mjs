@@ -428,7 +428,7 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <p>Those requests are sent without cookies and without a referrer.</p>
 
     <h2>Advertising and affiliate links</h2>
-    <p>The site does not show advertising. Some pages carry commission links to NordVPN and NordPass, each marked as an affiliate link. The pages themselves load nothing from Nord Security. If you click one, your browser goes through Nord Security's tracking domain, which records the click and may set cookies under its own privacy policy. Each link has a plain alternative without a commission.</p>
+    <p>The site does not show advertising. Some pages carry commission links to Nord Security products (NordVPN, NordPass, NordLocker, Coveron), each marked as an affiliate link. The pages themselves load nothing from Nord Security. If you click one, your browser goes through Nord Security's tracking domain, which records the click and may set cookies under its own privacy policy. Each link has a plain alternative without a commission.</p>
 
     <h2>Your choices and contact</h2>
     <p>Because we do not keep personal data about visitors, there is little to access or delete. For privacy questions, email <a href="mailto:x@secureinchat.com">x@secureinchat.com</a>.</p>
@@ -531,7 +531,7 @@ const SPONSOR = `    <h1>How SecureInChat is funded</h1>
     <h2>Who we do not accept</h2>
     <p>We do not accept money from ad networks, data brokers, surveillance vendors, or companies whose main business is behavioural tracking. We can end a sponsorship at any time if it conflicts with these rules. Past sponsorships stay listed on this page.</p>
     <h2>Commission links</h2>
-    <p>Some tool pages (English, Chinese and Japanese) carry commission links to NordVPN and NordPass (Nord Security affiliate programme). Each one is marked "affiliate link" and sits next to a plain link to the same site. A commission never changes a test result.</p>
+    <p>Some tool pages (English, Chinese and Japanese) carry commission links to Nord Security products (NordVPN, NordPass, NordLocker, Coveron). Each one is marked "affiliate link" and sits next to a plain link to the same site. A commission never changes a test result.</p>
     <h2>Current sponsors</h2>
     <p>None.</p>
     <h2>Get in touch</h2>
@@ -687,6 +687,11 @@ function addPartner(rel, block) {
 addPartner('zh/checkup/index.html', PARTNER_ZH);
 addPartner('zh/tools/phone-checkup/index.html', PARTNER_ZH);
 addPartner('ja/index.html', PARTNER_JA);
+addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap doc" aria-labelledby="partner-h">
+      <h2 id="partner-h">Tools from our partner</h2>
+      <p><a href="https://go.coveron.net/aff_c?offer_id=1025&amp;aff_id=159108" rel="sponsored noopener">Coveron</a> (affiliate link) is an identity theft protection service for people in the United States. Opting out of data brokers yourself, as described above, costs nothing.</p>
+    </aside>
+`);
 
 // sitemap, robots, headers
 const urls = [
