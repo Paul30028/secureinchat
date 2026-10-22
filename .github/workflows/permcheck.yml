@@ -18,7 +18,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest ships an Android SDK in $ANDROID_HOME; accept licences for the platforms the build needs.
+      - name: Android SDK licences
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '8.10.2' }
       - name: Core logic tests (plain Kotlin)
