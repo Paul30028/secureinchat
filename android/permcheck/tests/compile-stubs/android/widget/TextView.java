@@ -1,0 +1,2 @@
+// Compile-only stub for CI type-checking. NOT the real Android API.
+package android.widget; public class TextView extends android.view.View { public TextView(android.content.Context c){super(c);} public CharSequence getText(){return null;} public final void setText(CharSequence t){} public float getTextSize(){return 0;} public void setTextSize(float s){} public android.graphics.Typeface getTypeface(){return null;} public void setTypeface(android.graphics.Typeface t, int s){} }

@@ -21,6 +21,15 @@ object RiskRules {
     private val mediumSpecial = setOf(Special.VPN, Special.OVERLAY, Special.USAGE_STATS)
     private val aiUpgrade = setOf("${P}RECORD_AUDIO", "${P}CAMERA", "${P}READ_MEDIA_IMAGES")
 
+    /** Every reasonKey [evaluate] can emit; used to check that each has explanatory text. */
+    fun reasonKeys(): Set<String> = buildSet {
+        addAll(high.values); addAll(medium.values); addAll(low.values)
+        aiUpgrade.forEach { add(medium.getValue(it) + "_ai") }
+        (highSpecial + mediumSpecial).forEach { add(it.name.lowercase()) }
+        add(Special.OVERLAY.name.lowercase() + "_ai")
+        add("keyboard_internet")
+    }
+
     fun evaluate(app: AppPerms): List<Finding> {
         val ai = AiApps.isLikelyAi(app.packageName, app.label)
         val out = mutableListOf<Finding>()

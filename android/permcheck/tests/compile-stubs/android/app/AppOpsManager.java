@@ -1,0 +1,2 @@
+// Compile-only stub for CI type-checking. NOT the real Android API.
+package android.app; public class AppOpsManager { public static final String OPSTR_SYSTEM_ALERT_WINDOW="android:system_alert_window"; public static final String OPSTR_GET_USAGE_STATS="android:get_usage_stats"; public static final int MODE_ALLOWED=0; public int unsafeCheckOpNoThrow(String o,int u,String p){return 0;} @Deprecated public int checkOpNoThrow(String o,int u,String p){return 0;} }
