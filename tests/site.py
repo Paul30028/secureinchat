@@ -33,7 +33,7 @@ BASE = f'http://127.0.0.1:{srv.server_address[1]}'
 WS_OK = """(()=>{class W{constructor(u){this.u=u;setTimeout(()=>{this.onopen&&this.onopen();setTimeout(()=>{this.onmessage&&this.onmessage({data:JSON.stringify({type:'auth_challenge',challenge:'abcdef0123456789abcdef'})})},40)},60)}close(){}}window.WebSocket=W})();"""
 WS_BAD = """(()=>{class W{constructor(u){setTimeout(()=>{this.onerror&&this.onerror();this.onclose&&this.onclose({code:1006})},60)}close(){}}window.WebSocket=W})();"""
 
-PAGES = ['/', '/zh/', '/ja/', '/messaging/', '/start/', '/start/being-tracked/', '/start/account-hacked/', '/start/less-tracking/', '/start/network-down/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/tools/privacy-report/', '/tools/account-checkup/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/link-checker/', '/tools/site-health-check/', '/guides/', '/guides/breakout-game-with-ai/', '/guides/breakout-game-with-ai/play/', '/refund/', '/terms/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/blog/encrypted-messaging-when-networks-fail/', '/blog/check-app-permissions-android-iphone/', '/blog/ai-apps-permissions-and-data/', '/blog/move-to-encrypted-email/', '/blog/email-aliases-hide-your-address/', '/blog/protect-your-phone-number-sim-swap/', '/blog/privacy-reset-checklist-iphone-android/', '/blog/data-broker-opt-out-guide/', '/shop/']
+PAGES = ['/', '/zh/', '/ja/', '/messaging/', '/start/', '/start/being-tracked/', '/start/account-hacked/', '/start/less-tracking/', '/start/network-down/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/tools/privacy-report/', '/tools/account-checkup/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/link-checker/', '/tools/site-health-check/', '/guides/', '/guides/breakout-game-with-ai/', '/guides/breakout-game-with-ai/play/', '/refund/', '/terms/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/checkup/', '/zh/checkup/', '/tools/phone-checkup/', '/zh/tools/phone-checkup/', '/blog/encrypted-messaging-when-networks-fail/', '/blog/check-app-permissions-android-iphone/', '/blog/ai-apps-permissions-and-data/', '/blog/move-to-encrypted-email/', '/blog/email-aliases-hide-your-address/', '/blog/protect-your-phone-number-sim-swap/', '/blog/privacy-reset-checklist-iphone-android/', '/blog/data-broker-opt-out-guide/', '/shop/']
 fails = []
 def check(cond, msg):
     print(('ok   ' if cond else 'FAIL ') + msg)
@@ -48,6 +48,8 @@ with sync_playwright() as p:
             external, viol, errs = [], [], []
             page.on('request', lambda r: external.append(r.url) if not r.url.startswith(BASE) and not r.url.startswith('data:') else None)
             page.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
+            missing = []
+            page.on('response', lambda r: missing.append(r.url) if r.url.startswith(BASE) and r.status >= 400 and '/api/' not in r.url else None)
             page.add_init_script(WS_OK)
             page.add_init_script("document.addEventListener('securitypolicyviolation',e=>{(window.__v=window.__v||[]).push(e.violatedDirective+' '+e.blockedURI)})")
             # tools page lookups are not under test here; abort them quietly
@@ -59,6 +61,7 @@ with sync_playwright() as p:
             check(resp.status == 200, f'{tag} status 200')
             v = page.evaluate('window.__v||[]')
             check(not v, f'{tag} no CSP violations {v}')
+            check(not missing, f'{tag} no missing files {missing[:3]}')
             ov = page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
             check(ov <= 0, f'{tag} no horizontal overflow ({ov})')
             if not path.startswith('/tools/ip-leak'):
@@ -94,20 +97,24 @@ with sync_playwright() as p:
     # no-JS: content must be visible
     ctx2 = b.new_context(java_script_enabled=False, viewport={'width': 1280, 'height': 800}); pg2 = ctx2.new_page(); pg2.goto(BASE + '/messaging/')
     check(pg2.is_visible('#architecture h2'), 'no-JS: architecture heading visible')
-    pg2.goto(BASE + '/'); check(pg2.is_visible('#layers h2'), 'no-JS: home layers visible')
+    pg2.goto(BASE + '/'); check(pg2.is_visible('#hero-title') and pg2.is_visible('#privacy-tools h2'), 'no-JS: home hero and tools visible')
     # language select navigates
     ctx3 = b.new_context(viewport={'width': 1280, 'height': 800}); pg3 = ctx3.new_page(); pg3.add_init_script(WS_OK); pg3.goto(BASE + '/')
-    pg3.goto(BASE + '/zh/'); check('看清你暴露了什么' in pg3.inner_text('h1') and pg3.is_visible('.notice'), '/zh/ shows notice and heading')
-    pg3.wait_for_timeout(300)
-    check(pg3.inner_text('#ro-cookies') in ('允许', '已阻止'), f"/zh/ readout localized ({pg3.inner_text('#ro-cookies')})")
-    check(pg3.locator('#layers .stack li').count() == 6 and pg3.locator('#start .situations li').count() == 4, '/zh/ six layers and four situations')
-    check(pg3.locator('main a[href^="/"]:not([hreflang="en"])').count() == 0, '/zh/ every internal link marked hreflang=en')
+    pg3.goto(BASE + '/zh/'); check(len(pg3.inner_text('#hero-title').strip()) > 4, '/zh/ hero heading')
+    zh_links = pg3.eval_on_selector_all('main a[href]', 'as => as.map(a => a.getAttribute("href"))')
+    check(not [h for h in zh_links if 'ip-leak' in h], '/zh/ has no IP leak tool link (rule)')
+    check(pg3.locator('a[href="/zh/checkup/"]').count() >= 1, '/zh/ links to the Chinese privacy checkup')
     check(pg3.locator('link[rel="alternate"][hreflang="ja"]').count() == 1, '/zh/ hreflang alternates present')
+    pg3.goto(BASE + '/zh/checkup/')
+    zc = pg3.eval_on_selector_all('main a[href]', 'as => as.map(a => a.getAttribute("href"))')
+    check(not [h for h in zc if 'privacy-report' in h or 'ip-leak' in h], '/zh/checkup/ has no IP test (rule)')
+    pg3.goto(BASE + '/checkup/')
+    ec = pg3.eval_on_selector_all('.checkup-card a', 'as => as.map(a => a.getAttribute("href"))')
+    check(ec == ['/tools/privacy-report/', '/tools/link-checker/', '/tools/phone-checkup/', '/tools/account-checkup/'], f'/checkup/ four checks in order {ec}')
     pg3.goto(BASE + '/ja/'); check('何が漏れているか' in pg3.inner_text('h1'), '/ja/ heading')
     pg3.wait_for_timeout(300)
     check(pg3.inner_text('#ro-cookies') in ('許可', 'ブロック'), '/ja/ readout localized')
     check(pg3.locator('main a[href^="/"]:not([hreflang="en"])').count() == 0, '/ja/ every internal link marked hreflang=en')
-    pg3.goto(BASE + '/'); pg3.wait_for_timeout(300); check(pg3.inner_text('#ro-cookies') in ('Allowed', 'Blocked'), 'home readout still English')
     b.close()
 
 print('\nFAILED:' if fails else '\nSITE TESTS PASSED', *fails, sep='\n')
