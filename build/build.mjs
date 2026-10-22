@@ -428,7 +428,7 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <p>Those requests are sent without cookies and without a referrer.</p>
 
     <h2>Advertising and affiliate links</h2>
-    <p>The site does not currently show advertising. If we add ads or affiliate links, they will be labeled, this page will be updated first, and third-party ad providers may then use cookies under their own policies.</p>
+    <p>The site does not show advertising. Some English tool pages carry labelled commission links to NordVPN and NordPass. The pages themselves load nothing from Nord Security. If you click one, your browser goes through Nord Security's tracking domain, which records the click and may set cookies under its own privacy policy. Each link has a plain alternative without a commission.</p>
 
     <h2>Your choices and contact</h2>
     <p>Because we do not keep personal data about visitors, there is little to access or delete. For privacy questions, email <a href="mailto:x@secureinchat.com">x@secureinchat.com</a>.</p>
@@ -531,7 +531,7 @@ const SPONSOR = `    <h1>How SecureInChat is funded</h1>
     <h2>Who we do not accept</h2>
     <p>We do not accept money from ad networks, data brokers, surveillance vendors, or companies whose main business is behavioural tracking. We can end a sponsorship at any time if it conflicts with these rules. Past sponsorships stay listed on this page.</p>
     <h2>Commission links</h2>
-    <p>We do not use affiliate or commission links at present. If we ever do, the sentence "We may earn a commission from this link" will appear next to each one, along with a plain link to the same site.</p>
+    <p>Some English tool pages carry commission links to NordVPN and NordPass (Nord Security affiliate programme). Next to them we say that we may earn a commission, link to the same sites without a commission, and state that we have not yet tested the products ourselves. A commission never changes a test result.</p>
     <h2>Current sponsors</h2>
     <p>None.</p>
     <h2>Get in touch</h2>
@@ -604,7 +604,7 @@ write('start/index.html', docPage({ slug: 'start', title: 'Start from your situa
 for (const S of SITUATIONS) write(`start/${S.slug}/index.html`, docPage({ slug: `start/${S.slug}`, title: S.title, desc: S.intro.slice(0, 155), body: situationBody(S, esc), current: 'protect' }));
 write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', desc: 'What secureinchat.com and its tools do with your data: no cookies, no accounts, no stored test results.', body: PRIVACY, current: 'about' }));
 write('about/index.html', docPage({ slug: 'about', title: 'About', desc: 'About SecureInChat: an end-to-end encrypted blind-relay messenger in development, plus free privacy tools.', body: ABOUT, current: 'about' }));
-write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'How SecureInChat is funded', desc: 'How SecureInChat is funded, what sponsors can and cannot do, and how any commission link would be disclosed.', body: SPONSOR, current: 'about' }));
+write('sponsor/index.html', docPage({ slug: 'sponsor', title: 'How SecureInChat is funded', desc: 'How SecureInChat is funded, what sponsors can and cannot do, and how commission links are disclosed.', body: SPONSOR, current: 'about' }));
 write('principles/index.html', docPage({ slug: 'principles', title: 'Privacy principles for the tools', desc: 'What each SecureInChat tool processes on your device, what it sends to outside services, and the limits we cannot remove.', body: PRINCIPLES, current: 'about' }));
 write('mission/index.html', docPage({ slug: 'mission', title: 'Our mission', desc: 'What SecureInChat believes, what we are building toward, who we build for and what we will never do.', body: MISSION, current: 'about' }));
 write('protect/index.html', docPage({ slug: 'protect', title: 'Protect your privacy, layer by layer', desc: 'Six layers of personal privacy protection: physical, devices, accounts and email, communication, offline and emergency, and AI privacy.', body: protectIndexBody(esc), current: 'protect' }));
