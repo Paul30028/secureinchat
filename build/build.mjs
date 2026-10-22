@@ -428,7 +428,7 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <p>Those requests are sent without cookies and without a referrer.</p>
 
     <h2>Advertising and affiliate links</h2>
-    <p>The site does not show advertising. Some English tool pages carry labelled commission links to NordVPN and NordPass. The pages themselves load nothing from Nord Security. If you click one, your browser goes through Nord Security's tracking domain, which records the click and may set cookies under its own privacy policy. Each link has a plain alternative without a commission.</p>
+    <p>The site does not show advertising. Some pages carry commission links to NordVPN and NordPass, each marked as an affiliate link. The pages themselves load nothing from Nord Security. If you click one, your browser goes through Nord Security's tracking domain, which records the click and may set cookies under its own privacy policy. Each link has a plain alternative without a commission.</p>
 
     <h2>Your choices and contact</h2>
     <p>Because we do not keep personal data about visitors, there is little to access or delete. For privacy questions, email <a href="mailto:x@secureinchat.com">x@secureinchat.com</a>.</p>
@@ -531,7 +531,7 @@ const SPONSOR = `    <h1>How SecureInChat is funded</h1>
     <h2>Who we do not accept</h2>
     <p>We do not accept money from ad networks, data brokers, surveillance vendors, or companies whose main business is behavioural tracking. We can end a sponsorship at any time if it conflicts with these rules. Past sponsorships stay listed on this page.</p>
     <h2>Commission links</h2>
-    <p>Some English tool pages carry commission links to NordVPN and NordPass (Nord Security affiliate programme). Next to them we say that we may earn a commission, link to the same sites without a commission, and state that we have not yet tested the products ourselves. A commission never changes a test result.</p>
+    <p>Some tool pages (English, Chinese and Japanese) carry commission links to NordVPN and NordPass (Nord Security affiliate programme). Each one is marked "affiliate link" and sits next to a plain link to the same site. A commission never changes a test result.</p>
     <h2>Current sponsors</h2>
     <p>None.</p>
     <h2>Get in touch</h2>
@@ -660,6 +660,33 @@ for (const [pkg, name, weights] of fonts) {
 }
 write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
 write('assets/site.css', fs.readFileSync(path.join(ROOT, 'src/site.css')));
+
+
+// Nord Security affiliate links on the Chinese and Japanese pages (owner decision 2026-10-22; Chinese pages are for readers outside mainland China).
+const NORD_VPN = 'https://go.nordvpn.net/aff_c?offer_id=15&amp;aff_id=159108&amp;url_id=902';
+const NORD_PASS = 'https://go.nordpass.io/aff_c?offer_id=488&amp;aff_id=159108&amp;url_id=9356';
+const PARTNER_ZH = `    <section class="checkup-next-section" aria-labelledby="partner-h">
+      <div class="container checkup-next-panel">
+        <div><h2 id="partner-h">合作伙伴工具</h2>
+        <p><a href="${NORD_VPN}" rel="sponsored noopener">NordVPN</a>（联盟链接）：付费 VPN 服务，适合在海外使用。也可以直接访问 <a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a>。</p>
+        <p><a href="${NORD_PASS}" rel="sponsored noopener">NordPass</a>（联盟链接）：密码管理器，有免费版。也可以直接访问 <a href="https://nordpass.com/" rel="noopener">nordpass.com</a>。</p></div>
+      </div>
+    </section>
+`;
+const PARTNER_JA = `    <section class="wrap sec" aria-labelledby="partner-h">
+      <h2 id="partner-h">提携パートナーのツール</h2>
+      <p><a href="${NORD_VPN}" rel="sponsored noopener">NordVPN</a>（アフィリエイトリンク）：有料の VPN サービスです。接続後、<a href="/tools/ip-leak-test/" hreflang="en">IP 漏えいテスト（英語）</a>でご自身で確認できます。<a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> に直接アクセスすることもできます。</p>
+      <p><a href="${NORD_PASS}" rel="sponsored noopener">NordPass</a>（アフィリエイトリンク）：無料プランのあるパスワードマネージャーです。<a href="https://nordpass.com/" rel="noopener">nordpass.com</a> に直接アクセスすることもできます。</p>
+    </section>
+`;
+function addPartner(rel, block) {
+  const f = path.join(PUB, rel); const h = fs.readFileSync(f, 'utf8'); const i = h.lastIndexOf('</main>');
+  if (i < 0 || h.includes('go.nordvpn.net')) throw new Error('partner block: ' + rel);
+  fs.writeFileSync(f, h.slice(0, i) + block + h.slice(i));
+}
+addPartner('zh/checkup/index.html', PARTNER_ZH);
+addPartner('zh/tools/phone-checkup/index.html', PARTNER_ZH);
+addPartner('ja/index.html', PARTNER_JA);
 
 // sitemap, robots, headers
 const urls = [
