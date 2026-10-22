@@ -555,6 +555,43 @@ function write(rel, content) {
 
 write('index.html', home());
 for (const c of Object.keys(LOCAL)) write(`${c}/index.html`, localPage(c));
+
+// Home pages: designed and coded by ChatGPT (design owner since 2026-10-22), integrated unchanged except for
+// head metadata (canonical, hreflang, Open Graph) and self-hosted asset paths. Source: src/home/.
+function gptHome(file, canonical, lang, title, desc, jsonld) {
+  let h = fs.readFileSync(path.join(ROOT, 'src/home', file), 'utf8');
+  const meta = `  <link rel="canonical" href="${SITE}${canonical}">
+  <link rel="alternate" hreflang="en" href="${SITE}/">
+  <link rel="alternate" hreflang="zh-CN" href="${SITE}/zh/">
+  <link rel="alternate" hreflang="ja" href="${SITE}/ja/">
+  <link rel="alternate" hreflang="x-default" href="${SITE}/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SecureInChat">
+  <meta property="og:title" content="${esc(title)}">
+  <meta property="og:description" content="${esc(desc)}">
+  <meta property="og:url" content="${SITE}${canonical}">
+  <meta property="og:locale" content="${lang}">
+  <meta name="twitter:card" content="summary">
+${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ''}`;
+  const swaps = [
+    ['<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">', '<link rel="icon" type="image/svg+xml" href="/favicon.svg">'],
+    ['href="/assets/fonts/noto-serif-variable.ttf"', 'href="/assets/fonts/noto-serif-latin-var.woff2"'],
+    ['type="font/ttf"', 'type="font/woff2"'],
+  ];
+  for (const [a, b] of swaps) h = h.split(a).join(b);
+  if (!h.includes('</head>')) throw new Error('home template without </head>: ' + file);
+  return h.replace('</head>', meta + '</head>');
+}
+const HOME_JSONLD = { '@context': 'https://schema.org', '@graph': [
+  { '@type': 'Organization', '@id': SITE + '/#org', name: 'SecureInChat', url: SITE + '/' },
+  { '@type': 'WebSite', '@id': SITE + '/#site', url: SITE + '/', name: 'SecureInChat', publisher: { '@id': SITE + '/#org' }, inLanguage: 'en' },
+] };
+write('index.html', gptHome('en.html', '/', 'en_US', 'SecureInChat — Practical Privacy Tools', 'Practical privacy tools and guides. Check your browser privacy, protect sensitive information, and learn what your devices and online services can access.', HOME_JSONLD));
+write('zh/index.html', gptHome('zh.html', '/zh/', 'zh_CN', 'SecureInChat — 实用隐私保护工具', 'SecureInChat：实用的隐私工具与指南。', null));
+write('assets/css/home.css', fs.readFileSync(path.join(ROOT, 'src/home/home.css'), 'utf8')
+  .replace('src: url("/assets/fonts/noto-serif-variable.ttf") format("truetype");', 'src: url("/assets/fonts/noto-serif-latin-var.woff2") format("woff2");'));
+write('assets/js/home.js', fs.readFileSync(path.join(ROOT, 'src/home/home.js')));
+for (const f of ['noto-serif-latin-var.woff2', 'OFL-noto-serif.txt']) write('assets/fonts/' + f, fs.readFileSync(path.join(ROOT, 'src/fonts', f)));
 write('messaging/index.html', messaging());
 write('start/index.html', docPage({ slug: 'start', title: 'Start from your situation', desc: 'Pick what worries you most and get the first privacy steps you can take today.', body: startIndexBody(esc), current: 'protect' }));
 for (const S of SITUATIONS) write(`start/${S.slug}/index.html`, docPage({ slug: `start/${S.slug}`, title: S.title, desc: S.intro.slice(0, 155), body: situationBody(S, esc), current: 'protect' }));

@@ -1,134 +1,552 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
-  <title>SecureInChat：看清你暴露了什么，然后关掉它</title>
-  <meta name="description" content="面向手机、电脑、账号和 AI 使用的实用隐私防护：在你自己设备上运行的免费工具，注明哪些步骤实测过的指南，以及正在开发中的零知识加密聊天软件。" />
-  <link rel="canonical" href="https://secureinchat.com/zh/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="SecureInChat：看清你暴露了什么，然后关掉它" />
-  <meta property="og:description" content="面向手机、电脑、账号和 AI 使用的实用隐私防护：在你自己设备上运行的免费工具，注明哪些步骤实测过的指南，以及正在开发中的零知识加密聊天软件。" />
-  <meta property="og:url" content="https://secureinchat.com/zh/" />
-  <meta property="og:locale" content="zh_CN" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
-  <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
-  <link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/" />
-  <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/" />
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","@id":"https://secureinchat.com/zh/","url":"https://secureinchat.com/zh/","name":"SecureInChat：看清你暴露了什么，然后关掉它","inLanguage":"zh-CN","isPartOf":{"@id":"https://secureinchat.com/#site"}}</script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#F7F5EF">
+  <meta name="description" content="实用的个人隐私保护工具与指南。检查浏览器隐私、保护敏感信息，了解设备和网络服务能够获取哪些信息。">
+  <title>SecureInChat — 实用隐私保护工具</title>
 
+  <link rel="stylesheet" href="/assets/css/home.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <script src="/assets/js/home.js" defer></script>
+  <link rel="canonical" href="https://secureinchat.com/zh/">
+  <link rel="alternate" hreflang="en" href="https://secureinchat.com/">
+  <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/">
+  <link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/">
+  <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SecureInChat">
+  <meta property="og:title" content="SecureInChat — 实用隐私保护工具">
+  <meta property="og:description" content="SecureInChat：实用的隐私工具与指南。">
+  <meta property="og:url" content="https://secureinchat.com/zh/">
+  <meta property="og:locale" content="zh_CN">
+  <meta name="twitter:card" content="summary">
 </head>
+
 <body>
-  <a href="#top" class="skip">跳到正文</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/">Guides</a>
-        <a href="/messaging/">Messaging</a>
-        <a href="/about/">About</a>
+  <a class="skip-link" href="#main">跳至正文</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/zh/" aria-label="SecureInChat 首页">
+        <svg class="brand-mark" viewBox="0 0 48 48"
+             xmlns="http://www.w3.org/2000/svg"
+             aria-hidden="true">
+          <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z"
+                fill="none" stroke="currentColor" stroke-width="3"/>
+          <path d="M15 24 21 30 34 17"
+                fill="none" stroke="currentColor" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="34" cy="11" r="3" fill="#C6A15B"/>
+        </svg>
+        <span class="brand-copy">
+          <span class="brand-name">SecureInChat</span>
+          <span class="brand-tagline">更实用的工具，更私密的互联网</span>
+        </span>
+      </a>
+
+      <nav class="desktop-navigation" aria-label="主导航">
+        <a href="/tools/">隐私工具</a>
+        <a href="/blog/">使用指南</a>
+        <a href="/messaging/">加密通信</a>
+        <a href="/mission/">我们的使命</a>
       </nav>
+
+      <div class="header-actions">
+        <a class="language-link" href="/" lang="en">EN</a>
+        <a class="language-link" href="/ja/" lang="ja">日本語</a>
+        <a class="button button--small button--primary"
+           href="/tools/privacy-report/">开始检查</a>
+      </div>
+
+      <details class="mobile-navigation">
+        <summary aria-label="打开导航菜单">
+          <svg viewBox="0 0 24 24" aria-hidden="true"
+               xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 7H20M4 12H20M4 17H20"
+                  fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round"/>
+          </svg>
+        </summary>
+        <nav aria-label="移动端导航">
+          <a href="/tools/">隐私工具</a>
+          <a href="/blog/">使用指南</a>
+          <a href="/messaging/">加密通信</a>
+          <a href="/mission/">我们的使命</a>
+          <a href="/principles/">隐私原则</a>
+          <a href="/" lang="en">English</a>
+          <a href="/ja/" lang="ja">日本語</a>
+        </nav>
+      </details>
     </div>
   </header>
-  <main id="top">
-    <section class="wrap hero">
-      <div>
-        <p class="notice">这是中文概览页。下面链接的指南和工具界面目前只有英文版，链接旁标有“英文”。</p>
-        <h1>看清你暴露了什么，然后关掉它。</h1>
-        <p class="hero__sub">你的手机、浏览器、账号和 AI 工具泄露的信息比你想象的多。我们告诉你具体是哪些，并带你一层一层把它关掉。</p>
-        <div class="hero__cta"><a class="btn btn--p" href="/start/" hreflang="en">从哪里开始（英文）</a><a class="btn btn--s" href="/tools/" hreflang="en">免费检查一下（英文）</a></div>
-        <ul class="hero__promise"><li>不用 Cookie</li><li>不用注册账号</li><li>检查在你的设备上运行</li><li>没实测的步骤会标出来</li></ul>
+
+  <main id="main">
+    <!-- 首页首屏 -->
+    <section class="hero-section">
+      <div class="container hero-layout">
+        <div class="hero-copy">
+          <h1>看看你正在泄露什么。然后把它关掉。</h1>
+
+          <p class="hero-description">
+            了解浏览器会暴露哪些信息，保护敏感内容，
+            学习如何减少不必要的追踪。
+          </p>
+
+          <div class="hero-actions">
+            <a class="button button--primary"
+               href="/tools/privacy-report/">
+              运行隐私报告
+              <span aria-hidden="true">→</span>
+            </a>
+            <a class="button button--secondary" href="/tools/">
+              浏览隐私工具
+            </a>
+          </div>
+
+          <p class="availability-note">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span>隐私工具已开放使用</span>
+            <span class="availability-separator" aria-hidden="true">·</span>
+            <a href="/messaging/">聊天客户端正在开发中</a>
+          </p>
+        </div>
+
+        <div class="hero-visual">
+          <figure class="hero-image">
+            <img
+              src="/assets/img/secureinchat-hero.png"
+              width="2400"
+              height="1100"
+              alt="山景中的笔记本电脑和手机，用于示意隐私工具及安全通信"
+              fetchpriority="high"
+              decoding="async">
+          </figure>
+
+          <section class="page-readout"
+                   aria-labelledby="page-readout-title">
+            <div class="readout-heading">
+              <div>
+                <h2 id="page-readout-title">本页能够读取什么</h2>
+                <p>由当前浏览器在本地读取</p>
+              </div>
+              <svg viewBox="0 0 32 32" aria-hidden="true"
+                   xmlns="http://www.w3.org/2000/svg">
+                <rect x="4" y="5" width="24" height="17" rx="2"
+                      fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="M11 27H21M16 22V27"
+                      fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round"/>
+                <path d="m12 13 3 3 6-7"
+                      fill="none" stroke="#79551B" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+
+            <dl class="readout-list">
+              <div class="readout-row">
+                <dt>浏览器语言</dt>
+                <dd data-readout="language">正在本地读取…</dd>
+              </div>
+              <div class="readout-row">
+                <dt>时区</dt>
+                <dd data-readout="timezone">正在本地读取…</dd>
+              </div>
+              <div class="readout-row">
+                <dt>屏幕尺寸</dt>
+                <dd data-readout="screen">正在本地读取…</dd>
+              </div>
+              <div class="readout-row">
+                <dt>减少动态效果偏好</dt>
+                <dd data-readout="motion">正在本地读取…</dd>
+              </div>
+            </dl>
+
+            <p class="readout-footnote">
+              这些信息由本页的本地脚本在你的设备上读取；
+              该脚本不会把这些值发送到其他地方。
+            </p>
+            <noscript>
+              <p class="noscript-note">
+                启用 JavaScript 后可以查看这些本地浏览器信息。
+                即使不显示此面板，隐私工具仍可访问。
+              </p>
+            </noscript>
+          </section>
+        </div>
       </div>
-      <aside class="readout" aria-labelledby="readout-h">
-        <div class="readout__head"><h2 id="readout-h">本页能读到你的哪些信息</h2><p>任何网站都能在不询问你的情况下读到这些。</p></div>
-        <dl id="readout">
-          <div class="readout__row"><dt>时区</dt><dd id="ro-tz">…</dd></div>
-          <div class="readout__row"><dt>语言</dt><dd id="ro-lang">…</dd></div>
-          <div class="readout__row"><dt>屏幕</dt><dd id="ro-screen">…</dd></div>
-          <div class="readout__row"><dt>设备</dt><dd id="ro-platform">…</dd></div>
-          <div class="readout__row"><dt>处理器核心数</dt><dd id="ro-cores">…</dd></div>
-          <div class="readout__row"><dt>触摸屏</dt><dd id="ro-touch">…</dd></div>
-          <div class="readout__row"><dt>Cookie</dt><dd id="ro-cookies">…</dd></div>
-          <div class="readout__row"><dt>请勿追踪（DNT）</dt><dd id="ro-dnt">…</dd></div>
-        </dl>
-        <p class="readout__nojs">开启 JavaScript 才能看到这些值。关掉它时网站能读到的更少，这也是我们讲解的防护方法之一。</p>
-        <p class="readout__foot">只在这个标签页内读取，没有发送给我们或任何人。</p>
-      </aside>
     </section>
 
-    <section class="wrap sec" id="start">
-      <h2>你现在最担心什么？</h2>
-      <ul class="situations">
-        <li><a href="/start/being-tracked/" hreflang="en"><strong>可能有人在追踪我</strong><span>手机、位置和账号（英文）</span></a></li>
-        <li><a href="/start/account-hacked/" hreflang="en"><strong>我的账号可能被盗了</strong><span>密码、恢复方式、密钥（英文）</span></a></li>
-        <li><a href="/start/less-tracking/" hreflang="en"><strong>我想日常少被追踪</strong><span>系统设置、浏览器、数据经纪商（英文）</span></a></li>
-        <li><a href="/start/network-down/" hreflang="en"><strong>紧急情况下移动网络中断</strong><span>灾害或停电时如何保持联系（英文）</span></a></li>
-      </ul>
-    </section>
+    <!-- 隐私工具 -->
+    <section class="section tools-section" id="privacy-tools">
+      <div class="container">
+        <div class="section-heading section-heading--split">
+          <div>
+            <h2>实用的隐私工具</h2>
+            <p>从一个小步骤开始。这些浏览器工具无需安装独立软件。</p>
+          </div>
+          <a class="text-link" href="/tools/">
+            查看全部 11 个工具 <span aria-hidden="true">→</span>
+          </a>
+        </div>
 
-    <section class="wrap sec" id="layers">
-      <h2>六层防护：从你身边的环境，到你使用的 App。</h2>
-      <p class="sec__lead">一层薄弱，其他几层也会失效。每一层的页面都写明哪些现在可用、哪些还在开发或测试。</p>
-      <ul class="stack">
-        <li><a class="depth-1" href="/protect/physical/" hreflang="en"><div><h3>物理环境</h3><p>身边的人和设备能看到、收到什么。</p></div><div class="tags"><span class="tag tag--untested">计划中</span><span class="tag tag--doc">英文</span></div></a></li>
-        <li><a class="depth-2" href="/protect/devices/" hreflang="en"><div><h3>设备与网络</h3><p>你的手机、电脑和浏览器暴露了什么。</p></div><div class="tags"><span class="tag tag--tested">6 个工具</span><span class="tag tag--doc">3 篇指南</span><span class="tag tag--doc">英文</span></div></a></li>
-        <li><a class="depth-3" href="/protect/accounts/" hreflang="en"><div><h3>账号与邮箱</h3><p>谁能进入你的账号，你的收件箱透露了什么。</p></div><div class="tags"><span class="tag tag--tested">2 个工具</span><span class="tag tag--doc">6 篇指南</span><span class="tag tag--doc">英文</span></div></a></li>
-        <li><a class="depth-4" href="/protect/communication/" hreflang="en"><div><h3>通信</h3><p>只有对话双方才能读到的消息。</p></div><div class="tags"><span class="tag tag--doc">1 篇指南</span><span class="tag tag--lim">聊天软件开发中</span><span class="tag tag--doc">英文</span></div></a></li>
-        <li><a class="depth-5" href="/protect/offline/" hreflang="en"><div><h3>离线与紧急情况</h3><p>移动网络中断时如何安全地保持联系。</p></div><div class="tags"><span class="tag tag--doc">已整理资料</span><span class="tag tag--untested">待实地测试</span><span class="tag tag--doc">英文</span></div></a></li>
-        <li><a class="depth-6" href="/protect/ai/" hreflang="en"><div><h3>AI 隐私</h3><p>你交给 AI 助手的信息，以及如何少交一些。</p></div><div class="tags"><span class="tag tag--tested">2 个工具</span><span class="tag tag--doc">5 篇指南</span><span class="tag tag--doc">英文</span></div></a></li>
-      </ul>
-    </section>
+        <div class="tool-layout">
+          <article class="tool-card tool-card--wide">
+            <div class="tool-icon" aria-hidden="true">
+              <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="17" cy="17" r="9" fill="none"
+                        stroke="currentColor" stroke-width="2.3"/>
+                <path d="m24 24 8 8M13 17l3 3 5-6"
+                      fill="none" stroke="currentColor" stroke-width="2.3"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="tool-card-body">
+              <h3>可疑链接检查</h3>
+              <p>打开链接之前，检查可疑网址与跟踪参数。</p>
+              <div class="tag-list">
+                <span class="status-tag">本地处理</span>
+              </div>
+              <a class="tool-action" href="/tools/link-checker/">
+                检查链接 <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
 
-    <section class="wrap sec" id="tools">
-      <h2>两分钟内就能检查一项。</h2>
-      <ul class="rows">
-        <li><a href="/tools/privacy-report/" hreflang="en"><strong>浏览器隐私报告</strong><span>一次检查浏览器向网站暴露的信息，并列出最该先处理的几项。</span><span class="tag tag--lim">会联系查询服务</span></a></li>
-        <li><a href="/tools/account-checkup/" hreflang="en"><strong>账号安全自查</strong><span>八项本地勾选清单：两步验证、密码复用、恢复方式、登录设备，附 Google、Apple、Microsoft 官方步骤。</span><span class="tag tag--tested">在你的设备上运行</span></a></li>
-        <li><a href="/tools/link-checker/" hreflang="en"><strong>链接检查器</strong><span>去掉链接里的追踪参数，并在点开前看出钓鱼链接的迹象。链接不会被打开或发送。</span><span class="tag tag--tested">在你的设备上运行</span></a></li>
-        <li><a href="/tools/photo-metadata-remover/" hreflang="en"><strong>照片元数据清除</strong><span>查看并删除照片里隐藏的位置、设备和日期。</span><span class="tag tag--tested">在你的设备上运行</span></a></li>
-        <li><a href="/tools/text-redactor/" hreflang="en"><strong>文本脱敏</strong><span>在分享文本或粘贴给 AI 之前，把邮箱、号码和密钥换成占位符。</span><span class="tag tag--tested">在你的设备上运行</span></a></li>
-      </ul>
-      <p class="sec__more"><a href="/tools/" hreflang="en">全部工具（英文）</a></p>
-    </section>
+          <article class="tool-card">
+            <div class="tool-icon" aria-hidden="true">
+              <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <rect x="5" y="6" width="30" height="28" rx="3"
+                      fill="none" stroke="currentColor" stroke-width="2.2"/>
+                <circle cx="14" cy="14" r="3" fill="none"
+                        stroke="currentColor" stroke-width="2"/>
+                <path d="m8 29 9-9 5 5 4-4 6 8"
+                      fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="tool-card-body">
+              <h3>照片元数据清理</h3>
+              <p>查看并移除照片中受支持的元数据。</p>
+              <div class="tag-list">
+                <span class="status-tag">本地处理</span>
+              </div>
+              <a class="tool-action" href="/tools/photo-metadata-remover/">
+                清理照片 <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
 
-    <section class="wrap sec" id="data">
-      <div class="trust">
-        <div><h2>别只相信我们，自己检查。</h2><p>每个工具都列出哪些数据留在你的设备上、哪些会发出去。使用时打开浏览器的网络面板对照一下。 <a href="/principles/" hreflang="en">各工具详情（英文）</a></p></div>
-        <table><thead><tr><th scope="col">工具</th><th scope="col">留在你的设备上</th><th scope="col">发送给他人</th></tr></thead><tbody>
-          <tr><td>照片元数据清除</td><td>照片及其元数据</td><td>无</td></tr>
-          <tr><td>文本脱敏</td><td>你粘贴的文本</td><td>无</td></tr>
-          <tr><td>密码泄露检查</td><td>密码及其完整哈希值</td><td>SHA-1 哈希值的前 5 个字符，发给 Pwned Passwords</td></tr>
-        </tbody></table>
+          <article class="tool-card">
+            <div class="tool-icon" aria-hidden="true">
+              <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 5H25L32 12V35H9Z"
+                      fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linejoin="round"/>
+                <path d="M25 5V12H32M14 19H27M14 24H27M14 29H23"
+                      fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="tool-card-body">
+              <h3>文本脱敏</h3>
+              <p>分享文本或提交给 AI 之前，移除敏感信息。</p>
+              <div class="tag-list">
+                <span class="status-tag">本地处理</span>
+              </div>
+              <a class="tool-action" href="/tools/text-redactor/">
+                脱敏文本 <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
+
+          <article class="tool-card">
+            <div class="tool-icon" aria-hidden="true">
+              <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4 33 9V19C33 28 27 33 20 37 13 33 7 28 7 19V9Z"
+                      fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linejoin="round"/>
+                <path d="m14 20 4 4 8-9"
+                      fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="tool-card-body">
+              <h3>账号安全自查</h3>
+              <p>逐项检查两步验证、密码复用和账号恢复方式。</p>
+              <div class="tag-list">
+                <span class="status-tag">本地处理</span>
+              </div>
+              <a class="tool-action" href="/tools/account-checkup/">
+                开始自查 <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
+        </div>
+
+        <p class="tools-disclosure">
+          浏览器隐私报告包含 12 项检查，部分连接检查会使用外部查询服务。
+          请在<a href="/principles/">隐私原则</a>中查看相关数据流说明。
+        </p>
       </div>
     </section>
 
-    <section class="wrap sec" id="messaging">
-      <div class="band">
-        <div><h2>SecureInChat 聊天软件：服务器只转发，从不读取。</h2><p>密钥只保存在你的设备上，盲中继只转发密文。客户端仍在开发中；现在可以在浏览器里测试在线中继。</p></div>
-        <a class="btn btn--s" href="/messaging/" hreflang="en">了解工作原理（英文）</a>
+    <!-- 使用指南 -->
+    <section class="section guides-section" id="guides">
+      <div class="container">
+        <div class="section-heading section-heading--split">
+          <div>
+            <h2>了解风险，找到适合自己的做法</h2>
+            <p>按照真实的隐私问题分类，而不只是罗列技术术语。</p>
+          </div>
+          <a class="text-link" href="/blog/">
+            浏览全部指南 <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <div class="guides-layout">
+          <div class="guide-categories">
+            <a class="guide-category guide-category--network" href="/blog/">
+              <span class="guide-category-number">2 篇文章</span>
+              <h3>断网通信与中继</h3>
+              <p>网络中断时如何联系，以及盲中继能看到什么。</p>
+              <span class="guide-arrow" aria-hidden="true">↗</span>
+            </a>
+
+            <a class="guide-category guide-category--ai" href="/blog/">
+              <span class="guide-category-number">6 篇文章</span>
+              <h3>AI 与隐私</h3>
+              <p>与 AI 分享信息之前，保护敏感内容。</p>
+              <span class="guide-arrow" aria-hidden="true">↗</span>
+            </a>
+
+            <a class="guide-category guide-category--accounts" href="/blog/">
+              <span class="guide-category-number">5 篇文章</span>
+              <h3>账号与手机</h3>
+              <p>邮箱隐私、SIM 换卡风险和 App 权限。</p>
+              <span class="guide-arrow" aria-hidden="true">↗</span>
+            </a>
+
+            <a class="guide-category guide-category--tracking" href="/blog/">
+              <span class="guide-category-number">3 篇文章</span>
+              <h3>数据与追踪</h3>
+              <p>数据经纪商、退出指南和密码泄露检查。</p>
+              <span class="guide-arrow" aria-hidden="true">↗</span>
+            </a>
+
+          </div>
+
+          <article class="featured-guide">
+            <img
+              src="/assets/img/secureinchat-guide-lake.png"
+              width="1400"
+              height="800"
+              alt="宁静的森林与山间湖泊，作为了解网络数据收集问题的专题指南配图"
+              loading="lazy"
+              decoding="async">
+            <div class="featured-guide-content">
+              <p class="featured-guide-label">精选指南</p>
+              <h3>数据经纪商知道你多少信息？</h3>
+              <p>了解个人信息如何被收集、关联和交易。</p>
+              <a class="button button--light"
+                 href="/blog/what-data-brokers-know-about-you/">
+                阅读指南 <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
-    <section class="wrap sec">
-      <h2>隐私是一项权利，不是付费功能。</h2>
-      <p class="sec__lead">一层一层保护你的隐私：从你手中的设备到你发出的消息，工具在你自己的设备上运行，指南里的每一步都真正测试过，没测过的会标明。 <a href="/mission/" hreflang="en">阅读我们的使命，以及我们绝不会做的事（英文）</a></p>
+    <!-- 数据流与技术透明度 -->
+    <section class="architecture-section" id="architecture">
+      <div class="container architecture-layout">
+        <div class="architecture-copy">
+          <h2>看清你的数据去了哪里。</h2>
+          <p>
+            在工具支持的情况下，优先在本地处理数据。
+            某些检查需要外部查询；运行之前，应当清楚了解这些数据流。
+          </p>
+          <a class="button button--outline-light" href="/messaging/">
+            了解我们的架构 <span aria-hidden="true">→</span>
+          </a>
+        </div>
+
+        <div class="data-flow" aria-label="数据流概览">
+          <div class="flow-step">
+            <svg viewBox="0 0 48 48" aria-hidden="true"
+                 xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="7" width="40" height="27" rx="3"
+                    fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M16 41H32M24 34V41"
+                    fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round"/>
+            </svg>
+            <h3>你的设备</h3>
+            <p>本地处理</p>
+          </div>
+
+          <svg class="flow-arrow" viewBox="0 0 40 20" aria-hidden="true"
+               xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 10H35M28 3L35 10 28 17"
+                  fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+
+          <div class="flow-step">
+            <svg viewBox="0 0 48 48" aria-hidden="true"
+                 xmlns="http://www.w3.org/2000/svg">
+              <path d="m24 5 19 10-19 10L5 15Z"
+                    fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linejoin="round"/>
+              <path d="m5 23 19 10 19-10M5 31l19 10 19-10"
+                    fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linejoin="round"/>
+            </svg>
+            <h3>中继服务器</h3>
+            <p>只转发加密数据</p>
+          </div>
+
+          <svg class="flow-arrow" viewBox="0 0 40 20" aria-hidden="true"
+               xmlns="http://www.w3.org/2000/svg">
+            <path d="M2 10H35M28 3L35 10 28 17"
+                  fill="none" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+
+          <div class="flow-step">
+            <svg viewBox="0 0 48 48" aria-hidden="true"
+                 xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="19" fill="none"
+                      stroke="currentColor" stroke-width="2"/>
+              <ellipse cx="24" cy="24" rx="9" ry="19"
+                       fill="none" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M6 17H42M6 31H42"
+                    fill="none" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+            <h3>第三方服务</h3>
+            <p>仅部分工具需要</p>
+          </div>
+        </div>
+
+        <div class="architecture-note">
+          <span class="architecture-note-symbol" aria-hidden="true">✓</span>
+          <p>
+            部分检查会使用 ipify、ipwho.is 或 Pwned Passwords。
+            各工具的数据流与局限请查看
+            <a href="/principles/">隐私原则</a>。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 聊天客户端开发进度 -->
+    <section class="section messaging-section" id="messaging">
+      <div class="container messaging-layout">
+        <div class="messaging-image">
+          <img
+            src="/assets/img/secureinchat-messaging.png"
+            width="1000"
+            height="800"
+            alt="SecureInChat 手机客户端概念示意图，客户端仍在开发中，尚未发布"
+            loading="lazy"
+            decoding="async">
+        </div>
+
+        <div class="messaging-copy">
+          <p class="eyebrow-text">独立开发中的产品</p>
+          <h2>私密通信，需要认真打磨。</h2>
+          <p>
+            聊天客户端与现有隐私工具分开开发。
+            目前没有公布正式发布日期。
+          </p>
+
+          <div class="roadmap">
+            <div class="roadmap-item roadmap-item--done">
+              <span class="roadmap-indicator" aria-hidden="true">✓</span>
+              <div>
+                <h3>架构设计</h3>
+                <p>已完成</p>
+              </div>
+              <span class="roadmap-status">已完成</span>
+            </div>
+
+            <div class="roadmap-item roadmap-item--done">
+              <span class="roadmap-indicator" aria-hidden="true">✓</span>
+              <div>
+                <h3>中继测试</h3>
+                <p>现可在线检测</p>
+              </div>
+              <span class="roadmap-status">可用</span>
+            </div>
+
+            <div class="roadmap-item roadmap-item--progress">
+              <span class="roadmap-indicator" aria-hidden="true">•</span>
+              <div>
+                <h3>聊天客户端开发</h3>
+                <p>进行中</p>
+              </div>
+              <span class="roadmap-status">进行中</span>
+            </div>
+
+            <div class="roadmap-item roadmap-item--pending">
+              <span class="roadmap-indicator" aria-hidden="true">—</span>
+              <div>
+                <h3>正式发布</h3>
+                <p>尚无确定日期</p>
+              </div>
+              <span class="roadmap-status">日期未定</span>
+            </div>
+          </div>
+
+          <a class="button button--secondary"
+             href="/messaging/">查看开发进度 <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
     </section>
   </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-main">
+        <a class="brand brand--footer" href="/zh/" aria-label="SecureInChat 首页">
+          <svg class="brand-mark" viewBox="0 0 48 48"
+               xmlns="http://www.w3.org/2000/svg"
+               aria-hidden="true">
+            <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z"
+                  fill="none" stroke="currentColor" stroke-width="3"/>
+            <path d="M15 24 21 30 34 17"
+                  fill="none" stroke="currentColor" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="34" cy="11" r="3" fill="#E5C989"/>
+          </svg>
+          <span class="brand-copy">
+            <span class="brand-name">SecureInChat</span>
+            <span class="brand-tagline">更实用的工具，更私密的互联网</span>
+          </span>
+        </a>
+
+        <nav class="footer-links" aria-label="页脚导航">
+          <a href="/mission/">使命</a>
+          <a href="/principles/">原则</a>
+          <a href="/privacy/">隐私</a>
+          <a href="/principles/#labels">状态标签</a>
+          <a href="/sponsor/">赞助与联盟披露</a>
+          <a href="/contact/">联系</a>
+        </nav>
+
+        <div class="footer-language" aria-label="语言">
+          <a href="/" lang="en">English</a>
+          <a href="/ja/" lang="ja">日本語</a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© 2026 SecureInChat。保留所有权利。</p>
+        <p>重视隐私，明确说明局限。</p>
+      </div>
     </div>
   </footer>
 </body>
