@@ -4,24 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#F3F5F4" />
-  <title>SecureInChat：零知识盲中继加密通信</title>
-  <meta name="description" content="零知识盲中继通信协议：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。客户端仍在开发中。" />
+  <title>SecureInChat：看清你暴露了什么，然后关掉它</title>
+  <meta name="description" content="面向手机、电脑、账号和 AI 使用的实用隐私防护：在你自己设备上运行的免费工具，注明哪些步骤实测过的指南，以及正在开发中的零知识加密聊天软件。" />
   <link rel="canonical" href="https://secureinchat.com/zh/" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="SecureInChat：零知识盲中继加密通信" />
-  <meta property="og:description" content="零知识盲中继通信协议：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。客户端仍在开发中。" />
+  <meta property="og:title" content="SecureInChat：看清你暴露了什么，然后关掉它" />
+  <meta property="og:description" content="面向手机、电脑、账号和 AI 使用的实用隐私防护：在你自己设备上运行的免费工具，注明哪些步骤实测过的指南，以及正在开发中的零知识加密聊天软件。" />
   <meta property="og:url" content="https://secureinchat.com/zh/" />
   <meta property="og:locale" content="zh_CN" />
   <meta name="twitter:card" content="summary" />
+  <link rel="alternate" hreflang="en" href="https://secureinchat.com/" />
+  <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/" />
+  <link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/" />
+  <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/" />
   <link rel="stylesheet" href="/assets/site.css" />
   <script src="/assets/main.js"></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","@id":"https://secureinchat.com/zh/","url":"https://secureinchat.com/zh/","name":"SecureInChat：看清你暴露了什么，然后关掉它","inLanguage":"zh-CN","isPartOf":{"@id":"https://secureinchat.com/#site"}}</script>
 
 </head>
 <body>
-  <a href="#top" class="skip">Skip to content</a>
+  <a href="#top" class="skip">跳到正文</a>
   <header class="top">
     <div class="wrap top__in">
       <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
@@ -35,19 +40,94 @@
     </div>
   </header>
   <main id="top">
-    <div class="wrap doc">
-      <p class="notice">本页尚未更新，只介绍我们的加密聊天软件。完整的个人隐私防护内容（六层防护、免费工具和指南）目前只有英文版。</p>
-      <h1>沟通不留痕迹。</h1>
-      <p class="lead">零知识盲中继通信协议：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。客户端仍在开发中。</p>
-      <p><a class="btn btn--p" href="/" hreflang="en" lang="en">前往英文网站</a></p>
-      <p><a href="/messaging/" hreflang="en">查看加密聊天的工作原理和在线中继测试（英文）</a></p>
-    </div>
+    <section class="wrap hero">
+      <div>
+        <p class="notice">这是中文概览页。下面链接的指南和工具界面目前只有英文版，链接旁标有“英文”。</p>
+        <h1>看清你暴露了什么，然后关掉它。</h1>
+        <p class="hero__sub">你的手机、浏览器、账号和 AI 工具泄露的信息比你想象的多。我们告诉你具体是哪些，并带你一层一层把它关掉。</p>
+        <div class="hero__cta"><a class="btn btn--p" href="/start/" hreflang="en">从哪里开始（英文）</a><a class="btn btn--s" href="/tools/" hreflang="en">免费检查一下（英文）</a></div>
+        <ul class="hero__promise"><li>不用 Cookie</li><li>不用注册账号</li><li>检查在你的设备上运行</li><li>没实测的步骤会标出来</li></ul>
+      </div>
+      <aside class="readout" aria-labelledby="readout-h">
+        <div class="readout__head"><h2 id="readout-h">本页能读到你的哪些信息</h2><p>任何网站都能在不询问你的情况下读到这些。</p></div>
+        <dl id="readout">
+          <div class="readout__row"><dt>时区</dt><dd id="ro-tz">…</dd></div>
+          <div class="readout__row"><dt>语言</dt><dd id="ro-lang">…</dd></div>
+          <div class="readout__row"><dt>屏幕</dt><dd id="ro-screen">…</dd></div>
+          <div class="readout__row"><dt>设备</dt><dd id="ro-platform">…</dd></div>
+          <div class="readout__row"><dt>处理器核心数</dt><dd id="ro-cores">…</dd></div>
+          <div class="readout__row"><dt>触摸屏</dt><dd id="ro-touch">…</dd></div>
+          <div class="readout__row"><dt>Cookie</dt><dd id="ro-cookies">…</dd></div>
+          <div class="readout__row"><dt>请勿追踪（DNT）</dt><dd id="ro-dnt">…</dd></div>
+        </dl>
+        <p class="readout__nojs">开启 JavaScript 才能看到这些值。关掉它时网站能读到的更少，这也是我们讲解的防护方法之一。</p>
+        <p class="readout__foot">只在这个标签页内读取，没有发送给我们或任何人。</p>
+      </aside>
+    </section>
+
+    <section class="wrap sec" id="start">
+      <h2>你现在最担心什么？</h2>
+      <ul class="situations">
+        <li><a href="/start/being-tracked/" hreflang="en"><strong>可能有人在追踪我</strong><span>手机、位置和账号（英文）</span></a></li>
+        <li><a href="/start/account-hacked/" hreflang="en"><strong>我的账号可能被盗了</strong><span>密码、恢复方式、密钥（英文）</span></a></li>
+        <li><a href="/start/less-tracking/" hreflang="en"><strong>我想日常少被追踪</strong><span>系统设置、浏览器、数据经纪商（英文）</span></a></li>
+        <li><a href="/start/network-down/" hreflang="en"><strong>紧急情况下移动网络中断</strong><span>灾害或停电时如何保持联系（英文）</span></a></li>
+      </ul>
+    </section>
+
+    <section class="wrap sec" id="layers">
+      <h2>六层防护：从你身边的环境，到你使用的 App。</h2>
+      <p class="sec__lead">一层薄弱，其他几层也会失效。每一层的页面都写明哪些现在可用、哪些还在开发或测试。</p>
+      <ul class="stack">
+        <li><a class="depth-1" href="/protect/physical/" hreflang="en"><div><h3>物理环境</h3><p>身边的人和设备能看到、收到什么。</p></div><div class="tags"><span class="tag tag--untested">计划中</span><span class="tag tag--doc">英文</span></div></a></li>
+        <li><a class="depth-2" href="/protect/devices/" hreflang="en"><div><h3>设备与网络</h3><p>你的手机、电脑和浏览器暴露了什么。</p></div><div class="tags"><span class="tag tag--tested">6 个工具</span><span class="tag tag--doc">3 篇指南</span><span class="tag tag--doc">英文</span></div></a></li>
+        <li><a class="depth-3" href="/protect/accounts/" hreflang="en"><div><h3>账号与邮箱</h3><p>谁能进入你的账号，你的收件箱透露了什么。</p></div><div class="tags"><span class="tag tag--tested">2 个工具</span><span class="tag tag--doc">5 篇指南</span><span class="tag tag--doc">英文</span></div></a></li>
+        <li><a class="depth-4" href="/protect/communication/" hreflang="en"><div><h3>通信</h3><p>只有对话双方才能读到的消息。</p></div><div class="tags"><span class="tag tag--doc">1 篇指南</span><span class="tag tag--lim">聊天软件开发中</span><span class="tag tag--doc">英文</span></div></a></li>
+        <li><a class="depth-5" href="/protect/offline/" hreflang="en"><div><h3>离线与紧急情况</h3><p>移动网络中断时如何安全地保持联系。</p></div><div class="tags"><span class="tag tag--doc">已整理资料</span><span class="tag tag--untested">待实地测试</span><span class="tag tag--doc">英文</span></div></a></li>
+        <li><a class="depth-6" href="/protect/ai/" hreflang="en"><div><h3>AI 隐私</h3><p>你交给 AI 助手的信息，以及如何少交一些。</p></div><div class="tags"><span class="tag tag--tested">2 个工具</span><span class="tag tag--doc">5 篇指南</span><span class="tag tag--doc">英文</span></div></a></li>
+      </ul>
+    </section>
+
+    <section class="wrap sec" id="tools">
+      <h2>两分钟内就能检查一项。</h2>
+      <ul class="rows">
+        <li><a href="/tools/privacy-report/" hreflang="en"><strong>浏览器隐私报告</strong><span>一次检查浏览器向网站暴露的信息，并列出最该先处理的几项。</span><span class="tag tag--lim">会联系查询服务</span></a></li>
+        <li><a href="/tools/account-checkup/" hreflang="en"><strong>账号安全自查</strong><span>八项本地勾选清单：两步验证、密码复用、恢复方式、登录设备，附 Google、Apple、Microsoft 官方步骤。</span><span class="tag tag--tested">在你的设备上运行</span></a></li>
+        <li><a href="/tools/link-checker/" hreflang="en"><strong>链接检查器</strong><span>去掉链接里的追踪参数，并在点开前看出钓鱼链接的迹象。链接不会被打开或发送。</span><span class="tag tag--tested">在你的设备上运行</span></a></li>
+        <li><a href="/tools/photo-metadata-remover/" hreflang="en"><strong>照片元数据清除</strong><span>查看并删除照片里隐藏的位置、设备和日期。</span><span class="tag tag--tested">在你的设备上运行</span></a></li>
+        <li><a href="/tools/text-redactor/" hreflang="en"><strong>文本脱敏</strong><span>在分享文本或粘贴给 AI 之前，把邮箱、号码和密钥换成占位符。</span><span class="tag tag--tested">在你的设备上运行</span></a></li>
+      </ul>
+      <p class="sec__more"><a href="/tools/" hreflang="en">全部工具（英文）</a></p>
+    </section>
+
+    <section class="wrap sec" id="data">
+      <div class="trust">
+        <div><h2>别只相信我们，自己检查。</h2><p>每个工具都列出哪些数据留在你的设备上、哪些会发出去。使用时打开浏览器的网络面板对照一下。 <a href="/principles/" hreflang="en">各工具详情（英文）</a></p></div>
+        <table><thead><tr><th scope="col">工具</th><th scope="col">留在你的设备上</th><th scope="col">发送给他人</th></tr></thead><tbody>
+          <tr><td>照片元数据清除</td><td>照片及其元数据</td><td>无</td></tr>
+          <tr><td>文本脱敏</td><td>你粘贴的文本</td><td>无</td></tr>
+          <tr><td>密码泄露检查</td><td>密码及其完整哈希值</td><td>SHA-1 哈希值的前 5 个字符，发给 Pwned Passwords</td></tr>
+        </tbody></table>
+      </div>
+    </section>
+
+    <section class="wrap sec" id="messaging">
+      <div class="band">
+        <div><h2>SecureInChat 聊天软件：服务器只转发，从不读取。</h2><p>密钥只保存在你的设备上，盲中继只转发密文。客户端仍在开发中；现在可以在浏览器里测试在线中继。</p></div>
+        <a class="btn btn--s" href="/messaging/" hreflang="en">了解工作原理（英文）</a>
+      </div>
+    </section>
+
+    <section class="wrap sec">
+      <h2>隐私是一项权利，不是付费功能。</h2>
+      <p class="sec__lead">一层一层保护你的隐私：从你手中的设备到你发出的消息，工具在你自己的设备上运行，指南里的每一步都真正测试过，没测过的会标明。 <a href="/mission/" hreflang="en">阅读我们的使命，以及我们绝不会做的事（英文）</a></p>
+    </section>
   </main>
   <footer class="foot">
     <div class="wrap foot__in">
       <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
       <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a>
+        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
       </nav>
     </div>
   </footer>

@@ -69,7 +69,11 @@ function head({ title, desc, canonical, jsonld, lang = 'en' }) {
   <meta property="og:url" content="${SITE}${canonical}" />
   <meta property="og:locale" content="${lang === 'en' ? 'en_US' : lang.replace('-', '_')}" />
   <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
+${['/', '/zh/', '/ja/'].includes(canonical) ? `  <link rel="alternate" hreflang="en" href="${SITE}/" />
+  <link rel="alternate" hreflang="zh-CN" href="${SITE}/zh/" />
+  <link rel="alternate" hreflang="ja" href="${SITE}/ja/" />
+  <link rel="alternate" hreflang="x-default" href="${SITE}/" />
+` : ''}  <link rel="stylesheet" href="/assets/site.css" />
   <script src="/assets/main.js"></script>
 ${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ''}`;
 }
@@ -90,7 +94,7 @@ function footer() {
     <div class="wrap foot__in">
       <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
       <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a>
+        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
       </nav>
     </div>
   </footer>`;
@@ -102,7 +106,7 @@ function page({ lang = 'en', title, desc, canonical, jsonld, current, main }) {
   ${head({ title, desc, canonical, jsonld, lang })}
 </head>
 <body>
-  <a href="#top" class="skip">Skip to content</a>
+  <a href="#top" class="skip">${{ 'zh-CN': '跳到正文', ja: '本文へ移動' }[lang] || 'Skip to content'}</a>
   ${header(current)}
   <main id="top">
 ${main}
@@ -229,22 +233,146 @@ function messaging() {
   return page({ title: 'SecureInChat messenger: zero-knowledge blind relay | SecureInChat', desc: 'How the SecureInChat messenger works: end-to-end encryption, a blind relay that cannot read messages, current status and a live relay test you can run in your browser.', canonical: '/messaging/', current: 'messaging', main: body });
 }
 
+// Localized home pages (zh, ja). Guides and tool screens are English; every link to them says so.
 const LOCAL = {
-  zh: { lang: 'zh-CN', title: 'SecureInChat：零知识盲中继加密通信', h1: '沟通不留痕迹。', notice: '本页尚未更新，只介绍我们的加密聊天软件。完整的个人隐私防护内容（六层防护、免费工具和指南）目前只有英文版。',
-    copy: '零知识盲中继通信协议：密钥始终保留在用户设备，中继服务器只转发无法读取的密文。客户端仍在开发中。', en: '前往英文网站', msg: '查看加密聊天的工作原理和在线中继测试（英文）' },
-  ja: { lang: 'ja', title: 'SecureInChat：ゼロ知識ブラインドリレー通信', h1: '痕跡を残さない通信。', notice: 'このページはまだ更新されておらず、暗号化メッセンジャーのみを紹介しています。個人のプライバシー保護に関する全コンテンツ（6 層の保護、無料ツール、ガイド）は現在英語版のみです。',
-    copy: '暗号鍵は端末内に保持され、リレーは解読不能な暗号文だけを転送します。クライアントは開発中です。', en: '英語版サイトへ', msg: 'メッセンジャーの仕組みとリレー診断（英語）' },
+  zh: {
+    lang: 'zh-CN', title: 'SecureInChat：看清你暴露了什么，然后关掉它',
+    desc: '面向手机、电脑、账号和 AI 使用的实用隐私防护：在你自己设备上运行的免费工具，注明哪些步骤实测过的指南，以及正在开发中的零知识加密聊天软件。',
+    notice: '这是中文概览页。下面链接的指南和工具界面目前只有英文版，链接旁标有“英文”。',
+    h1: '看清你暴露了什么，然后关掉它。',
+    sub: '你的手机、浏览器、账号和 AI 工具泄露的信息比你想象的多。我们告诉你具体是哪些，并带你一层一层把它关掉。',
+    cta1: '从哪里开始', cta2: '免费检查一下',
+    promise: ['不用 Cookie', '不用注册账号', '检查在你的设备上运行', '没实测的步骤会标出来'],
+    roH: '本页能读到你的哪些信息', roP: '任何网站都能在不询问你的情况下读到这些。',
+    ro: ['时区', '语言', '屏幕', '设备', '处理器核心数', '触摸屏', 'Cookie', '请勿追踪（DNT）'],
+    roNojs: '开启 JavaScript 才能看到这些值。关掉它时网站能读到的更少，这也是我们讲解的防护方法之一。',
+    roFoot: '只在这个标签页内读取，没有发送给我们或任何人。',
+    en: '英文', sitH: '你现在最担心什么？',
+    sit: { 'being-tracked': ['可能有人在追踪我', '手机、位置和账号'], 'account-hacked': ['我的账号可能被盗了', '密码、恢复方式、密钥'], 'less-tracking': ['我想日常少被追踪', '系统设置、浏览器、数据经纪商'], 'network-down': ['紧急情况下移动网络中断', '灾害或停电时如何保持联系'] },
+    layH: '六层防护：从你身边的环境，到你使用的 App。', layP: '一层薄弱，其他几层也会失效。每一层的页面都写明哪些现在可用、哪些还在开发或测试。',
+    lay: { physical: ['物理环境', '身边的人和设备能看到、收到什么。'], devices: ['设备与网络', '你的手机、电脑和浏览器暴露了什么。'], accounts: ['账号与邮箱', '谁能进入你的账号，你的收件箱透露了什么。'], communication: ['通信', '只有对话双方才能读到的消息。'], offline: ['离线与紧急情况', '移动网络中断时如何安全地保持联系。'], ai: ['AI 隐私', '你交给 AI 助手的信息，以及如何少交一些。'] },
+    tag: { planned: '计划中', tools: (n) => `${n} 个工具`, guides: (n) => `${n} 篇指南`, documented: '已整理资料', field: '待实地测试', dev: '聊天软件开发中', local: '在你的设备上运行', net: '会联系查询服务' },
+    toolH: '两分钟内就能检查一项。',
+    tools: [
+      ['/tools/privacy-report/', '浏览器隐私报告', '一次检查浏览器向网站暴露的信息，并列出最该先处理的几项。', 'net'],
+      ['/tools/account-checkup/', '账号安全自查', '八项本地勾选清单：两步验证、密码复用、恢复方式、登录设备，附 Google、Apple、Microsoft 官方步骤。', 'local'],
+      ['/tools/link-checker/', '链接检查器', '去掉链接里的追踪参数，并在点开前看出钓鱼链接的迹象。链接不会被打开或发送。', 'local'],
+      ['/tools/photo-metadata-remover/', '照片元数据清除', '查看并删除照片里隐藏的位置、设备和日期。', 'local'],
+      ['/tools/text-redactor/', '文本脱敏', '在分享文本或粘贴给 AI 之前，把邮箱、号码和密钥换成占位符。', 'local'],
+    ],
+    toolMore: '全部工具',
+    flowH: '别只相信我们，自己检查。', flowP: '每个工具都列出哪些数据留在你的设备上、哪些会发出去。使用时打开浏览器的网络面板对照一下。', flowLink: '各工具详情',
+    flowTh: ['工具', '留在你的设备上', '发送给他人'],
+    flow: [['照片元数据清除', '照片及其元数据', '无'], ['文本脱敏', '你粘贴的文本', '无'], ['密码泄露检查', '密码及其完整哈希值', 'SHA-1 哈希值的前 5 个字符，发给 Pwned Passwords']],
+    msgH: 'SecureInChat 聊天软件：服务器只转发，从不读取。', msgP: '密钥只保存在你的设备上，盲中继只转发密文。客户端仍在开发中；现在可以在浏览器里测试在线中继。', msgBtn: '了解工作原理',
+    misH: '隐私是一项权利，不是付费功能。', misP: '一层一层保护你的隐私：从你手中的设备到你发出的消息，工具在你自己的设备上运行，指南里的每一步都真正测试过，没测过的会标明。', misLink: '阅读我们的使命，以及我们绝不会做的事',
+  },
+  ja: {
+    lang: 'ja', title: 'SecureInChat：何が漏れているかを知り、それを止める',
+    desc: 'スマートフォン、パソコン、アカウント、AI 利用のための実用的なプライバシー保護：自分の端末で動く無料ツール、どの手順を実際に試したかを明記したガイド、開発中のゼロ知識メッセンジャー。',
+    notice: 'これは日本語の概要ページです。リンク先のガイドとツール画面は現在英語のみで、リンクの横に「英語」と表示しています。',
+    h1: '何が漏れているかを知り、それを止める。',
+    sub: 'スマートフォン、ブラウザ、アカウント、AI ツールは、思っている以上に情報を漏らしています。何が漏れているかを具体的に示し、一層ずつ止める手順を案内します。',
+    cta1: 'どこから始めるか', cta2: '無料でチェック',
+    promise: ['Cookie なし', 'アカウント不要', 'チェックは端末内で実行', '未検証の手順は明記'],
+    roH: 'このページが読み取れるあなたの情報', roP: 'どのウェブサイトも、許可なくこれらを読み取れます。',
+    ro: ['タイムゾーン', '言語', '画面', 'デバイス', 'CPU コア数', 'タッチスクリーン', 'Cookie', 'トラッキング拒否（DNT）'],
+    roNojs: '値を表示するには JavaScript を有効にしてください。無効にするとサイトが読み取れる情報は減ります。これも私たちが解説する保護方法の一つです。',
+    roFoot: 'このタブの中だけで読み取り、私たちにも誰にも送信していません。',
+    en: '英語', sitH: '今いちばん心配なことは？',
+    sit: { 'being-tracked': ['誰かに追跡されているかもしれない', 'スマートフォン、位置情報、アカウント'], 'account-hacked': ['アカウントが乗っ取られたかもしれない', 'パスワード、復旧方法、キー'], 'less-tracking': ['日常の追跡を減らしたい', '設定、ブラウザ、データブローカー'], 'network-down': ['緊急時にモバイル回線が止まる', '災害や停電のときの連絡手段'] },
+    layH: '6 層の保護：身の回りから、使っているアプリまで。', layP: '一つの層が弱いと、ほかの層も効かなくなります。各層のページには、今使えるものと、開発中・検証中のものを書いています。',
+    lay: { physical: ['物理環境', '周りの人や機器に見られるもの、拾われるもの。'], devices: ['デバイスとネットワーク', 'スマートフォン、パソコン、ブラウザが漏らしているもの。'], accounts: ['アカウントとメール', '誰があなたのアカウントに入れるか、受信箱から何が分かるか。'], communication: ['通信', '会話の参加者だけが読めるメッセージ。'], offline: ['オフラインと緊急時', 'モバイル回線が止まったときに安全に連絡を取り合う方法。'], ai: ['AI プライバシー', 'AI アシスタントに渡している情報と、それを減らす方法。'] },
+    tag: { planned: '計画中', tools: (n) => `ツール ${n} 件`, guides: (n) => `ガイド ${n} 件`, documented: '資料整理済み', field: '実地テスト待ち', dev: 'メッセンジャー開発中', local: '端末内で実行', net: '照会サービスに接続' },
+    toolH: '2 分でできるチェック。',
+    tools: [
+      ['/tools/privacy-report/', 'ブラウザ・プライバシーレポート', 'ブラウザがサイトに渡している情報を一度に調べ、先に見直すべき項目を並べます。', 'net'],
+      ['/tools/account-checkup/', 'アカウント安全チェック', '端末内で使う 8 項目のチェックリスト：2 段階認証、パスワード使い回し、復旧方法、ログイン中の端末。Google、Apple、Microsoft の公式手順付き。', 'local'],
+      ['/tools/link-checker/', 'リンクチェッカー', 'リンクから追跡パラメータを取り除き、開く前にフィッシングの兆候を確認します。リンクは開かれず、送信もされません。', 'local'],
+      ['/tools/photo-metadata-remover/', '写真メタデータ削除', '写真に隠れた位置情報、機種、日付を確認して削除します。', 'local'],
+      ['/tools/text-redactor/', 'テキスト墨消し', '文章を共有したり AI に貼り付けたりする前に、メールアドレス、番号、キーを仮の文字に置き換えます。', 'local'],
+    ],
+    toolMore: 'すべてのツール',
+    flowH: '私たちを信じるだけでなく、確かめてください。', flowP: '各ツールは、端末に残るデータと外に出るデータを明記しています。使いながらブラウザのネットワークパネルを開いて比べてみてください。', flowLink: 'ツールごとの詳細',
+    flowTh: ['ツール', '端末に残るもの', '外部に送られるもの'],
+    flow: [['写真メタデータ削除', '写真とそのメタデータ', 'なし'], ['テキスト墨消し', '貼り付けた文章', 'なし'], ['パスワード漏えいチェック', 'パスワードとその完全なハッシュ', 'SHA-1 ハッシュの先頭 5 文字を Pwned Passwords へ']],
+    msgH: 'SecureInChat メッセンジャー：サーバーは転送するだけで、読みません。', msgP: '鍵はあなたの端末にだけ保存され、ブラインドリレーは暗号文を転送するだけです。アプリは開発中ですが、稼働中のリレーをブラウザから今すぐテストできます。', msgBtn: '仕組みを見る',
+    misH: 'プライバシーは権利であり、有料機能ではありません。', misP: '手元の端末から送るメッセージまで、一層ずつプライバシーを守ります。ツールは自分の端末で動き、ガイドの手順は実際に試したもので、試していないものはそう書いています。', misLink: '私たちの使命と、決してしないこと',
+  },
 };
+function localTags(L, t) {
+  if (!L.live.length) return tagHtml('untested', t.planned);
+  const tools = L.live.filter((x) => ['local', 'net'].includes(x[2])).length;
+  const guides = L.live.filter((x) => ['guide', 'tested'].includes(x[2])).length;
+  const out = [];
+  if (tools) out.push(tagHtml('tested', t.tools(tools)));
+  if (guides) out.push(tagHtml('doc', t.guides(guides)));
+  if (L.live.some((x) => x[2] === 'documented')) out.push(tagHtml('doc', t.documented), tagHtml('untested', t.field));
+  if (L.live.some((x) => x[2] === 'dev')) out.push(tagHtml('lim', t.dev));
+  return out.join('');
+}
 function localPage(code) {
   const t = LOCAL[code];
-  const main = `    <div class="wrap doc">
-      <p class="notice">${t.notice}</p>
-      <h1>${t.h1}</h1>
-      <p class="lead">${t.copy}</p>
-      <p><a class="btn btn--p" href="/" hreflang="en" lang="en">${t.en}</a></p>
-      <p><a href="/messaging/" hreflang="en">${t.msg}</a></p>
-    </div>`;
-  return page({ lang: t.lang, title: t.title, desc: t.copy, canonical: `/${code}/`, main });
+  const enMark = `<span class="tag tag--doc">${t.en}</span>`;
+  const enA = (href, inner, cls = '') => `<a${cls ? ` class="${cls}"` : ''} href="${href}" hreflang="en">${inner}</a>`;
+  const READ = ['tz', 'lang', 'screen', 'platform', 'cores', 'touch', 'cookies', 'dnt'];
+  const jsonld = { '@context': 'https://schema.org', '@type': 'WebPage', '@id': `${SITE}/${code}/`, url: `${SITE}/${code}/`, name: t.title, inLanguage: t.lang, isPartOf: { '@id': SITE + '/#site' } };
+  const main = [`    <section class="wrap hero">
+      <div>
+        <p class="notice">${esc(t.notice)}</p>
+        <h1>${esc(t.h1)}</h1>
+        <p class="hero__sub">${esc(t.sub)}</p>
+        <div class="hero__cta">${enA('/start/', `${esc(t.cta1)}（${t.en}）`, 'btn btn--p')}${enA('/tools/', `${esc(t.cta2)}（${t.en}）`, 'btn btn--s')}</div>
+        <ul class="hero__promise">${t.promise.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      </div>
+      <aside class="readout" aria-labelledby="readout-h">
+        <div class="readout__head"><h2 id="readout-h">${esc(t.roH)}</h2><p>${esc(t.roP)}</p></div>
+        <dl id="readout">
+          ${READ.map((id, i) => `<div class="readout__row"><dt>${esc(t.ro[i])}</dt><dd id="ro-${id}">…</dd></div>`).join('\n          ')}
+        </dl>
+        <p class="readout__nojs">${esc(t.roNojs)}</p>
+        <p class="readout__foot">${esc(t.roFoot)}</p>
+      </aside>
+    </section>`,
+  `    <section class="wrap sec" id="start">
+      <h2>${esc(t.sitH)}</h2>
+      <ul class="situations">
+        ${SITUATIONS.map((S) => `<li>${enA(`/start/${S.slug}/`, `<strong>${esc(t.sit[S.slug][0])}</strong><span>${esc(t.sit[S.slug][1])}（${t.en}）</span>`)}</li>`).join('\n        ')}
+      </ul>
+    </section>`,
+  `    <section class="wrap sec" id="layers">
+      <h2>${esc(t.layH)}</h2>
+      <p class="sec__lead">${esc(t.layP)}</p>
+      <ul class="stack">
+        ${LAYERS.map((L, i) => `<li><a class="depth-${i + 1}" href="/protect/${L.slug}/" hreflang="en"><div><h3>${esc(t.lay[L.slug][0])}</h3><p>${esc(t.lay[L.slug][1])}</p></div><div class="tags">${localTags(L, t.tag)}${enMark}</div></a></li>`).join('\n        ')}
+      </ul>
+    </section>`,
+  `    <section class="wrap sec" id="tools">
+      <h2>${esc(t.toolH)}</h2>
+      <ul class="rows">
+        ${t.tools.map(([href, n, c, k]) => `<li>${enA(href, `<strong>${esc(n)}</strong><span>${esc(c)}</span>${tagHtml(k === 'local' ? 'tested' : 'lim', t.tag[k])}`)}</li>`).join('\n        ')}
+      </ul>
+      <p class="sec__more">${enA('/tools/', `${esc(t.toolMore)}（${t.en}）`)}</p>
+    </section>`,
+  `    <section class="wrap sec" id="data">
+      <div class="trust">
+        <div><h2>${esc(t.flowH)}</h2><p>${esc(t.flowP)} ${enA('/principles/', `${esc(t.flowLink)}（${t.en}）`)}</p></div>
+        <table><thead><tr>${t.flowTh.map((h) => `<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>
+          ${t.flow.map((r) => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('\n          ')}
+        </tbody></table>
+      </div>
+    </section>`,
+  `    <section class="wrap sec" id="messaging">
+      <div class="band">
+        <div><h2>${esc(t.msgH)}</h2><p>${esc(t.msgP)}</p></div>
+        ${enA('/messaging/', `${esc(t.msgBtn)}（${t.en}）`, 'btn btn--s')}
+      </div>
+    </section>`,
+  `    <section class="wrap sec">
+      <h2>${esc(t.misH)}</h2>
+      <p class="sec__lead">${esc(t.misP)} ${enA('/mission/', `${esc(t.misLink)}（${t.en}）`)}</p>
+    </section>`].join('\n\n');
+  return page({ lang: t.lang, title: t.title, desc: t.desc, canonical: `/${code}/`, jsonld, main });
 }
 
 function docPage({ slug, title, desc, body, current = null, article = null }) {

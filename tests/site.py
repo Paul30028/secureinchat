@@ -97,7 +97,17 @@ with sync_playwright() as p:
     pg2.goto(BASE + '/'); check(pg2.is_visible('#layers h2'), 'no-JS: home layers visible')
     # language select navigates
     ctx3 = b.new_context(viewport={'width': 1280, 'height': 800}); pg3 = ctx3.new_page(); pg3.add_init_script(WS_OK); pg3.goto(BASE + '/')
-    pg3.goto(BASE + '/zh/'); check('沟通不留痕迹' in pg3.inner_text('h1') and pg3.is_visible('.notice'), '/zh/ shows notice and heading')
+    pg3.goto(BASE + '/zh/'); check('看清你暴露了什么' in pg3.inner_text('h1') and pg3.is_visible('.notice'), '/zh/ shows notice and heading')
+    pg3.wait_for_timeout(300)
+    check(pg3.inner_text('#ro-cookies') in ('允许', '已阻止'), f"/zh/ readout localized ({pg3.inner_text('#ro-cookies')})")
+    check(pg3.locator('#layers .stack li').count() == 6 and pg3.locator('#start .situations li').count() == 4, '/zh/ six layers and four situations')
+    check(pg3.locator('main a[href^="/"]:not([hreflang="en"])').count() == 0, '/zh/ every internal link marked hreflang=en')
+    check(pg3.locator('link[rel="alternate"][hreflang="ja"]').count() == 1, '/zh/ hreflang alternates present')
+    pg3.goto(BASE + '/ja/'); check('何が漏れているか' in pg3.inner_text('h1'), '/ja/ heading')
+    pg3.wait_for_timeout(300)
+    check(pg3.inner_text('#ro-cookies') in ('許可', 'ブロック'), '/ja/ readout localized')
+    check(pg3.locator('main a[href^="/"]:not([hreflang="en"])').count() == 0, '/ja/ every internal link marked hreflang=en')
+    pg3.goto(BASE + '/'); pg3.wait_for_timeout(300); check(pg3.inner_text('#ro-cookies') in ('Allowed', 'Blocked'), 'home readout still English')
     b.close()
 
 print('\nFAILED:' if fails else '\nSITE TESTS PASSED', *fails, sep='\n')

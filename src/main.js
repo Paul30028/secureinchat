@@ -22,17 +22,21 @@
     // home readout: values any page can read, computed here and never sent
     var ro = function (id, v) { var el = document.getElementById('ro-' + id); if (el) el.textContent = v; };
     if (document.getElementById('readout')) {
+      var hl = document.documentElement.lang;
+      var W = { 'zh-CN': { na: '无法读取', hidden: '已隐藏', yes: '是（{n} 点）', no: '否', on: '开', off: '关', allowed: '允许', blocked: '已阻止', at: ' 缩放 ' },
+                ja: { na: '取得不可', hidden: '非公開', yes: 'あり（{n} 点）', no: 'なし', on: 'オン', off: 'オフ', allowed: '許可', blocked: 'ブロック', at: ' 倍率 ' } }[hl] ||
+              { na: 'Not available', hidden: 'Hidden', yes: 'Yes ({n} points)', no: 'No', on: 'On', off: 'Off', allowed: 'Allowed', blocked: 'Blocked', at: ' at ' };
       var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
-      ro('tz', tz || 'Not available');
-      ro('lang', (navigator.languages && navigator.languages.length ? navigator.languages.slice(0, 3).join(', ') : navigator.language) || 'Not available');
-      ro('screen', screen.width + ' × ' + screen.height + (window.devicePixelRatio ? ' at ' + Math.round(window.devicePixelRatio * 100) / 100 + 'x' : ''));
+      ro('tz', tz || W.na);
+      ro('lang', (navigator.languages && navigator.languages.length ? navigator.languages.slice(0, 3).join(', ') : navigator.language) || W.na);
+      ro('screen', screen.width + ' × ' + screen.height + (window.devicePixelRatio ? W.at + Math.round(window.devicePixelRatio * 100) / 100 + 'x' : ''));
       var plat = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
-      ro('platform', plat || 'Not available');
-      ro('cores', navigator.hardwareConcurrency ? String(navigator.hardwareConcurrency) : 'Hidden');
-      ro('touch', navigator.maxTouchPoints > 0 ? 'Yes (' + navigator.maxTouchPoints + ' points)' : 'No');
-      ro('cookies', navigator.cookieEnabled ? 'Allowed' : 'Blocked');
+      ro('platform', plat || W.na);
+      ro('cores', navigator.hardwareConcurrency ? String(navigator.hardwareConcurrency) : W.hidden);
+      ro('touch', navigator.maxTouchPoints > 0 ? W.yes.replace('{n}', navigator.maxTouchPoints) : W.no);
+      ro('cookies', navigator.cookieEnabled ? W.allowed : W.blocked);
       var dnt = navigator.doNotTrack || window.doNotTrack;
-      ro('dnt', dnt === '1' || dnt === 'yes' ? 'On' : 'Off');
+      ro('dnt', dnt === '1' || dnt === 'yes' ? W.on : W.off);
     }
 
     // language switch: plain navigation to the language's own URL
