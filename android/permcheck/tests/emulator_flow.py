@@ -139,9 +139,13 @@ def scroll_find(predicate, max_swipes=25):
 
 
 def record_lines():
-    out = sh(f"run-as {PKG} cat no_backup/change-record.txt", check=False)
-    if "No such file" in out:
+    # stdout only carries the marker or the file; run-as errors go to stderr.
+    out = sh(f"run-as {PKG} sh -c 'if [ -f no_backup/change-record.txt ]; then cat no_backup/change-record.txt; "
+             f"else echo __NOFILE__; fi'", check=False)
+    if "__NOFILE__" in out:
         return None
+    if not out.strip():
+        raise SystemExit("FAIL: could not read the record file with run-as")
     return [l.split("\t") for l in out.splitlines() if "\t" in l]
 
 
