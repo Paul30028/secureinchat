@@ -6,14 +6,14 @@ The app requests **no INTERNET permission** and has no library dependencies. Its
 
 Licensed GPL-3.0-or-later (see LICENSE), separate from the MIT-licensed website tools.
 
-## Status (2026-10-22, T11-c)
+## Status (2026-10-22, T11-c + emulator flow test)
 
 | Part | State |
 |---|---|
 | `core/` risk rules, reasons (EN/ZH), settings targets, recheck diff, text report | 35 tests pass (`kotlinc` + `java`) |
 | `core/` advanced-mode change ledger and executor (T11-a/b; `Runner` port not yet backed by Shizuku) | 73 + 27 tests pass |
 | `core/` change record for normal mode: detect what was switched off, reconcile, adb restore commands (T11-c, `Restore.kt`) | 20 tests pass |
-| `app/` Android screen (`MainActivity`), system reader (`SystemReader`), record file (`LedgerStore`) | Type-checks against compile-only stubs. GitHub Actions (`.github/workflows/permcheck.yml`) builds the debug APK, runs Android lint, checks the APK has no INTERNET permission, and launches it on API 29 and 34 emulators (smoke test: starts, no crash). **Not run on a real phone; no test yet taps through the screens.** |
+| `app/` Android screen (`MainActivity`), system reader (`SystemReader`), record file (`LedgerStore`) | Type-checks against compile-only stubs. GitHub Actions (`.github/workflows/permcheck.yml`) builds the debug APK, runs Android lint, checks the APK has no INTERNET permission, and launches it on API 29 and 34 emulators (smoke test: starts, no crash). `tests/emulator_flow.py` then drives the change-record loop on both emulators with adb: a test-only app (`tests/testtarget`, no code, never shipped) holds CAMERA and READ_CALL_LOG; the test taps "Open settings", revokes CAMERA with `pm revoke` (standing in for the user's tap), goes back, and checks the record row, the record file, that it survives a restart, that `pm grant` + "Scan again" marks it restored, that "Clear record" deletes the file, and that the app writes no other file. **Not run on a real phone.** |
 | Policy checks (manifest has only `QUERY_ALL_PACKAGES`, no network code, no settings-changing APIs, file writes only in `LedgerStore.kt` under `noBackupFilesDir`, no dependencies, GPL headers) | pass |
 | Release | none; publishing is Paul's decision |
 
@@ -29,8 +29,8 @@ Licensed GPL-3.0-or-later (see LICENSE), separate from the MIT-licensed website 
 | VPN apps | services answering intent `android.net.VpnService` (means "can act as VPN", not "VPN is on") | 未测 |
 | Overlay, usage access | `AppOpsManager.unsafeCheckOpNoThrow` for other apps' uid (counts only `MODE_ALLOWED`) | 未测 — may need adjusting if the system refuses or reports `MODE_DEFAULT` |
 | Open settings | `Settings.ACTION_*` with fallback to the app details page, then main Settings | 未测 per vendor |
-| Restore with adb | `adb shell pm grant <pkg> <permission>` works only for runtime (dangerous) permissions; the record is limited to those | 未测 on device; some vendors may also need the app reopened |
-| Change record file | `Context.getNoBackupFilesDir()` | 未测 |
+| Restore with adb | `adb shell pm grant <pkg> <permission>` works only for runtime (dangerous) permissions; the record is limited to those | Emulator flow test (API 29/34, see CI); 未测 on a real device; some vendors may also need the app reopened |
+| Change record file | `Context.getNoBackupFilesDir()` | Emulator flow test (API 29/34); 未测 on a real device |
 
 ## Run the checks (no Android SDK needed)
 
