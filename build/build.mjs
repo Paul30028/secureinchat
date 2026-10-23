@@ -432,7 +432,7 @@ function catalogPage({ slug, title, lead, desc, figure, items }) {
   const full = `${title} | SecureInChat`;
   const body = `<h1>${title}</h1>\n<p class="lead">${lead}</p>`;
   const page = infoPage({ title: full, desc, canonical: `/${slug}/`, headExtra: headExtra({ canonical: `/${slug}/`, title: full, desc }), crumbs: crumbsFor(slug, title), body: body + '\n<!--CATALOG-->', figure });
-  const cat = `<div class="tool-catalogue">\n${items.map((it) => `<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h3>${it.title}</h3>${it.labels ? `<p class="state-list">${mapTags(it.labels)}</p>` : ''}</div></div><p>${it.text}</p><a class="tool-catalogue-action" href="${it.href}">${it.action} <span aria-hidden="true">→</span></a></article>`).join('\n')}\n</div>`;
+  const cat = `<div class="tool-catalogue">\n${items.map((it) => `<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h2>${it.title}</h2>${it.labels ? `<p class="state-list">${mapTags(it.labels)}</p>` : ''}</div></div><p>${it.text}</p><a class="tool-catalogue-action" href="${it.href}">${it.action} <span aria-hidden="true">→</span></a></article>`).join('\n')}\n</div>`;
   return page.replace('<article class="info-content">\n<!--CATALOG-->\n     </article>', cat);
 }
 function docPage({ slug, title, desc, body, current = null, article = null, robots = '' }) {
