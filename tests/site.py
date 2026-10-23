@@ -117,5 +117,18 @@ with sync_playwright() as p:
     check(pg3.locator('main a[href^="/"]:not([hreflang="en"])').count() == 0, '/ja/ every internal link marked hreflang=en')
     b.close()
 
+# Internal links: every href="/..." in every built page must resolve to a file, a page, a redirect or the tools API.
+import re as _re, glob as _glob
+_redir = [l.split()[0] for l in open(os.path.join(ROOT, '_redirects')).read().splitlines() if l.strip()] if os.path.exists(os.path.join(ROOT, '_redirects')) else []
+_bad = set()
+for _f in _glob.glob(os.path.join(ROOT, '**', '*.html'), recursive=True):
+    if '/guides/' in _f or '/refund/' in _f or '/terms/' in _f: continue  # old pages kept on disk, redirected
+    for _h in _re.findall(r'href="(/[^"#?]*)', open(_f, encoding='utf-8').read()):
+        if _h.startswith('//') or _h.startswith('/tools/api/') or _h.startswith('/cdn-cgi/'): continue
+        if any(_h == r or (r.endswith('*') and _h.startswith(r[:-1])) for r in _redir): continue
+        _p = os.path.join(ROOT, _h.lstrip('/'))
+        if not (os.path.isfile(_p) or os.path.isfile(os.path.join(_p, 'index.html'))): _bad.add(f'{_h} (in {os.path.relpath(_f, ROOT)})')
+check(not _bad, f'internal links resolve: {sorted(_bad)[:8]}')
+
 print('\nFAILED:' if fails else '\nSITE TESTS PASSED', *fails, sep='\n')
 sys.exit(1 if fails else 0)

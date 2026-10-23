@@ -1,0 +1,5 @@
+Contact: mailto:x@secureinchat.com
+Expires: 2027-10-22T00:00:00.000Z
+Preferred-Languages: en, zh
+Canonical: https://secureinchat.com/.well-known/security.txt
+Policy: https://secureinchat.com/security/

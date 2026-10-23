@@ -244,4 +244,16 @@
     <loc>https://secureinchat.com/principles/</loc>
     <lastmod>2026-10-21</lastmod>
   </url>
+  <url>
+    <loc>https://secureinchat.com/security/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/testing/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
+  <url>
+    <loc>https://secureinchat.com/messaging/threat-model/</loc>
+    <lastmod>2026-10-21</lastmod>
+  </url>
 </urlset>

@@ -5,6 +5,7 @@ import { POSTS } from './posts.mjs';
 import { PRODUCTS, validateProduct, productBody, shopIndexBody } from './shop.mjs';
 import { infoPage, articlePage, mapTags, shell as kitShell } from './subshell.mjs';
 import { toolPage, scopeLegacyCss } from './toolshell.mjs';
+import { SECURITY_TXT, SECURITY, TESTING, THREAT_MODEL } from './trust.mjs';
 import { MISSION, MISSION_SHORT, LAYERS, layerBody, layerTags, protectIndexBody, SITUATIONS, situationBody, startIndexBody } from './protect.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -243,7 +244,7 @@ function messaging() {
       <div class="grid grid--4">
         ${SEC.map((s) => `<article class="card"><p class="card__kicker">${s.tag}</p><h3>${s.title}</h3><p>${s.copy}</p></article>`).join('\n        ')}
       </div>
-      <p class="sec__lead">These describe the design. They are not a legal certification or an independent audit. What the relay can and cannot see is explained in <a href="/blog/what-a-blind-relay-can-and-cannot-know/">what a blind relay can and cannot know</a>.</p>
+      <p class="sec__lead">These describe the design. They are not a legal certification or an independent audit. What the relay can and cannot see is set out in the <a href="/messaging/threat-model/">messenger threat model</a> and in <a href="/blog/what-a-blind-relay-can-and-cannot-know/">what a blind relay can and cannot know</a>.</p>
     </section>`;
   return page({ title: 'SecureInChat messenger: zero-knowledge blind relay | SecureInChat', desc: 'How the SecureInChat messenger works: end-to-end encryption, a blind relay that cannot read messages, current status and a live relay test you can run in your browser.', canonical: '/messaging/', current: 'messaging', main: body });
 }
@@ -421,7 +422,7 @@ ${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</scri
 }
 function crumbsFor(slug, title) {
   const parts = slug.split('/');
-  const names = { blog: 'Guides', protect: 'Protect', start: 'Start here', tools: 'Tools', shop: 'Shop' };
+  const names = { messaging: 'Messaging', blog: 'Guides', protect: 'Protect', start: 'Start here', tools: 'Tools', shop: 'Shop' };
   const out = [['/', 'Home']];
   if (parts.length > 1) out.push([`/${parts[0]}/`, names[parts[0]] || parts[0]]);
   out.push([`/${slug}/`, title]);
@@ -563,6 +564,7 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
     </ul>
     <h2>Checking it yourself</h2>
     <p>The tools are plain scripts without a build step on the page. Open your browser's network panel while using one and compare the requests with the table.</p>
+    <p>What our automated tests check is listed on <a href="/testing/">how we test</a>. Found a problem? <a href="/security/">Report it</a>.</p>
 `;
 
 const SPONSOR = `    <h1>How SecureInChat is funded</h1>
@@ -664,6 +666,10 @@ for (const p of PRODUCTS) { const errs = validateProduct(p); if (errs.length) th
 const SHOP_ROBOTS = PRODUCTS.length ? '' : 'noindex';
 write('shop/index.html', docPage({ slug: 'shop', title: 'Shop', desc: 'Privacy gear and software we can explain and you can check yourself. Every product page shows what it protects against, our test evidence, limits and any commission.', body: shopIndexBody(PRODUCTS, esc, DATE), robots: SHOP_ROBOTS }));
 for (const p of PRODUCTS) write(`shop/${p.slug}/index.html`, docPage({ slug: `shop/${p.slug}`, title: p.name, desc: p.protects.slice(0, 155), body: productBody(p, esc) }));
+write('security/index.html', docPage({ slug: 'security', title: 'Report a security problem', desc: 'How to report a security problem in SecureInChat tools, services or the Android app, what is in scope, and the rules for good-faith research.', body: SECURITY, current: 'about' }));
+write('.well-known/security.txt', SECURITY_TXT);
+write('testing/index.html', docPage({ slug: 'testing', title: 'How we test', desc: 'The automated tests every SecureInChat release runs before it goes live, and what they do not prove.', body: TESTING, current: 'about' }));
+write('messaging/threat-model/index.html', docPage({ slug: 'messaging/threat-model', title: 'Messenger threat model', desc: 'What the SecureInChat messenger is designed to protect, from whom, what the relay can still see, and what it cannot protect against.', body: THREAT_MODEL, current: 'messaging' }));
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT, current: 'about' }));
 
 // /guides/, /refund/ and /terms/ removed 2026-10-22 (owner decision: AI build guides do not belong on this site).
@@ -804,7 +810,7 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -817,7 +823,7 @@ write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/phone-checkup/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/phone-checkup/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 

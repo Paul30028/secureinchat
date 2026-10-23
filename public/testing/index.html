@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>How we test | SecureInChat</title>
+  <meta content="The automated tests every SecureInChat release runs before it goes live, and what they do not prove." name="description"/>
+  <link href="https://secureinchat.com/testing/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="How we test | SecureInChat" property="og:title"/>
+  <meta content="The automated tests every SecureInChat release runs before it goes live, and what they do not prove." property="og:description"/>
+  <meta content="https://secureinchat.com/testing/" property="og:url"/>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a aria-current="page" href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">How we test</span>
+      </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">How we test</h1>
+       <p class="page-lead">Every release of this site runs 20 groups of automated tests before it goes live. This page says what they check, and what they do not.</p>
+       <div class="article-byline"><span>Last updated: 2026-10-23</span></div>
+      </div>
+      <figure class="editorial-figure">
+       <img alt="Six connected layers of personal privacy, from physical surroundings to information shared with AI" height="360" src="/assets/illustrations/privacy-layers.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell info-layout">
+     <nav aria-label="On this page" class="info-nav">
+      <h2>On this page</h2>
+      <ul>
+       <li><a href="#the-website-and-tools">The website and tools</a></li>
+       <li><a href="#the-android-app">The Android app</a></li>
+       <li><a href="#what-these-tests-do-not-prove">What these tests do not prove</a></li>
+      </ul>
+     </nav>
+     <article class="info-content">
+<h2 id="the-website-and-tools">The website and tools</h2>
+    <ul>
+      <li>Tool pages are opened in a real Chromium browser, served with the same Content Security Policy headers the live site uses.</li>
+      <li>For tools that say they run on your device (photo metadata, text redaction, link checker, fingerprint test, account and phone checklists), the tests record every network request and fail if anything leaves the page.</li>
+      <li>Tools that use outside lookups are tested with those services mocked, so the tests check how results are judged without sending real addresses anywhere.</li>
+      <li>The photo metadata remover is tested with JPEG, PNG and WebP files, rotated photos, photos with no metadata, a 35-megapixel photo, corrupt files and formats it does not support.</li>
+      <li>The logic of the password, redaction, link and account tools has its own unit tests.</li>
+      <li>Every internal link on every page must point to a page that exists, and the main pages are checked for missing files, console and CSP errors, and horizontal overflow on a phone-sized screen.</li>
+      <li>The Chinese pages are checked for rules we set for them, such as which tools they link to.</li>
+    </ul>
+    <h2 id="the-android-app">The Android app</h2>
+    <p>Permission Checkup is built on GitHub Actions on every change:</p>
+    <ul>
+      <li>Core logic tests in plain Kotlin.</li>
+      <li>A policy check that the app requests no INTERNET permission and has no third-party dependencies, plus an inspection of the built APK's permissions.</li>
+      <li>Android lint.</li>
+      <li>Launch tests on Android 10 and Android 14 emulators, and a flow test that revokes a permission, records it, restarts the app and restores it.</li>
+    </ul>
+    <h2 id="what-these-tests-do-not-prove">What these tests do not prove</h2>
+    <ul>
+      <li>They are our own tests. Nothing on this site has had an independent security audit.</li>
+      <li>The website tests use Chromium. Firefox and Safari are checked by hand at most.</li>
+      <li>The Android app has not yet been tested on a physical phone.</li>
+      <li>A passing test means the code does what we wrote down. It does not prove the design is right.</li>
+    </ul>
+    <p>The status labels on each page say what was tested and what was only documented. See <a href="/principles/">what each tool sends</a>, and <a href="/security/">report a problem</a> if you find one.</p>
+     </article>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
+  </footer>
+ </body>
+</html>

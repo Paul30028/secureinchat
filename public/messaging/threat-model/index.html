@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>Messenger threat model | SecureInChat</title>
+  <meta content="What the SecureInChat messenger is designed to protect, from whom, what the relay can still see, and what it cannot protect against." name="description"/>
+  <link href="https://secureinchat.com/messaging/threat-model/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="Messenger threat model | SecureInChat" property="og:title"/>
+  <meta content="What the SecureInChat messenger is designed to protect, from whom, what the relay can still see, and what it cannot protect against." property="og:description"/>
+  <meta content="https://secureinchat.com/messaging/threat-model/" property="og:url"/>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a aria-current="page" href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+       <a href="/">Home</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <a href="/messaging/">Messaging</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">Messenger threat model</span>
+      </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">Messenger threat model</h1>
+       <p class="page-lead">What the SecureInChat messenger is designed to protect, from whom, and what it cannot hide. The apps are in development and have not been independently audited, so this describes the design, not verified behaviour.</p>
+       <div class="article-byline"><span>Last updated: 2026-10-23</span></div>
+      </div>
+      <figure class="editorial-figure">
+       <img alt="Sender encrypts locally, an intermediate relay forwards encrypted payloads, and recipient decrypts locally" height="340" src="/assets/illustrations/relay-architecture.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell info-layout">
+     <nav aria-label="On this page" class="info-nav">
+      <h2>On this page</h2>
+      <ul>
+       <li><a href="#what-it-is-designed-to-protect">What it is designed to protect</a></li>
+       <li><a href="#who-it-is-designed-to-resist">Who it is designed to resist</a></li>
+       <li><a href="#what-the-relay-can-still-see">What the relay can still see</a></li>
+       <li><a href="#what-it-does-not-protect-against">What it does not protect against</a></li>
+       <li><a href="#how-it-compares">How it compares</a></li>
+       <li><a href="#building-blocks">Building blocks</a></li>
+      </ul>
+     </nav>
+     <article class="info-content">
+<h2 id="what-it-is-designed-to-protect">What it is designed to protect</h2>
+    <ul>
+      <li>The content of messages and files. Keys stay on the devices, and the relay only forwards encrypted payloads it cannot decrypt.</li>
+      <li>Group names. In the design a group's display name exists only on each device and is never sent to the relay.</li>
+      <li>Announcements from the group admin. They carry a signature from the creator's key, and every client rejects announcements it cannot verify.</li>
+    </ul>
+    <h2 id="who-it-is-designed-to-resist">Who it is designed to resist</h2>
+    <ul>
+      <li>Someone who breaches the relay, or compels its operator to hand over data. The relay has no message content and is designed without persistent storage of message content.</li>
+      <li>Someone watching the network between a device and the relay. Connections use TLS, and the payload inside is encrypted again end to end.</li>
+    </ul>
+    <h2 id="what-the-relay-can-still-see">What the relay can still see</h2>
+    <p>A relay that routes messages cannot avoid some metadata. In the current design it sees:</p>
+    <ul>
+      <li>The network address each device connects from.</li>
+      <li>When devices connect and when messages arrive.</li>
+      <li>The size of each payload, which can hint at its type.</li>
+      <li>The identifiers needed to route messages, such as which group a device joins.</li>
+    </ul>
+    <p>Not keeping connection history is a design goal. Removing this metadata entirely is not realistic for a server that routes messages.</p>
+    <h2 id="what-it-does-not-protect-against">What it does not protect against</h2>
+    <ul>
+      <li>A compromised phone. Malware, or someone holding your unlocked device, can read what you can read.</li>
+      <li>People in the group. Anyone who receives a message can copy it, screenshot it or forward it.</li>
+      <li>Removed members keeping old messages. Removal moves the group to new keys, so later messages are unreadable to them, but messages already delivered stay on their device.</li>
+      <li>Losing the admin key. Admin rights belong to whoever holds the creator's signing key, so losing it needs a recovery step.</li>
+    </ul>
+    <h2 id="how-it-compares">How it compares</h2>
+    <p>Group key changes on removal are weaker than the continuous key ratcheting that the Signal protocol or MLS provide. We do not claim equivalent security.</p>
+    <h2 id="building-blocks">Building blocks</h2>
+    <ul>
+      <li>Curve25519 for key agreement.</li>
+      <li>AES-256-GCM for authenticated encryption of each message.</li>
+      <li>HKDF for context-separated derivation of session and message keys.</li>
+    </ul>
+    <p>These name the primitives in the design. They are not a certification. More detail: <a href="/blog/what-a-blind-relay-can-and-cannot-know/">what a blind relay can and cannot know</a>. You can <a href="/messaging/">check the live relay connection</a> from your browser.</p>
+     </article>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
+  </footer>
+ </body>
+</html>
