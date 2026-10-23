@@ -31,7 +31,7 @@
 
 :root {
   color-scheme: light;
-  --color-canvas: #F4F6F3;
+  --color-canvas: #F7F5EF;
   --color-surface: #FFFFFF;
   --color-surface-soft: #E7E9E2;
   --color-surface-muted: #EEF0EC;
@@ -229,7 +229,7 @@ p:last-child { margin-bottom: 0; }
 .tools-disclosure a { font-weight: var(--font-weight-medium); }
 
 /* Guide categories: four compact icon cards beside one real featured article. */
-.guides-section { padding-block: var(--space-6); background: var(--color-surface-muted); border-top: 1px solid var(--color-border); }
+.guides-section { padding-block: var(--space-6); background: #F2F1E9; border-top: 1px solid #E7E7DF; }
 .guides-layout { display: grid; grid-template-columns: minmax(0, 1.13fr) minmax(0, .87fr); gap: var(--space-5); align-items: stretch; }
 .guide-categories { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); align-items: stretch; }
 .guide-category { display: flex; min-width: 0; min-height: 10rem; flex-direction: column; align-items: flex-start; padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: rgb(255 255 255 / 56%); color: var(--color-text); text-decoration: none; }
@@ -283,7 +283,7 @@ p:last-child { margin-bottom: 0; }
 .roadmap-item h3 { margin-bottom: var(--space-1); font-family: var(--font-sans); font-size: .8rem; line-height: 1.35; }
 .roadmap-item p { margin: 0; color: var(--color-text-muted); font-size: .73rem; line-height: 1.45; }
 .roadmap-status { display: none; }
-.next-steps { align-self: stretch; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface-muted); }
+.next-steps { align-self: stretch; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #F0F1E9; }
 .next-steps h3 { margin-bottom: var(--space-3); font-family: var(--font-sans); font-size: var(--font-size-base); }
 .next-steps ul { display: grid; gap: var(--space-3); margin: 0 0 var(--space-4); padding: 0; list-style: none; }
 .next-steps li { display: flex; gap: var(--space-2); align-items: flex-start; font-size: var(--font-size-sm); line-height: 1.4; }

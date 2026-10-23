@@ -32,7 +32,7 @@
 
 /* Checkup page header and intro. */
 .checkup-page, .phone-checkup-page { background: var(--color-canvas); }
-.checkup-hero { padding-block: var(--space-12); background: var(--color-canvas); border-bottom: 1px solid var(--color-border); }
+.checkup-hero { padding-block: var(--space-12); background: var(--color-canvas); border-bottom: 1px solid #E7E7DF; }
 .checkup-hero-inner { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(18rem, .9fr); gap: var(--space-10); align-items: center; }
 .checkup-heading h1 { max-width: 18ch; margin-bottom: var(--space-4); font-size: clamp(2.35rem, 4vw, 3.5rem); }
 .checkup-heading > p:not(.phone-page-breadcrumb) { max-width: 47rem; color: var(--color-text-muted); font-size: var(--font-size-lg); }
