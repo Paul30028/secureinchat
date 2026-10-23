@@ -91,6 +91,11 @@ jobs:
           APK=$(find apk -name app-debug.apk | head -1)
           cp "$APK" "permcheck-${TAG#permcheck-v}-test.apk"
           sha256sum permcheck-*.apk > SHA256SUMS.txt
+          # If the owner already created the release in the GitHub web interface (which creates the tag), attach the files to it.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" permcheck-*.apk SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --clobber
+            exit 0
+          fi
           gh release create "$TAG" permcheck-*.apk SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --prerelease \
             --title "Permission Checkup ${TAG#permcheck-v} (test build)" \
             --notes "Test build of SecureInChat Permission Checkup for Android 8.0+. Lists apps with risky permissions and special access, ranked by risk, and opens the right settings page so you can turn access off. Requests no INTERNET permission, so it cannot send your data anywhere. Built and checked on GitHub Actions: core logic tests, Android lint, APK permission check, launch test on Android 10 and Android 14 emulators. Not yet tested on a physical phone. Signed with a test (debug) key: a later signed release will need an uninstall first. Advanced mode (Shizuku) is not included yet. Check the file against SHA256SUMS.txt. GPL-3.0-or-later."
