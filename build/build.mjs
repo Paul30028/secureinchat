@@ -4,6 +4,7 @@ import path from 'node:path';
 import { POSTS } from './posts.mjs';
 import { PRODUCTS, validateProduct, productBody, shopIndexBody } from './shop.mjs';
 import { infoPage, articlePage, mapTags, shell as kitShell } from './subshell.mjs';
+import { toolPage, scopeLegacyCss } from './toolshell.mjs';
 import { MISSION, MISSION_SHORT, LAYERS, layerBody, layerTags, protectIndexBody, SITUATIONS, situationBody, startIndexBody } from './protect.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -722,6 +723,32 @@ write('blog/index.html', blogIndex());
   const title = 'Privacy tools | SecureInChat'; const desc = 'Free privacy tools: see what each check does, what stays in your browser and when an outside service is involved.';
   const m = kitMain('tools-index.en.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/').replace('aria-label="面包屑导航"', 'aria-label="Breadcrumb"');
   write('tools/index.html', kitShell({ title, desc, canonical: '/tools/', current: '/tools/', headExtra: headExtra({ canonical: '/tools/', title, desc }), main: m }));
+}
+
+// Tool detail pages: kit tool-detail layout around each tool's unchanged live markup (src/tools/<slug>.html).
+{
+  const idx = KIT_T('tools-index.en.html');
+  const ICONS = {};
+  for (const a of idx.match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a); const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (href && svg) ICONS[href[1] === 'website-health-check' ? 'site-health-check' : href[1]] = svg[0];
+  }
+  const FLOW = {};
+  for (const r of PRINCIPLES.matchAll(/<tr><td><a href="\/tools\/([a-z0-9-]+)\/">[^<]*<\/a><\/td><td>([\s\S]*?)<\/td><td>([\s\S]*?)<\/td><\/tr>/g)) FLOW[r[1]] = { stays: r[2], sent: r[3] };
+  FLOW['browser-fingerprint-test'] = FLOW['browser-fingerprint-test'] || FLOW['fingerprint-test'];
+  const L = { local: ['Local processing', 'state-label'], list: ['Local checklist', 'state-label'], net: ['Network lookup', 'state-label state-label--network'], some: ['Some network lookups', 'state-label state-label--network'], limited: ['Limited lookup', 'state-label state-label--network'], site: ['Site request', 'state-label state-label--network'] };
+  const TOOLS = [
+    ['link-checker', 'Link checker', L.local, FIG.url], ['photo-metadata-remover', 'Photo metadata remover', L.local, FIG.photo], ['text-redactor', 'Text redactor', L.local, FIG.redact],
+    ['browser-fingerprint-test', 'Browser fingerprint test', L.local, FIG.flows], ['account-checkup', 'Account security checkup', L.list, FIG.account],
+    ['ip-leak-test', 'IP leak test', L.net, FIG.flows], ['webrtc-leak-test', 'WebRTC leak test', L.net, FIG.flows], ['ipv6-leak-test', 'IPv6 leak test', L.net, FIG.flows],
+    ['privacy-report', 'Browser privacy report', L.some, FIG.flows], ['password-checker', 'Password checker', L.limited, FIG.account], ['site-health-check', 'Website health check', L.site, FIG.flows],
+  ];
+  write('assets/css/tool-legacy.css', `/* Previous tool widget styles, scoped to .legacy-tool (generated from src/tools/legacy-style.css). */\n${scopeLegacyCss(fs.readFileSync(path.join(ROOT, 'src/tools/legacy-style.css'), 'utf8'))}`);
+  for (const [slug, name, label, figure] of TOOLS) {
+    const src = fs.readFileSync(path.join(ROOT, 'src/tools', `${slug}.html`), 'utf8');
+    if (!FLOW[slug]) throw new Error('no data-flow row for ' + slug);
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name }));
+  }
 }
 
 

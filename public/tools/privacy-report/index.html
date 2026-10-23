@@ -1,20 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Browser Privacy Report: Leaks and Fingerprint in One Check</title>
-<meta name="description" content="Free browser privacy report. One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser exposes to trackers, then lists what to look at first. Nothing is saved.">
-<link rel="canonical" href="https://secureinchat.com/tools/privacy-report/">
-<meta name="robots" content="index, follow, max-image-preview:large">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Browser Privacy Report: Leaks and Fingerprint in One Check">
-<meta property="og:description" content="Free browser privacy report. One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser exposes to trackers, then lists what to look at first. Nothing is saved.">
-<meta property="og:url" content="https://secureinchat.com/tools/privacy-report/">
-<meta name="theme-color" content="#F4F6F3">
-<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/tools/assets/style.css">
-<script type="application/ld+json">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>Browser Privacy Report: Leaks and Fingerprint in One Check</title>
+  <meta content="Free browser privacy report. One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser exposes to trackers, then lists what to look at first. Nothing is saved." name="description"/>
+  <link href="https://secureinchat.com/tools/privacy-report/" rel="canonical"/>
+  <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
@@ -73,26 +67,129 @@
   ]
 }
 </script>
-</head>
-<body>
-<a class="skip" href="#results">Skip to results</a>
-<header class="top">
-  <div class="wrap top__in">
-    <a class="brand" href="/">SecureInChat</a>
-    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
-  </div>
-</header>
-<main>
-  <section class="hero wrap" aria-labelledby="h1">
-    <h1 id="h1">Browser privacy report</h1>
-    <p class="lede">One run checks whether your connection leaks your real address and what your browser gives away, then lists what to look at first.</p>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a aria-current="page" href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+      <a href="/">Home</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/tools/">Tools</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">Browser privacy report</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      
+      <div>
+       <h1 id="h1">Browser privacy report</h1>
+       <p class="page-lead">One run checks whether your connection leaks your real address and what your browser gives away, then lists what to look at first.</p>
+       <ul class="state-list"><li><span class="state-label state-label--network">Some network lookups</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+      <section class="tool-workspace" aria-label="Browser privacy report">
+       <div class="legacy-tool">
+
     <div class="controls">
       <button id="run" class="btn" type="button">Run report</button>
       <label class="check"><input id="vpn" type="checkbox" checked> <span>I'm using a VPN or proxy</span></label>
     </div>
     <p class="hint">The report is built in this tab and is not saved. <a href="#method">What leaves your browser</a></p>
-  </section>
-  <section class="wrap" id="results" aria-labelledby="results-h">
+
+       </div>
+       <div class="legacy-tool"><section id="results" aria-labelledby="results-h">
     <div class="results-head">
       <h2 id="results-h">Your report</h2>
       <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Run the report to see your result.</p>
@@ -177,15 +274,17 @@
         </tr>
       </tbody>
     </table>
-  </section>
-  <section class="wrap prose" id="method" aria-labelledby="method-h">
+</section></div>
+      </section>
+      <div class="info-content tool-prose">
+<section id="method" aria-labelledby="method-h">
     <h2 id="method-h">What leaves your browser</h2>
     <p>The connection checks are the same as the <a href="/tools/ip-leak-test/">IP leak test</a> and contact the same services: this site's /tools/api/whoami, api4.ipify.org and api6.ipify.org, ipwho.is, random names under lk.secureinchat.com with dnsapi.secureinchat.com, and stun.cloudflare.com. The IP leak test page explains what each one sees and keeps.</p>
     <p>The browser checks are the same as the <a href="/tools/browser-fingerprint-test/">browser fingerprint test</a> and send nothing. The page sets no cookies, loads no analytics and serves its fonts from this site. Updated October 21, 2026.</p>
     <h2 id="limits-h">What the report cannot tell you</h2>
     <p>It cannot say how rare your browser is, because that needs data about other people's browsers, which we do not collect. It does not check your phone's apps, your accounts or your router. Run it again after you change your VPN, browser or settings.</p>
-  </section>
-  <section class="wrap prose" aria-labelledby="faq-h">
+</section>
+<section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>What does the report check?</h3>
     <p>Six connection checks (public IP, WebRTC, IPv6, DNS, time zone and request headers) and six browser checks (canvas, graphics card, Global Privacy Control, Do Not Track, cookies and the device details every page can read).</p>
@@ -195,17 +294,92 @@
     <p>The same ones as the IP leak test: this site, ipify, ipwho.is, our DNS probe and the Cloudflare STUN server. The browser checks send nothing.</p>
     <h3>Why is something marked to fix when I am not using a VPN?</h3>
     <p>With the VPN box unticked, connection checks only show what sites see and are not judged. Browser checks are judged the same way either way.</p>
-  </section>
-</main>
-<footer class="foot">
-  <div class="wrap foot__in">
-    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
-    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
-  </div>
-</footer>
-<script src="/tools/assets/logic.js" defer></script>
-<script src="/tools/assets/netcore.js" defer></script>
-<script src="/tools/assets/fpcore.js" defer></script>
-<script src="/tools/assets/report-app.js" defer></script>
-</body>
+</section>
+      </div>
+     </div>
+     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>How your data is handled</h2>
+       <div class="data-handling">
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>The whole report, until you close the tab</p></div></div>
+        <div class="data-handling-row"><span class="data-handling-mark">↗</span><div><strong>Sent to others</strong><p>The same requests as the IP leak test; the browser checks send nothing</p></div></div>
+       </div>
+       <p class="state-list"><span class="state-label state-label--network">Some network lookups</span></p>
+       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
+      </section>
+      <figure class="editorial-figure"><img alt="Separate data flows for encrypted messaging and privacy tools that use outside lookups" height="400" src="/assets/illustrations/data-flows.svg" width="760"/></figure>
+      <section class="content-panel content-panel--soft">
+       <h2>Need a different check?</h2>
+       <p>Compare tools by what they do and what data they need.</p>
+       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
+  </footer>
+  <script src="/tools/assets/logic.js" defer></script>
+  <script src="/tools/assets/netcore.js" defer></script>
+  <script src="/tools/assets/fpcore.js" defer></script>
+  <script src="/tools/assets/report-app.js" defer></script>
+ </body>
 </html>

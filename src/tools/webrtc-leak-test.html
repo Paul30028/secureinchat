@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebRTC Leak Test: Does Your Browser Expose Your Real IP?</title>
+<meta name="description" content="Free WebRTC leak test. See whether a web page can read an IP address that bypasses your VPN or proxy, and how to close the leak in Chrome, Firefox, Edge, Brave and Safari.">
+<link rel="canonical" href="https://secureinchat.com/tools/webrtc-leak-test/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="WebRTC Leak Test: Does Your Browser Expose Your Real IP?">
+<meta property="og:description" content="Free WebRTC leak test. See whether a web page can read an IP address that bypasses your VPN or proxy, and how to close the leak in Chrome, Firefox, Edge, Brave and Safari.">
+<meta property="og:url" content="https://secureinchat.com/tools/webrtc-leak-test/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "WebRTC Leak Test",
+      "url": "https://secureinchat.com/tools/webrtc-leak-test/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript and WebRTC.",
+      "description": "Free WebRTC leak test. See whether a web page can read an IP address that bypasses your VPN or proxy, and how to close the leak in Chrome, Firefox, Edge, Brave and Safari.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is a WebRTC leak?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "WebRTC lets a web page ask your browser for the network addresses it would use for a call. Those addresses can include one that is not the address websites see through your VPN or proxy, and a page can read them without a permission prompt."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does a local address like 192.168.x.x count as a leak?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It is not a route to you from the internet, but it is a fingerprinting detail. Current Chrome, Firefox, Edge and Safari normally replace it with a random .local name."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which browsers can leak through WebRTC?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Any browser with WebRTC can. Whether a public address leaks depends on the browser, its settings and how your VPN routes UDP traffic."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I fix a WebRTC leak in Firefox?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Open about:config, search for media.peerconnection.enabled and set it to false. This turns WebRTC off, so browser video calls stop working."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I fix it in Chrome or Edge?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "These browsers have no built-in switch. Google's WebRTC Network Limiter extension can set the policy to use only the default public interface, which keeps calls working. Brave has the setting under Privacy and security as WebRTC IP handling policy."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does a VPN kill switch stop WebRTC leaks?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Often, if it blocks all traffic outside the tunnel, including UDP. A kill switch that only reacts to dropped connections may not."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this page store my address?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The page's code stores nothing and sets no cookies. The lookups it makes are listed on the IP leak test page under How the test works."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">WebRTC leak test</h1>
+    <p class="lede">Check whether a web page can read an IP address from your browser that goes around your VPN or proxy.</p>
+    <div class="controls">
+      <button id="run" class="btn" type="button">Run test</button>
+      <label class="check"><input id="vpn" type="checkbox" checked> <span>I'm using a VPN or proxy</span></label>
+    </div>
+    <p class="hint">With the box ticked, a different address is reported as a leak. Untick it to just see the addresses. The page stores nothing. For DNS, IPv6 and headers, run the <a href="/tools/ip-leak-test/">full IP leak test</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Run the test to see your result.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">WebRTC leak test result</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        <tr data-check="webrtc" data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">WebRTC</span><span class="c-desc">Addresses your browser hands to any page.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">How a WebRTC leak happens</h2>
+    <p>WebRTC is the browser feature behind video calls. To set up a call, a page asks the browser for its candidate addresses, and the browser answers by contacting a STUN server and listing what it finds. A VPN usually routes web traffic through its tunnel, but that STUN request is UDP, and on some setups it leaves through your normal connection. The result is a public address that differs from the one websites see.</p>
+    <p>This test makes the same request any page could make. It compares each public address with the one the site's own lookup returned. A match is fine. A different address, with the VPN box ticked, is reported as a leak.</p>
+    <h2 id="fix-h">How to close a leak</h2>
+    <ul>
+      <li><strong>Firefox:</strong> set <code>media.peerconnection.enabled</code> to false in <code>about:config</code>. Browser video calls stop working.</li>
+      <li><strong>Chrome and Edge:</strong> install an extension such as Google's WebRTC Network Limiter and choose the default public interface only.</li>
+      <li><strong>Brave:</strong> in Privacy and security, set WebRTC IP handling policy to disable non-proxied UDP.</li>
+      <li><strong>Any browser:</strong> use a VPN client with a kill switch that blocks all traffic outside the tunnel, UDP included. Run this test again afterwards.</li>
+    </ul>
+    <p>Longer explanation: <a href="/blog/webrtc-leak-explained/">WebRTC leaks explained</a>.</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>What is a WebRTC leak?</h3>
+    <p>WebRTC lets a web page ask your browser for the network addresses it would use for a call. Those addresses can include one that is not the address websites see through your VPN or proxy, and a page can read them without a permission prompt.</p>
+    <h3>Does a local address like 192.168.x.x count as a leak?</h3>
+    <p>It is not a route to you from the internet, but it is a fingerprinting detail. Current Chrome, Firefox, Edge and Safari normally replace it with a random .local name.</p>
+    <h3>Which browsers can leak through WebRTC?</h3>
+    <p>Any browser with WebRTC can. Whether a public address leaks depends on the browser, its settings and how your VPN routes UDP traffic.</p>
+    <h3>How do I fix a WebRTC leak in Firefox?</h3>
+    <p>Open about:config, search for media.peerconnection.enabled and set it to false. This turns WebRTC off, so browser video calls stop working.</p>
+    <h3>How do I fix it in Chrome or Edge?</h3>
+    <p>These browsers have no built-in switch. Google's WebRTC Network Limiter extension can set the policy to use only the default public interface, which keeps calls working. Brave has the setting under Privacy and security as WebRTC IP handling policy.</p>
+    <h3>Does a VPN kill switch stop WebRTC leaks?</h3>
+    <p>Often, if it blocks all traffic outside the tunnel, including UDP. A kill switch that only reacts to dropped connections may not.</p>
+    <h3>Does this page store my address?</h3>
+    <p>The page's code stores nothing and sets no cookies. The lookups it makes are listed on the IP leak test page under How the test works.</p>
+  </section>
+  <aside class="wrap prose" id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">Tools from our partner</h2>
+    <p><a href="https://go.nordvpn.net/aff_c?offer_id=15&amp;aff_id=159108&amp;url_id=902" rel="sponsored noopener">NordVPN</a> (affiliate link) is a paid VPN service. After you connect, run our leak tests again to check it yourself. Or go to <a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> without a commission link.</p>
+    <p><a href="https://go.nordpass.io/aff_c?offer_id=488&amp;aff_id=159108&amp;url_id=9356" rel="sponsored noopener">NordPass</a> (affiliate link) is a password manager with a free plan. Or go to <a href="https://nordpass.com/" rel="noopener">nordpass.com</a> without a commission link. Free and open-source options such as Bitwarden also exist.</p>
+  </aside>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/logic.js" defer></script>
+<script src="/tools/assets/webrtc.js" defer></script>
+</body>
+</html>

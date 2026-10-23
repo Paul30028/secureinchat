@@ -95,7 +95,8 @@ def run_scenario(p, name, sc, viewport, mobile=False, shot=None, vpn_toggle_chec
     assert page.is_hidden('#bypass') == (sc['leaks'] == 0)
     overflow = page.evaluate('document.documentElement.scrollWidth - window.innerWidth')
     assert overflow <= 0, f'{name}: horizontal overflow {overflow}px'
-    assert page.evaluate("document.fonts.check('800 20px \"Atkinson Next\"')"), 'font not loaded'
+    page.evaluate("document.fonts.ready")
+    assert page.evaluate("document.fonts.check('700 20px \"Noto Serif\"') && document.fonts.check('400 16px \"Atkinson Hyperlegible Next\"')"), 'self-hosted fonts not loaded'
     summary = page.inner_text('#summary')
     if shot:
         page.locator('#route').scroll_into_view_if_needed()

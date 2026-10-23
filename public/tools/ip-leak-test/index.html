@@ -1,21 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IP Leak Test: Check WebRTC, IPv6 and Time Zone Leaks</title>
-<meta name="description" content="Free IP leak test that runs in your browser. See your public IP, WebRTC, IPv6, time zone and header leaks. No signup, nothing stored.">
-<link rel="canonical" href="https://secureinchat.com/tools/ip-leak-test/">
-<meta name="robots" content="index, follow, max-image-preview:large">
-<meta property="og:type" content="website">
-<meta property="og:title" content="IP Leak Test: Check WebRTC, IPv6 and Time Zone Leaks">
-<meta property="og:description" content="See which addresses your browser gives away while your VPN is on. Runs in your browser, nothing stored.">
-<meta property="og:url" content="https://secureinchat.com/tools/ip-leak-test/">
-<meta name="theme-color" content="#F4F6F3">
-<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/tools/assets/style.css">
-<script type="application/ld+json">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>IP Leak Test: Check WebRTC, IPv6 and Time Zone Leaks</title>
+  <meta content="Free IP leak test that runs in your browser. See your public IP, WebRTC, IPv6, time zone and header leaks. No signup, nothing stored." name="description"/>
+  <link href="https://secureinchat.com/tools/ip-leak-test/" rel="canonical"/>
+  <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
@@ -54,21 +47,129 @@
   ]
 }
 </script>
-</head>
-<body>
-<a class="skip" href="#results">Skip to results</a>
-
-<header class="top">
-  <div class="wrap top__in">
-    <a class="brand" href="/">SecureInChat</a>
-    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
-  </div>
-</header>
-
-<main>
-  <section class="hero wrap" aria-labelledby="h1">
-    <h1 id="h1">IP leak test</h1>
-    <p class="lede">Find out what your browser gives away right now: your public IP, WebRTC addresses, IPv6 address, time zone and request headers.</p>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a aria-current="page" href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+      <a href="/">Home</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/tools/">Tools</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">IP leak test</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <span class="tool-detail-emblem"><svg aria-hidden="true" class="tool-detail-emblem-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <circle cx="16" cy="7" r="3">
+           </circle>
+           <circle cx="7" cy="24" r="3">
+           </circle>
+           <circle cx="25" cy="24" r="3">
+           </circle>
+           <path d="M14 10 9 21M18 10l5 11M10 24h12">
+           </path>
+          </svg></span>
+      <div>
+       <h1 id="h1">IP leak test</h1>
+       <p class="page-lead">Find out what your browser gives away right now: your public IP, WebRTC addresses, IPv6 address, time zone and request headers.</p>
+       <ul class="state-list"><li><span class="state-label state-label--network">Network lookup</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+      <section class="tool-workspace" aria-label="IP leak test">
+       <div class="legacy-tool">
 
     <div class="controls">
       <button id="run" class="btn" type="button">Run test</button>
@@ -103,9 +204,9 @@
       </div>
       <figcaption>Your route as websites see it. A dashed red path means an address that bypasses it.</figcaption>
     </figure>
-  </section>
 
-  <section class="wrap" id="results" aria-labelledby="results-h">
+       </div>
+       <div class="legacy-tool"><section id="results" aria-labelledby="results-h">
     <div class="results-head">
       <h2 id="results-h">Results</h2>
       <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Run the test to see your results.</p>
@@ -149,9 +250,10 @@
       </tbody>
     </table>
     <p class="fineprint">Location and network names come from IP geolocation data and can be wrong. The hosting-or-ISP judgment is a heuristic based on the network name.</p>
-  </section>
-
-  <section class="wrap prose" id="meaning" aria-labelledby="meaning-h">
+</section></div>
+      </section>
+      <div class="info-content tool-prose">
+<section id="meaning" aria-labelledby="meaning-h">
     <h2 id="meaning-h">What each result means</h2>
     <dl class="defs">
       <div><dt>Public IP</dt><dd>The address every website you visit sees. With a VPN on, it should belong to your VPN provider's network, not your internet provider. The city and network name come from IP geolocation data, which can be off by a city or more.</dd></div>
@@ -161,48 +263,8 @@
       <div><dt>Time zone</dt><dd>Your browser tells every page its time zone. If it says Asia/Shanghai while your IP sits in Frankfurt, fraud checks read that as a sign you are hiding your location. It is a signal, not proof.</dd></div>
       <div><dt>Request headers</dt><dd>Headers such as Via and X-Forwarded-For can announce a proxy. Your language header can also disagree with your IP's country, a weak signal that some fraud checks use.</dd></div>
     </dl>
-  </section>
-
-  <aside class="wrap" id="ad-slot-a" hidden aria-label="Advertisement"></aside>
-
-  <section class="wrap prose" id="what-is" aria-labelledby="what-is-h">
-    <h2 id="what-is-h">What is an IP leak?</h2>
-    <p>An IP leak happens when your real network identity reaches a website or an observer even though you use a VPN or proxy to hide it. The tunnel carries most of your traffic, but one part of your system sends data around it: a browser feature, a second IP protocol, or a DNS lookup that skips the tunnel.</p>
-    <p class="callout">A leak is any address or lookup that shows your real connection while your VPN is on.</p>
-
-    <h3>What can leak</h3>
-    <div class="table-scroll">
-    <table class="plain">
-      <thead><tr><th scope="col">Type</th><th scope="col">Why it happens</th><th scope="col">What an observer sees</th></tr></thead>
-      <tbody>
-        <tr><th scope="row">WebRTC</th><td>The browser asks a STUN server for its public address, and that request can skip a VPN that only proxies web traffic or does not carry UDP.</td><td>Your real public IP, and sometimes your local network address.</td></tr>
-        <tr><th scope="row">IPv6</th><td>The VPN tunnels IPv4 only, so IPv6 traffic keeps its normal route.</td><td>Your provider's IPv6 address and network.</td></tr>
-        <tr><th scope="row">DNS</th><td>Your device keeps using the router's or provider's resolver instead of the VPN's.</td><td>Every domain you look up, visible to that resolver.</td></tr>
-        <tr><th scope="row">Time zone</th><td>The browser reports the system clock's zone no matter what the VPN does.</td><td>Your approximate real region.</td></tr>
-        <tr><th scope="row">Headers</th><td>A proxy adds forwarding headers, or your language settings point to another country.</td><td>That a proxy is in use, and hints about where you are.</td></tr>
-      </tbody>
-    </table>
-    </div>
-  </section>
-
-  <section class="wrap prose" id="fix" aria-labelledby="fix-h">
-    <h2 id="fix-h">How to fix each leak</h2>
-    <dl class="defs">
-      <div><dt>WebRTC</dt><dd>Use a VPN app that tunnels all traffic instead of a browser extension. If the leak stays, limit WebRTC in the browser. In Brave, open Settings, then Privacy and security, and set WebRTC IP handling policy to Disable non-proxied UDP. In Firefox, set media.peerconnection.ice.default_address_only to true in about:config. Chrome has no built-in switch, but extensions can set the same policy. Turning WebRTC off completely breaks browser video calls.</dd></div>
-      <div><dt>IPv6</dt><dd>Turn on your VPN's IPv6 leak protection. If it has none, disable IPv6 on your network adapter. Run the test again to confirm.</dd></div>
-      <div><dt>DNS</dt><dd>Turn on your VPN's DNS leak protection and do not override the DNS servers it sets. A kill switch helps when the tunnel drops.</dd></div>
-      <div><dt>Time zone</dt><dd>Set your system time zone to match your VPN exit if consistency matters. Tor Browser, and Firefox with privacy.resistFingerprinting, report a generic zone instead. A mismatch alone is not a leak.</dd></div>
-      <div><dt>Request headers</dt><dd>If Via or X-Forwarded-For shows up, your proxy announces itself. Switch to a proxy or VPN that does not add forwarding headers. Your network or host may add them too, so test without the proxy to compare.</dd></div>
-    </dl>
-  </section>
-
-  <aside class="wrap prose" id="partner-slot" aria-labelledby="partner-h">
-    <h2 id="partner-h">Tools from our partner</h2>
-    <p><a href="https://go.nordvpn.net/aff_c?offer_id=15&amp;aff_id=159108&amp;url_id=902" rel="sponsored noopener">NordVPN</a> (affiliate link) is a paid VPN service. After you connect, run our leak tests again to check it yourself. Or go to <a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> without a commission link.</p>
-    <p><a href="https://go.nordpass.io/aff_c?offer_id=488&amp;aff_id=159108&amp;url_id=9356" rel="sponsored noopener">NordPass</a> (affiliate link) is a password manager with a free plan. Or go to <a href="https://nordpass.com/" rel="noopener">nordpass.com</a> without a commission link. Free and open-source options such as Bitwarden also exist.</p>
-  </aside>
-
-  <section class="wrap prose" id="faq" aria-labelledby="faq-h">
+</section>
+<section id="faq" aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <div class="faq">
       <details><summary>Does a WebRTC result mean my VPN is broken?</summary><p>Only if the public WebRTC address differs from the IP that websites see. A local address ending in .local, or an address that matches your public IP, is normal.</p></details>
@@ -214,9 +276,8 @@
       <details><summary>How accurate are the location and network name?</summary><p>They come from IP geolocation data. The city is often off, sometimes by a lot. The network name is usually right. The hosting-or-ISP judgment is a heuristic based on the network name and can be wrong for residential VPN exits and corporate VPNs.</p></details>
       <details><summary>Do you store my IP address or results?</summary><p>The page's code stores nothing. Results are built in your browser and disappear when you close the tab. Cloudflare, which hosts the site, processes every request it serves, as it does for any site. The lookups listed under How the test works leave your browser.</p></details>
     </div>
-  </section>
-
-  <section class="wrap prose" id="method" aria-labelledby="method-h">
+</section>
+<section id="method" aria-labelledby="method-h">
     <h2 id="method-h">How the test works</h2>
     <p>Everything is judged in your browser. These requests leave it when you press Run test:</p>
     <dl class="defs">
@@ -228,18 +289,91 @@
       <div><dt>stun.cloudflare.com</dt><dd>The WebRTC check asks this STUN server for your public address, the same way a video call would.</dd></div>
     </dl>
     <p>The page sets no cookies, loads no analytics and serves its fonts from this site. Pass and fail judgments depend on the VPN checkbox. The DNS check compares with an earlier run in the same tab, which it keeps in memory only. Updated October 20, 2026.</p>
-  </section>
-</main>
-
-<footer class="foot">
-  <div class="wrap foot__in">
-    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
-    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
-  </div>
-</footer>
-
-<script src="/tools/assets/logic.js" defer></script>
-<script src="/tools/assets/netcore.js" defer></script>
-<script src="/tools/assets/app.js" defer></script>
-</body>
+</section>
+      </div>
+     </div>
+     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>How your data is handled</h2>
+       <div class="data-handling">
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>Verdicts and comparisons</p></div></div>
+        <div class="data-handling-row"><span class="data-handling-mark">↗</span><div><strong>Sent to others</strong><p>Your IP to ipify and ipwho.is; random DNS names to our lookup server; resolver addresses read from our API</p></div></div>
+       </div>
+       <p class="state-list"><span class="state-label state-label--network">Network lookup</span></p>
+       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
+      </section>
+      <figure class="editorial-figure"><img alt="Separate data flows for encrypted messaging and privacy tools that use outside lookups" height="400" src="/assets/illustrations/data-flows.svg" width="760"/></figure>
+      <section class="content-panel content-panel--soft">
+       <h2>Need a different check?</h2>
+       <p>Compare tools by what they do and what data they need.</p>
+       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
+  </footer>
+  <script src="/tools/assets/logic.js" defer></script>
+  <script src="/tools/assets/netcore.js" defer></script>
+  <script src="/tools/assets/app.js" defer></script>
+ </body>
 </html>

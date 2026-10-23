@@ -1,20 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Website Health Check: HTTPS, Security Headers, SEO Basics and Sitemap</title>
-<meta name="description" content="Free website health check. Test HTTPS and redirects, security headers, title, description, mobile viewport, robots.txt and sitemap for any public site, and copy the report.">
-<link rel="canonical" href="https://secureinchat.com/tools/site-health-check/">
-<meta name="robots" content="index, follow, max-image-preview:large">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Website Health Check: HTTPS, Security Headers, SEO Basics and Sitemap">
-<meta property="og:description" content="Free website health check. Test HTTPS and redirects, security headers, title, description, mobile viewport, robots.txt and sitemap for any public site, and copy the report.">
-<meta property="og:url" content="https://secureinchat.com/tools/site-health-check/">
-<meta name="theme-color" content="#F4F6F3">
-<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/tools/assets/style.css">
-<script type="application/ld+json">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>Website Health Check: HTTPS, Security Headers, SEO Basics and Sitemap</title>
+  <meta content="Free website health check. Test HTTPS and redirects, security headers, title, description, mobile viewport, robots.txt and sitemap for any public site, and copy the report." name="description"/>
+  <link href="https://secureinchat.com/tools/site-health-check/" rel="canonical"/>
+  <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
@@ -81,27 +75,135 @@
   ]
 }
 </script>
-</head>
-<body>
-<a class="skip" href="#results">Skip to results</a>
-<header class="top">
-  <div class="wrap top__in">
-    <a class="brand" href="/">SecureInChat</a>
-    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
-  </div>
-</header>
-<main>
-  <section class="hero wrap" aria-labelledby="h1">
-    <h1 id="h1">Website health check</h1>
-    <p class="lede">Enter a public website address to check HTTPS, redirects, security headers, search basics, robots.txt and the sitemap.</p>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a aria-current="page" href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+      <a href="/">Home</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/tools/">Tools</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">Website health check</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <span class="tool-detail-emblem"><svg aria-hidden="true" class="tool-detail-emblem-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M16 3 28 8v9c0 7-5 11-12 14C9 28 4 24 4 17V8Z">
+           </path>
+           <path d="m10 16 4 4 8-9">
+           </path>
+          </svg></span>
+      <div>
+       <h1 id="h1">Website health check</h1>
+       <p class="page-lead">Enter a public website address to check HTTPS, redirects, security headers, search basics, robots.txt and the sitemap.</p>
+       <ul class="state-list"><li><span class="state-label state-label--network">Site request</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+      <section class="tool-workspace" aria-label="Website health check">
+       <div class="legacy-tool">
+
     <form id="sc-form" class="sc-form" novalidate>
       <div class="sc-field"><label for="sc-url">Website address</label><input id="sc-url" class="sc-input" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="example.com"></div>
       <button id="sc-go" class="btn" type="submit">Check website</button>
     </form>
     <div class="sc-actions"><button id="sc-copy" class="btn btn--quiet" type="button" disabled>Copy report as text</button></div>
     <p class="hint">The address is sent to this site to fetch the public pages. It is not stored by our code. See <a href="/privacy/">how this site handles data</a>.</p>
-  </section>
-  <section class="wrap" id="results" aria-labelledby="results-h">
+
+       </div>
+       <div class="legacy-tool"><section id="results" aria-labelledby="results-h">
     <div class="results-head">
       <h2 id="results-h">Result</h2>
       <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Enter an address to run the check.</p>
@@ -117,8 +219,8 @@
         </tr>
       </tbody>
     </table>
-  </section>
-  <section class="wrap" aria-labelledby="sb-h">
+</section></div>
+       <div class="legacy-tool"><section aria-labelledby="sb-h">
     <h2 id="sb-h">Check several sites</h2>
     <p>Enter up to 10 addresses, one per line, for example the sites you maintain for clients. Each is checked in turn and you can download one report file. Use it for sites you own or manage.</p>
     <label for="sb-list" class="sr">Website addresses, one per line</label>
@@ -126,16 +228,18 @@
     <div class="sc-actions"><button id="sb-go" class="btn" type="button">Check all</button><button id="sb-dl" class="btn btn--quiet" type="button" disabled>Download report (HTML)</button></div>
     <p id="sb-status" class="hint" role="status" aria-live="polite">Nothing checked yet.</p>
     <table class="results"><caption class="sr">Results for several websites</caption><thead><tr><th scope="col">Site</th><th scope="col">Summary</th><th scope="col">OK</th><th scope="col">Main points</th></tr></thead><tbody id="sb-rows"></tbody></table>
-  </section>
-  <section class="wrap prose" aria-labelledby="what-h">
+</section></div>
+      </section>
+      <div class="info-content tool-prose">
+<section aria-labelledby="what-h">
     <h2 id="what-h">What it checks</h2>
     <p>The tool loads the home page of a public website from a Cloudflare server and reports what a visitor or a search engine would meet first: whether the page loads over HTTPS, whether plain HTTP is redirected, the status code and redirects, how quickly the server answers, the common security headers, the title, description, canonical link, viewport, language and main heading, whether indexing is blocked, and whether robots.txt and a sitemap are present and readable.</p>
     <h2>What it does not check</h2>
     <p>It looks at the home page only, not every page. It does not read the certificate, so it cannot warn you that a certificate is about to expire. The response time comes from one location, so visitors elsewhere may see more or less. Passing every check does not mean a site is secure or well ranked. It is a first look that points at common, fixable gaps.</p>
     <h2>How the address you enter is handled</h2>
     <p>The address is sent to this site, which fetches the public pages of that website and returns the result. Our code does not store or log the address or the result. Cloudflare, which serves this site, sees the request as it does for any page. Only public websites on the standard web ports can be checked, and the requests identify themselves as SecureInChatSiteCheck. Use it on sites you own or manage. For checks that run entirely in your browser, see the <a href="/tools/">other tools</a>.</p>
-  </section>
-  <section class="wrap prose" aria-labelledby="faq-h">
+</section>
+<section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>Is the address I enter stored?</h3>
     <p>Our code does not store or log it. The request goes through Cloudflare, which serves this site, so Cloudflare sees it as it sees any request to a web page.</p>
@@ -147,15 +251,90 @@
     <p>It is measured from one Cloudflare location until the server starts to answer. Other tools measure from other places and may include different steps.</p>
     <h3>Can I send the result to a client?</h3>
     <p>Yes. Use Copy report as text, which lists each check with its status and what to change. Read it first, because it only describes the home page.</p>
-  </section>
-</main>
-<footer class="foot">
-  <div class="wrap foot__in">
-    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
-    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
-  </div>
-</footer>
-<script src="/tools/assets/sitecheck-app.js" defer></script>
-<script src="/tools/assets/sitecheck-batch.js" defer></script>
-</body>
+</section>
+      </div>
+     </div>
+     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>How your data is handled</h2>
+       <div class="data-handling">
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>The report</p></div></div>
+        <div class="data-handling-row"><span class="data-handling-mark">↗</span><div><strong>Sent to others</strong><p>The address you enter goes to this site, which fetches that site's public pages. Our code does not store or log it</p></div></div>
+       </div>
+       <p class="state-list"><span class="state-label state-label--network">Site request</span></p>
+       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
+      </section>
+      <figure class="editorial-figure"><img alt="Separate data flows for encrypted messaging and privacy tools that use outside lookups" height="400" src="/assets/illustrations/data-flows.svg" width="760"/></figure>
+      <section class="content-panel content-panel--soft">
+       <h2>Need a different check?</h2>
+       <p>Compare tools by what they do and what data they need.</p>
+       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
+  </footer>
+  <script src="/tools/assets/sitecheck-app.js" defer></script>
+  <script src="/tools/assets/sitecheck-batch.js" defer></script>
+ </body>
 </html>

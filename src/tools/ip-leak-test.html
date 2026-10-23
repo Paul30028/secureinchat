@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IP Leak Test: Check WebRTC, IPv6 and Time Zone Leaks</title>
+<meta name="description" content="Free IP leak test that runs in your browser. See your public IP, WebRTC, IPv6, time zone and header leaks. No signup, nothing stored.">
+<link rel="canonical" href="https://secureinchat.com/tools/ip-leak-test/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="IP Leak Test: Check WebRTC, IPv6 and Time Zone Leaks">
+<meta property="og:description" content="See which addresses your browser gives away while your VPN is on. Runs in your browser, nothing stored.">
+<meta property="og:url" content="https://secureinchat.com/tools/ip-leak-test/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "IP Leak Test",
+      "url": "https://secureinchat.com/tools/ip-leak-test/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript. WebRTC check needs a browser with WebRTC.",
+      "description": "Checks your public IP, WebRTC addresses, IPv6 address, time zone and request headers for leaks while a VPN or proxy is on.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Does a WebRTC result mean my VPN is broken?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Only if the public WebRTC address differs from the IP that websites see. A local address ending in .local, or an address that matches your public IP, is normal." } },
+        { "@type": "Question", "name": "Why does the test ask whether I am using a VPN?",
+          "acceptedAnswer": { "@type": "Answer", "text": "The test cannot tell. A home IP address is normal without a VPN and a problem with one. The checkbox decides whether results are judged as pass or fail, or only shown." } },
+        { "@type": "Question", "name": "Does private browsing stop these leaks?",
+          "acceptedAnswer": { "@type": "Answer", "text": "No. Private windows clear history and cookies, but WebRTC, IPv6, DNS and the time zone behave the same way." } },
+        { "@type": "Question", "name": "Should I turn WebRTC off?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Only if you cannot limit it another way. Turning it off breaks browser video calls and some web apps. Limiting WebRTC to the default public interface, or blocking non-proxied UDP, usually closes the leak and keeps calls working." } },
+        { "@type": "Question", "name": "How does the DNS check work?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Your browser looks up a few random names under a domain we run. The DNS server for that domain records which resolver asked, and the page reads that list back and looks up whose network each resolver is on. A resolver on your exit network passes. A resolver that also answered when you ran the test without a VPN fails. A public resolver such as Google or Cloudflare is shown as information, because the test cannot tell who chose it." } },
+        { "@type": "Question", "name": "Why does IPv6 matter if my VPN works?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Many VPNs tunnel only IPv4. If your network also has IPv6, sites that support it connect to you over IPv6, outside the tunnel." } },
+        { "@type": "Question", "name": "How accurate are the location and network name?",
+          "acceptedAnswer": { "@type": "Answer", "text": "They come from IP geolocation data. The city is often off, sometimes by a lot. The network name is usually right. The hosting-or-ISP judgment is a heuristic based on the network name and can be wrong for residential VPN exits and corporate VPNs." } },
+        { "@type": "Question", "name": "Do you store my IP address or results?",
+          "acceptedAnswer": { "@type": "Answer", "text": "The page's code stores nothing. Results are built in your browser and disappear when you close the tab. Cloudflare, which hosts the site, processes every request it serves, as it does for any site. The lookups listed under How the test works leave your browser." } }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">IP leak test</h1>
+    <p class="lede">Find out what your browser gives away right now: your public IP, WebRTC addresses, IPv6 address, time zone and request headers.</p>
+
+    <div class="controls">
+      <button id="run" class="btn" type="button">Run test</button>
+      <label class="check"><input id="vpn" type="checkbox" checked> <span>I'm using a VPN or proxy</span></label>
+    </div>
+    <p class="hint">With the box ticked, results are judged pass or fail. Untick it to just see what sites see. The page stores nothing. <a href="#method">What leaves your browser</a></p>
+
+    <figure class="route" id="route" aria-label="Your route to websites">
+      <div class="route__row">
+        <div class="node" id="node-browser">
+          <h2 class="node__t">This browser</h2>
+          <p class="node__v" data-slot="browser-tz">Time zone appears here</p>
+          <p class="node__s" data-slot="browser-lang">Language appears here</p>
+        </div>
+        <div class="link" aria-hidden="true"></div>
+        <div class="node node--exit" id="node-exit">
+          <h2 class="node__t">What websites see</h2>
+          <p class="node__v mono" data-slot="exit-ip">Run the test</p>
+          <p class="node__s" data-slot="exit-place"></p>
+          <p class="node__s" data-slot="exit-net"></p>
+        </div>
+        <div class="link" aria-hidden="true"></div>
+        <div class="node" id="node-sites">
+          <h2 class="node__t">Websites you visit</h2>
+          <p class="node__v">Sees the exit address</p>
+          <p class="node__s">Unless something goes around it</p>
+        </div>
+      </div>
+      <div class="bypass" id="bypass" hidden>
+        <p class="bypass__t">Goes around your exit</p>
+        <ul class="bypass__l" id="bypass-list"></ul>
+      </div>
+      <figcaption>Your route as websites see it. A dashed red path means an address that bypasses it.</figcaption>
+    </figure>
+  </section>
+
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Results</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Run the test to see your results.</p>
+      <button id="copy" class="btn btn--quiet" type="button" hidden>Copy results</button>
+    </div>
+
+    <table class="results">
+      <caption class="sr">Leak test results by check</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        <tr data-check="ip" data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Public IP</span><span class="c-desc">The address every website sees.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
+        </tr>
+        <tr data-check="webrtc" data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">WebRTC</span><span class="c-desc">Addresses your browser hands to any page.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
+        </tr>
+        <tr data-check="ipv6" data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">IPv6</span><span class="c-desc">A second route that VPNs often miss.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
+        </tr>
+        <tr data-check="dns" data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">DNS</span><span class="c-desc">Which resolver answers your lookups.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
+        </tr>
+        <tr data-check="tz" data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Time zone</span><span class="c-desc">Your browser clock against your IP's location.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
+        </tr>
+        <tr data-check="headers" data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Request headers</span><span class="c-desc">Proxy markers and language hints.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill" data-pill>Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="fineprint">Location and network names come from IP geolocation data and can be wrong. The hosting-or-ISP judgment is a heuristic based on the network name.</p>
+  </section>
+
+  <section class="wrap prose" id="meaning" aria-labelledby="meaning-h">
+    <h2 id="meaning-h">What each result means</h2>
+    <dl class="defs">
+      <div><dt>Public IP</dt><dd>The address every website you visit sees. With a VPN on, it should belong to your VPN provider's network, not your internet provider. The city and network name come from IP geolocation data, which can be off by a city or more.</dd></div>
+      <div><dt>WebRTC</dt><dd>WebRTC lets browsers connect directly for calls. To do that it asks a STUN server for your public address, and any page can read the answer without a permission prompt. If that address differs from your public IP, WebRTC is going around your VPN.</dd></div>
+      <div><dt>IPv6</dt><dd>Some VPNs tunnel only IPv4. If your device also has IPv6, sites that support it can reach you over IPv6, outside the tunnel, with an address that identifies your provider.</dd></div>
+      <div><dt>DNS</dt><dd>DNS turns names into addresses. A DNS leak means your lookups go to your internet provider's resolver instead of your VPN's, so your provider can see which sites you visit.</dd></div>
+      <div><dt>Time zone</dt><dd>Your browser tells every page its time zone. If it says Asia/Shanghai while your IP sits in Frankfurt, fraud checks read that as a sign you are hiding your location. It is a signal, not proof.</dd></div>
+      <div><dt>Request headers</dt><dd>Headers such as Via and X-Forwarded-For can announce a proxy. Your language header can also disagree with your IP's country, a weak signal that some fraud checks use.</dd></div>
+    </dl>
+  </section>
+
+  <aside class="wrap" id="ad-slot-a" hidden aria-label="Advertisement"></aside>
+
+  <section class="wrap prose" id="what-is" aria-labelledby="what-is-h">
+    <h2 id="what-is-h">What is an IP leak?</h2>
+    <p>An IP leak happens when your real network identity reaches a website or an observer even though you use a VPN or proxy to hide it. The tunnel carries most of your traffic, but one part of your system sends data around it: a browser feature, a second IP protocol, or a DNS lookup that skips the tunnel.</p>
+    <p class="callout">A leak is any address or lookup that shows your real connection while your VPN is on.</p>
+
+    <h3>What can leak</h3>
+    <div class="table-scroll">
+    <table class="plain">
+      <thead><tr><th scope="col">Type</th><th scope="col">Why it happens</th><th scope="col">What an observer sees</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">WebRTC</th><td>The browser asks a STUN server for its public address, and that request can skip a VPN that only proxies web traffic or does not carry UDP.</td><td>Your real public IP, and sometimes your local network address.</td></tr>
+        <tr><th scope="row">IPv6</th><td>The VPN tunnels IPv4 only, so IPv6 traffic keeps its normal route.</td><td>Your provider's IPv6 address and network.</td></tr>
+        <tr><th scope="row">DNS</th><td>Your device keeps using the router's or provider's resolver instead of the VPN's.</td><td>Every domain you look up, visible to that resolver.</td></tr>
+        <tr><th scope="row">Time zone</th><td>The browser reports the system clock's zone no matter what the VPN does.</td><td>Your approximate real region.</td></tr>
+        <tr><th scope="row">Headers</th><td>A proxy adds forwarding headers, or your language settings point to another country.</td><td>That a proxy is in use, and hints about where you are.</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="wrap prose" id="fix" aria-labelledby="fix-h">
+    <h2 id="fix-h">How to fix each leak</h2>
+    <dl class="defs">
+      <div><dt>WebRTC</dt><dd>Use a VPN app that tunnels all traffic instead of a browser extension. If the leak stays, limit WebRTC in the browser. In Brave, open Settings, then Privacy and security, and set WebRTC IP handling policy to Disable non-proxied UDP. In Firefox, set media.peerconnection.ice.default_address_only to true in about:config. Chrome has no built-in switch, but extensions can set the same policy. Turning WebRTC off completely breaks browser video calls.</dd></div>
+      <div><dt>IPv6</dt><dd>Turn on your VPN's IPv6 leak protection. If it has none, disable IPv6 on your network adapter. Run the test again to confirm.</dd></div>
+      <div><dt>DNS</dt><dd>Turn on your VPN's DNS leak protection and do not override the DNS servers it sets. A kill switch helps when the tunnel drops.</dd></div>
+      <div><dt>Time zone</dt><dd>Set your system time zone to match your VPN exit if consistency matters. Tor Browser, and Firefox with privacy.resistFingerprinting, report a generic zone instead. A mismatch alone is not a leak.</dd></div>
+      <div><dt>Request headers</dt><dd>If Via or X-Forwarded-For shows up, your proxy announces itself. Switch to a proxy or VPN that does not add forwarding headers. Your network or host may add them too, so test without the proxy to compare.</dd></div>
+    </dl>
+  </section>
+
+  <aside class="wrap prose" id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">Tools from our partner</h2>
+    <p><a href="https://go.nordvpn.net/aff_c?offer_id=15&amp;aff_id=159108&amp;url_id=902" rel="sponsored noopener">NordVPN</a> (affiliate link) is a paid VPN service. After you connect, run our leak tests again to check it yourself. Or go to <a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> without a commission link.</p>
+    <p><a href="https://go.nordpass.io/aff_c?offer_id=488&amp;aff_id=159108&amp;url_id=9356" rel="sponsored noopener">NordPass</a> (affiliate link) is a password manager with a free plan. Or go to <a href="https://nordpass.com/" rel="noopener">nordpass.com</a> without a commission link. Free and open-source options such as Bitwarden also exist.</p>
+  </aside>
+
+  <section class="wrap prose" id="faq" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <div class="faq">
+      <details><summary>Does a WebRTC result mean my VPN is broken?</summary><p>Only if the public WebRTC address differs from the IP that websites see. A local address ending in .local, or an address that matches your public IP, is normal.</p></details>
+      <details><summary>Why does the test ask whether I'm using a VPN?</summary><p>The test cannot tell. A home IP address is normal without a VPN and a problem with one. The checkbox decides whether results are judged as pass or fail, or only shown.</p></details>
+      <details><summary>Does private browsing stop these leaks?</summary><p>No. Private windows clear history and cookies, but WebRTC, IPv6, DNS and the time zone behave the same way.</p></details>
+      <details><summary>Should I turn WebRTC off?</summary><p>Only if you cannot limit it another way. Turning it off breaks browser video calls and some web apps. Limiting WebRTC to the default public interface, or blocking non-proxied UDP, usually closes the leak and keeps calls working.</p></details>
+      <details><summary>How does the DNS check work?</summary><p>Your browser looks up a few random names under a domain we run. The DNS server for that domain records which resolver asked, and the page reads that list back and looks up whose network each resolver is on. A resolver on your exit network passes. A resolver that also answered when you ran the test without a VPN fails. A public resolver such as Google or Cloudflare is shown as information, because the test cannot tell who chose it.</p></details>
+      <details><summary>Why does IPv6 matter if my VPN works?</summary><p>Many VPNs tunnel only IPv4. If your network also has IPv6, sites that support it connect to you over IPv6, outside the tunnel.</p></details>
+      <details><summary>How accurate are the location and network name?</summary><p>They come from IP geolocation data. The city is often off, sometimes by a lot. The network name is usually right. The hosting-or-ISP judgment is a heuristic based on the network name and can be wrong for residential VPN exits and corporate VPNs.</p></details>
+      <details><summary>Do you store my IP address or results?</summary><p>The page's code stores nothing. Results are built in your browser and disappear when you close the tab. Cloudflare, which hosts the site, processes every request it serves, as it does for any site. The lookups listed under How the test works leave your browser.</p></details>
+    </div>
+  </section>
+
+  <section class="wrap prose" id="method" aria-labelledby="method-h">
+    <h2 id="method-h">How the test works</h2>
+    <p>Everything is judged in your browser. These requests leave it when you press Run test:</p>
+    <dl class="defs">
+      <div><dt>This site, /tools/api/whoami</dt><dd>Returns the address Cloudflare saw, its network, an approximate location and a few request headers. The code writes nothing to disk.</dd></div>
+      <div><dt>api4.ipify.org and api6.ipify.org</dt><dd>Return your IPv4 and IPv6 address separately. If your network has no IPv6, the IPv6 request fails, and the test reads that as no IPv6.</dd></div>
+      <div><dt>ipwho.is</dt><dd>Looks up the network of your second address when the test finds one, and the network of each DNS resolver.</dd></div>
+      <div><dt>Random names under lk.secureinchat.com</dt><dd>The DNS check asks your system to look up six names that exist only for this run. Our DNS server answers them and notes the address of the resolver that asked. It keeps that in memory for ten minutes and writes no log. It also keeps a daily count of tests, a number with no addresses in it. A per-resolver counter that limits abuse stays in memory for up to an hour.</dd></div>
+      <div><dt>dnsapi.secureinchat.com</dt><dd>Returns the resolver addresses recorded for this run, and only this run. Like any server, it sees your IP address when your browser asks.</dd></div>
+      <div><dt>stun.cloudflare.com</dt><dd>The WebRTC check asks this STUN server for your public address, the same way a video call would.</dd></div>
+    </dl>
+    <p>The page sets no cookies, loads no analytics and serves its fonts from this site. Pass and fail judgments depend on the VPN checkbox. The DNS check compares with an earlier run in the same tab, which it keeps in memory only. Updated October 20, 2026.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+
+<script src="/tools/assets/logic.js" defer></script>
+<script src="/tools/assets/netcore.js" defer></script>
+<script src="/tools/assets/app.js" defer></script>
+</body>
+</html>

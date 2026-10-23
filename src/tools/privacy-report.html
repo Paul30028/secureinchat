@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser Privacy Report: Leaks and Fingerprint in One Check</title>
+<meta name="description" content="Free browser privacy report. One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser exposes to trackers, then lists what to look at first. Nothing is saved.">
+<link rel="canonical" href="https://secureinchat.com/tools/privacy-report/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Browser Privacy Report: Leaks and Fingerprint in One Check">
+<meta property="og:description" content="Free browser privacy report. One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser exposes to trackers, then lists what to look at first. Nothing is saved.">
+<meta property="og:url" content="https://secureinchat.com/tools/privacy-report/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Browser privacy report",
+      "url": "https://secureinchat.com/tools/privacy-report/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Free browser privacy report. One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser exposes to trackers, then lists what to look at first. Nothing is saved.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-21"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What does the report check?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Six connection checks (public IP, WebRTC, IPv6, DNS, time zone and request headers) and six browser checks (canvas, graphics card, Global Privacy Control, Do Not Track, cookies and the device details every page can read)."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the report saved anywhere?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. It is built in this tab and disappears when you close it. Copy it if you want to keep it. The page sets no cookies and loads no analytics."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which servers does it contact?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The same ones as the IP leak test: this site, ipify, ipwho.is, our DNS probe and the Cloudflare STUN server. The browser checks send nothing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why is something marked to fix when I am not using a VPN?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "With the VPN box unticked, connection checks only show what sites see and are not judged. Browser checks are judged the same way either way."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">Browser privacy report</h1>
+    <p class="lede">One run checks whether your connection leaks your real address and what your browser gives away, then lists what to look at first.</p>
+    <div class="controls">
+      <button id="run" class="btn" type="button">Run report</button>
+      <label class="check"><input id="vpn" type="checkbox" checked> <span>I'm using a VPN or proxy</span></label>
+    </div>
+    <p class="hint">The report is built in this tab and is not saved. <a href="#method">What leaves your browser</a></p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Your report</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Run the report to see your result.</p>
+      <button id="copy" class="btn btn--quiet" type="button" hidden>Copy report</button>
+    </div>
+    <div class="fix" id="fix" hidden>
+      <h3 class="fix__t">Look at these first</h3>
+      <p class="hint">Leaks come first, then things that make you easier to recognise or that the test could not settle.</p>
+      <ol class="fix__l" id="fix-list"></ol>
+    </div>
+    <h3 class="group-h">Your connection</h3>
+    <table class="results">
+      <caption class="sr">Connection checks</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="net-rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Public IP</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">WebRTC</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">IPv6</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">DNS</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Time zone</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Request headers</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <h3 class="group-h">Your browser</h3>
+    <table class="results">
+      <caption class="sr">Browser checks</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="browser-rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Canvas</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Graphics card</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Global Privacy Control</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Do Not Track</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Cookies</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Browser and device</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div><p class="why"></p></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap prose" id="method" aria-labelledby="method-h">
+    <h2 id="method-h">What leaves your browser</h2>
+    <p>The connection checks are the same as the <a href="/tools/ip-leak-test/">IP leak test</a> and contact the same services: this site's /tools/api/whoami, api4.ipify.org and api6.ipify.org, ipwho.is, random names under lk.secureinchat.com with dnsapi.secureinchat.com, and stun.cloudflare.com. The IP leak test page explains what each one sees and keeps.</p>
+    <p>The browser checks are the same as the <a href="/tools/browser-fingerprint-test/">browser fingerprint test</a> and send nothing. The page sets no cookies, loads no analytics and serves its fonts from this site. Updated October 21, 2026.</p>
+    <h2 id="limits-h">What the report cannot tell you</h2>
+    <p>It cannot say how rare your browser is, because that needs data about other people's browsers, which we do not collect. It does not check your phone's apps, your accounts or your router. Run it again after you change your VPN, browser or settings.</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>What does the report check?</h3>
+    <p>Six connection checks (public IP, WebRTC, IPv6, DNS, time zone and request headers) and six browser checks (canvas, graphics card, Global Privacy Control, Do Not Track, cookies and the device details every page can read).</p>
+    <h3>Is the report saved anywhere?</h3>
+    <p>No. It is built in this tab and disappears when you close it. Copy it if you want to keep it. The page sets no cookies and loads no analytics.</p>
+    <h3>Which servers does it contact?</h3>
+    <p>The same ones as the IP leak test: this site, ipify, ipwho.is, our DNS probe and the Cloudflare STUN server. The browser checks send nothing.</p>
+    <h3>Why is something marked to fix when I am not using a VPN?</h3>
+    <p>With the VPN box unticked, connection checks only show what sites see and are not judged. Browser checks are judged the same way either way.</p>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/logic.js" defer></script>
+<script src="/tools/assets/netcore.js" defer></script>
+<script src="/tools/assets/fpcore.js" defer></script>
+<script src="/tools/assets/report-app.js" defer></script>
+</body>
+</html>

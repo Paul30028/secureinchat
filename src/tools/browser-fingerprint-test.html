@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser Fingerprint Test: What Your Browser Reveals to Trackers</title>
+<meta name="description" content="Free browser fingerprint test. See what your browser exposes to trackers: canvas, graphics card, language, screen, Global Privacy Control. Runs locally, sends nothing.">
+<link rel="canonical" href="https://secureinchat.com/tools/browser-fingerprint-test/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Browser Fingerprint Test: What Your Browser Reveals to Trackers">
+<meta property="og:description" content="Free browser fingerprint test. See what your browser exposes to trackers: canvas, graphics card, language, screen, Global Privacy Control. Runs locally, sends nothing.">
+<meta property="og:url" content="https://secureinchat.com/tools/browser-fingerprint-test/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Browser fingerprint test",
+      "url": "https://secureinchat.com/tools/browser-fingerprint-test/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Free browser fingerprint test. See what your browser exposes to trackers: canvas, graphics card, language, screen, Global Privacy Control. Runs locally, sends nothing.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is browser fingerprinting?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sites read many small details from your browser, such as screen size, fonts, graphics output and language, and combine them into a value that recognises you without cookies."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this test tell me how unique I am?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. A real uniqueness score needs a large dataset of other browsers, which this page does not have. It shows what your browser exposes and which defences are active."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does a varying canvas result mean?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The page draws the same image twice. If the results differ, your browser or an extension appears to add noise on purpose, which would break the use of canvas as a stable identifier. Brave and some Firefox settings do this. The test sees the difference but cannot confirm the method."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is a stable canvas hash bad?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It is normal in most browsers. It matters because trackers combine it with other signals. Compare the hash across browsers on one device to see how much of it is yours alone."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is Global Privacy Control?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A browser signal that asks sites not to sell or share your data. Some jurisdictions require sites to treat it as an opt-out. It does not hide anything from the site itself."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Do Not Track help?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Rarely. Most sites ignore it, and because few people turn it on, setting it can be one more detail that tells you apart."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How can I reduce fingerprinting?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Use a browser that randomizes or blocks the high-value signals, keep it updated, avoid unusual extensions and settings, and do not resize the window to odd values. Run the test again after any change."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this page store my data?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Everything is computed in your browser and nothing is sent. The page sets no cookies and loads no analytics."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">Browser fingerprint test</h1>
+    <p class="lede">See what your browser tells every site you visit, and whether your defences hide it.</p>
+    <div class="controls"><button id="run" class="btn" type="button">Run test</button></div>
+    <p class="hint">The test runs in this page and sends nothing. For addresses and VPN leaks, use the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Run the test to see your result.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">Browser fingerprint results</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Browser</span><span class="c-desc">Run the test to see what it exposes.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">What this test reads</h2>
+    <p>Any page you visit can read the signals below without asking. This test reads them and tells you which ones help a tracker recognise you, and which defences your browser already applies.</p>
+    <ul>
+      <li><strong>Canvas:</strong> draws an image twice. A stable result is a signal. A different result each time suggests your browser or an extension adds noise on purpose.</li>
+      <li><strong>Graphics card:</strong> the GPU name WebGL can report. Some browsers hide it.</li>
+      <li><strong>Global Privacy Control and Do Not Track:</strong> whether your browser sends opt-out signals.</li>
+      <li><strong>Browser and device:</strong> user agent, languages, time zone, screen and hardware details.</li>
+    </ul>
+    <h2 id="limits-h">What this test cannot tell you</h2>
+    <p>It does not test fonts, audio processing or every API, and it cannot say how rare your combination is. Treat the result as a list of what your browser exposes, and re-run it after you change browser, settings or extensions. For your network address, run the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>What is browser fingerprinting?</h3>
+    <p>Sites read many small details from your browser, such as screen size, fonts, graphics output and language, and combine them into a value that recognises you without cookies.</p>
+    <h3>Does this test tell me how unique I am?</h3>
+    <p>No. A real uniqueness score needs a large dataset of other browsers, which this page does not have. It shows what your browser exposes and which defences are active.</p>
+    <h3>What does a varying canvas result mean?</h3>
+    <p>The page draws the same image twice. If the results differ, your browser or an extension appears to add noise on purpose, which would break the use of canvas as a stable identifier. Brave and some Firefox settings do this. The test sees the difference but cannot confirm the method.</p>
+    <h3>Is a stable canvas hash bad?</h3>
+    <p>It is normal in most browsers. It matters because trackers combine it with other signals. Compare the hash across browsers on one device to see how much of it is yours alone.</p>
+    <h3>What is Global Privacy Control?</h3>
+    <p>A browser signal that asks sites not to sell or share your data. Some jurisdictions require sites to treat it as an opt-out. It does not hide anything from the site itself.</p>
+    <h3>Does Do Not Track help?</h3>
+    <p>Rarely. Most sites ignore it, and because few people turn it on, setting it can be one more detail that tells you apart.</p>
+    <h3>How can I reduce fingerprinting?</h3>
+    <p>Use a browser that randomizes or blocks the high-value signals, keep it updated, avoid unusual extensions and settings, and do not resize the window to odd values. Run the test again after any change.</p>
+    <h3>Does this page store my data?</h3>
+    <p>No. Everything is computed in your browser and nothing is sent. The page sets no cookies and loads no analytics.</p>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/fpcore.js" defer></script>
+<script src="/tools/assets/fp.js" defer></script>
+</body>
+</html>

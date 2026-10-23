@@ -1,20 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Browser Fingerprint Test: What Your Browser Reveals to Trackers</title>
-<meta name="description" content="Free browser fingerprint test. See what your browser exposes to trackers: canvas, graphics card, language, screen, Global Privacy Control. Runs locally, sends nothing.">
-<link rel="canonical" href="https://secureinchat.com/tools/browser-fingerprint-test/">
-<meta name="robots" content="index, follow, max-image-preview:large">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Browser Fingerprint Test: What Your Browser Reveals to Trackers">
-<meta property="og:description" content="Free browser fingerprint test. See what your browser exposes to trackers: canvas, graphics card, language, screen, Global Privacy Control. Runs locally, sends nothing.">
-<meta property="og:url" content="https://secureinchat.com/tools/browser-fingerprint-test/">
-<meta name="theme-color" content="#F4F6F3">
-<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/tools/assets/style.css">
-<script type="application/ld+json">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>Browser Fingerprint Test: What Your Browser Reveals to Trackers</title>
+  <meta content="Free browser fingerprint test. See what your browser exposes to trackers: canvas, graphics card, language, screen, Global Privacy Control. Runs locally, sends nothing." name="description"/>
+  <link href="https://secureinchat.com/tools/browser-fingerprint-test/" rel="canonical"/>
+  <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@graph": [
@@ -105,23 +99,129 @@
   ]
 }
 </script>
-</head>
-<body>
-<a class="skip" href="#results">Skip to results</a>
-<header class="top">
-  <div class="wrap top__in">
-    <a class="brand" href="/">SecureInChat</a>
-    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
-  </div>
-</header>
-<main>
-  <section class="hero wrap" aria-labelledby="h1">
-    <h1 id="h1">Browser fingerprint test</h1>
-    <p class="lede">See what your browser tells every site you visit, and whether your defences hide it.</p>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a aria-current="page" href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+      <a href="/">Home</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/tools/">Tools</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">Browser fingerprint test</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <span class="tool-detail-emblem"><svg aria-hidden="true" class="tool-detail-emblem-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M16 4c-7 0-12 5-12 12M16 8c-5 0-8 3-8 8 0 5-1 8-3 10M16 12c-3 0-4 2-4 5 0 5-1 8-3 11M20 5c4 1 7 5 7 10 0 5-1 9-3 12M21 12c2 1 3 3 3 6 0 3 0 5-1 7">
+           </path>
+          </svg></span>
+      <div>
+       <h1 id="h1">Browser fingerprint test</h1>
+       <p class="page-lead">See what your browser tells every site you visit, and whether your defences hide it.</p>
+       <ul class="state-list"><li><span class="state-label">Local processing</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+      <section class="tool-workspace" aria-label="Browser fingerprint test">
+       <div class="legacy-tool">
+
     <div class="controls"><button id="run" class="btn" type="button">Run test</button></div>
     <p class="hint">The test runs in this page and sends nothing. For addresses and VPN leaks, use the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
-  </section>
-  <section class="wrap" id="results" aria-labelledby="results-h">
+
+       </div>
+       <div class="legacy-tool"><section id="results" aria-labelledby="results-h">
     <div class="results-head">
       <h2 id="results-h">Result</h2>
       <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Run the test to see your result.</p>
@@ -137,8 +237,10 @@
         </tr>
       </tbody>
     </table>
-  </section>
-  <section class="wrap prose" aria-labelledby="what-h">
+</section></div>
+      </section>
+      <div class="info-content tool-prose">
+<section aria-labelledby="what-h">
     <h2 id="what-h">What this test reads</h2>
     <p>Any page you visit can read the signals below without asking. This test reads them and tells you which ones help a tracker recognise you, and which defences your browser already applies.</p>
     <ul>
@@ -149,8 +251,8 @@
     </ul>
     <h2 id="limits-h">What this test cannot tell you</h2>
     <p>It does not test fonts, audio processing or every API, and it cannot say how rare your combination is. Treat the result as a list of what your browser exposes, and re-run it after you change browser, settings or extensions. For your network address, run the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
-  </section>
-  <section class="wrap prose" aria-labelledby="faq-h">
+</section>
+<section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>What is browser fingerprinting?</h3>
     <p>Sites read many small details from your browser, such as screen size, fonts, graphics output and language, and combine them into a value that recognises you without cookies.</p>
@@ -168,15 +270,90 @@
     <p>Use a browser that randomizes or blocks the high-value signals, keep it updated, avoid unusual extensions and settings, and do not resize the window to odd values. Run the test again after any change.</p>
     <h3>Does this page store my data?</h3>
     <p>No. Everything is computed in your browser and nothing is sent. The page sets no cookies and loads no analytics.</p>
-  </section>
-</main>
-<footer class="foot">
-  <div class="wrap foot__in">
-    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
-    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
-  </div>
-</footer>
-<script src="/tools/assets/fpcore.js" defer></script>
-<script src="/tools/assets/fp.js" defer></script>
-</body>
+</section>
+      </div>
+     </div>
+     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>How your data is handled</h2>
+       <div class="data-handling">
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>All signals</p></div></div>
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Sent to others</strong><p>Nothing</p></div></div>
+       </div>
+       <p class="state-list"><span class="state-label">Local processing</span></p>
+       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
+      </section>
+      <figure class="editorial-figure"><img alt="Separate data flows for encrypted messaging and privacy tools that use outside lookups" height="400" src="/assets/illustrations/data-flows.svg" width="760"/></figure>
+      <section class="content-panel content-panel--soft">
+       <h2>Need a different check?</h2>
+       <p>Compare tools by what they do and what data they need.</p>
+       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
+  </footer>
+  <script src="/tools/assets/fpcore.js" defer></script>
+  <script src="/tools/assets/fp.js" defer></script>
+ </body>
 </html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Text Redactor: Remove Emails, IPs, Phone Numbers and Keys Locally</title>
+<meta name="description" content="Paste text and replace emails, phone numbers, IP addresses, card numbers and API keys with placeholders. Runs in your browser, nothing is uploaded.">
+<link rel="canonical" href="https://secureinchat.com/tools/text-redactor/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Text Redactor: Remove Emails, IPs, Phone Numbers and Keys Locally">
+<meta property="og:description" content="Paste text and replace emails, phone numbers, IP addresses, card numbers and API keys with placeholders. Runs in your browser, nothing is uploaded.">
+<meta property="og:url" content="https://secureinchat.com/tools/text-redactor/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Text redactor",
+      "url": "https://secureinchat.com/tools/text-redactor/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Paste text and replace emails, phone numbers, IP addresses, card numbers and API keys with placeholders. Runs in your browser, nothing is uploaded.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is my text sent to a server?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The matching runs in your browser. The page makes no network request when you paste or redact text."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why did it miss a name or an address?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It matches patterns such as emails and numbers. A name has no fixed pattern, so it is not detected. Check the output yourself before you share it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why is the same placeholder used twice?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Equal values get the same placeholder, for example [IP_1] or [EMAIL_1], so you can still follow what happened in a log after redaction."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can it find every API key?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. It recognises common formats such as AWS, GitHub, Slack, Google and OpenAI-style keys, plus JSON Web Tokens and private key blocks. Other secrets, and keys in a custom format, can pass through. Rotate any secret that has been exposed."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can it redact a file?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Not yet. Paste the text into the box. For photos, use the photo metadata remover."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">Text redactor</h1>
+    <p class="lede">Remove emails, phone numbers, IP addresses and secrets from text before you share it. It runs in your browser.</p>
+    <div class="rd-grid">
+      <div><label for="rd-in">Text to redact</label><textarea id="rd-in" class="rd-text" spellcheck="false" autocomplete="off" placeholder="Paste a log, an email or a config here"></textarea></div>
+      <div><label for="rd-out">Redacted text</label><textarea id="rd-out" class="rd-text" readonly spellcheck="false"></textarea></div>
+    </div>
+    <div class="rd-rules" role="group" aria-label="What to redact"><label class="check"><input id="rule-email" type="checkbox" checked> <span>Email addresses</span></label><label class="check"><input id="rule-phone" type="checkbox" checked> <span>Phone numbers</span></label><label class="check"><input id="rule-ipv4" type="checkbox" checked> <span>IPv4 addresses</span></label><label class="check"><input id="rule-ipv6" type="checkbox" checked> <span>IPv6 addresses</span></label><label class="check"><input id="rule-mac" type="checkbox" checked> <span>MAC addresses</span></label><label class="check"><input id="rule-card" type="checkbox" checked> <span>Card numbers</span></label><label class="check"><input id="rule-iban" type="checkbox" checked> <span>IBANs</span></label><label class="check"><input id="rule-apikey" type="checkbox" checked> <span>API keys and tokens</span></label><label class="check"><input id="rule-jwt" type="checkbox" checked> <span>JSON Web Tokens</span></label><label class="check"><input id="rule-url_cred" type="checkbox" checked> <span>Passwords in URLs</span></label><label class="check"><input id="rule-privkey" type="checkbox" checked> <span>Private keys</span></label></div>
+    <div class="rd-actions"><button id="rd-copy" class="btn" type="button" disabled>Copy result</button><button id="rd-clear" class="btn btn--quiet" type="button">Clear</button></div>
+    <p class="hint">Nothing you paste is uploaded or stored. It finds patterns, not names or addresses, so read the result before sharing. See <a href="/privacy/">how this site handles data</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Paste text to redact it.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">Items replaced in the text</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="rows">
+
+      </tbody>
+    </table>
+  </section>
+
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">What it does</h2>
+    <p>Paste text and the tool replaces emails, phone numbers, IP and MAC addresses, card numbers, IBANs (checked with the standard checksum), API keys, tokens, passwords inside URLs and private keys with labelled placeholders such as <span class="mono">[EMAIL_1]</span>. The same value always gets the same placeholder, so a log stays readable after redaction. This is useful before you paste a log, a config or an email into a bug report, a forum or an AI assistant.</p>
+    <h2>What it does not do</h2>
+    <p>It finds patterns, not meaning. Names, street addresses, company names and anything written in an unusual format are not detected. Always read the result before you share it. A card number is only replaced if it passes the standard checksum, so a made-up number may be left alone.</p>
+    <h2>How your text is handled</h2>
+    <p>The text is processed in this page. It is not uploaded, logged or stored, and the page loads no analytics. Your browser or an extension may still keep what you type, so use a private window for sensitive material. Related: <a href="/tools/photo-metadata-remover/">remove metadata from a photo</a>.</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>Is my text sent to a server?</h3>
+    <p>No. The matching runs in your browser. The page makes no network request when you paste or redact text.</p>
+    <h3>Why did it miss a name or an address?</h3>
+    <p>It matches patterns such as emails and numbers. A name has no fixed pattern, so it is not detected. Check the output yourself before you share it.</p>
+    <h3>Why is the same placeholder used twice?</h3>
+    <p>Equal values get the same placeholder, for example [IP_1] or [EMAIL_1], so you can still follow what happened in a log after redaction.</p>
+    <h3>Can it find every API key?</h3>
+    <p>No. It recognises common formats such as AWS, GitHub, Slack, Google and OpenAI-style keys, plus JSON Web Tokens and private key blocks. Other secrets, and keys in a custom format, can pass through. Rotate any secret that has been exposed.</p>
+    <h3>Can it redact a file?</h3>
+    <p>Not yet. Paste the text into the box. For photos, use the photo metadata remover.</p>
+  </section>
+  <aside class="wrap prose" id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">Tools from our partner</h2>
+    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a> (affiliate link) is encrypted cloud storage for files you need to keep or share after cleaning them. Or go to <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a> without a commission link.</p>
+  </aside>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/redact.js" defer></script>
+<script src="/tools/assets/redact-app.js" defer></script>
+</body>
+</html>
