@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">Reduce unwanted tracking</title>
+<desc id="svg-desc">A browser settings panel shows tracker controls being reviewed and adjusted locally, with a clear reduction in outgoing tracker paths.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <rect x="61" y="78" width="332" height="208" rx="12" fill="#FFFFFF"/>
+ <path d="M61 111H393" fill="none"/>
+ <circle cx="83" cy="95" r="4" fill="#C6A15B" stroke="none"/><circle cx="99" cy="95" r="4" fill="#D2D8D0" stroke="none"/><circle cx="115" cy="95" r="4" fill="#D2D8D0" stroke="none"/>
+ <path d="M88 143H204M88 175H204M88 207H204M88 239H204" fill="none" stroke="#D2D8D0" stroke-width="5"/>
+ <rect x="247" y="131" width="107" height="23" rx="11.5" fill="#E8F4EC" stroke="#17633B"/>
+ <circle cx="341" cy="142.5" r="8" fill="#17633B" stroke="none"/>
+ <rect x="247" y="163" width="107" height="23" rx="11.5" fill="#E8F4EC" stroke="#17633B"/>
+ <circle cx="341" cy="174.5" r="8" fill="#17633B" stroke="none"/>
+ <rect x="247" y="195" width="107" height="23" rx="11.5" fill="#EEF0EC" stroke="#87978B"/>
+ <circle cx="260" cy="206.5" r="8" fill="#FFFFFF" stroke="#6D7D72"/>
+ <path d="M418 182H470M460 172 470 182 460 192" fill="none" stroke="#79551B"/>
+ <circle cx="531" cy="145" r="17" fill="#F1E6CB" stroke="#79551B"/><circle cx="603" cy="214" r="17" fill="#F1E6CB" stroke="#79551B"/><circle cx="677" cy="145" r="17" fill="#F1E6CB" stroke="#79551B"/>
+ <path d="M548 145H586M620 214H660M660 145H640" fill="none" stroke="#BFC9BF" stroke-dasharray="3 7"/>
+ <path d="M524 138V152M517 145H531M596 207V221M589 214H603M670 138V152M663 145H677" fill="none" stroke="#79551B"/>
+ <path d="M487 265H687" fill="none" stroke="#D2D8D0"/>
+</g>
+</svg>

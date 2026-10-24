@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">AI privacy and sensitive text</title>
+<desc id="svg-desc">A document with sensitive fields is processed through a redaction boundary before a smaller, masked prompt reaches an AI service.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M70 86H225L260 121V267H70Z" fill="#FFFFFF"/>
+ <path d="M225 86V121H260" fill="#E7E9E2"/>
+ <path d="M91 145H202M91 166H219M91 187H181M91 224H204M91 245H160" fill="none"/>
+ <rect x="88" y="198" width="126" height="17" rx="3" fill="#F1E6CB" stroke="#79551B"/>
+ <path d="M286 178H334M324 168 334 178 324 188" fill="none" stroke="#79551B"/>
+ <rect x="356" y="112" width="93" height="130" rx="12" fill="#E7E9E2"/>
+ <path d="M376 148H429M376 165H416M376 199H429" fill="none"/>
+ <path d="M373 184H416" fill="none" stroke="#9B2424" stroke-width="4"/>
+ <path d="M469 178H517M507 168 517 178 507 188" fill="none" stroke="#79551B"/>
+ <rect x="541" y="100" width="141" height="153" rx="16" fill="#173D32" stroke="#173D32"/>
+ <circle cx="612" cy="144" r="22" fill="none" stroke="#E5C989"/>
+ <path d="M612 122V111M612 166V177M590 144H579M634 144H645M596 128l-8-8M628 160l8 8M628 128l8-8M596 160l-8 8" fill="none" stroke="#E5C989"/>
+ <path d="M570 197H652M570 213H636M570 229H645" fill="none" stroke="#D1DDD6"/>
+</g>
+<circle cx="310" cy="178" r="5" fill="#79551B"/>
+<path d="M64 286H683" stroke="#D2D8D0" stroke-width="2" stroke-linecap="round"/>
+</svg>

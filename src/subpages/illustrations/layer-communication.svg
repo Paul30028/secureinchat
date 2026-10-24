@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">Private communication through a blind relay</title>
+<desc id="svg-desc">Two devices exchange a sealed message packet through a central relay. The key symbols remain beside the end devices rather than at the relay.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <rect x="58" y="107" width="128" height="112" rx="11" fill="#FFFFFF"/>
+ <rect x="73" y="122" width="98" height="72" rx="4" fill="#E7E9E2"/>
+ <path d="M88 142H148M88 156H157M88 170H134" fill="none"/>
+ <path d="M78 228H166M122 194V228" fill="none"/>
+ <circle cx="121" cy="263" r="14" fill="#F1E6CB" stroke="#79551B"/>
+ <rect x="114" y="259" width="14" height="12" rx="2" fill="none" stroke="#79551B"/>
+ <path d="M117 259V255a4 4 0 0 1 8 0v4" fill="none" stroke="#79551B"/>
+ <path d="M204 162H273M263 152 273 162 263 172" fill="none" stroke="#79551B"/>
+ <rect x="293" y="86" width="174" height="155" rx="18" fill="#173D32" stroke="#173D32"/>
+ <path d="m317 125 63-26 63 26-63 25Z" fill="none" stroke="#E5C989"/>
+ <path d="m317 145 63 25 63-25M317 165l63 25 63-25" fill="none" stroke="#E5C989"/>
+ <rect x="358" y="118" width="44" height="42" rx="6" fill="#173D32" stroke="#E5C989"/>
+ <path d="M367 118V108a13 13 0 0 1 26 0v10" fill="none" stroke="#E5C989"/>
+ <circle cx="380" cy="136" r="3" fill="#E5C989" stroke="none"/>
+ <path d="M380 139v6" stroke="#E5C989"/>
+ <path d="M487 162H555M545 152 555 162 545 172" fill="none" stroke="#79551B"/>
+ <rect x="576" y="107" width="128" height="112" rx="11" fill="#FFFFFF"/>
+ <rect x="591" y="122" width="98" height="72" rx="4" fill="#E7E9E2"/>
+ <path d="M606 142H666M606 156H675M606 170H652" fill="none"/>
+ <path d="M596 228H684M640 194V228" fill="none"/>
+ <circle cx="640" cy="263" r="14" fill="#F1E6CB" stroke="#79551B"/>
+ <rect x="633" y="259" width="14" height="12" rx="2" fill="none" stroke="#79551B"/>
+ <path d="M636 259V255a4 4 0 0 1 8 0v4" fill="none" stroke="#79551B"/>
+</g>
+<path d="M207 205H275M491 205H554" stroke="#D2D8D0" stroke-width="2" stroke-dasharray="3 7"/>
+</svg>

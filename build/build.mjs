@@ -403,7 +403,11 @@ const FIG = {
   photo: { src: 'photo-metadata.svg', h: 360, alt: 'A photo with hidden metadata fields such as location and device' },
   redact: { src: 'text-redaction.svg', h: 360, alt: 'Text with sensitive details covered before it is shared' },
 };
+const LAYER_ALT = { physical: 'What nearby people and devices can see or pick up', devices: 'A phone, a computer and a browser and what each gives away', accounts: 'Accounts, email and the ways back into them', communication: 'Messages that only the people in a conversation can read', offline: 'Staying in touch when mobile networks fail', ai: 'What you hand to an AI assistant' };
+const CONTEXT_ALT = { 'being-tracked': 'Signs that someone may be tracking a phone, location or accounts', 'account-hacked': 'An account that may have been taken over and the way back in', 'less-tracking': 'Fewer trackers in everyday browsing and apps', 'network-down': 'Messaging when the mobile network is down' };
 function figFor(slug) {
+  const lm = /^protect\/([a-z]+)$/.exec(slug); if (lm && LAYER_ALT[lm[1]]) return { src: `layer-${lm[1]}.svg`, h: 360, alt: LAYER_ALT[lm[1]] };
+  const cm = /^start\/([a-z-]+)$/.exec(slug); if (cm && CONTEXT_ALT[cm[1]]) return { src: `context-${cm[1]}.svg`, h: 360, alt: CONTEXT_ALT[cm[1]] };
   const r = [[/sim-swap|phone/, 'sim'], [/broker/, 'broker'], [/photo/, 'photo'], [/redact|paste|cv-|bank-statement|ai-apps|protect\/ai/, 'redact'],
     [/relay|messaging|network-down|offline|communication/, 'relay'], [/account|password|email|alias|accounts/, 'account'],
     [/ip-leak|webrtc|ipv6|dns|vpn|leak-test|principles|privacy$|devices|app-permissions|reset-checklist|being-tracked|less-tracking/, 'flows'], [/link/, 'url']];
@@ -428,6 +432,8 @@ function crumbsFor(slug, title) {
   out.push([`/${slug}/`, title]);
   return out;
 }
+const KIT_T = (f) => fs.readFileSync(path.join(ROOT, 'src/subpages/templates', f), 'utf8');
+const kitMain = (f) => { const t = KIT_T(f); return t.slice(t.indexOf('<main class="subpage-main" id="main">') + 37, t.lastIndexOf('</main>')); };
 function catalogPage({ slug, title, lead, desc, figure, items }) {
   const full = `${title} | SecureInChat`;
   const body = `<h1>${title}</h1>\n<p class="lead">${lead}</p>`;
@@ -616,7 +622,7 @@ ${alt}  <meta property="og:type" content="website">
   <meta property="og:url" content="${SITE}${canonical}">
   <meta property="og:locale" content="${lang}">
   <meta name="twitter:card" content="summary">
-${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ''}`;
+${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ''}  <link rel="stylesheet" href="/assets/css/min-type-size.css">\n`;
   const swaps = [
     ['<link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">', '<link rel="icon" type="image/svg+xml" href="/favicon.svg">'],
     ['href="/assets/fonts/noto-serif-variable.ttf"', 'href="/assets/fonts/noto-serif-latin-var.woff2"'],
@@ -651,7 +657,22 @@ write('assets/js/phone-checkup.js', fs.readFileSync(path.join(ROOT, 'src/checkup
 for (const f of ['noto-serif-latin-var.woff2', 'OFL-noto-serif.txt']) write('assets/fonts/' + f, fs.readFileSync(path.join(ROOT, 'src/fonts', f)));
 // GPT's v2 stylesheet names the same subset file noto-serif-subset.woff2.
 write('assets/fonts/noto-serif-subset.woff2', fs.readFileSync(path.join(ROOT, 'src/fonts/noto-serif-latin-var.woff2')));
-write('messaging/index.html', messaging());
+// Messaging: ChatGPT's messaging template (kit v2) with the live relay diagnostic (next batch, relay-diagnostic.html) in its slot.
+{
+  let m = kitMain('messaging.en.html').replace('aria-label="面包屑导航"', 'aria-label="Breadcrumb"');
+  const a = m.indexOf('<!-- INTEGRATION SLOT'); const b = m.indexOf('</div>', m.indexOf('</div>', m.indexOf('tool-integration-note', a)) + 6) + 6;
+  const diag = fs.readFileSync(path.join(ROOT, 'src/nextbatch/relay-diagnostic.html'), 'utf8').replace(/^<!--[\s\S]*?-->\s*/, '');
+  m = m.slice(0, a) + `<div id="diagnostics">\n${diag}</div>` + m.slice(b);
+  m = m.replace(/(<a class="text-link" href=")\/blog\/(">\s*Read the blind-relay guide)/, '$1/blog/what-a-blind-relay-can-and-cannot-know/$2')
+    .replace(/(Read the blind-relay guide →\s*<\/a>)/, '$1\n        <a class="text-link" href="/messaging/threat-model/">Read the threat model →</a>');
+  const title = 'SecureInChat messenger: zero-knowledge blind relay | SecureInChat';
+  const desc = 'How the SecureInChat messenger works: end-to-end encryption, a blind relay that cannot read messages, current status and a live relay test you can run in your browser.';
+  const extra = headExtra({ canonical: '/messaging/', title, desc }) + '  <link href="/assets/css/relay-diagnostic.css" rel="stylesheet"/>\n  <script src="/assets/main.js"></script>\n';
+  write('messaging/index.html', kitShell({ title, desc, canonical: '/messaging/', current: '/messaging/', headExtra: extra, main: m }));
+}
+write('assets/css/relay-diagnostic.css', fs.readFileSync(path.join(ROOT, 'src/nextbatch/relay-diagnostic.css')));
+write('assets/css/tool-widgets.css', fs.readFileSync(path.join(ROOT, 'src/nextbatch/tool-widgets.css')));
+write('assets/css/min-type-size.css', fs.readFileSync(path.join(ROOT, 'src/nextbatch/min-type-size.css')));
 write('start/index.html', catalogPage({ slug: 'start', title: 'Start from your situation', lead: 'Pick what worries you most. Each page gives the first steps you can take today and the layers that matter for it.', desc: 'Pick what worries you most and get the first privacy steps you can take today.', figure: FIG.layers, items: SITUATIONS.map((S) => ({ href: `/start/${S.slug}/`, title: S.title, text: S.short, action: 'See the first steps' })) }));
 for (const S of SITUATIONS) write(`start/${S.slug}/index.html`, docPage({ slug: `start/${S.slug}`, title: S.title, desc: S.intro.slice(0, 155), body: situationBody(S, esc), current: 'protect' }));
 write('privacy/index.html', docPage({ slug: 'privacy', title: 'Privacy policy', desc: 'What secureinchat.com and its tools do with your data: no cookies, no accounts, no stored test results.', body: PRIVACY, current: 'about' }));
@@ -697,8 +718,6 @@ for (const p of POSTS) {
   }));
 }
 // Guides index: ChatGPT's guides-index template, with the real post list.
-const KIT_T = (f) => fs.readFileSync(path.join(ROOT, 'src/subpages/templates', f), 'utf8');
-const kitMain = (f) => { const t = KIT_T(f); return t.slice(t.indexOf('<main class="subpage-main" id="main">') + 37, t.lastIndexOf('</main>')); };
 const GUIDE_CATS = [
   ['network', 'Network &amp; connection', /ip-leak|webrtc|ipv6|dns-leak|vpn|leak-test-sites/],
   ['ai', 'AI &amp; privacy', /ai-|bank-statement|photo-before|cv-before|before-you-paste|redact/],

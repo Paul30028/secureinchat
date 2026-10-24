@@ -1,91 +1,406 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>SecureInChat messenger: zero-knowledge blind relay | SecureInChat</title>
-  <meta name="description" content="How the SecureInChat messenger works: end-to-end encryption, a blind relay that cannot read messages, current status and a live relay test you can run in your browser." />
-  <link rel="canonical" href="https://secureinchat.com/messaging/" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="SecureInChat messenger: zero-knowledge blind relay | SecureInChat" />
-  <meta property="og:description" content="How the SecureInChat messenger works: end-to-end encryption, a blind relay that cannot read messages, current status and a live relay test you can run in your browser." />
-  <meta property="og:url" content="https://secureinchat.com/messaging/" />
-  <meta property="og:locale" content="en_US" />
-  <meta name="twitter:card" content="summary" />
-  <link rel="stylesheet" href="/assets/site.css" />
+  <meta content="How the SecureInChat messenger works: end-to-end encryption, a blind relay that cannot read messages, current status and a live relay test you can run in your browser." name="description"/>
+  <link href="https://secureinchat.com/messaging/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="SecureInChat messenger: zero-knowledge blind relay | SecureInChat" property="og:title"/>
+  <meta content="How the SecureInChat messenger works: end-to-end encryption, a blind relay that cannot read messages, current status and a live relay test you can run in your browser." property="og:description"/>
+  <meta content="https://secureinchat.com/messaging/" property="og:url"/>
+  <link href="/assets/css/relay-diagnostic.css" rel="stylesheet"/>
   <script src="/assets/main.js"></script>
-
-</head>
-<body>
-  <a href="#top" class="skip">Skip to content</a>
-  <header class="top">
-    <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" /> <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" /> <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" /> <path d="m2 2 20 20" /> </svg></span>SecureInChat</a>
-      <nav class="nav" aria-label="Main">
-        <a href="/protect/">Protect</a>
-        <a href="/tools/">Tools</a>
-        <a href="/blog/">Guides</a>
-        <a href="/messaging/" aria-current="page">Messaging</a>
-        <a href="/about/">About</a>
-      </nav>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat home" class="brand" href="/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       Better tools. A more private internet.
+      </span>
+     </span>
+    </a>
+    <nav aria-label="Main navigation" class="desktop-navigation">
+     <a href="/tools/">
+      Tools
+     </a>
+     <a href="/blog/">
+      Guides
+     </a>
+     <a href="/checkup/">
+      Privacy checkup
+     </a>
+     <a aria-current="page" href="/messaging/">
+      Messaging
+     </a>
+     <a href="/mission/">
+      Our mission
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/zh/" lang="zh">
+      中文
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/checkup/">
+      Start a checkup
+     </a>
     </div>
+    <details class="mobile-navigation">
+     <summary aria-label="Open navigation">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="Mobile navigation">
+      <a href="/tools/">
+       Tools
+      </a>
+      <a href="/blog/">
+       Guides
+      </a>
+      <a href="/checkup/">
+       Privacy checkup
+      </a>
+      <a href="/messaging/">
+       Messaging
+      </a>
+      <a href="/mission/">
+       Our mission
+      </a>
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
   </header>
-  <main id="top">
-    <section class="wrap doc doc--top">
-      <p class="meta"><a href="/protect/communication/">Communication layer</a></p>
-      <h1>SecureInChat messenger</h1>
-      <p class="lead">An end-to-end encrypted messenger built on a blind relay: keys stay on your devices and the relay only forwards ciphertext it cannot read.</p>
-      <p><span class="tag tag--lim">Apps in development</span><span class="tag tag--untested">No third-party audit yet</span></p>
-      <p>The apps are not released yet. What you can check today is the production relay itself, below, from your own browser. We have not had an independent security audit and do not claim certifications.</p>
-    </section>
-    <section class="wrap wide" id="diagnostics">
-      <div class="diag">
-        <div class="diag__head">
-          <div><h2>Check the relay from your browser.</h2><p class="sec__lead">Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay's challenge. No message content is involved.</p></div>
-          <div>
-            <p class="status" id="net-status" data-state="check" role="status"><span class="status__dot" aria-hidden="true"></span><span id="net-label">Network: Checking</span></p>
-            <button id="node-btn" type="button" class="btn btn--p" data-testing="Testing…" data-retest="Run the relay test"><span id="node-btn-label">Run the relay test</span></button>
-          </div>
-        </div>
-        <div class="diag__grid">
-          <div class="diag__cell"><div class="diag__label">Relay endpoint</div><div class="diag__val diag__val--sm mono">wss://ws.secureinchat.com</div><div id="node-conn" class="diag__note">Awaiting test</div></div>
-          <div class="diag__cell"><div class="diag__label">Handshake time</div><div class="diag__val"><span id="node-latency">—</span> <span class="diag__unit">ms</span></div><div class="diag__note">Browser-to-relay open time</div></div>
-          <div class="diag__cell"><div class="diag__label">Transport</div><div class="diag__val">WSS / TLS</div><div class="diag__note">Certificate checked by your browser</div></div>
-          <div class="diag__cell"><div class="diag__label">Relay challenge</div><div id="node-chal" class="diag__val">Pending</div><div id="node-chal-detail" class="diag__note">Waiting for auth_challenge</div></div>
-        </div>
-        <div id="node-log" class="diag__log" role="status" aria-live="polite">Ready to test the blind relay endpoint.</div>
+  <main class="subpage-main" id="main">
+
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+      <a href="/">
+       Home
+      </a>
+      <span aria-hidden="true" class="breadcrumb-separator">
+       /
+      </span>
+      <span aria-current="page">
+       Messaging
+      </span>
+     </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">
+        A relay that forwards. Devices that hold the keys.
+       </h1>
+       <p class="page-lead">
+        SecureInChat messaging is in development. The client apps are not released yet, and there has been no independent third-party security audit. The production relay can be tested from your browser today.
+       </p>
+       <ul class="state-list">
+        <li>
+         <span class="state-label state-label--info">
+          Apps in development
+         </span>
+        </li>
+        <li>
+         <span class="state-label state-label--network">
+          No third-party audit yet
+         </span>
+        </li>
+       </ul>
       </div>
-    </section>
-    <section class="wrap sec" id="architecture">
-      <h2>The server forwards. It never understands.</h2>
-      <div class="grid grid--3">
-        <article class="card"><p class="card__kicker">Step 1 of 3</p><h3><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="16" r="1" /> <rect x="3" y="10" width="18" height="12" rx="2" /> <path d="M7 10V7a5 5 0 0 1 10 0v3" /> </svg> Sender encrypts locally</h3><p>Message content and session keys are processed on the device before anything is sent.</p><div class="tags"><span class="tag tag--doc">Plaintext never leaves the device</span></div></article>
-        <article class="card"><p class="card__kicker">Step 2 of 3</p><h3><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M7 2h13a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-5" /> <path d="M10 10 2.5 2.5C2 2 2 2.5 2 5v3a2 2 0 0 0 2 2h6z" /> <path d="M22 17v-1a2 2 0 0 0-2-2h-1" /> <path d="M4 14a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16.5l1-.5.5.5-8-8H4z" /> <path d="M6 18h.01" /> <path d="m2 2 20 20" /> </svg> Blind relay forwards</h3><p>The relay routes encrypted payloads without the keys needed to decrypt them.</p><div class="tags"><span class="tag tag--doc">Cannot read message content</span></div></article>
-        <article class="card"><p class="card__kicker">Step 3 of 3</p><h3><svg class="icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <circle cx="12" cy="16" r="1" /> <rect width="18" height="12" x="3" y="10" rx="2" /> <path d="M7 10V7a5 5 0 0 1 9.33-2.5" /> </svg> Recipient decrypts locally</h3><p>Only the intended recipient device decrypts and checks the message.</p><div class="tags"><span class="tag tag--doc">Decrypted at the edge</span></div></article>
-      </div>
-    </section>
-    <section class="wrap sec" id="security">
-      <h2>Established primitives, minimal trust surface.</h2>
-      <div class="grid grid--4">
-        <article class="card"><p class="card__kicker">Key agreement</p><h3>Curve25519</h3><p>Elliptic-curve key agreement for modern client devices.</p></article>
-        <article class="card"><p class="card__kicker">Authenticated encryption</p><h3>AES-256-GCM</h3><p>Protects both confidentiality and integrity of each message.</p></article>
-        <article class="card"><p class="card__kicker">Key derivation</p><h3>HKDF</h3><p>Context-separated key derivation for session and message keys.</p></article>
-        <article class="card"><p class="card__kicker">Data minimisation</p><h3>No message storage</h3><p>The relay is designed without persistent storage of message content.</p></article>
-      </div>
-      <p class="sec__lead">These describe the design. They are not a legal certification or an independent audit. What the relay can and cannot see is set out in the <a href="/messaging/threat-model/">messenger threat model</a> and in <a href="/blog/what-a-blind-relay-can-and-cannot-know/">what a blind relay can and cannot know</a>.</p>
-    </section>
-  </main>
-  <footer class="foot">
-    <div class="wrap foot__in">
-      <div>© 2026 SecureInChat. See what you give away, then switch it off.</div>
-      <nav aria-label="Footer">
-        <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a><a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a>
-      </nav>
+      <figure class="editorial-figure">
+       <img alt="Sender encrypts locally, an intermediate relay forwards encrypted payloads, and recipient decrypts locally" height="340" src="/assets/illustrations/relay-architecture.svg" width="760"/>
+       <figcaption>
+        Message content is designed to be encrypted at the device edge; routing metadata can still exist.
+       </figcaption>
+      </figure>
+     </div>
     </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell">
+     <div class="page-rule-heading">
+      <div>
+       <h2>
+        Check the production relay
+       </h2>
+       <p>
+        Your browser opens a secure WebSocket to the relay, measures the handshake and checks the challenge. No message content is involved in this diagnostic.
+       </p>
+      </div>
+     </div>
+     <div class="tool-detail-layout">
+      <div class="tool-workspace">
+       <div id="diagnostics">
+<div class="diag" aria-labelledby="relay-diagnostic-title">
+  <div class="diag__head">
+    <div class="diag__intro">
+      <p class="diag__eyebrow">LIVE RELAY DIAGNOSTIC</p>
+      <h2 id="relay-diagnostic-title">Check the relay from your browser.</h2>
+      <p class="sec__lead">Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay challenge. No message content is involved.</p>
+    </div>
+    <div class="diag__actions">
+      <p class="status" id="net-status" data-state="check" role="status">
+        <span class="status__dot" aria-hidden="true"></span>
+        <span id="net-label">Network: Checking</span>
+      </p>
+      <button id="node-btn" type="button" class="btn btn--p" data-testing="Testing…" data-retest="Run the relay test">
+        <span id="node-btn-label">Run the relay test</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 12h13m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="diag__grid">
+    <div class="diag__cell diag__cell--endpoint">
+      <div class="diag__label">Relay endpoint</div>
+      <div class="diag__val diag__val--sm mono">wss://ws.secureinchat.com</div>
+      <div id="node-conn" class="diag__note">Awaiting test</div>
+    </div>
+    <div class="diag__cell">
+      <div class="diag__label">Handshake time</div>
+      <div class="diag__val diag__val--metric"><span id="node-latency">—</span> <span class="diag__unit">ms</span></div>
+      <div class="diag__note">Browser-to-relay open time</div>
+    </div>
+    <div class="diag__cell">
+      <div class="diag__label">Transport</div>
+      <div class="diag__val">WSS / TLS</div>
+      <div class="diag__note">Certificate checked by your browser</div>
+    </div>
+    <div class="diag__cell">
+      <div class="diag__label">Relay challenge</div>
+      <div id="node-chal" class="diag__val">Pending</div>
+      <div id="node-chal-detail" class="diag__note">Waiting for auth_challenge</div>
+    </div>
+  </div>
+
+  <div class="diag__log" id="node-log" role="status" aria-live="polite">
+    Ready to test the blind relay endpoint.
+  </div>
+  <p class="diag__footnote">A successful connection confirms this diagnostic path can reach the relay. It is not an independent security audit and does not establish that a future chat client is secure.</p>
+</div>
+</div>
+      </div>
+      <aside class="tool-sidebar">
+       <section class="content-panel">
+        <h2>
+         What the test measures
+        </h2>
+        <div class="data-handling">
+         <div class="data-handling-row">
+          <span class="data-handling-mark">
+           1
+          </span>
+          <div>
+           <strong>
+            Network connection
+           </strong>
+           <p>
+            Whether a secure WebSocket connection can be opened from this browser.
+           </p>
+          </div>
+         </div>
+         <div class="data-handling-row">
+          <span class="data-handling-mark">
+           2
+          </span>
+          <div>
+           <strong>
+            Handshake time
+           </strong>
+           <p>
+            Browser-to-relay open time in milliseconds; it is not an end-to-end message latency measurement.
+           </p>
+          </div>
+         </div>
+         <div class="data-handling-row">
+          <span class="data-handling-mark">
+           3
+          </span>
+          <div>
+           <strong>
+            Relay challenge
+           </strong>
+           <p>
+            Whether the relay sends the expected authentication challenge.
+           </p>
+          </div>
+         </div>
+        </div>
+       </section>
+       <section class="content-panel content-panel--soft">
+        <h2>
+         Read the limits
+        </h2>
+        <p>
+         A successful relay test is not an independent security audit, and it does not prove that a future client is secure.
+        </p>
+        <a class="text-link" href="/blog/what-a-blind-relay-can-and-cannot-know/">
+         Read the blind-relay guide →
+        </a>
+        <a class="text-link" href="/messaging/threat-model/">Read the threat model →</a>
+       </section>
+      </aside>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell">
+     <div class="page-rule-heading">
+      <div>
+       <h2>
+        Three steps at the device edge
+       </h2>
+       <p>
+        The diagram describes the client design, not a claim of third-party certification.
+       </p>
+      </div>
+     </div>
+     <figure class="diagram-frame">
+      <img alt="Three-stage message path: sender encrypts on device, relay forwards ciphertext, recipient decrypts on device" height="340" src="/assets/illustrations/relay-architecture.svg" width="760"/>
+      <figcaption class="diagram-caption">
+       <strong>
+        Design intent.
+       </strong>
+       <span>
+        Plaintext and session keys are intended to remain on client devices. Network and timing metadata may remain visible to systems involved in transport.
+       </span>
+      </figcaption>
+     </figure>
+     <div class="tool-group">
+      <div class="page-rule-heading">
+       <div>
+        <h2>
+         Cryptographic building blocks
+        </h2>
+        <p>
+         These are design descriptions, not an independent audit or a legal certification.
+        </p>
+       </div>
+      </div>
+      <div class="tool-catalogue">
+       <article class="tool-catalogue-item">
+        <h3>
+         Curve25519
+        </h3>
+        <p>
+         Elliptic-curve key agreement for client devices.
+        </p>
+       </article>
+       <article class="tool-catalogue-item">
+        <h3>
+         AES-256-GCM
+        </h3>
+        <p>
+         Authenticated encryption intended to protect confidentiality and integrity of message payloads.
+        </p>
+       </article>
+       <article class="tool-catalogue-item">
+        <h3>
+         HKDF
+        </h3>
+        <p>
+         Context-separated derivation of session and message keys.
+        </p>
+       </article>
+      </div>
+     </div>
+    </div>
+   </section>
+  
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        Better tools. A more private internet.
+       </span>
+      </span>
+     </a>
+     <nav aria-label="Footer navigation" class="footer-links">
+      <a href="/mission/">
+       Mission
+      </a>
+      <a href="/principles/">
+       Principles
+      </a>
+      <a href="/privacy/">
+       Privacy
+      </a>
+      <a href="/principles/#labels">
+       Status labels
+      </a>
+      <a href="/sponsor/">
+       Sponsorship &amp; affiliate disclosure
+      </a>
+      <a href="/contact/">
+       Contact
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/zh/" lang="zh">
+       中文
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat. All rights reserved.
+     </p>
+     <p>
+      Privacy-conscious by design. Clear about limitations.
+     </p>
+    </div>
+   </div>
   </footer>
-</body>
+ </body>
 </html>

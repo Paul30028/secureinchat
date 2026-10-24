@@ -1,0 +1,51 @@
+<!-- Replace only the existing .diag block inside #diagnostics with this fragment.
+     Keep every id, data-* attribute, and class used by /assets/main.js. -->
+<div class="diag" aria-labelledby="relay-diagnostic-title">
+  <div class="diag__head">
+    <div class="diag__intro">
+      <p class="diag__eyebrow">LIVE RELAY DIAGNOSTIC</p>
+      <h2 id="relay-diagnostic-title">Check the relay from your browser.</h2>
+      <p class="sec__lead">Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay challenge. No message content is involved.</p>
+    </div>
+    <div class="diag__actions">
+      <p class="status" id="net-status" data-state="check" role="status">
+        <span class="status__dot" aria-hidden="true"></span>
+        <span id="net-label">Network: Checking</span>
+      </p>
+      <button id="node-btn" type="button" class="btn btn--p" data-testing="Testing…" data-retest="Run the relay test">
+        <span id="node-btn-label">Run the relay test</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5 12h13m-5-5 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="diag__grid">
+    <div class="diag__cell diag__cell--endpoint">
+      <div class="diag__label">Relay endpoint</div>
+      <div class="diag__val diag__val--sm mono">wss://ws.secureinchat.com</div>
+      <div id="node-conn" class="diag__note">Awaiting test</div>
+    </div>
+    <div class="diag__cell">
+      <div class="diag__label">Handshake time</div>
+      <div class="diag__val diag__val--metric"><span id="node-latency">—</span> <span class="diag__unit">ms</span></div>
+      <div class="diag__note">Browser-to-relay open time</div>
+    </div>
+    <div class="diag__cell">
+      <div class="diag__label">Transport</div>
+      <div class="diag__val">WSS / TLS</div>
+      <div class="diag__note">Certificate checked by your browser</div>
+    </div>
+    <div class="diag__cell">
+      <div class="diag__label">Relay challenge</div>
+      <div id="node-chal" class="diag__val">Pending</div>
+      <div id="node-chal-detail" class="diag__note">Waiting for auth_challenge</div>
+    </div>
+  </div>
+
+  <div class="diag__log" id="node-log" role="status" aria-live="polite">
+    Ready to test the blind relay endpoint.
+  </div>
+  <p class="diag__footnote">A successful connection confirms this diagnostic path can reach the relay. It is not an independent security audit and does not establish that a future chat client is secure.</p>
+</div>

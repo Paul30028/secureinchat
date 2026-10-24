@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">Offline readiness and emergency communication</title>
+<desc id="svg-desc">A disconnected router, a local phone, and a saved emergency note show preparation that does not depend on an active network.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <rect x="64" y="137" width="160" height="91" rx="12" fill="#E7E9E2"/>
+ <path d="M86 137Q144 83 202 137M103 148Q144 111 185 148M122 160Q144 142 166 160" fill="none" stroke="#79551B"/>
+ <circle cx="144" cy="177" r="5" fill="#79551B" stroke="none"/>
+ <path d="m92 104 106 117" fill="none" stroke="#9B2424" stroke-width="3"/>
+ <path d="M249 181H294M284 171 294 181 284 191" fill="none" stroke="#79551B"/>
+ <rect x="315" y="94" width="88" height="166" rx="12" fill="#FFFFFF"/>
+ <rect x="325" y="109" width="68" height="123" rx="4" fill="#E7E9E2"/>
+ <path d="M343 245H375" fill="none"/>
+ <path d="M341 133H377M341 147H377M341 161H369" fill="none"/>
+ <path d="M423 181H465M455 171 465 181 455 191" fill="none" stroke="#79551B"/>
+ <path d="M490 106H674V249H490Z" fill="#FFFFFF"/>
+ <path d="M490 106 582 172 674 106" fill="#E7E9E2"/>
+ <path d="M514 195H649M514 211H620M514 227H636" fill="none"/>
+ <circle cx="650" cy="83" r="18" fill="#E8F4EC" stroke="#17633B"/>
+ <path d="m641 83 6 6 12-14" fill="none" stroke="#17633B"/>
+</g>
+<path d="M64 286H684" stroke="#D2D8D0" stroke-width="2" stroke-linecap="round"/>
+</svg>

@@ -90,13 +90,14 @@ ${side}
   const keep = headScripts.filter((s) => /application\/ld\+json/.test(s));
   const scriptsHead = headScripts.filter((s) => !/application\/ld\+json/.test(s));
   const headExtra = `  <link href="https://secureinchat.com${canonical}" rel="canonical"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
   <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
 ${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
 `;
   let html = shell({ title, desc, canonical, headExtra, current: '/tools/', main: mainHtml });
   html = html.replace(' </body>', `${tailScripts.map((s) => `  ${s}`).join('\n')}\n </body>`);
   // the kit stylesheets load after tool-legacy.css in the shell head order; move tool-legacy last so widgets keep their look
-  html = html.replace('  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n', '').replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>');
+  html = html.replace('  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n', '').replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>');
   return html;
 }
 

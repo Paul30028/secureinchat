@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">Account compromised: recovery steps</title>
+<desc id="svg-desc">An account inbox has an alert marker; a separate recovery path, device review and credential reset show the next response steps.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <rect x="57" y="115" width="212" height="133" rx="10" fill="#FFFFFF"/>
+ <path d="M57 133 163 199 269 133" fill="none"/>
+ <path d="M80 224H145M80 209H122" fill="none"/>
+ <circle cx="250" cy="100" r="22" fill="#FCEBEA" stroke="#9B2424"/>
+ <path d="M250 87V102M250 110V111" fill="none" stroke="#9B2424" stroke-width="3.5"/>
+ <path d="M290 181H337M327 171 337 181 327 191" fill="none" stroke="#79551B"/>
+ <rect x="358" y="105" width="122" height="151" rx="12" fill="#E7E9E2"/>
+ <rect x="386" y="127" width="66" height="49" rx="5" fill="#FFFFFF"/>
+ <path d="M386 136 419 159 452 136" fill="none"/>
+ <path d="M382 198H456M382 216H441M382 234H450" fill="none"/>
+ <path d="M500 181H547M537 171 547 181 537 191" fill="none" stroke="#79551B"/>
+ <path d="M571 120 637 142V185Q637 219 604 236Q571 219 571 185Z" fill="#E8F4EC" stroke="#17633B"/>
+ <path d="m588 180 11 11 22-25" fill="none" stroke="#17633B" stroke-width="3.5"/>
+ <path d="M568 266H665M568 280H636" fill="none" stroke="#D2D8D0"/>
+</g>
+</svg>

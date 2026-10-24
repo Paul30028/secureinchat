@@ -96,7 +96,7 @@ with sync_playwright() as p:
     check('Unable to establish' in page.inner_text('#node-log'), 'relay failure message shown')
     # no-JS: content must be visible
     ctx2 = b.new_context(java_script_enabled=False, viewport={'width': 1280, 'height': 800}); pg2 = ctx2.new_page(); pg2.goto(BASE + '/messaging/')
-    check(pg2.is_visible('#architecture h2'), 'no-JS: architecture heading visible')
+    check(pg2.is_visible('#relay-diagnostic-title') and pg2.is_visible('h1.page-title'), 'no-JS: messaging heading and relay diagnostic visible')
     pg2.goto(BASE + '/'); check(pg2.is_visible('#hero-title') and pg2.is_visible('#privacy-tools h2'), 'no-JS: home hero and tools visible')
     # language select navigates
     ctx3 = b.new_context(viewport={'width': 1280, 'height': 800}); pg3 = ctx3.new_page(); pg3.add_init_script(WS_OK); pg3.goto(BASE + '/')

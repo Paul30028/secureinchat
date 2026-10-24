@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">Network unavailable: offline plan</title>
+<desc id="svg-desc">A router shows a broken connection. A phone and a locally saved checklist remain available for offline reference.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <rect x="60" y="130" width="166" height="92" rx="12" fill="#E7E9E2"/>
+ <path d="M82 130Q143 79 204 130M101 143Q143 111 185 143" fill="none" stroke="#79551B"/>
+ <circle cx="143" cy="157" r="5" fill="#79551B" stroke="none"/>
+ <path d="m87 104 112 112" fill="none" stroke="#9B2424" stroke-width="3.5"/>
+ <path d="M246 177H292M282 167 292 177 282 187" fill="none" stroke="#79551B"/>
+ <rect x="316" y="83" width="88" height="183" rx="13" fill="#FFFFFF"/>
+ <rect x="327" y="101" width="66" height="143" rx="5" fill="#E7E9E2"/>
+ <path d="M343 117H377M343 134H377M343 151H368" fill="none"/>
+ <path d="M343 185 355 197 378 171" fill="none" stroke="#17633B" stroke-width="3.5"/>
+ <path d="M343 215H377M343 230H365" fill="none"/>
+ <path d="M425 177H470M460 167 470 177 460 187" fill="none" stroke="#79551B"/>
+ <path d="M501 108H684V248H501Z" fill="#FFFFFF"/>
+ <path d="M524 136H660M524 158H648M524 201H660M524 223H632" fill="none"/>
+ <circle cx="527" cy="180" r="7" fill="#E8F4EC" stroke="#17633B"/><path d="m523 180 3 3 5-6" fill="none" stroke="#17633B"/>
+ <circle cx="527" cy="245" r="7" fill="#E8F4EC" stroke="#17633B"/><path d="m523 245 3 3 5-6" fill="none" stroke="#17633B"/>
+</g>
+</svg>

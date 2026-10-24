@@ -1,0 +1,42 @@
+/* Load after home.css and checkup.css. Keep every visible small label at >= 12 CSS px
+   at the standard 16px root size; do not shrink these labels again in media queries. */
+.site-header .brand-tagline,
+.hero-copy .availability-note,
+.hero-annotation .hero-badge span:last-child,
+.tool-card .fact-tag,
+.tool-card .meta-tag,
+.tools-disclosure,
+.guide-category .guide-count,
+.guide-extra,
+.featured-guide-label,
+.architecture-layout .flow-step p,
+.architecture-note p,
+.messaging-copy .eyebrow-text,
+.messaging-copy .roadmap-item p,
+.messaging-copy .roadmap-item h3,
+.messaging-copy .roadmap-status,
+.messaging-layout .check-mark,
+.site-footer .footer-links a,
+.site-footer .footer-language a,
+.site-footer .footer-bottom p {
+  font-size: max(.75rem, 12px) !important;
+}
+
+.checkup-tag,
+.checkup-card-note,
+.phone-page-breadcrumb,
+.phone-progress-copy,
+.phone-check-number,
+.phone-source-slot,
+.phone-source-disclaimer,
+.phone-check-item-content .field-help,
+.checkup-card-note,
+.checkup-card .checkup-tag {
+  font-size: max(.75rem, 12px) !important;
+}
+
+@media (max-width: 24rem) {
+  .hero-annotation .hero-badge span:last-child {
+    font-size: max(.75rem, 12px) !important;
+  }
+}

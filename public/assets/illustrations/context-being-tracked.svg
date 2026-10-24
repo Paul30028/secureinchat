@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">Being tracked online</title>
+<desc id="svg-desc">A browser window receives several tracker signals, while a privacy control separates the local device from unnecessary tracking paths.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <rect x="60" y="79" width="350" height="205" rx="12" fill="#FFFFFF"/>
+ <path d="M60 113H410" fill="none"/>
+ <circle cx="82" cy="96" r="4" fill="#C6A15B" stroke="none"/><circle cx="98" cy="96" r="4" fill="#D2D8D0" stroke="none"/><circle cx="114" cy="96" r="4" fill="#D2D8D0" stroke="none"/>
+ <rect x="83" y="131" width="132" height="120" rx="6" fill="#E7E9E2"/>
+ <path d="M101 151H193M101 167H184M101 183H171M101 217H190M101 233H166" fill="none"/>
+ <path d="M232 159H274M265 150 274 159 265 168M232 211H274M265 202 274 211 265 220" fill="none" stroke="#79551B"/>
+ <circle cx="304" cy="142" r="13" fill="#F1E6CB" stroke="#79551B"/><circle cx="359" cy="184" r="13" fill="#F1E6CB" stroke="#79551B"/><circle cx="306" cy="235" r="13" fill="#F1E6CB" stroke="#79551B"/>
+ <path d="M304 135V149M297 142H311M359 177V191M352 184H366M306 228V242M299 235H313" fill="none" stroke="#79551B"/>
+ <path d="M425 183H464M454 173 464 183 454 193" fill="none" stroke="#79551B"/>
+ <path d="M518 98 597 123V176Q597 223 558 244Q518 223 518 176Z" fill="#E8F4EC" stroke="#17633B"/>
+ <path d="m541 173 13 13 26-31" fill="none" stroke="#17633B" stroke-width="4"/>
+ <path d="M618 147H683M618 163H669M618 179H677" fill="none" stroke="#D2D8D0"/>
+</g>
+</svg>

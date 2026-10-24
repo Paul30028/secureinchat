@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">Device and network privacy</title>
+<desc id="svg-desc">A laptop and router exchange data through a network boundary; a highlighted path indicates information leaving the device.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <rect x="65" y="96" width="224" height="143" rx="9" fill="#FFFFFF"/>
+ <rect x="80" y="111" width="194" height="111" rx="4" fill="#E7E9E2"/>
+ <path d="M49 252H305L287 239H68Z" fill="#E7E9E2"/>
+ <path d="M103 138H179M103 154H243M103 170H217" fill="none"/>
+ <path d="M326 171H383M373 161 383 171 373 181" fill="none" stroke="#79551B"/>
+ <rect x="401" y="153" width="112" height="78" rx="12" fill="#E7E9E2"/>
+ <path d="M425 153Q457 120 489 153M435 163Q457 141 479 163M450 176Q457 169 464 176" fill="none" stroke="#79551B"/>
+ <circle cx="457" cy="190" r="4" fill="#79551B" stroke="none"/>
+ <path d="M527 190H578M568 180 578 190 568 200" fill="none" stroke="#79551B"/>
+ <path d="M604 113V268M590 125H618M590 255H618" fill="none" stroke="#D2D8D0" stroke-dasharray="4 6"/>
+ <rect x="630" y="160" width="50" height="61" rx="6" fill="#173D32" stroke="#173D32"/>
+ <path d="M643 177H667M643 188H667M643 199H660" fill="none" stroke="#E5C989"/>
+</g>
+<path d="M68 286H683" stroke="#D2D8D0" stroke-width="2" stroke-linecap="round"/>
+<circle cx="355" cy="171" r="5" fill="#79551B"/><circle cx="550" cy="190" r="5" fill="#79551B"/>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">Physical privacy: people, space and devices</title>
+<desc id="svg-desc">A room boundary, a user device and a sightline indicate real-world exposure such as shoulder surfing or leaving a screen visible.</desc>
+<rect x="14" y="14" width="732" height="332" rx="24" fill="#FBFAF6" stroke="#D2D8D0" stroke-width="2"/>
+<g stroke="#173D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M76 265V116Q76 91 101 91H659Q684 91 684 116V265" fill="none" stroke="#D2D8D0" stroke-width="3"/>
+ <rect x="112" y="137" width="208" height="116" rx="10" fill="#FFFFFF"/>
+ <rect x="126" y="151" width="180" height="82" rx="5" fill="#E7E9E2"/>
+ <path d="M154 176H256M154 192H283M154 208H233" fill="none"/>
+ <path d="M181 254H252M216 234V254" fill="none"/>
+ <circle cx="498" cy="129" r="18" fill="#E7E9E2"/>
+ <path d="M465 210Q467 165 498 165Q529 165 531 210Z" fill="#E7E9E2"/>
+ <path d="M475 142Q446 152 430 176" fill="none" stroke="#79551B" stroke-dasharray="4 7"/>
+ <path d="M438 173 430 176 433 167" fill="none" stroke="#79551B"/>
+ <circle cx="574" cy="236" r="20" fill="#F1E6CB" stroke="#79551B"/>
+ <path d="M574 224V239M574 246V247" fill="none" stroke="#79551B" stroke-width="3"/>
+ <path d="M538 219 560 232" fill="none" stroke="#79551B" stroke-dasharray="3 6"/>
+</g>
+<path d="M104 287H656" stroke="#D2D8D0" stroke-width="2" stroke-linecap="round"/>
+</svg>
