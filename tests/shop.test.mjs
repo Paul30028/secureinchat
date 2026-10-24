@@ -17,12 +17,15 @@ const sample = () => ({
   checkYourself: 'Follow these sample steps at home to see that it works.',
   evidence: { status: 'tested', date: '2026-10-22', method: 'Sample method described in enough detail to repeat.' },
   limits: 'Does not stop other risks and can fail in sample cases.',
+  type: 'hardware',
+  terms: { amount: 10, currency: 'USD', billing: 'one-time', refund: '30 days, unopened.' },
+  data: { product: 'The sample item processes nothing and has no network connection.', commerce: 'Payment and delivery address are handled by the sample checkout provider.', retention: 'Order records are kept as long as tax law requires and then deleted.' },
   supplier: { name: 'Sample maker', ships: 'Sample countries.', returns: '30 days, unopened.' },
   commission: { earns: false },
 });
 
 t('no products are published yet', () => assert.strictEqual(PRODUCTS.length, 0));
-t('seven fields in the agreed order', () => assert.deepStrictEqual(FIELDS.map((f) => f.key), ['protects', 'forWho', 'checkYourself', 'evidence', 'limits', 'supplier', 'commission']));
+t('nine fields in the agreed order', () => assert.deepStrictEqual(FIELDS.map((f) => f.key), ['protects', 'forWho', 'checkYourself', 'evidence', 'limits', 'terms', 'data', 'supplier', 'commission']));
 t('complete sample is valid', () => assert.deepStrictEqual(validateProduct(sample()), []));
 t('missing check-yourself is rejected', () => { const p = sample(); delete p.checkYourself; assert.ok(validateProduct(p).some((e) => e.startsWith('checkYourself'))); });
 t('tested without date or method is rejected', () => {
@@ -46,14 +49,29 @@ t('commission must be explicit and name the payer', () => {
   p.commission = { earns: true }; assert.ok(validateProduct(p).some((x) => x.includes('commission.from')));
 });
 t('affiliate label sits next to the buy link', () => {
-  const p = sample(); p.commission = { earns: true, from: 'Sample maker' }; p.buyUrl = 'https://shop.example/buy'; p.price = '$10';
+  const p = sample(); p.commission = { earns: true, from: 'Sample maker' }; p.buyUrl = 'https://shop.example/buy';
   assert.deepStrictEqual(validateProduct(p), []);
   const h = productBody(p, esc);
   assert.ok(/Buy for \$10<\/a> <span class="tag tag--aff">Affiliate<\/span>/.test(h));
 });
-t('buy link needs https and a price', () => {
-  const p = sample(); p.buyUrl = 'http://x'; const e = validateProduct(p);
-  assert.ok(e.some((x) => x.includes('https')) && e.some((x) => x.includes('price')));
+t('buy link needs https', () => { const p = sample(); p.buyUrl = 'http://x'; assert.ok(validateProduct(p).some((x) => x.includes('https'))); });
+t('terms, type and data handling are required', () => {
+  const p = sample(); delete p.terms; delete p.type; p.data = { product: 'short' };
+  const e = validateProduct(p);
+  assert.ok(e.some((x) => x.startsWith('terms')) && e.some((x) => x.startsWith('type')) && e.some((x) => x.startsWith('data.product')) && e.some((x) => x.startsWith('data.commerce')));
+});
+t('recurring billing is spelled out next to the price', () => {
+  const p = sample(); p.terms = { amount: 4.5, currency: 'EUR', billing: 'monthly', refund: 'Cancel any time; no refund for the current month.' };
+  assert.ok(productBody(p, esc).includes('EUR 4.50, renews every month until you cancel'));
+});
+t('audited needs auditor, date and report link', () => {
+  const p = sample(); p.evidence = { status: 'audited' }; assert.ok(validateProduct(p).some((x) => x.startsWith('audited')));
+  p.evidence = { status: 'audited', auditor: 'Sample Lab', date: '2026-10-01', report: 'https://example.org/audit.pdf' }; assert.deepStrictEqual(validateProduct(p), []);
+  assert.ok(productBody(p, esc).includes('Independently audited'));
+});
+t('open source label links to the code', () => {
+  const p = sample(); p.openSource = 'ftp://x'; assert.ok(validateProduct(p).some((x) => x.startsWith('openSource')));
+  p.openSource = 'https://example.org/src'; assert.ok(productBody(p, esc).includes('href="https://example.org/src"'));
 });
 t('banned claims are rejected', () => {
   for (const w of ['100% secure', 'unbreakable', 'military-grade', '100 % anonymous']) {
