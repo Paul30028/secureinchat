@@ -130,5 +130,15 @@ for _f in _glob.glob(os.path.join(ROOT, '**', '*.html'), recursive=True):
         if not (os.path.isfile(_p) or os.path.isfile(os.path.join(_p, 'index.html'))): _bad.add(f'{_h} (in {os.path.relpath(_f, ROOT)})')
 check(not _bad, f'internal links resolve: {sorted(_bad)[:8]}')
 
+# Heading order (WCAG 1.3.1): no built page may skip a level going down (h1 -> h3 breaks screen-reader outlines).
+_skips = []
+for _f in _glob.glob(os.path.join(ROOT, '**', '*.html'), recursive=True):
+    _s = _re.sub(r'<(script|style|template)\b.*?</\1>', '', open(_f, encoding='utf-8').read(), flags=_re.S)
+    _prev = 0
+    for _l in (int(x) for x in _re.findall(r'<h([1-6])\b', _s)):
+        if _prev and _l > _prev + 1: _skips.append(f'{os.path.relpath(_f, ROOT)}: h{_prev} -> h{_l}'); break
+        _prev = _l
+check(not _skips, f'no skipped heading levels: {_skips[:8]}')
+
 print('\nFAILED:' if fails else '\nSITE TESTS PASSED', *fails, sep='\n')
 sys.exit(1 if fails else 0)
