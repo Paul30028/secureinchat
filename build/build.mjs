@@ -686,9 +686,11 @@ const postJsonLd = (p) => ({
 });
 const RELATED = [['/checkup/', 'Start the privacy checkup'], ['/tools/', 'Browse the free privacy tools'], ['/principles/', 'See how SecureInChat tools handle data']];
 for (const p of POSTS) {
-  const full = `${p.title} | SecureInChat`; const canonical = `/blog/${p.slug}/`;
+  // Search snippets: keep the brand only when the title stays short, and cut the description at a sentence end near 160 characters.
+  const full = p.title.length + 15 <= 65 ? `${p.title} | SecureInChat` : p.title; const canonical = `/blog/${p.slug}/`;
+  const snip = (d) => { if (d.length <= 160) return d; const cut = d.slice(0, 160); const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? ')); return end > 80 ? cut.slice(0, end + 1) : cut.slice(0, cut.lastIndexOf(' ')) + '…'; };
   write(`blog/${p.slug}/index.html`, articlePage({
-    title: full, desc: p.desc, canonical, headExtra: headExtra({ canonical, jsonld: postJsonLd(p), title: full, desc: p.desc }),
+    title: full, desc: snip(p.desc), canonical, headExtra: headExtra({ canonical, jsonld: postJsonLd(p), title: full, desc: snip(p.desc) }),
     crumbs: [['/', 'Home'], ['/blog/', 'Guides'], [canonical, p.title]], figure: figFor(p.slug),
     body: `    <h1>${p.title}</h1>\n    <p class="meta">By Paul · ${p.date}</p>\n    <p class="lead">${p.desc}</p>${p.body}`,
     related: RELATED.map(([href, title]) => ({ href, title })),
@@ -815,7 +817,7 @@ const urls = [
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${urls.map(([u]) => `  <url>\n    <loc>${SITE}${u}</loc>\n    <lastmod>${DATE}</lastmod>\n  </url>`).join('\n')}
+${urls.map(([u]) => { const post = POSTS.find((p) => u === `/blog/${p.slug}/`); return `  <url>\n    <loc>${SITE}${u}</loc>\n${post ? `    <lastmod>${post.date}</lastmod>\n` : ''}  </url>`; }).join('\n')}
 </urlset>
 `);
 write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
