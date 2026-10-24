@@ -56,7 +56,7 @@
 .checkup-card-note { margin-top: auto; margin-bottom: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--color-border); width: 100%; font-size: var(--font-size-xs) !important; }
 .checkup-card-action { margin-top: auto; }
 .checkup-next-section { padding-block: 0 var(--space-12); }
-.checkup-next-panel { display: flex; justify-content: space-between; align-items: center; gap: var(--space-6); padding: var(--space-6); border-left: 3px solid var(--color-accent-text); background: var(--color-surface); }
+.checkup-next-panel { display: flex; justify-content: space-between; align-items: center; gap: var(--space-6); padding: var(--space-6); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
 .checkup-next-panel h2 { margin-bottom: var(--space-2); font-size: var(--font-size-xl); }
 .checkup-next-panel p { max-width: 52rem; margin: 0; color: var(--color-text-muted); font-size: var(--font-size-sm); }
 .checkup-next-panel .button { flex: 0 0 auto; }

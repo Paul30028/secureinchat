@@ -663,6 +663,8 @@ write('assets/fonts/noto-serif-subset.woff2', fs.readFileSync(path.join(ROOT, 's
   const a = m.indexOf('<!-- INTEGRATION SLOT'); const b = m.indexOf('</div>', m.indexOf('</div>', m.indexOf('tool-integration-note', a)) + 6) + 6;
   const diag = fs.readFileSync(path.join(ROOT, 'src/nextbatch/relay-diagnostic.html'), 'utf8').replace(/^<!--[\s\S]*?-->\s*/, '');
   m = m.slice(0, a) + `<div id="diagnostics">\n${diag}</div>` + m.slice(b);
+  // Owner-requested fix (2026-10-24): the panel carries its own heading and frame, so drop the duplicate section heading and the outer workspace frame.
+  m = m.replace(/<div class="page-rule-heading">\s*<div>\s*<h2>\s*Check the production relay\s*<\/h2>[\s\S]*?<\/div>\s*<\/div>\s*/, '').replace('<div class="tool-workspace">\n       <div id="diagnostics">', '<div>\n       <div id="diagnostics">');
   m = m.replace(/(<a class="text-link" href=")\/blog\/(">\s*Read the blind-relay guide)/, '$1/blog/what-a-blind-relay-can-and-cannot-know/$2')
     .replace(/(Read the blind-relay guide →\s*<\/a>)/, '$1\n        <a class="text-link" href="/messaging/threat-model/">Read the threat model →</a>');
   const title = 'SecureInChat messenger: zero-knowledge blind relay | SecureInChat';
