@@ -1,4 +1,3 @@
-=====FILE DnsFilterTest.kt=====
 // SPDX-License-Identifier: GPL-3.0-or-later
 package org.secureinchat.guardian.dns
 
@@ -186,8 +185,9 @@ fun main() {
         val q = DnsPacket.parseQuery(p, p.size) ?: error("null")
         val r = DnsPacket.buildBlockedResponse(q, BlockMode.NXDOMAIN)
         check(Checksum.verify(r)) { "checksum" }
-        eq(r.copyOfRange(12, 16).toList(), q.srcIp.toList())
-        eq(r.copyOfRange(16, 20).toList(), q.dstIp.toList())
+        // response travels back: its source is the query's destination
+        eq(q.dstIp.toList(), r.copyOfRange(12, 16).toList())
+        eq(q.srcIp.toList(), r.copyOfRange(16, 20).toList())
         val rp = ((r[20].toInt() and 0xFF) shl 8) or (r[21].toInt() and 0xFF)
         val dp = ((r[22].toInt() and 0xFF) shl 8) or (r[23].toInt() and 0xFF)
         eq(rp, 53)
@@ -309,4 +309,3 @@ fun main() {
 
     println("DnsFilterTest: $n passed")
 }
-=====END=====
