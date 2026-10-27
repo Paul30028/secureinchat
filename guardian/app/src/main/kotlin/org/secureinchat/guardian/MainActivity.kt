@@ -182,37 +182,37 @@ class MainActivity : Activity() {
 
     private fun refreshUi() {
         val running = GuardianVpnService.isRunning
-        statusView.text = if (running) {
+        setIfChanged(statusView, if (running) {
             txt("Status: Running", "状态：运行中")
         } else {
             txt("Status: Stopped", "状态：已停止")
-        }
-        toggleBtn.text = if (running) {
+        })
+        setIfChanged(toggleBtn, if (running) {
             txt("Stop", "停止")
         } else {
             txt("Start", "启动")
-        }
+        })
         val h = GuardianVpnService.activeHandler
         if (h == null) {
-            statsView.text = ""
-            logView.text = ""
+            setIfChanged(statsView, "")
+            setIfChanged(logView, "")
         } else {
             val s = h.snapshot()
-            statsView.text = txt(
+            setIfChanged(statsView, txt(
                 "Queries: ${s.queries}  Blocked: ${s.blocked}  Forwarded: ${s.forwarded}\n" +
                 "Answered: ${s.answered}  Failed: ${s.failed}  Malformed: ${s.malformed}",
                 "查询: ${s.queries}  拦截: ${s.blocked}  转发: ${s.forwarded}\n" +
                 "应答: ${s.answered}  失败: ${s.failed}  畸形: ${s.malformed}"
-            )
+            ))
             renderLog(h.recent())
         }
         if (pdnsOn.isNotEmpty()) {
-            hintView.visibility = View.VISIBLE
-            hintView.text = txt(
+            if (hintView.visibility != View.VISIBLE) hintView.visibility = View.VISIBLE
+            setIfChanged(hintView, txt(
                 "Private DNS is enabled. Some queries may bypass Guardian.",
                 "私人 DNS 开启时部分查询可能不经过 Guardian"
-            )
-        } else {
+            ))
+        } else if (hintView.visibility != View.GONE) {
             hintView.visibility = View.GONE
         }
     }
@@ -233,7 +233,13 @@ class MainActivity : Activity() {
                 )
             }
         }
-        logView.text = sb
+        setIfChanged(logView, sb)
+    }
+
+    // The screen refreshes every second; setting identical text still re-lays out the view, which keeps
+    // the window from ever being idle (wasted work, and UI tests cannot read the screen).
+    private fun setIfChanged(view: TextView, value: CharSequence) {
+        if (view.text.toString() != value.toString()) view.text = value
     }
 
     private fun txt(en: String, zh: String): String =
