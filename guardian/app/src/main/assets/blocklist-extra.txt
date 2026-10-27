@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Guardian's own additions, loaded on top of the HaGeZi Multi LIGHT snapshot.
+# HaGeZi LIGHT leaves some registrable roots out on purpose (they break ad clicks);
+# these are tracker/ad roots Guardian blocks anyway. Keep this list short and explain additions in the commit.
+doubleclick.net
+googlesyndication.com
+google-analytics.com
+app-measurement.com
+scorecardresearch.com

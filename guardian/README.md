@@ -12,7 +12,8 @@ Licensed GPL-3.0-or-later.
 | `core/` upstream answers (G2a): wrap the real resolver's answer for the TUN device, only if ID, question name, type and class match the query; blocklist hardening (G1.1: at least one dot, label rules) | DeepSeek wrote, Claude reviewed. `DnsUpstreamTest` (5 groups) passes; the oracle also checks 12 upstream cases (3 valid answers, 9 that must be refused: wrong ID, wrong name, a query instead of an answer). |
 | `core/` QueryHandler (G2b part 1): block / forward / drop decision, counters, last 200 queries in memory only | DeepSeek wrote, Claude reviewed. `QueryHandlerTest` (10 groups, including 4 threads x 5,000 queries) passes. |
 | Android VpnService shell and screen (G2b part 2) | being written |
-| Blocklist source and per-app view (G3) | not started |
+| Blocklist source (G3a) | Bundled snapshot of [HaGeZi Multi LIGHT](https://github.com/hagezi/dns-blocklists) (GPL-3.0, about 72,000 domains, chosen for few false positives) plus Guardian's short `blocklist-extra.txt`. Refresh with `python3 tools/update_blocklist.py`; the app never downloads lists. Parse on a desktop JVM: about 0.4 s, 8 MB heap. |
+| Per-app view, user allowlist (G3b) | being written |
 | Real-device test | none |
 
 ## Run the checks
@@ -23,3 +24,7 @@ Licensed GPL-3.0-or-later.
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.QueryHandlerTestKt
     kotlinc core/src/main/kotlin tests/oracle/Cli.kt -include-runtime -d /tmp/cli.jar
     pip install dnspython && python3 tests/dns_oracle.py /tmp/cli.jar
+
+## Blocklist credit
+
+The bundled list is HaGeZi's Multi LIGHT, © HaGeZi, licensed GPL-3.0 (https://github.com/hagezi/dns-blocklists/blob/main/LICENSE). Its version line is kept in the asset header.

@@ -189,9 +189,10 @@ class GuardianVpnService : VpnService() {
 
     private fun loadBlocklist(): Blocklist {
         return try {
-            assets.open("blocklist.txt").use { input ->
-                Blocklist.parse(input.bufferedReader().readText())
+            val text = LIST_ASSETS.joinToString("\n") { name ->
+                assets.open(name).use { it.bufferedReader().readText() }
             }
+            Blocklist.parse(text)
         } catch (_: Throwable) {
             Blocklist.parse("")
         }
@@ -202,6 +203,7 @@ class GuardianVpnService : VpnService() {
         const val ACTION_STOP = "org.secureinchat.guardian.action.STOP"
         private const val CHANNEL_ID = "guardian_vpn"
         private const val NOTIF_ID = 1
+        private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")
 
         @Volatile var isRunning: Boolean = false
             private set

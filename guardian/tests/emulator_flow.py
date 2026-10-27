@@ -20,7 +20,8 @@ import pathlib, re, subprocess, sys, time
 import xml.etree.ElementTree as ET
 
 PKG = "org.secureinchat.guardian"
-BLOCKED = "doubleclick.net"   # first entry of app/src/main/assets/blocklist.txt
+BLOCKED = "doubleclick.net"   # from app/src/main/assets/blocklist-extra.txt
+BLOCKED_HAGEZI = "bat.bing.com"   # from the bundled HaGeZi LIGHT snapshot, not in the extra list
 ALLOWED = "example.com"
 OUT = pathlib.Path("/tmp/guardian-flow")
 OUT.mkdir(parents=True, exist_ok=True)
@@ -193,6 +194,12 @@ def main():
         fail(f"{BLOCKED} should resolve to 0.0.0.0 through Guardian, got {addr}: {out}")
     nodes = wait_ui(lambda s: f"BLOCK {BLOCKED}" in s, f"log does not show BLOCK {BLOCKED}")
     print(f"ok: {BLOCKED} blocked (0.0.0.0) and logged")
+    addr, out = resolve(BLOCKED_HAGEZI)
+    print(f"guardian: {BLOCKED_HAGEZI} -> {addr}")
+    if addr not in ("0.0.0.0", "127.0.0.1"):
+        fail(f"{BLOCKED_HAGEZI} (HaGeZi snapshot) should be blocked, got {addr}: {out}")
+    wait_ui(lambda s: f"BLOCK {BLOCKED_HAGEZI}" in s, f"log does not show BLOCK {BLOCKED_HAGEZI}")
+    print(f"ok: {BLOCKED_HAGEZI} blocked from the bundled snapshot")
 
     # 4. Allowed domain is forwarded to the network's resolver
     addr, out = resolve(ALLOWED)
