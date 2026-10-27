@@ -9,25 +9,26 @@ class Blocklist private constructor(
     val allowedCount: Int get() = allowed.size
 
     fun isBlocked(name: String): Boolean {
-        val n = name.lowercase().trimEnd('.')
-        if (n.isEmpty()) return false
-
-        var cur = n
-        while (true) {
-            if (allowed.contains(cur)) return false
-            val dot = cur.indexOf('.')
-            if (dot < 0) break
-            cur = cur.substring(dot + 1)
+        try {
+            val n = normalizeHostname(name) ?: return false
+            var cur = n
+            while (true) {
+                if (allowed.contains(cur)) return false
+                val dot = cur.indexOf('.')
+                if (dot < 0) break
+                cur = cur.substring(dot + 1)
+            }
+            cur = n
+            while (true) {
+                if (blocked.contains(cur)) return true
+                val dot = cur.indexOf('.')
+                if (dot < 0) break
+                cur = cur.substring(dot + 1)
+            }
+            return false
+        } catch (t: Throwable) {
+            return false
         }
-
-        cur = n
-        while (true) {
-            if (blocked.contains(cur)) return true
-            val dot = cur.indexOf('.')
-            if (dot < 0) break
-            cur = cur.substring(dot + 1)
-        }
-        return false
     }
 
     companion object {
@@ -35,7 +36,7 @@ class Blocklist private constructor(
 
         private val IGNORED = setOf(
             "localhost", "localhost.localdomain", "broadcasthost", "local",
-            "0.0.0.0", "127.0.0.1", "::1", "ip6-localhost", "ip6-loopback"
+            "0.0.0.0", "127.0.0.1", "ip6-localhost", "ip6-loopback"
         )
 
         fun parse(text: String): Blocklist {
@@ -111,8 +112,17 @@ class Blocklist private constructor(
         private fun normalizeHostname(s: String): String? {
             val d = s.trim().lowercase().trimEnd('.')
             if (d.isEmpty()) return null
-            for (ch in d) {
-                if (!(ch in 'a'..'z') && !(ch in '0'..'9') && ch != '-' && ch != '.') return null
+            if (d.length > 253) return null
+            if (!d.contains('.')) return null
+            if (d.contains("..")) return null
+            for (label in d.split('.')) {
+                if (label.isEmpty()) return null
+                if (label.length > 63) return null
+                if (label.startsWith('-') || label.endsWith('-')) return null
+                for (ch in label) {
+                    val ok = (ch in 'a'..'z') || (ch in '0'..'9') || ch == '-' || ch == '_'
+                    if (!ok) return null
+                }
             }
             return d
         }

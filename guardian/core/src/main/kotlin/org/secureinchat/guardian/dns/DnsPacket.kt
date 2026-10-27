@@ -61,8 +61,8 @@ object DnsPacket {
 
             val dnsId = ((packet[dnsOff].toInt() and 0xFF) shl 8) or (packet[dnsOff + 1].toInt() and 0xFF)
             val dnsFlags = ((packet[dnsOff + 2].toInt() and 0xFF) shl 8) or (packet[dnsOff + 3].toInt() and 0xFF)
-            if (((dnsFlags ushr 15) and 1) != 0) return null        // QR must be 0
-            if (((dnsFlags ushr 11) and 0xF) != 0) return null      // OPCODE must be 0
+            if (((dnsFlags ushr 15) and 1) != 0) return null
+            if (((dnsFlags ushr 11) and 0xF) != 0) return null
             val qdcount = ((packet[dnsOff + 4].toInt() and 0xFF) shl 8) or (packet[dnsOff + 5].toInt() and 0xFF)
             if (qdcount != 1) return null
 
@@ -71,7 +71,7 @@ object DnsPacket {
             while (true) {
                 if (pos >= dnsEnd) return null
                 val b = packet[pos].toInt() and 0xFF
-                if ((b and 0xC0) == 0xC0) return null               // compression pointer
+                if ((b and 0xC0) == 0xC0) return null
                 if (b == 0) { pos++; break }
                 if (b < 1 || b > 63) return null
                 if (pos + 1 + b > dnsEnd) return null
@@ -84,7 +84,7 @@ object DnsPacket {
                 labels.add(sb.toString())
                 pos += 1 + b
             }
-            if (labels.isEmpty()) return null                        // root / empty name
+            if (labels.isEmpty()) return null
             val qname = labels.joinToString(".").lowercase()
             if (qname.length > 253) return null
 
@@ -112,7 +112,6 @@ object DnsPacket {
 
         var dnsFlags = 0
         dnsFlags = dnsFlags or (1 shl 15)               // QR = 1
-        // OPCODE 0, AA 0, TC 0
         dnsFlags = dnsFlags or (q.flags and 0x0100)     // RD copied
         dnsFlags = dnsFlags or (1 shl 7)                // RA = 1
         dnsFlags = dnsFlags or rcode
@@ -138,33 +137,92 @@ object DnsPacket {
         dns.write(q.qclass and 0xFF)
 
         if (mode == BlockMode.NULL_IP && q.qtype == 1) {
-            dns.write(0xC0); dns.write(0x0C)            // name ptr -> 0x0C
-            dns.write(0x00); dns.write(0x01)            // TYPE A
-            dns.write(0x00); dns.write(0x01)            // CLASS IN
-            dns.write(0x00); dns.write(0x00); dns.write(0x00); dns.write(60) // TTL 60
-            dns.write(0x00); dns.write(0x04)            // RDLENGTH
+            dns.write(0xC0); dns.write(0x0C)
+            dns.write(0x00); dns.write(0x01)
+            dns.write(0x00); dns.write(0x01)
+            dns.write(0x00); dns.write(0x00); dns.write(0x00); dns.write(60)
+            dns.write(0x00); dns.write(0x04)
             dns.write(0x00); dns.write(0x00); dns.write(0x00); dns.write(0x00)
         } else if (mode == BlockMode.NULL_IP && q.qtype == 28) {
             dns.write(0xC0); dns.write(0x0C)
-            dns.write(0x00); dns.write(28)              // TYPE AAAA
+            dns.write(0x00); dns.write(28)
             dns.write(0x00); dns.write(0x01)
             dns.write(0x00); dns.write(0x00); dns.write(0x00); dns.write(60)
-            dns.write(0x00); dns.write(16)              // RDLENGTH
+            dns.write(0x00); dns.write(16)
             for (i in 0 until 16) dns.write(0x00)
         }
 
-        val dnsBytes = dns.toByteArray()
-        val udpLen = 8 + dnsBytes.size
+        return wrapUdp(q.dstIp, q.srcIp, q.dstPort, q.srcPort, dns.toByteArray())
+    }
+
+    fun buildResponseFromUpstream(q: DnsQuery, upstream: ByteArray, upstreamLen: Int): ByteArray? {
+        try {
+            if (upstreamLen < 12) return null
+            if (upstreamLen > upstream.size) return null
+            if (upstreamLen > 65507) return null
+
+            val id = ((upstream[0].toInt() and 0xFF) shl 8) or (upstream[1].toInt() and 0xFF)
+            if (id != q.dnsId) return null
+
+            val flags = ((upstream[2].toInt() and 0xFF) shl 8) or (upstream[3].toInt() and 0xFF)
+            if (((flags ushr 15) and 1) != 1) return null
+
+            val qd = ((upstream[4].toInt() and 0xFF) shl 8) or (upstream[5].toInt() and 0xFF)
+            if (qd != 1) return null
+
+            var pos = 12
+            val labels = ArrayList<String>(8)
+            while (true) {
+                if (pos >= upstreamLen) return null
+                val b = upstream[pos].toInt() and 0xFF
+                if ((b and 0xC0) == 0xC0) return null
+                if (b == 0) { pos++; break }
+                if (b < 1 || b > 63) return null
+                if (pos + 1 + b > upstreamLen) return null
+                val sb = StringBuilder(b)
+                for (i in 0 until b) {
+                    val c = upstream[pos + 1 + i].toInt() and 0xFF
+                    if (c < 0x21 || c > 0x7E) return null
+                    sb.append(c.toChar())
+                }
+                labels.add(sb.toString())
+                pos += 1 + b
+            }
+            if (labels.isEmpty()) return null
+            val name = labels.joinToString(".").lowercase()
+            if (name != q.qname) return null
+
+            if (pos + 4 > upstreamLen) return null
+            val qtype = ((upstream[pos].toInt() and 0xFF) shl 8) or (upstream[pos + 1].toInt() and 0xFF)
+            val qclass = ((upstream[pos + 2].toInt() and 0xFF) shl 8) or (upstream[pos + 3].toInt() and 0xFF)
+            if (qtype != q.qtype) return null
+            if (qclass != q.qclass) return null
+
+            val payload = upstream.copyOfRange(0, upstreamLen)
+            return wrapUdp(q.dstIp, q.srcIp, q.dstPort, q.srcPort, payload)
+        } catch (t: Throwable) {
+            return null
+        }
+    }
+
+    internal fun wrapUdp(
+        srcIp: ByteArray,
+        dstIp: ByteArray,
+        srcPort: Int,
+        dstPort: Int,
+        payload: ByteArray
+    ): ByteArray {
+        val udpLen = 8 + payload.size
         val udp = ByteArray(udpLen)
-        udp[0] = ((q.dstPort ushr 8) and 0xFF).toByte()
-        udp[1] = (q.dstPort and 0xFF).toByte()
-        udp[2] = ((q.srcPort ushr 8) and 0xFF).toByte()
-        udp[3] = (q.srcPort and 0xFF).toByte()
+        udp[0] = ((srcPort ushr 8) and 0xFF).toByte()
+        udp[1] = (srcPort and 0xFF).toByte()
+        udp[2] = ((dstPort ushr 8) and 0xFF).toByte()
+        udp[3] = (dstPort and 0xFF).toByte()
         udp[4] = ((udpLen ushr 8) and 0xFF).toByte()
         udp[5] = (udpLen and 0xFF).toByte()
         udp[6] = 0
         udp[7] = 0
-        System.arraycopy(dnsBytes, 0, udp, 8, dnsBytes.size)
+        System.arraycopy(payload, 0, udp, 8, payload.size)
 
         val totalLen = 20 + udpLen
         val ip = ByteArray(totalLen)
@@ -173,15 +231,15 @@ object DnsPacket {
         ip[2] = ((totalLen ushr 8) and 0xFF).toByte()
         ip[3] = (totalLen and 0xFF).toByte()
         ip[4] = 0
-        ip[5] = 0                                          // ID 0
-        ip[6] = 0x40                                       // DF set, MF 0
+        ip[5] = 0
+        ip[6] = 0x40
         ip[7] = 0
-        ip[8] = 64                                         // TTL
-        ip[9] = 17                                         // UDP
+        ip[8] = 64
+        ip[9] = 17
         ip[10] = 0
-        ip[11] = 0                                         // checksum placeholder
-        System.arraycopy(q.dstIp, 0, ip, 12, 4)
-        System.arraycopy(q.srcIp, 0, ip, 16, 4)
+        ip[11] = 0
+        System.arraycopy(srcIp, 0, ip, 12, 4)
+        System.arraycopy(dstIp, 0, ip, 16, 4)
 
         val ipck = Checksum.ipv4Header(ip, 0, 20)
         ip[10] = ((ipck ushr 8) and 0xFF).toByte()
@@ -194,6 +252,16 @@ object DnsPacket {
         ip[27] = (udpck and 0xFF).toByte()
 
         return ip
+    }
+}
+
+object DnsWire {
+    fun extractQueryPayload(packet: ByteArray, q: DnsQuery): ByteArray {
+        val ihl = q.ipHeaderLen
+        val udpLen = ((packet[ihl + 4].toInt() and 0xFF) shl 8) or (packet[ihl + 5].toInt() and 0xFF)
+        val dnsLen = udpLen - 8
+        val dnsOff = ihl + 8
+        return packet.copyOfRange(dnsOff, dnsOff + dnsLen)
     }
 }
 
@@ -220,7 +288,6 @@ object Checksum {
         val udpLen = ((packet[ihl + 4].toInt() and 0xFF) shl 8) or (packet[ihl + 5].toInt() and 0xFF)
         var sum = 0L
 
-        // pseudo header
         sum += ((packet[12].toInt() and 0xFF) shl 8) or (packet[13].toInt() and 0xFF)
         sum += ((packet[14].toInt() and 0xFF) shl 8) or (packet[15].toInt() and 0xFF)
         sum += ((packet[16].toInt() and 0xFF) shl 8) or (packet[17].toInt() and 0xFF)

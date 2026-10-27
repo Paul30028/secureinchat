@@ -1,4 +1,3 @@
-=====FILE DnsUpstreamTest.kt=====
 // SPDX-License-Identifier: GPL-3.0-or-later
 package org.secureinchat.guardian.dns
 
@@ -198,4 +197,3 @@ fun main() {
 
     println("DnsUpstreamTest: $un passed")
 }
-=====END=====
