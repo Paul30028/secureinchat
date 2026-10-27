@@ -1,0 +1,370 @@
+=====FILE QueryHandler.kt=====
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian.dns
+
+import java.util.concurrent.atomic.AtomicLong
+
+class Stats {
+    val queries = AtomicLong()
+    val blocked = AtomicLong()
+    val forwarded = AtomicLong()
+    val answered = AtomicLong()
+    val failed = AtomicLong()
+    val malformed = AtomicLong()
+
+    fun snapshot(): StatsSnapshot = StatsSnapshot(
+        queries.get(), blocked.get(), forwarded.get(),
+        answered.get(), failed.get(), malformed.get()
+    )
+}
+
+data class StatsSnapshot(
+    val queries: Long,
+    val blocked: Long,
+    val forwarded: Long,
+    val answered: Long,
+    val failed: Long,
+    val malformed: Long
+)
+
+data class LogEntry(
+    val timeMs: Long,
+    val name: String,
+    val qtype: Int,
+    val blocked: Boolean
+)
+
+sealed interface Action {
+    data class Respond(val packet: ByteArray, val name: String) : Action
+    class Forward(val query: DnsQuery, val payload: ByteArray) : Action
+    object Drop : Action
+}
+
+class QueryHandler(
+    @Volatile var blocklist: Blocklist,
+    val mode: BlockMode = BlockMode.NULL_IP,
+    private val clock: () -> Long = System::currentTimeMillis
+) {
+    val stats = Stats()
+
+    private val logCapacity = 200
+    private val logEntries = arrayOfNulls<LogEntry>(logCapacity)
+    private var logWritePos = 0
+    private var logCount = 0
+    private val logLock = Any()
+
+    fun handle(packet: ByteArray, length: Int): Action {
+        stats.queries.incrementAndGet()
+        val q = DnsPacket.parseQuery(packet, length)
+        if (q == null) {
+            stats.malformed.incrementAndGet()
+            return Action.Drop
+        }
+        val blocked = blocklist.isBlocked(q.qname)
+        if (blocked) {
+            stats.blocked.incrementAndGet()
+            val resp = DnsPacket.buildBlockedResponse(q, mode)
+            appendLog(q.qname, q.qtype, true)
+            return Action.Respond(resp, q.qname)
+        }
+        stats.forwarded.incrementAndGet()
+        val payload = DnsWire.extractQueryPayload(packet, q)
+        appendLog(q.qname, q.qtype, false)
+        return Action.Forward(q, payload)
+    }
+
+    fun onUpstreamAnswer(q: DnsQuery, answer: ByteArray, len: Int): ByteArray? {
+        val resp = DnsPacket.buildResponseFromUpstream(q, answer, len)
+        if (resp != null) {
+            stats.answered.incrementAndGet()
+        } else {
+            stats.failed.incrementAndGet()
+        }
+        return resp
+    }
+
+    fun onUpstreamFailed(q: DnsQuery) {
+        stats.failed.incrementAndGet()
+    }
+
+    fun snapshot(): StatsSnapshot = stats.snapshot()
+
+    fun recent(): List<LogEntry> {
+        synchronized(logLock) {
+            val result = ArrayList<LogEntry>(logCount)
+            for (i in 1..logCount) {
+                val idx = (logWritePos - i + logCapacity) % logCapacity
+                result.add(logEntries[idx]!!)
+            }
+            return result
+        }
+    }
+
+    fun clearLog() {
+        synchronized(logLock) {
+            for (i in logEntries.indices) logEntries[i] = null
+            logWritePos = 0
+            logCount = 0
+        }
+    }
+
+    private fun appendLog(name: String, qtype: Int, blocked: Boolean) {
+        val entry = LogEntry(clock(), name, qtype, blocked)
+        synchronized(logLock) {
+            logEntries[logWritePos] = entry
+            logWritePos = (logWritePos + 1) % logCapacity
+            if (logCount < logCapacity) logCount++
+        }
+    }
+}
+=====FILE QueryHandlerTest.kt=====
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian.dns
+
+import java.io.ByteArrayOutputStream
+
+private var qn = 0
+private fun qt(name: String, block: () -> Unit) {
+    try { block(); qn++ } catch (e: Throwable) {
+        println("FAIL $name: ${e.message}")
+        throw e
+    }
+}
+private fun qeq(a: Any?, b: Any?) { check(a == b) { "expected $a, got $b" } }
+
+private fun qIpUdp(dns: ByteArray, srcPort: Int = 40000): ByteArray {
+    val udpLen = 8 + dns.size
+    val udp = ByteArray(udpLen)
+    udp[0] = ((srcPort ushr 8) and 0xFF).toByte()
+    udp[1] = (srcPort and 0xFF).toByte()
+    udp[2] = 0; udp[3] = 53
+    udp[4] = ((udpLen ushr 8) and 0xFF).toByte()
+    udp[5] = (udpLen and 0xFF).toByte()
+    System.arraycopy(dns, 0, udp, 8, dns.size)
+    val totalLen = 20 + udpLen
+    val ip = ByteArray(totalLen)
+    ip[0] = 0x45
+    ip[2] = ((totalLen ushr 8) and 0xFF).toByte()
+    ip[3] = (totalLen and 0xFF).toByte()
+    ip[6] = 0x40; ip[8] = 64; ip[9] = 17
+    ip[12] = 192.toByte(); ip[13] = 168.toByte(); ip[14] = 1; ip[15] = 100
+    ip[16] = 8; ip[17] = 8; ip[18] = 8; ip[19] = 8
+    val ipck = Checksum.ipv4Header(ip, 0, 20)
+    ip[10] = ((ipck ushr 8) and 0xFF).toByte()
+    ip[11] = (ipck and 0xFF).toByte()
+    System.arraycopy(udp, 0, ip, 20, udpLen)
+    val udpck = Checksum.udp(ip)
+    ip[26] = ((udpck ushr 8) and 0xFF).toByte()
+    ip[27] = (udpck and 0xFF).toByte()
+    return ip
+}
+
+private fun qBuildQuery(name: String, qtype: Int, id: Int = 0x1234, srcPort: Int = 40000): ByteArray {
+    val dns = ByteArrayOutputStream()
+    dns.write((id ushr 8) and 0xFF); dns.write(id and 0xFF)
+    dns.write(0x01); dns.write(0x00)
+    dns.write(0x00); dns.write(0x01)
+    dns.write(0x00); dns.write(0x00)
+    dns.write(0x00); dns.write(0x00)
+    dns.write(0x00); dns.write(0x00)
+    for (label in name.split('.')) {
+        dns.write(label.length and 0xFF)
+        dns.write(label.toByteArray(Charsets.US_ASCII))
+    }
+    dns.write(0x00)
+    dns.write((qtype ushr 8) and 0xFF); dns.write(qtype and 0xFF)
+    dns.write(0x00); dns.write(0x01)
+    return qIpUdp(dns.toByteArray(), srcPort)
+}
+
+private fun qBuildUpstream(
+    id: Int, qname: String, qtype: Int, qclass: Int, aIp: String, qr: Boolean = true
+): ByteArray {
+    val out = ByteArrayOutputStream()
+    out.write((id ushr 8) and 0xFF); out.write(id and 0xFF)
+    var flags = 0
+    if (qr) flags = flags or 0x8000
+    flags = flags or 0x0100 or 0x0080
+    out.write((flags ushr 8) and 0xFF); out.write(flags and 0xFF)
+    out.write(0x00); out.write(0x01)
+    out.write(0x00); out.write(0x01)
+    out.write(0x00); out.write(0x00)
+    out.write(0x00); out.write(0x00)
+    for (label in qname.split('.')) {
+        out.write(label.length and 0xFF)
+        out.write(label.toByteArray(Charsets.US_ASCII))
+    }
+    out.write(0x00)
+    out.write((qtype ushr 8) and 0xFF); out.write(qtype and 0xFF)
+    out.write((qclass ushr 8) and 0xFF); out.write(qclass and 0xFF)
+    out.write(0xC0); out.write(0x0C)
+    out.write(0x00); out.write(0x01)
+    out.write(0x00); out.write(0x01)
+    out.write(0x00); out.write(0x00); out.write(0x01); out.write(0x2C)
+    out.write(0x00); out.write(0x04)
+    for (p in aIp.split('.')) out.write(p.toInt() and 0xFF)
+    return out.toByteArray()
+}
+
+private fun qBlocklist(vararg domains: String): Blocklist =
+    Blocklist.parse(domains.joinToString("\n"))
+
+fun main() {
+
+    qt("blocked path") {
+        val h = QueryHandler(qBlocklist("blocked.test.com"))
+        val pkt = qBuildQuery("blocked.test.com", 1)
+        val act = h.handle(pkt, pkt.size)
+        check(act is Action.Respond) { "expected Respond, got $act" }
+        val resp = act as Action.Respond
+        qeq(resp.name, "blocked.test.com")
+        check(Checksum.verify(resp.packet)) { "checksum" }
+        val s = h.snapshot()
+        qeq(s.queries, 1L)
+        qeq(s.blocked, 1L)
+        qeq(s.forwarded, 0L)
+        qeq(s.malformed, 0L)
+        qeq(s.answered, 0L)
+        qeq(s.failed, 0L)
+        qeq(h.recent().size, 1)
+        qeq(h.recent()[0].blocked, true)
+        qeq(h.recent()[0].name, "blocked.test.com")
+    }
+
+    qt("forward path") {
+        val h = QueryHandler(qBlocklist())
+        val pkt = qBuildQuery("safe.test.com", 1)
+        val act = h.handle(pkt, pkt.size)
+        check(act is Action.Forward) { "expected Forward, got $act" }
+        val fwd = act as Action.Forward
+        qeq(fwd.query.qname, "safe.test.com")
+        qeq(fwd.query.qtype, 1)
+        val udpLen = ((pkt[24].toInt() and 0xFF) shl 8) or (pkt[25].toInt() and 0xFF)
+        qeq(fwd.payload.size, udpLen - 8)
+        qeq(fwd.payload[0].toInt() and 0xFF, 0x12)
+        qeq(fwd.payload[1].toInt() and 0xFF, 0x34)
+        val s = h.snapshot()
+        qeq(s.queries, 1L)
+        qeq(s.forwarded, 1L)
+        qeq(s.blocked, 0L)
+        qeq(h.recent().size, 1)
+        qeq(h.recent()[0].blocked, false)
+        qeq(h.recent()[0].name, "safe.test.com")
+    }
+
+    qt("malformed path") {
+        val h = QueryHandler(qBlocklist())
+        val garbage = ByteArray(30)
+        val act = h.handle(garbage, garbage.size)
+        check(act is Action.Drop) { "expected Drop, got $act" }
+        val s = h.snapshot()
+        qeq(s.queries, 1L)
+        qeq(s.malformed, 1L)
+        qeq(s.blocked, 0L)
+        qeq(s.forwarded, 0L)
+        qeq(h.recent().size, 0)
+    }
+
+    qt("stats across paths") {
+        val h = QueryHandler(qBlocklist("bad.test.com"))
+        val blockedPkt = qBuildQuery("bad.test.com", 1)
+        val safePkt = qBuildQuery("ok.test.com", 1)
+        val garbage = ByteArray(30)
+        h.handle(blockedPkt, blockedPkt.size)
+        h.handle(safePkt, safePkt.size)
+        h.handle(garbage, garbage.size)
+        val s = h.snapshot()
+        qeq(s.queries, 3L)
+        qeq(s.blocked, 1L)
+        qeq(s.forwarded, 1L)
+        qeq(s.malformed, 1L)
+    }
+
+    qt("upstream answer valid") {
+        val h = QueryHandler(qBlocklist())
+        val pkt = qBuildQuery("example.com", 1)
+        val q = DnsPacket.parseQuery(pkt, pkt.size) ?: error("parse")
+        val up = qBuildUpstream(0x1234, "example.com", 1, 1, "93.184.216.34")
+        val resp = h.onUpstreamAnswer(q, up, up.size)
+        check(resp != null) { "null" }
+        check(Checksum.verify(resp!!)) { "checksum" }
+        val s = h.snapshot()
+        qeq(s.answered, 1L)
+        qeq(s.failed, 0L)
+    }
+
+    qt("upstream answer invalid") {
+        val h = QueryHandler(qBlocklist())
+        val pkt = qBuildQuery("example.com", 1)
+        val q = DnsPacket.parseQuery(pkt, pkt.size) ?: error("parse")
+        val up = qBuildUpstream(0x9999, "example.com", 1, 1, "1.2.3.4")
+        qeq(h.onUpstreamAnswer(q, up, up.size), null)
+        val s = h.snapshot()
+        qeq(s.answered, 0L)
+        qeq(s.failed, 1L)
+    }
+
+    qt("onUpstreamFailed counts") {
+        val h = QueryHandler(qBlocklist())
+        val pkt = qBuildQuery("example.com", 1)
+        val q = DnsPacket.parseQuery(pkt, pkt.size) ?: error("parse")
+        h.onUpstreamFailed(q)
+        h.onUpstreamFailed(q)
+        qeq(h.snapshot().failed, 2L)
+        qeq(h.snapshot().answered, 0L)
+    }
+
+    qt("ring buffer cap 200 newest first") {
+        val h = QueryHandler(qBlocklist())
+        for (i in 0 until 250) {
+            val pkt = qBuildQuery("host$i.test.com", 1)
+            h.handle(pkt, pkt.size)
+        }
+        val r = h.recent()
+        qeq(r.size, 200)
+        qeq(r[0].name, "host249.test.com")
+        qeq(r[199].name, "host50.test.com")
+        val expected = (249 downTo 50).map { "host$it.test.com" }
+        qeq(r.map { it.name }, expected)
+        h.clearLog()
+        qeq(h.recent().size, 0)
+        val pkt = qBuildQuery("after.clear.test.com", 1)
+        h.handle(pkt, pkt.size)
+        qeq(h.recent().size, 1)
+        qeq(h.recent()[0].name, "after.clear.test.com")
+    }
+
+    qt("4 threads 5000 each") {
+        val h = QueryHandler(qBlocklist())
+        val pkt = qBuildQuery("host.test.com", 1)
+        val threads = ArrayList<Thread>(4)
+        for (i in 0 until 4) {
+            threads.add(Thread {
+                for (j in 0 until 5000) h.handle(pkt, pkt.size)
+            })
+        }
+        threads.forEach { it.start() }
+        threads.forEach { it.join() }
+        val s = h.snapshot()
+        qeq(s.queries, 20000L)
+        qeq(s.forwarded, 20000L)
+        qeq(h.recent().size, 200)
+    }
+
+    qt("replace blocklist immediate") {
+        val h = QueryHandler(qBlocklist("x.test.com"))
+        val pkt = qBuildQuery("x.test.com", 1)
+        check(h.handle(pkt, pkt.size) is Action.Respond) { "A should block" }
+        h.blocklist = qBlocklist()
+        check(h.handle(pkt, pkt.size) is Action.Forward) { "empty should forward" }
+        h.blocklist = qBlocklist("x.test.com")
+        check(h.handle(pkt, pkt.size) is Action.Respond) { "C should block" }
+        val s = h.snapshot()
+        qeq(s.queries, 3L)
+        qeq(s.blocked, 2L)
+        qeq(s.forwarded, 1L)
+    }
+
+    println("QueryHandlerTest: $qn passed")
+}
+=====END=====
