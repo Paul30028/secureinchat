@@ -166,7 +166,7 @@ def main():
     # Before Guardian runs: the tracker domain must not already resolve to 0.0.0.0 (otherwise step 3 proves nothing).
     pre, pre_out = resolve(BLOCKED, tries=2)
     print(f"before: {BLOCKED} -> {pre}")
-    if pre in ("0.0.0.0", "::"):
+    if pre in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{BLOCKED} already resolves to {pre} without Guardian: {pre_out}")
 
     # 2. Start
@@ -183,7 +183,9 @@ def main():
     # 3. Blocked domain
     addr, out = resolve(BLOCKED)
     print(f"guardian: {BLOCKED} -> {addr}")
-    if addr != "0.0.0.0":
+    # iputils ping replaces a 0.0.0.0 destination with 127.0.0.1 before printing it, so both mean
+    # Guardian's NULL_IP answer; the "before" check above showed a real address without Guardian.
+    if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{BLOCKED} should resolve to 0.0.0.0 through Guardian, got {addr}: {out}")
     nodes = wait_ui(lambda s: f"BLOCK {BLOCKED}" in s, f"log does not show BLOCK {BLOCKED}")
     print(f"ok: {BLOCKED} blocked (0.0.0.0) and logged")
@@ -191,7 +193,7 @@ def main():
     # 4. Allowed domain is forwarded to the network's resolver
     addr, out = resolve(ALLOWED)
     print(f"guardian: {ALLOWED} -> {addr}")
-    if addr is None or addr in ("0.0.0.0", "::"):
+    if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{ALLOWED} should resolve to a real address through Guardian, got {addr}: {out}")
     nodes = wait_ui(lambda s: f"ALLOW {ALLOWED}" in s and re.search(r"Answered: [1-9]", s),
                     f"log does not show ALLOW {ALLOWED} with an answered query")
