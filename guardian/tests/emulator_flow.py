@@ -46,16 +46,20 @@ def snap(name):
 
 
 def dump():
-    for _ in range(4):
+    # The app refreshes its screen every second, so uiautomator can miss its idle window; retry generously.
+    msg = ""
+    for _ in range(12):
         sh("rm -f /sdcard/ui.xml", check=False)
-        sh("uiautomator dump /sdcard/ui.xml", check=False)
+        msg = sh("uiautomator dump /sdcard/ui.xml", check=False, timeout=60)
         xml = sh("cat /sdcard/ui.xml", check=False)
         if "<?xml" in xml:
             root = ET.fromstring(xml[xml.index("<?xml"):].strip())
             return [(n.get("text") or "", n.get("content-desc") or "", n.get("bounds") or "", n.get("class") or "")
                     for n in root.iter("node")]
-        time.sleep(1)
-    raise SystemExit("uiautomator dump failed")
+        time.sleep(2)
+    snap("dump-failed")
+    (OUT / "logcat.txt").write_text(adb("logcat", "-d", check=False))
+    raise SystemExit("uiautomator dump failed: " + msg.strip()[-300:])
 
 
 def joined(nodes):
