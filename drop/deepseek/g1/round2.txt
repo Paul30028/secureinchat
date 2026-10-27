@@ -1,0 +1,312 @@
+=====FILE DnsFilterTest.kt=====
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian.dns
+
+import java.io.ByteArrayOutputStream
+import java.util.Random
+
+private var n = 0
+private fun t(name: String, block: () -> Unit) {
+    try { block(); n++ } catch (e: Throwable) {
+        println("FAIL $name: ${e.message}")
+        throw e
+    }
+}
+private fun eq(a: Any?, b: Any?) { check(a == b) { "expected $a, got $b" } }
+
+private fun buildQuery(name: String, qtype: Int, rd: Boolean = true, srcPort: Int = 40000): ByteArray {
+    val dns = ByteArrayOutputStream()
+    dns.write(0x12); dns.write(0x34)
+    var flags = 0
+    if (rd) flags = flags or 0x0100
+    dns.write((flags ushr 8) and 0xFF); dns.write(flags and 0xFF)
+    dns.write(0x00); dns.write(0x01)
+    dns.write(0x00); dns.write(0x00)
+    dns.write(0x00); dns.write(0x00)
+    dns.write(0x00); dns.write(0x00)
+    for (label in name.split('.')) {
+        dns.write(label.length and 0xFF)
+        dns.write(label.toByteArray(Charsets.US_ASCII))
+    }
+    dns.write(0x00)
+    dns.write((qtype ushr 8) and 0xFF); dns.write(qtype and 0xFF)
+    dns.write(0x00); dns.write(0x01)
+    val dnsBytes = dns.toByteArray()
+
+    val udpLen = 8 + dnsBytes.size
+    val udp = ByteArray(udpLen)
+    udp[0] = ((srcPort ushr 8) and 0xFF).toByte()
+    udp[1] = (srcPort and 0xFF).toByte()
+    udp[2] = 0; udp[3] = 53
+    udp[4] = ((udpLen ushr 8) and 0xFF).toByte()
+    udp[5] = (udpLen and 0xFF).toByte()
+    udp[6] = 0; udp[7] = 0
+    System.arraycopy(dnsBytes, 0, udp, 8, dnsBytes.size)
+
+    val totalLen = 20 + udpLen
+    val ip = ByteArray(totalLen)
+    ip[0] = 0x45; ip[1] = 0
+    ip[2] = ((totalLen ushr 8) and 0xFF).toByte()
+    ip[3] = (totalLen and 0xFF).toByte()
+    ip[4] = 0; ip[5] = 0
+    ip[6] = 0x40; ip[7] = 0
+    ip[8] = 64; ip[9] = 17
+    ip[10] = 0; ip[11] = 0
+    ip[12] = 192.toByte(); ip[13] = 168.toByte(); ip[14] = 1; ip[15] = 100
+    ip[16] = 8; ip[17] = 8; ip[18] = 8; ip[19] = 8
+    val ipck = Checksum.ipv4Header(ip, 0, 20)
+    ip[10] = ((ipck ushr 8) and 0xFF).toByte()
+    ip[11] = (ipck and 0xFF).toByte()
+    System.arraycopy(udp, 0, ip, 20, udpLen)
+    val udpck = Checksum.udp(ip)
+    ip[26] = ((udpck ushr 8) and 0xFF).toByte()
+    ip[27] = (udpck and 0xFF).toByte()
+    return ip
+}
+
+private class Resp(val flags: Int, val qd: Int, val an: Int, val qname: String,
+                   val ansType: Int, val ansTtl: Int, val rdata: ByteArray)
+
+private fun parseResp(r: ByteArray): Resp {
+    val ihl = (r[0].toInt() and 0xF) * 4
+    val d = ihl + 8
+    val flags = ((r[d + 2].toInt() and 0xFF) shl 8) or (r[d + 3].toInt() and 0xFF)
+    val qd = ((r[d + 4].toInt() and 0xFF) shl 8) or (r[d + 5].toInt() and 0xFF)
+    val an = ((r[d + 6].toInt() and 0xFF) shl 8) or (r[d + 7].toInt() and 0xFF)
+    var pos = d + 12
+    val labels = ArrayList<String>()
+    while (true) {
+        val b = r[pos].toInt() and 0xFF
+        if (b == 0) { pos++; break }
+        val sb = StringBuilder()
+        for (i in 0 until b) sb.append((r[pos + 1 + i].toInt() and 0xFF).toChar())
+        labels.add(sb.toString()); pos += 1 + b
+    }
+    val qname = labels.joinToString(".")
+    pos += 4
+    var ansType = -1; var ansTtl = -1; var rdata = ByteArray(0)
+    if (an > 0) {
+        pos += 2
+        ansType = ((r[pos].toInt() and 0xFF) shl 8) or (r[pos + 1].toInt() and 0xFF); pos += 2
+        pos += 2
+        ansTtl = ((r[pos].toInt() and 0xFF) shl 24) or ((r[pos + 1].toInt() and 0xFF) shl 16) or
+                 ((r[pos + 2].toInt() and 0xFF) shl 8) or (r[pos + 3].toInt() and 0xFF); pos += 4
+        val rdlen = ((r[pos].toInt() and 0xFF) shl 8) or (r[pos + 1].toInt() and 0xFF); pos += 2
+        rdata = r.copyOfRange(pos, pos + rdlen)
+    }
+    return Resp(flags, qd, an, qname, ansType, ansTtl, rdata)
+}
+
+private fun dnsStartOf(p: ByteArray) = (p[0].toInt() and 0xF) * 4 + 8
+
+fun main() {
+
+    t("parse graph.facebook.com A") {
+        val p = buildQuery("graph.facebook.com", 1)
+        val q = DnsPacket.parseQuery(p, p.size) ?: error("null")
+        eq(q.srcIp.toList(), listOf(192.toByte(), 168.toByte(), 1.toByte(), 100.toByte()))
+        eq(q.dstIp.toList(), listOf(8.toByte(), 8.toByte(), 8.toByte(), 8.toByte()))
+        eq(q.srcPort, 40000)
+        eq(q.dstPort, 53)
+        eq(q.ipHeaderLen, 20)
+        eq(q.dnsId, 0x1234)
+        eq(q.flags, 0x0100)
+        eq(q.qname, "graph.facebook.com")
+        eq(q.qtype, 1)
+        eq(q.qclass, 1)
+        eq(q.questionEnd, 64)
+    }
+
+    t("uppercase normalized") {
+        val p = buildQuery("Graph.Facebook.COM", 1)
+        val q = DnsPacket.parseQuery(p, p.size) ?: error("null")
+        eq(q.qname, "graph.facebook.com")
+    }
+
+    t("all truncations null") {
+        val p = buildQuery("graph.facebook.com", 1)
+        for (len in 0 until p.size) {
+            eq(DnsPacket.parseQuery(p, len), null)
+        }
+    }
+
+    t("random garbage no throw") {
+        val r = Random(42)
+        for (i in 0 until 20000) {
+            val len = r.nextInt(601)
+            val b = ByteArray(len)
+            r.nextBytes(b)
+            DnsPacket.parseQuery(b, len)
+        }
+        val base = buildQuery("graph.facebook.com", 1)
+        for (i in 0 until 20000) {
+            val b = base.copyOf()
+            val flips = 1 + r.nextInt(5)
+            for (j in 0 until flips) {
+                val idx = r.nextInt(b.size)
+                b[idx] = (b[idx].toInt() xor (1 + r.nextInt(255))).toByte()
+            }
+            DnsPacket.parseQuery(b, b.size)
+        }
+    }
+
+    t("reject malformed") {
+        val base = buildQuery("graph.facebook.com", 1)
+        val d = dnsStartOf(base)
+        // non-53 port
+        run { val b = base.copyOf(); b[22] = 0; b[23] = 52; eq(DnsPacket.parseQuery(b, b.size), null) }
+        // TCP
+        run { val b = base.copyOf(); b[9] = 6; eq(DnsPacket.parseQuery(b, b.size), null) }
+        // IPv6
+        run { val b = base.copyOf(); b[0] = 0x60; eq(DnsPacket.parseQuery(b, b.size), null) }
+        // MF fragment
+        run { val b = base.copyOf(); b[6] = (b[6].toInt() or 0x20).toByte(); eq(DnsPacket.parseQuery(b, b.size), null) }
+        // frag offset
+        run { val b = base.copyOf(); b[7] = 1; eq(DnsPacket.parseQuery(b, b.size), null) }
+        // QR=1
+        run { val b = base.copyOf(); b[d + 2] = (b[d + 2].toInt() or 0x80).toByte(); eq(DnsPacket.parseQuery(b, b.size), null) }
+        // QDCOUNT=2
+        run { val b = base.copyOf(); b[d + 4] = 0; b[d + 5] = 2; eq(DnsPacket.parseQuery(b, b.size), null) }
+        // compression pointer at first label
+        run { val b = base.copyOf(); b[d + 12] = 0xC0.toByte(); eq(DnsPacket.parseQuery(b, b.size), null) }
+        // label length 64
+        run {
+            val b = buildQuery("a".repeat(64) + ".com", 1)
+            eq(DnsPacket.parseQuery(b, b.size), null)
+        }
+        // empty label (root)
+        run {
+            val b = buildQuery("", 1)
+            eq(DnsPacket.parseQuery(b, b.size), null)
+        }
+    }
+
+    t("NXDOMAIN response") {
+        val p = buildQuery("graph.facebook.com", 1)
+        val q = DnsPacket.parseQuery(p, p.size) ?: error("null")
+        val r = DnsPacket.buildBlockedResponse(q, BlockMode.NXDOMAIN)
+        check(Checksum.verify(r)) { "checksum" }
+        eq(r.copyOfRange(12, 16).toList(), q.srcIp.toList())
+        eq(r.copyOfRange(16, 20).toList(), q.dstIp.toList())
+        val rp = ((r[20].toInt() and 0xFF) shl 8) or (r[21].toInt() and 0xFF)
+        val dp = ((r[22].toInt() and 0xFF) shl 8) or (r[23].toInt() and 0xFF)
+        eq(rp, 53)
+        eq(dp, 40000)
+        val resp = parseResp(r)
+        val id = ((r[28].toInt() and 0xFF) shl 8) or (r[29].toInt() and 0xFF)
+        eq(id, 0x1234)
+        eq(resp.flags and 0xF, 3)
+        check((resp.flags and 0x8000) != 0) { "QR" }
+        check((resp.flags and 0x0100) != 0) { "RD" }
+        eq(resp.qd, 1)
+        eq(resp.an, 0)
+        eq(resp.qname, "graph.facebook.com")
+    }
+
+    t("NULL_IP A/AAAA/TXT") {
+        run {
+            val q = DnsPacket.parseQuery(buildQuery("x.com", 1).let { it }, 1000)
+            val p = buildQuery("x.com", 1)
+            val qq = DnsPacket.parseQuery(p, p.size) ?: error("null")
+            val r = DnsPacket.buildBlockedResponse(qq, BlockMode.NULL_IP)
+            check(Checksum.verify(r)) { "ck" }
+            val resp = parseResp(r)
+            eq(resp.an, 1)
+            eq(resp.ansType, 1)
+            eq(resp.ansTtl, 60)
+            eq(resp.rdata.toList(), listOf(0.toByte(), 0.toByte(), 0.toByte(), 0.toByte()))
+            eq(resp.flags and 0xF, 0)
+        }
+        run {
+            val p = buildQuery("x.com", 28)
+            val qq = DnsPacket.parseQuery(p, p.size) ?: error("null")
+            val r = DnsPacket.buildBlockedResponse(qq, BlockMode.NULL_IP)
+            check(Checksum.verify(r)) { "ck" }
+            val resp = parseResp(r)
+            eq(resp.an, 1)
+            eq(resp.ansType, 28)
+            eq(resp.ansTtl, 60)
+            eq(resp.rdata.size, 16)
+            check(resp.rdata.all { it == 0.toByte() }) { "aaaa rdata" }
+        }
+        run {
+            val p = buildQuery("x.com", 16)
+            val qq = DnsPacket.parseQuery(p, p.size) ?: error("null")
+            val r = DnsPacket.buildBlockedResponse(qq, BlockMode.NULL_IP)
+            check(Checksum.verify(r)) { "ck" }
+            val resp = parseResp(r)
+            eq(resp.an, 0)
+            eq(resp.flags and 0xF, 0)
+        }
+    }
+
+    t("known IPv4 checksum RFC example") {
+        val h = byteArrayOf(
+            0x45, 0x00, 0x00, 0x73, 0x00, 0x00, 0x40, 0x00, 0x40, 0x11,
+            0x00, 0x00, 0xc0.toByte(), 0xa8.toByte(), 0x00, 0x01,
+            0xc0.toByte(), 0xa8.toByte(), 0x00, 0xc7.toByte()
+        )
+        eq(Checksum.ipv4Header(h, 0, 20), 0xb861)
+    }
+
+    t("blocklist parsing and matching") {
+        val text = """
+            # comment
+            ! adblock comment
+            0.0.0.0 a.com b.com
+            127.0.0.1 c.com
+            d.com
+            ||e.com^
+            ||example.com^
+            @@||safe.example.com^
+            0.0.0.0 localhost
+            0.0.0.0 localhost.localdomain
+            f.com # trailing comment
+            GHI.COM.
+            ||*.com^
+            0.0.0.0 中文.com
+        """.trimIndent()
+        val bl = Blocklist.parse(text)
+        eq(bl.blockedCount, 8)
+        eq(bl.allowedCount, 1)
+        check(bl.isBlocked("a.com")) { "a" }
+        check(bl.isBlocked("x.a.com")) { "xa" }
+        check(bl.isBlocked("b.com")) { "b" }
+        check(bl.isBlocked("c.com")) { "c" }
+        check(bl.isBlocked("d.com")) { "d" }
+        check(bl.isBlocked("sub.d.com")) { "subd" }
+        check(bl.isBlocked("e.com")) { "e" }
+        check(bl.isBlocked("f.com")) { "f" }
+        check(bl.isBlocked("ghi.com")) { "ghi" }
+        check(!bl.isBlocked("localhost")) { "lh" }
+        check(!bl.isBlocked("localhost.localdomain")) { "lhl" }
+        // suffix semantics
+        check(bl.isBlocked("example.com")) { "ex" }
+        check(bl.isBlocked("a.example.com")) { "aex" }
+        check(!bl.isBlocked("badexample.com")) { "badex" }
+        check(!bl.isBlocked("com")) { "com" }
+        // whitelist overrides
+        check(!bl.isBlocked("safe.example.com")) { "safe" }
+        check(!bl.isBlocked("x.safe.example.com")) { "xsafe" }
+        check(!bl.isBlocked("unknown.org")) { "unk" }
+    }
+
+    t("perf 100k") {
+        val sb = StringBuilder()
+        for (i in 0 until 100000) sb.append("0.0.0.0 host$i.example.com\n")
+        val bl = Blocklist.parse(sb.toString())
+        eq(bl.blockedCount, 100000)
+        val start = System.nanoTime()
+        var hits = 0
+        for (i in 0 until 100000) {
+            if (bl.isBlocked("sub.host$i.example.com")) hits++
+        }
+        val ms = (System.nanoTime() - start) / 1_000_000
+        println("perf: ${ms}ms hits=$hits")
+        eq(hits, 100000)
+        check(ms < 2000) { "too slow: ${ms}ms" }
+    }
+
+    println("DnsFilterTest: $n passed")
+}
+=====END=====
