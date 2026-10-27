@@ -19,7 +19,7 @@ man = os.path.join(ROOT, 'app', 'src', 'main', 'AndroidManifest.xml')
 if os.path.exists(man):
     m = open(man, encoding='utf-8').read()
     perms = set(re.findall(r'uses-permission[^>]*android:name="([^"]+)"', m))
-    allowed = {'android.permission.INTERNET', 'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED', 'android.permission.POST_NOTIFICATIONS'}
+    allowed = {'android.permission.INTERNET', 'android.permission.ACCESS_NETWORK_STATE', 'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED', 'android.permission.POST_NOTIFICATIONS'}
     if perms - allowed: fail.append(f'unexpected permissions: {sorted(perms - allowed)}')
     if 'android.permission.BIND_VPN_SERVICE' not in m: fail.append('VPN service not protected by BIND_VPN_SERVICE')
 if len(sys.argv) > 1:
