@@ -37,7 +37,6 @@ jobs:
     needs: core
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ hashFiles('guardian/app/build.gradle.kts') != '' }}
     defaults:
       run:
         working-directory: guardian
