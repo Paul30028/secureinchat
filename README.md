@@ -3,27 +3,22 @@
 邀请制、端到端加密群聊的独立重建。参考（只读、不修改）：
 [Paul30028/secure-invite-chat](https://github.com/Paul30028/secure-invite-chat)。
 
-**当前阶段：早期骨架。以下内容是真实存在、有测试覆盖的；未列出的一律视为未开始。**
+**当前状态以 [docs/PROJECT_HANDBOOK.md](docs/PROJECT_HANDBOOK.md) 第 6、7 节为准**(功能清单、测试数、已知缺口)。下面是摘要。
 
-## 已完成并通过测试
+## 能用的
 
-- `packages/protocol`：SIC1（兼容旧协议）/ SIC2（正式协议）邀请串编解码，
-  13 个单元测试全部通过（过期、次数用尽、篡改、未知前缀等边界情况）。
-- `packages/crypto-core`：
-  - AES-256-GCM AEAD 封装（含 AAD 上下文绑定、篡改检测、错误密钥检测）
-  - 基于 HKDF 的群 epoch 密钥派生 + 文件密钥派生
-  - 群 epoch 轮换管理器（`InMemoryGroupEpochManager`），并有测试证明
-    "成员移除触发轮换后，旧 epoch 密钥无法解密新消息"
-  - `KeystorePort` 接口 + 仅供测试的内存实现（明确标注不可用于生产）
-  - 16 个单元测试全部通过
-- `docs/architecture/ARCHITECTURE.md`、`docs/security/THREAT_MODEL.md`：
-  架构总览与威胁模型草案，包含对旧仓库已知缺陷的如实清单。
+四个每日栏目、文字/图片/语音/文件、@提醒、回复/复制/删除/搜索、一对一语音视频通话、
+多人语音会议(mesh,上限约 8 人)、多群、断线重连与离线补发、消息本地加密留存、应用锁、
+连接诊断、群内设备列表、扫码加群、可截图分享的邀请卡片。
 
-## 尚未开始
+仓库结构:`apps/android-client`(React 19 + TypeScript + Vite + Capacitor 7)、
+`packages/{ui,chat-core,crypto-core,protocol,secure-storage,webrtc}`、`server/relay`(Python websockets 中继)、`docs/`。
+CI 跑 TS 矩阵、app 测试和构建、relay pytest、跨语言集成测试和 APK 构建。
 
-`packages/ui`、`chat-core`、`secure-storage`、`webrtc`，`apps/android-client`，
-`server/*`，以及第八节列出的全部 39 个界面/状态、音视频通话、管理员功能、
-自动化测试的其余部分、GitHub Actions 的其余工作流、APK 构建。
+## 已知缺口(不要说成做完了)
+
+MLS 未实现(只有共享群密钥 + epoch 轮换);中继未启用成员资格校验;十几人视频会议未实现;
+不能声称达到 Signal 级别。完整清单见手册第 7 节。
 
 ## 本地开发
 
@@ -32,5 +27,4 @@ cd packages/protocol && npm install && npm test
 cd packages/crypto-core && npm install && npm test
 ```
 
-目前仓库还没有根级 lockfile，CI 尚未在真实 GitHub Actions 环境跑过
-(`.github/workflows/ci.yml` 已写好，覆盖 typecheck + test，尚待首次推送后验证)。
+各包的测试命令见手册;CI 配置在 `.github/workflows/ci.yml` 和 `build-apk.yml`。
