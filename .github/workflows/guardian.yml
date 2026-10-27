@@ -27,8 +27,36 @@ jobs:
           /tmp/kotlinc/bin/kotlinc core/src/main/kotlin core/src/test/kotlin -include-runtime -d /tmp/g.jar
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsFilterTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsUpstreamTestKt
+          java -cp /tmp/g.jar org.secureinchat.guardian.dns.QueryHandlerTestKt
       - name: Independent oracle (dnspython)
         run: |
           /tmp/kotlinc/bin/kotlinc core/src/main/kotlin tests/oracle/Cli.kt -include-runtime -d /tmp/cli.jar
           pip install dnspython==2.8.0
           python3 tests/dns_oracle.py /tmp/cli.jar
+  app:
+    needs: core
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ hashFiles('guardian/app/build.gradle.kts') != '' }}
+    defaults:
+      run:
+        working-directory: guardian
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - name: Android SDK licences
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.10.2' }
+      - name: Build debug APK and run Android lint
+        run: gradle --no-daemon :app:assembleDebug :app:lintDebug
+      - name: Policy check
+        run: python3 tests/policy_check.py app/build/outputs/apk/debug/app-debug.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: guardian-debug-apk
+          path: |
+            guardian/app/build/outputs/apk/debug/app-debug.apk
+            guardian/app/build/reports/lint-results-debug.html
