@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -23,7 +24,14 @@
             </intent-filter>
         </activity>
 
+        <!-- systemExempted: the official FGS type page lists "VPN apps (configured using
+             Settings > Network & Internet > VPN)" as allowed, alongside apps holding the exact-alarm
+             permissions. Lint's ForegroundServicePermission check only knows the alarm route, so it is
+             suppressed here; Guardian does not need alarms. The service starts only after
+             VpnService.prepare() consent, and falls back to stopping if startForeground is refused.
+             https://developer.android.com/develop/background-work/services/fgs/service-types -->
         <service
+            tools:ignore="ForegroundServicePermission"
             android:name=".GuardianVpnService"
             android:exported="false"
             android:permission="android.permission.BIND_VPN_SERVICE"

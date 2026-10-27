@@ -40,7 +40,13 @@ class GuardianVpnService : VpnService() {
             }
             else -> {
                 if (!running) {
-                    startForegroundSafe()
+                    // startForeground can be refused (e.g. systemExempted on API 34+ when this app
+                    // is no longer the configured VPN after a sticky restart). Stop rather than run unpromoted.
+                    val promoted = try { startForegroundSafe(); true } catch (_: RuntimeException) { false }
+                    if (!promoted) {
+                        stopSelf()
+                        return START_NOT_STICKY
+                    }
                     startVpnInternal()
                 }
             }

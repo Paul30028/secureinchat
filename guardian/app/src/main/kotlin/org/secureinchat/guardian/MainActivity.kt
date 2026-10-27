@@ -150,8 +150,11 @@ class MainActivity : Activity() {
 
     private fun onToggleClicked() {
         if (GuardianVpnService.isRunning) {
+            // Plain startService: the stop path never calls startForeground, and a
+            // startForegroundService() call that is not followed by startForeground() within a
+            // few seconds crashes with ForegroundServiceDidNotStartInTimeException.
             val i = Intent(this, GuardianVpnService::class.java).setAction(GuardianVpnService.ACTION_STOP)
-            startForegroundService(i)
+            startService(i)
         } else {
             val prep = VpnService.prepare(this)
             if (prep != null) {
