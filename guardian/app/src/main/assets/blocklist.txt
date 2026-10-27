@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Development starter list. G3 will load the production blocklist.
+doubleclick.net
+googlesyndication.com
+google-analytics.com
+app-measurement.com
+scorecardresearch.com
