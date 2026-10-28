@@ -8,15 +8,21 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.system.OsConstants
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import org.secureinchat.guardian.dns.Action
 import org.secureinchat.guardian.dns.Blocklist
+import org.secureinchat.guardian.dns.BlockMode
+import org.secureinchat.guardian.dns.DnsQuery
 import org.secureinchat.guardian.dns.QueryHandler
 
 class GuardianVpnService : VpnService() {
@@ -39,7 +45,7 @@ class GuardianVpnService : VpnService() {
                 return START_NOT_STICKY
             }
             else -> {
-                if (!running) {
+                if (!running && !isLoading) {
                     // startForeground can be refused (e.g. systemExempted on API 34+ when this app
                     // is no longer the configured VPN after a sticky restart). Stop rather than run unpromoted.
                     val promoted = try { startForegroundSafe(); true } catch (_: RuntimeException) { false }
@@ -47,11 +53,80 @@ class GuardianVpnService : VpnService() {
                         stopSelf()
                         return START_NOT_STICKY
                     }
-                    startVpnInternal()
+                    isLoading = true
+                    val gen = ++startGeneration
+                    Thread { startVpnBackground(gen) }.apply { name = "guardian-start" }.start()
                 }
             }
         }
         return START_STICKY
+    }
+
+    // Bumped by every start and stop. A start thread that finds a newer generation after loading the
+    // list gives up, so Stop pressed while the list is loading cannot be overtaken by a late establish().
+    @Volatile private var startGeneration = 0
+
+    private fun startVpnBackground(gen: Int) {
+        try {
+            val blocklist = loadBlocklist()
+            val userAllowed = UserRulesStore.allowed(applicationContext)
+            val effective = if (userAllowed.isEmpty()) blocklist else blocklist.plusAllowed(userAllowed)
+            val h = QueryHandler(effective, BlockMode.NULL_IP, { q -> uidOfQuery(q) })
+            if (gen != startGeneration) return
+
+            val builder = Builder()
+            builder.setSession("Guardian")
+            builder.addAddress("10.111.222.1", 32)
+            builder.addDnsServer("10.111.222.2")
+            builder.addRoute("10.111.222.2", 32)
+            builder.setMtu(1500)
+            builder.setBlocking(true)
+
+            val pfd = try { builder.establish() } catch (_: Throwable) { null }
+            if (gen != startGeneration) {
+                try { pfd?.close() } catch (_: Throwable) {}
+                return
+            }
+            if (pfd == null) {
+                isLoading = false
+                stopSelf()
+                return
+            }
+            tun = pfd
+            tunIn = FileInputStream(pfd.fileDescriptor)
+            tunOut = FileOutputStream(pfd.fileDescriptor)
+
+            val up = Upstream(applicationContext) { sock -> protect(sock) }
+            up.start()
+            upstream = up
+
+            handler = h
+            activeHandler = h
+            pool = Executors.newFixedThreadPool(8)
+            running = true
+            isRunning = true
+            isLoading = false
+
+            val t = Thread { readLoop(pfd) }
+            t.name = "guardian-tun-read"
+            readThread = t
+            t.start()
+        } catch (_: Throwable) {
+            isLoading = false
+            stopSelf()
+        }
+    }
+
+    private fun uidOfQuery(q: DnsQuery): Int {
+        if (Build.VERSION.SDK_INT < 29) return -1
+        return try {
+            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val src = InetSocketAddress(InetAddress.getByAddress(q.srcIp), q.srcPort)
+            val dst = InetSocketAddress(InetAddress.getByAddress(q.dstIp), q.dstPort)
+            cm.getConnectionOwnerUid(OsConstants.IPPROTO_UDP, src, dst)
+        } catch (_: Throwable) {
+            -1
+        }
     }
 
     override fun onRevoke() {
@@ -91,42 +166,6 @@ class GuardianVpnService : VpnService() {
         } else {
             startForeground(NOTIF_ID, notif)
         }
-    }
-
-    private fun startVpnInternal() {
-        val blocklist = loadBlocklist()
-        val h = QueryHandler(blocklist)
-        handler = h
-        val builder = Builder()
-        builder.setSession("Guardian")
-        builder.addAddress("10.111.222.1", 32)
-        builder.addDnsServer("10.111.222.2")
-        builder.addRoute("10.111.222.2", 32)
-        builder.setMtu(1500)
-        builder.setBlocking(true)
-
-        val pfd = try { builder.establish() } catch (_: Throwable) { null }
-        if (pfd == null) {
-            stopVpnInternal()
-            stopSelf()
-            return
-        }
-        tun = pfd
-        tunIn = FileInputStream(pfd.fileDescriptor)
-        tunOut = FileOutputStream(pfd.fileDescriptor)
-
-        val up = Upstream(applicationContext) { sock -> protect(sock) }
-        up.start()
-        upstream = up
-
-        running = true
-        isRunning = true
-        activeHandler = h
-        pool = Executors.newFixedThreadPool(8)
-        val t = Thread { readLoop(pfd) }
-        t.name = "guardian-tun-read"
-        readThread = t
-        t.start()
     }
 
     private fun readLoop(pfd: ParcelFileDescriptor) {
@@ -171,8 +210,10 @@ class GuardianVpnService : VpnService() {
     }
 
     private fun stopVpnInternal() {
+        startGeneration++
         running = false
         isRunning = false
+        isLoading = false
         try { tun?.close() } catch (_: Throwable) {}
         try { tunIn?.close() } catch (_: Throwable) {}
         try { tunOut?.close() } catch (_: Throwable) {}
@@ -187,16 +228,7 @@ class GuardianVpnService : VpnService() {
         activeHandler = null
     }
 
-    private fun loadBlocklist(): Blocklist {
-        return try {
-            val text = LIST_ASSETS.joinToString("\n") { name ->
-                assets.open(name).use { it.bufferedReader().readText() }
-            }
-            Blocklist.parse(text)
-        } catch (_: Throwable) {
-            Blocklist.parse("")
-        }
-    }
+    private fun loadBlocklist(): Blocklist = loadBlocklistStatic(applicationContext)
 
     companion object {
         const val ACTION_START = "org.secureinchat.guardian.action.START"
@@ -204,11 +236,44 @@ class GuardianVpnService : VpnService() {
         private const val CHANNEL_ID = "guardian_vpn"
         private const val NOTIF_ID = 1
         private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")
+        private val rulesLock = Any()
 
         @Volatile var isRunning: Boolean = false
             private set
 
+        @Volatile var isLoading: Boolean = false
+            private set
+
         @Volatile var activeHandler: QueryHandler? = null
             private set
+
+        // The bundled lists never change while the app runs, so parse them once per process.
+        @Volatile private var baseCache: Blocklist? = null
+
+        private fun loadBlocklistStatic(ctx: Context): Blocklist {
+            baseCache?.let { return it }
+            return try {
+                val text = LIST_ASSETS.joinToString("\n") { name ->
+                    ctx.assets.open(name).use { it.bufferedReader().readText() }
+                }
+                Blocklist.parse(text).also { baseCache = it }
+            } catch (_: Throwable) {
+                Blocklist.parse("")
+            }
+        }
+
+        fun applyUserRules(ctx: Context) {
+            val h = activeHandler ?: return
+            Thread {
+                synchronized(rulesLock) {
+                    try {
+                        val base = loadBlocklistStatic(ctx)
+                        val userAllowed = UserRulesStore.allowed(ctx)
+                        val effective = if (userAllowed.isEmpty()) base else base.plusAllowed(userAllowed)
+                        h.blocklist = effective
+                    } catch (_: Throwable) {}
+                }
+            }.apply { name = "guardian-rules" }.start()
+        }
     }
 }

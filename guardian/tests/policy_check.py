@@ -13,7 +13,9 @@ for p, s in src.items():
     for bad in ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1', '9.9.9.9', '208.67.222.222', 'dns.google', 'cloudflare-dns']:
         if bad in s: fail.append(f'{rel}: public resolver {bad}')
     for bad in ['FileOutputStream(File(', 'openFileOutput', 'SharedPreferences', 'getSharedPreferences', 'HttpURLConnection', 'URL(']:
-        if bad in s and 'VpnService' not in bad: fail.append(f'{rel}: {bad} (no disk logs, no HTTP)')
+        # The user's allowlist is the one thing kept on disk, and only UserRulesStore.kt may touch storage.
+        if bad in ('SharedPreferences', 'getSharedPreferences') and rel.endswith('/UserRulesStore.kt'): continue
+        if bad in s: fail.append(f'{rel}: {bad} (no disk logs, no HTTP)')
     if not s.startswith('// SPDX-License-Identifier: GPL-3.0-or-later'): fail.append(f'{rel}: missing SPDX header')
 man = os.path.join(ROOT, 'app', 'src', 'main', 'AndroidManifest.xml')
 if os.path.exists(man):

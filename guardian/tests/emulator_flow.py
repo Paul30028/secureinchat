@@ -98,6 +98,39 @@ def wait_ui(pred, what, timeout=30):
     fail(what, nodes)
 
 
+def scroll_find(pred, what, tries=5):
+    """Dumps the screen, scrolling down between attempts, until pred(joined text) holds.
+    The per-app list sits below the log, so it can be off-screen on small emulator displays."""
+    for i in range(tries):
+        nodes = dump()
+        if pred(joined(nodes)):
+            return nodes
+        sh("input swipe 500 1500 500 700 400", check=False)
+        time.sleep(1)
+    fail(what, nodes)
+
+
+def scroll_top():
+    for _ in range(4):
+        sh("input swipe 500 600 500 1600 300", check=False)
+    time.sleep(1)
+
+
+def button_on_row(nodes, label, row_text_prefix):
+    """The button labelled [label] whose vertical centre lies inside the text node starting with
+    row_text_prefix (each domain row is a horizontal layout: text, then its button)."""
+    for rt, _, row, _ in nodes:
+        if not (rt.startswith(row_text_prefix) and row):
+            continue
+        _, ry1, _, ry2 = map(int, re.findall(r"\d+", row))
+        for t, _, b, c in nodes:
+            if c.endswith("Button") and t.strip().lower() == label.lower() and b:
+                _, y1, _, y2 = map(int, re.findall(r"\d+", b))
+                if y1 <= (ry1 + ry2) // 2 <= y2:
+                    return b
+    return None
+
+
 def service_running():
     out = sh(f"dumpsys activity services {PKG}", check=False)
     return "GuardianVpnService" in out and "isForeground=true" in out
@@ -210,6 +243,39 @@ def main():
                     f"log does not show ALLOW {ALLOWED} with an answered query")
     snap("block-and-allow")
     print(f"ok: {ALLOWED} forwarded and answered")
+
+    # 4b. Per-app view and the user's allowlist (G3b). ping runs as the shell uid, so its queries form
+    #     one row; tap it, allow doubleclick.net from the expanded row, check a not-yet-cached subdomain
+    #     now resolves for real, then remove the rule again.
+    nodes = scroll_find(lambda s: re.search(r"— blocked [1-9]", s), "per-app view shows no app with blocked queries")
+    row = next(b for t, _, b, _ in nodes if re.search(r"— blocked [1-9]", t))
+    tap(row)
+    nodes = scroll_find(lambda s: f"{BLOCKED} (" in s, f"expanded app row does not list {BLOCKED}")
+    b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
+    if not b:
+        fail(f"no Allow button on the {BLOCKED} row", nodes)
+    tap(b)
+    nodes = scroll_find(lambda s: "1 allowed by you" in s, "rules line does not show 1 allowed by you")
+    snap("allowed-by-user")
+    probe = "www." + BLOCKED
+    addr, out = resolve(probe)
+    print(f"guardian after Allow: {probe} -> {addr}")
+    if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
+        fail(f"{probe} should resolve for real after allowing {BLOCKED}, got {addr}: {out}")
+    nodes = scroll_find(lambda s: "Remove" in s or "REMOVE" in s, "allowlist has no Remove button")
+    b = button_on_row(nodes, "Remove", BLOCKED)
+    if not b:
+        fail(f"no Remove button on the {BLOCKED} allowlist row", nodes)
+    tap(b)
+    scroll_find(lambda s: "0 allowed by you" in s, "rules line does not return to 0 allowed by you")
+    probe2 = "googleads.g." + BLOCKED
+    addr, out = resolve(probe2)
+    print(f"guardian after Remove: {probe2} -> {addr}")
+    if addr not in ("0.0.0.0", "127.0.0.1"):
+        fail(f"{probe2} should be blocked again after removing the rule, got {addr}: {out}")
+    scroll_top()
+    nodes = dump()
+    print("ok: per-app view, Allow and Remove work")
 
     # 5. Stop from the app
     b = button(nodes, "Stop")

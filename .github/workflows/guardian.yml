@@ -28,6 +28,7 @@ jobs:
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsFilterTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsUpstreamTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.QueryHandlerTestKt
+          java -cp /tmp/g.jar org.secureinchat.guardian.dns.AppTallyTestKt
       - name: Independent oracle (dnspython)
         run: |
           /tmp/kotlinc/bin/kotlinc core/src/main/kotlin tests/oracle/Cli.kt -include-runtime -d /tmp/cli.jar

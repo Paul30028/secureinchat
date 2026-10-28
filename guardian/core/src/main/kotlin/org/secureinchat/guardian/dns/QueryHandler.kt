@@ -30,7 +30,8 @@ data class LogEntry(
     val timeMs: Long,
     val name: String,
     val qtype: Int,
-    val blocked: Boolean
+    val blocked: Boolean,
+    val uid: Int = -1
 )
 
 sealed interface Action {
@@ -42,9 +43,11 @@ sealed interface Action {
 class QueryHandler(
     @Volatile var blocklist: Blocklist,
     val mode: BlockMode = BlockMode.NULL_IP,
+    private val uidOf: (DnsQuery) -> Int = { -1 },
     private val clock: () -> Long = System::currentTimeMillis
 ) {
     val stats = Stats()
+    val tally = AppTally()
 
     private val logCapacity = 200
     private val logEntries = arrayOfNulls<LogEntry>(logCapacity)
@@ -59,16 +62,18 @@ class QueryHandler(
             stats.malformed.incrementAndGet()
             return Action.Drop
         }
+        val uid = try { uidOf(q) } catch (_: Throwable) { -1 }
         val blocked = blocklist.isBlocked(q.qname)
+        tally.record(uid, q.qname, blocked)
         if (blocked) {
             stats.blocked.incrementAndGet()
             val resp = DnsPacket.buildBlockedResponse(q, mode)
-            appendLog(q.qname, q.qtype, true)
+            appendLog(q.qname, q.qtype, true, uid)
             return Action.Respond(resp, q.qname)
         }
         stats.forwarded.incrementAndGet()
         val payload = DnsWire.extractQueryPayload(packet, q)
-        appendLog(q.qname, q.qtype, false)
+        appendLog(q.qname, q.qtype, false, uid)
         return Action.Forward(q, payload)
     }
 
@@ -105,10 +110,11 @@ class QueryHandler(
             logWritePos = 0
             logCount = 0
         }
+        tally.clear()
     }
 
-    private fun appendLog(name: String, qtype: Int, blocked: Boolean) {
-        val entry = LogEntry(clock(), name, qtype, blocked)
+    private fun appendLog(name: String, qtype: Int, blocked: Boolean, uid: Int) {
+        val entry = LogEntry(clock(), name, qtype, blocked, uid)
         synchronized(logLock) {
             logEntries[logWritePos] = entry
             logWritePos = (logWritePos + 1) % logCapacity

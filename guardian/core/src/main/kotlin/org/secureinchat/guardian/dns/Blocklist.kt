@@ -31,6 +31,15 @@ class Blocklist private constructor(
         }
     }
 
+    fun plusAllowed(extra: Collection<String>): Blocklist {
+        val newAllowed = HashSet<String>(allowed)
+        for (s in extra) {
+            val n = normalizeOrNull(s) ?: continue
+            newAllowed.add(n)
+        }
+        return Blocklist(HashSet(blocked), newAllowed)
+    }
+
     companion object {
         private val WS = Regex("\\s+")
 
@@ -38,6 +47,8 @@ class Blocklist private constructor(
             "localhost", "localhost.localdomain", "broadcasthost", "local",
             "0.0.0.0", "127.0.0.1", "ip6-localhost", "ip6-loopback"
         )
+
+        fun normalizeOrNull(s: String): String? = normalizeHostname(s)
 
         fun parse(text: String): Blocklist {
             val blocked = HashSet<String>(1024)

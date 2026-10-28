@@ -29,14 +29,23 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import org.secureinchat.guardian.dns.LogEntry
+import org.secureinchat.guardian.dns.QueryHandler
 
 class MainActivity : Activity() {
 
     private lateinit var statusView: TextView
     private lateinit var statsView: TextView
+    private lateinit var rulesView: TextView
     private lateinit var logView: TextView
     private lateinit var hintView: TextView
     private lateinit var toggleBtn: Button
+    private lateinit var appListContainer: LinearLayout
+    private lateinit var allowedListContainer: LinearLayout
+
+    private var appListSignature: String = ""
+    private var allowedSignature: String = ""
+    private var appListBuiltAt = 0L
+    private val expandedUids = HashSet<Int>()
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private val refreshTick = object : Runnable {
@@ -108,9 +117,7 @@ class MainActivity : Activity() {
         statusView = TextView(this).apply { textSize = 16f }
         root.addView(statusView)
 
-        toggleBtn = Button(this).apply {
-            setOnClickListener { onToggleClicked() }
-        }
+        toggleBtn = Button(this).apply { setOnClickListener { onToggleClicked() } }
         root.addView(toggleBtn)
 
         statsView = TextView(this).apply {
@@ -119,6 +126,12 @@ class MainActivity : Activity() {
             setPadding(0, pad / 2, 0, 0)
         }
         root.addView(statsView)
+
+        rulesView = TextView(this).apply {
+            textSize = 13f
+            setPadding(0, pad / 4, 0, 0)
+        }
+        root.addView(rulesView)
 
         hintView = TextView(this).apply {
             textSize = 13f
@@ -145,10 +158,27 @@ class MainActivity : Activity() {
         }
         root.addView(logView)
 
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("By app", "按应用")
+            setPadding(0, pad, 0, pad / 4)
+        })
+        appListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(appListContainer)
+
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("Allowed by you", "你放行的")
+            setPadding(0, pad, 0, pad / 4)
+        })
+        allowedListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(allowedListContainer)
+
         setContentView(ScrollView(this).apply { addView(root) })
     }
 
     private fun onToggleClicked() {
+        if (GuardianVpnService.isLoading) return
         if (GuardianVpnService.isRunning) {
             // Plain startService: the stop path never calls startForeground, and a
             // startForegroundService() call that is not followed by startForeground() within a
@@ -181,21 +211,23 @@ class MainActivity : Activity() {
     }
 
     private fun refreshUi() {
+        val loading = GuardianVpnService.isLoading
         val running = GuardianVpnService.isRunning
-        setIfChanged(statusView, if (running) {
-            txt("Status: Running", "状态：运行中")
-        } else {
-            txt("Status: Stopped", "状态：已停止")
+        setIfChanged(statusView, when {
+            loading -> txt("Loading list…", "正在加载名单…")
+            running -> txt("Status: Running", "状态：运行中")
+            else -> txt("Status: Stopped", "状态：已停止")
         })
-        setIfChanged(toggleBtn, if (running) {
-            txt("Stop", "停止")
-        } else {
-            txt("Start", "启动")
-        })
+        toggleBtn.isEnabled = !loading
+        setIfChanged(toggleBtn, if (running) txt("Stop", "停止") else txt("Start", "启动"))
+
         val h = GuardianVpnService.activeHandler
         if (h == null) {
             setIfChanged(statsView, "")
+            setIfChanged(rulesView, "")
             setIfChanged(logView, "")
+            renderAppList(null)
+            renderAllowedList()
         } else {
             val s = h.snapshot()
             setIfChanged(statsView, txt(
@@ -204,8 +236,16 @@ class MainActivity : Activity() {
                 "查询: ${s.queries}  拦截: ${s.blocked}  转发: ${s.forwarded}\n" +
                 "应答: ${s.answered}  失败: ${s.failed}  畸形: ${s.malformed}"
             ))
+            val userAllowed = UserRulesStore.allowed(this).size
+            setIfChanged(rulesView, txt(
+                "Rules: ${h.blocklist.blockedCount} blocked, $userAllowed allowed by you",
+                "规则:拦截 ${h.blocklist.blockedCount},你放行 $userAllowed"
+            ))
             renderLog(h.recent())
+            renderAppList(h)
+            renderAllowedList()
         }
+
         if (pdnsOn.isNotEmpty()) {
             if (hintView.visibility != View.VISIBLE) hintView.visibility = View.VISIBLE
             setIfChanged(hintView, txt(
@@ -220,7 +260,8 @@ class MainActivity : Activity() {
     private fun renderLog(entries: List<LogEntry>) {
         val sb = SpannableStringBuilder()
         val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        for (e in entries.take(50)) {
+        // Last 10 only: a glance at what is happening; the per-app view below is what people act on.
+        for (e in entries.take(10)) {
             val start = sb.length
             val tag = if (e.blocked) txt("BLOCK", "拦截") else txt("ALLOW", "放行")
             sb.append(fmt.format(Date(e.timeMs)))
@@ -234,6 +275,116 @@ class MainActivity : Activity() {
             }
         }
         setIfChanged(logView, sb)
+    }
+
+    private fun renderAppList(h: QueryHandler?) {
+        val rows = h?.tally?.snapshot(30) ?: emptyList()
+        val sig = buildString {
+            for (r in rows) {
+                append(r.uid).append(',').append(r.queries).append(',').append(r.blocked).append(';')
+                for (d in r.topBlocked) append(d.first).append(':').append(d.second).append(';')
+            }
+        }
+        if (sig == appListSignature) return
+        // Counts change with every DNS query. Rebuild the list at most every 5 s unless a tap reset the
+        // signature, so background traffic does not re-lay out the screen every second.
+        val now = android.os.SystemClock.uptimeMillis()
+        if (appListSignature.isNotEmpty() && now - appListBuiltAt < 5000) return
+        appListBuiltAt = now
+        appListSignature = sig
+        appListContainer.removeAllViews()
+        if (h == null) return
+        val density = resources.displayMetrics.density
+        val vpad = (4 * density).toInt()
+        val hpad = (16 * density).toInt()
+        for (r in rows) {
+            val name = AppLabels.label(this, r.uid)
+            val expanded = expandedUids.contains(r.uid)
+            val rowView = TextView(this).apply {
+                textSize = 14f
+                text = txt(
+                    "$name — blocked ${r.blocked} / queries ${r.queries}",
+                    "$name — 拦截 ${r.blocked} / 查询 ${r.queries}"
+                )
+                setPadding(0, vpad, 0, vpad)
+                setOnClickListener {
+                    if (!expandedUids.add(r.uid)) expandedUids.remove(r.uid)
+                    appListSignature = ""
+                    uiHandler.post { refreshUi() }
+                }
+            }
+            appListContainer.addView(rowView)
+            if (expanded) {
+                for (d in r.topBlocked) {
+                    val domRow = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        setPadding(hpad, 0, 0, 0)
+                    }
+                    val dom = TextView(this).apply {
+                        textSize = 13f
+                        text = "${d.first} (${d.second})"
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    }
+                    val allowBtn = Button(this).apply {
+                        text = txt("Allow", "放行")
+                        textSize = 12f
+                        setOnClickListener {
+                            UserRulesStore.add(this@MainActivity, d.first)
+                            GuardianVpnService.applyUserRules(applicationContext)
+                            appListSignature = ""
+                            allowedSignature = ""
+                            uiHandler.post { refreshUi() }
+                        }
+                    }
+                    domRow.addView(dom)
+                    domRow.addView(allowBtn)
+                    appListContainer.addView(domRow)
+                }
+            }
+        }
+    }
+
+    private fun renderAllowedList() {
+        val allowed = UserRulesStore.allowed(this).sorted()
+        val sig = allowed.joinToString(",")
+        if (sig == allowedSignature) return
+        allowedSignature = sig
+        allowedListContainer.removeAllViews()
+        val density = resources.displayMetrics.density
+        val vpad = (4 * density).toInt()
+        if (allowed.isEmpty()) {
+            allowedListContainer.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt("(none)", "(无)")
+                setPadding(0, vpad, 0, vpad)
+            })
+            return
+        }
+        for (d in allowed) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, vpad, 0, vpad)
+            }
+            val dom = TextView(this).apply {
+                textSize = 13f
+                text = d
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val removeBtn = Button(this).apply {
+                text = txt("Remove", "移除")
+                textSize = 12f
+                setOnClickListener {
+                    UserRulesStore.remove(this@MainActivity, d)
+                    GuardianVpnService.applyUserRules(applicationContext)
+                    appListSignature = ""
+                    allowedSignature = ""
+                    uiHandler.post { refreshUi() }
+                }
+            }
+            row.addView(dom)
+            row.addView(removeBtn)
+            allowedListContainer.addView(row)
+        }
     }
 
     // The screen refreshes every second; setting identical text still re-lays out the view, which keeps
