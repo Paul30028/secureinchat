@@ -43,10 +43,74 @@
     { id: 'phone', label: 'Phone number', tag: 'PHONE', re: /(?:\+\d{1,3}[ .-]?)?(?:\(\d{2,4}\)[ .-]?|\d{2,4}[ .-])\d{3,4}[ .-]\d{3,4}\b|\+\d{8,15}\b/g, test: function (m) { var d = m.replace(/\D/g, ''); return d.length >= 8 && d.length <= 15; } },
   ];
 
-  function redact(text, enabled) {
+  var TERM_RULE = { id: 'term', label: 'Your words', tag: 'NAME' };
+  var WORD_RE;
+  try { WORD_RE = new RegExp('[\\p{L}\\p{N}_]', 'u'); } catch (e) { WORD_RE = /[A-Za-z0-9_]/; }
+  var RESTORE_RE = /(?:\\\[|\[|【)\s*([A-Za-z][A-Za-z0-9_]*?)\s*\\?_\s*(\d+)\s*(?:\\\]|\]|】)/g;
+
+  function isWordChar(ch) { return !!ch && WORD_RE.test(ch); }
+  function overlaps(a, b) { return a.start < b.end && b.start < a.end; }
+
+  function parseTerms(str) {
+    if (str == null) return [];
+    return String(str).split(/[\n\r,，;；]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; });
+  }
+
+  function normalizeTerms(terms) {
+    if (!terms) return [];
+    if (typeof terms === 'string') terms = parseTerms(terms);
+    if (!terms.length) return [];
+    var out = [], seen = {};
+    for (var i = 0; i < terms.length; i++) {
+      var s = String(terms[i] == null ? '' : terms[i]).trim();
+      if (s.length < 2) continue;
+      var key = s.toLowerCase();
+      if (seen[key]) continue;
+      seen[key] = true;
+      out.push({ text: s, lower: key, word: /[A-Za-z0-9]/.test(s), order: out.length });
+    }
+    out.sort(function (a, b) { return b.text.length - a.text.length || a.order - b.order; });
+    return out;
+  }
+
+  function findTermHits(text, terms) {
+    if (!terms.length) return [];
+    var lowerText = text.toLowerCase();
+    var all = [];
+    terms.forEach(function (term) {
+      var start = 0, idx;
+      while ((idx = lowerText.indexOf(term.lower, start)) !== -1) {
+        var end = idx + term.text.length;
+        var before = idx > 0 ? text.charAt(idx - 1) : '';
+        var after = end < text.length ? text.charAt(end) : '';
+        if (!term.word || (!isWordChar(before) && !isWordChar(after))) {
+          all.push({ start: idx, end: end, rule: TERM_RULE, len: term.text.length, order: all.length });
+        }
+        start = idx + 1;
+      }
+    });
+    all.sort(function (a, b) { return b.len - a.len || a.start - b.start || a.order - b.order; });
+    var picked = [];
+    all.forEach(function (h) {
+      for (var i = 0; i < picked.length; i++) if (overlaps(h, picked[i])) return;
+      picked.push(h);
+    });
+    picked.sort(function (a, b) { return a.start - b.start; });
+    return picked;
+  }
+
+  function normalizePlaceholderKey(s) {
+    s = String(s).replace(/\\/g, '').replace(/\s+/g, '');
+    s = s.replace(/^【/, '[').replace(/】$/, ']');
+    return s.toUpperCase();
+  }
+
+  function redact(text, enabled, opts) {
     text = String(text);
     var on = enabled || {};
-    var hits = [];
+    opts = opts || {};
+    var termHits = (on.term === false) ? [] : findTermHits(text, normalizeTerms(opts.terms));
+    var ruleHits = [];
     RULES.forEach(function (r) {
       if (on[r.id] === false) return;
       r.re.lastIndex = 0;
@@ -56,25 +120,84 @@
         if (r.test && !r.test(m[0])) continue;
         var start = m.index, end = m.index + m[0].length;
         if (r.id === 'url_cred') { start = m.index + m[0].indexOf('://') + 3; end = m.index + m[0].length - 1; }
-        hits.push({ start: start, end: end, rule: r });
+        ruleHits.push({ start: start, end: end, rule: r });
       }
     });
-    hits.sort(function (a, b) { return a.start - b.start || b.end - a.end; });
+
+    // A term wins over a rule only when it fully covers the rule match. A term that is only
+    // part of an email or URL credential is ignored, so the rule can hide the whole value.
+    var keptTerms = [];
+    termHits.forEach(function (t) {
+      var keep = true;
+      for (var i = 0; i < ruleHits.length; i++) {
+        var h = ruleHits[i];
+        if (overlaps(t, h) && !(t.start <= h.start && t.end >= h.end)) { keep = false; break; }
+      }
+      if (keep) keptTerms.push(t);
+    });
+    if (keptTerms.length) {
+      ruleHits = ruleHits.filter(function (h) {
+        for (var i = 0; i < keptTerms.length; i++) {
+          var t = keptTerms[i];
+          if (t.start <= h.start && t.end >= h.end) return false;
+        }
+        return true;
+      });
+    }
+
+    var all = keptTerms.concat(ruleHits);
+    all.sort(function (a, b) { return a.start - b.start || b.end - a.end; });
     var picked = [], last = 0;
-    hits.forEach(function (h) { if (h.start >= last) { picked.push(h); last = h.end; } });
-    var counts = {}, out = '', pos = 0, seen = {};
+    all.forEach(function (h) { if (h.start >= last) { picked.push(h); last = h.end; } });
+
+    var counts = {}, out = '', pos = 0, seen = {}, mapping = {};
     picked.forEach(function (h) {
       var original = text.slice(h.start, h.end);
       var key = h.rule.id + '|' + original.toLowerCase();
       var k = seen[h.rule.id] || (seen[h.rule.id] = { n: 0, map: {} });
       if (!(key in k.map)) k.map[key] = ++k.n;
+      var ph = '[' + h.rule.tag + '_' + k.map[key] + ']';
       counts[h.rule.id] = (counts[h.rule.id] || 0) + 1;
-      out += text.slice(pos, h.start) + '[' + h.rule.tag + '_' + k.map[key] + ']';
+      if (!Object.prototype.hasOwnProperty.call(mapping, ph)) mapping[ph] = original;
+      out += text.slice(pos, h.start) + ph;
       pos = h.end;
     });
     out += text.slice(pos);
-    return { text: out, counts: counts, total: picked.length };
+    return { text: out, counts: counts, total: picked.length, mapping: mapping };
   }
 
-  return { RULES: RULES, redact: redact, luhn: luhn, ibanOk: ibanOk };
+  function restore(text, mapping) {
+    text = String(text);
+    var result = { text: text, restored: 0, unknown: [] };
+    if (!mapping || typeof mapping !== 'object' || (Array.isArray && Array.isArray(mapping))) return result;
+    // An empty mapping means no redaction happened in this session: leave the text alone and report nothing.
+    var any = false;
+    for (var k0 in mapping) { if (Object.prototype.hasOwnProperty.call(mapping, k0)) { any = true; break; } }
+    if (!any) return result;
+
+    var lookup = {};
+    for (var k in mapping) {
+      if (!Object.prototype.hasOwnProperty.call(mapping, k)) continue;
+      var nk = normalizePlaceholderKey(k);
+      if (nk && !Object.prototype.hasOwnProperty.call(lookup, nk)) lookup[nk] = mapping[k];
+    }
+
+    var unknownSeen = {};
+    RESTORE_RE.lastIndex = 0;
+    result.text = text.replace(RESTORE_RE, function (match, tag, num) {
+      var ph = '[' + String(tag).toUpperCase() + '_' + num + ']';
+      if (Object.prototype.hasOwnProperty.call(lookup, ph)) {
+        result.restored++;
+        return lookup[ph];
+      }
+      if (!Object.prototype.hasOwnProperty.call(unknownSeen, ph)) {
+        unknownSeen[ph] = true;
+        result.unknown.push(ph);
+      }
+      return match;
+    });
+    return result;
+  }
+
+  return { RULES: RULES, redact: redact, restore: restore, luhn: luhn, ibanOk: ibanOk, parseTerms: parseTerms };
 });
