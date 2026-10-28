@@ -54,7 +54,7 @@ jobs:
       - name: Build debug APK and run Android lint
         run: gradle --no-daemon :app:assembleDebug :app:lintDebug
       - name: Show lint report
-        if: failure()
+        if: always()
         run: cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt || true
       - name: Policy check
         run: python3 tests/policy_check.py app/build/outputs/apk/debug/app-debug.apk
