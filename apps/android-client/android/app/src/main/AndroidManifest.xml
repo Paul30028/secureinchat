@@ -45,6 +45,9 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
+    <!-- 应用锁的指纹/面部解锁。普通权限，不弹授权窗口；没有相关硬件的设备照常安装，开关不显示。 -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
     <!-- 摄像头不是必需的：没有摄像头的设备仍然可以手动粘贴邀请码加入 -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />

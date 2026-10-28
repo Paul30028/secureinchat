@@ -40,6 +40,12 @@ export interface MessageListScreenProps {
   screenSecurityEnabled?: boolean | undefined;
   /** 点按「截屏保护」开关。不传（Web 端没有这个系统能力）就不显示这一行——不放点了没用的开关 */
   onToggleScreenSecurity?: (() => void) | undefined;
+  /** 指纹/面部解锁是否开启 */
+  biometricEnabled?: boolean | undefined;
+  /** 点按「用指纹或面部解锁」开关。不传（平台不支持）就不显示这一行 */
+  onToggleBiometric?: (() => void) | undefined;
+  /** 应用锁是否已启用。未启用时点按生物识别行会引导去设置应用密码 */
+  lockEnabled?: boolean | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -64,6 +70,9 @@ export function MessageListScreen({
   initialTab,
   screenSecurityEnabled,
   onToggleScreenSecurity,
+  biometricEnabled,
+  onToggleBiometric,
+  lockEnabled,
 }: MessageListScreenProps) {
   // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
   // 而不是像通用 IM 那样落在会话列表。
@@ -261,6 +270,38 @@ export function MessageListScreen({
               <div style={{ fontSize: 14, color: colors.textPrimary }}>应用密码</div>
               <div style={{ fontSize: 11, color: "#9A9A94" }}>打开应用前需要输入密码</div>
             </button>
+
+            {onToggleBiometric ? (
+              <button
+                onClick={() => {
+                  if (!lockEnabled) {
+                    // 没有 PIN 就不能单独用生物识别——直接引导去设置应用密码
+                    onOpenLockSetup();
+                    return;
+                  }
+                  onToggleBiometric();
+                }}
+                style={{
+                  minHeight: touchTarget.minDp,
+                  marginTop: 8,
+                  textAlign: "left",
+                  background: "transparent",
+                  border: `0.5px solid ${colors.sageMint}`,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>用指纹或面部解锁</div>
+                <div style={{ fontSize: 11, color: "#9A9A94" }}>
+                  {!lockEnabled
+                    ? "先设置应用密码，才能开启指纹或面部解锁"
+                    : biometricEnabled
+                      ? "已开启：指纹或面部只用于在本机解开应用锁；没有 PIN 时不能单独使用。"
+                      : "已关闭：开启后可用指纹或面部解锁应用锁，PIN 始终可用"}
+                </div>
+              </button>
+            ) : null}
 
             {onToggleScreenSecurity ? (
             <button

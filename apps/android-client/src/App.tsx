@@ -86,6 +86,12 @@ import {
 } from "./groupSession";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
 import { isScreenSecurityEnabled, setScreenSecurityEnabled, applyScreenSecurity, screenSecuritySupported } from "./screenSecurity";
+import {
+  biometricAvailable,
+  authenticateBiometric,
+  isBiometricUnlockEnabled,
+  setBiometricUnlockEnabled,
+} from "./biometricUnlock";
 
 interface ActiveCall {
   session: CallSession;
@@ -201,6 +207,8 @@ export function App() {
   };
   /** null = 还没查完是否启用了应用锁 */
   const [locked, setLocked] = useState<boolean | null>(null);
+  /** 应用锁是否已启用——解锁后 locked 变 false，但应用锁本身仍启用着 */
+  const [lockEnabled, setLockEnabledState] = useState(false);
   const [capability, setCapability] = useState<CapabilityResult | null>(null);
 
   useEffect(() => {
@@ -209,8 +217,47 @@ export function App() {
   const [showLockSetup, setShowLockSetup] = useState(false);
 
   useEffect(() => {
-    void isLockEnabled().then((enabled) => setLocked(enabled));
+    void isLockEnabled().then((enabled) => {
+      setLocked(enabled);
+      setLockEnabledState(enabled);
+    });
   }, []);
+
+  // 指纹/面部解锁：只有原生平台且系统可用时才读偏好。
+  // 不可用时 MessageListScreen 不显示这一行（不做假功能）。
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const available = await biometricAvailable();
+      setBiometricSupported(available);
+      if (!available) {
+        setBiometricEnabled(false);
+        return;
+      }
+      setBiometricEnabled(await isBiometricUnlockEnabled());
+    })();
+  }, []);
+
+  const handleToggleBiometric = () => {
+    if (!lockEnabled) {
+      setShowLockSetup(true);
+      return;
+    }
+    if (biometricEnabled) {
+      setBiometricEnabled(false);
+      void setBiometricUnlockEnabled(false);
+      return;
+    }
+    void (async () => {
+      // 开启前先验证一次，避免用户开了却从没验证过
+      const ok = await authenticateBiometric();
+      if (!ok) return;
+      setBiometricEnabled(true);
+      await setBiometricUnlockEnabled(true);
+    })();
+  };
   /** 发布圣诗音频时的进度文案 */
   const [publishProgress, setPublishProgress] = useState<string | null>(null);
   /** 当前会议。null = 不在会议中 */
@@ -1146,6 +1193,8 @@ export function App() {
         onUnlocked={() => setLocked(false)}
         onAttemptsExhausted={() => {
           // 次数用尽就清空本机数据。中继不存任何内容，所以这里删掉就是真的没了。
+          setLockEnabledState(false);
+          setBiometricEnabled(false);
           void (async () => {
             await disableLock();
             indexedDB.deleteDatabase("secureinchat-storage");
@@ -1154,6 +1203,8 @@ export function App() {
             indexedDB.deleteDatabase("secureinchat-admin-keys");
           })();
         }}
+        biometricEnabled={biometricSupported && biometricEnabled}
+        onBiometricUnlock={biometricSupported ? authenticateBiometric : undefined}
       />
     );
   }
@@ -1161,7 +1212,10 @@ export function App() {
     return (
       <LockScreen
         mode="setup"
-        onUnlocked={() => setShowLockSetup(false)}
+        onUnlocked={() => {
+          setShowLockSetup(false);
+          setLockEnabledState(true);
+        }}
         onCancel={() => setShowLockSetup(false)}
       />
     );
@@ -1416,6 +1470,9 @@ export function App() {
         relayUrl={relayUrl}
         screenSecurityEnabled={screenSecurityEnabled}
         onToggleScreenSecurity={screenSecuritySupported() ? handleToggleScreenSecurity : undefined}
+        biometricEnabled={biometricEnabled}
+        onToggleBiometric={biometricSupported ? handleToggleBiometric : undefined}
+        lockEnabled={lockEnabled}
       />
     );
   }

@@ -1,4 +1,5 @@
 import { IndexedDbStorageBackend } from "@secureinchat/secure-storage";
+import { setBiometricUnlockEnabled } from "./biometricUnlock";
 
 /**
  * 应用锁。
@@ -83,8 +84,13 @@ export async function enableLock(pin: string): Promise<void> {
   await write({ saltB64: toB64(salt), hashB64: await derive(pin, salt), failedAttempts: 0 });
 }
 
+/**
+ * 关闭应用锁时同时关掉指纹/面部解锁偏好——没有 PIN 就不能单独用生物识别，
+ * 留着这个偏好只会在下次开启应用锁时出现意料之外的弹窗。
+ */
 export async function disableLock(): Promise<void> {
   await backend.delete(LOCK_KEY);
+  await setBiometricUnlockEnabled(false);
 }
 
 export interface UnlockResult {

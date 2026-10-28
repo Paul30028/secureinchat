@@ -6,6 +6,9 @@ import type { TodayContent } from "../src/screens/TodayScreen";
 function renderScreen(overrides: {
   screenSecurityEnabled?: boolean;
   onToggleScreenSecurity?: () => void;
+  biometricEnabled?: boolean;
+  onToggleBiometric?: () => void;
+  lockEnabled?: boolean;
 } = {}) {
   const onToggleScreenSecurity = overrides.onToggleScreenSecurity ?? vi.fn();
   const props = {
@@ -29,6 +32,9 @@ function renderScreen(overrides: {
     initialTab: "me" as const,
     screenSecurityEnabled: overrides.screenSecurityEnabled ?? false,
     onToggleScreenSecurity,
+    biometricEnabled: overrides.biometricEnabled,
+    onToggleBiometric: overrides.onToggleBiometric,
+    lockEnabled: overrides.lockEnabled,
   };
   render(<MessageListScreen {...props} />);
   return { onToggleScreenSecurity };
@@ -53,5 +59,46 @@ describe("MessageListScreen 截屏保护开关", () => {
     expect(
       screen.getByText("已开启：本应用界面无法截屏或录屏，最近任务里显示空白")
     ).toBeInTheDocument();
+  });
+});
+
+describe("MessageListScreen 指纹/面部解锁开关", () => {
+  it("不传 onToggleBiometric 时没有这一行", () => {
+    renderScreen();
+    expect(screen.queryByText("用指纹或面部解锁")).not.toBeInTheDocument();
+  });
+
+  it("传入且应用锁已启用时，点击调用 onToggleBiometric", () => {
+    const onToggleBiometric = vi.fn();
+    renderScreen({ onToggleBiometric, lockEnabled: true, biometricEnabled: false });
+    const button = screen.getByText("用指纹或面部解锁").closest("button");
+    expect(button).not.toBeNull();
+    fireEvent.click(button as HTMLButtonElement);
+    expect(onToggleBiometric).toHaveBeenCalledTimes(1);
+  });
+
+  it("开启时显示边界说明", () => {
+    renderScreen({ onToggleBiometric: vi.fn(), lockEnabled: true, biometricEnabled: true });
+    expect(
+      screen.getByText("已开启：指纹或面部只用于在本机解开应用锁；没有 PIN 时不能单独使用。")
+    ).toBeInTheDocument();
+  });
+
+  it("关闭时显示关闭说明", () => {
+    renderScreen({ onToggleBiometric: vi.fn(), lockEnabled: true, biometricEnabled: false });
+    expect(
+      screen.getByText("已关闭：开启后可用指纹或面部解锁应用锁，PIN 始终可用")
+    ).toBeInTheDocument();
+  });
+
+  it("未启用应用锁时点击引导去设置应用密码，不调用 onToggleBiometric", () => {
+    const onToggleBiometric = vi.fn();
+    renderScreen({ onToggleBiometric, lockEnabled: false, biometricEnabled: false });
+    expect(
+      screen.getByText("先设置应用密码，才能开启指纹或面部解锁")
+    ).toBeInTheDocument();
+    const button = screen.getByText("用指纹或面部解锁").closest("button");
+    fireEvent.click(button as HTMLButtonElement);
+    expect(onToggleBiometric).not.toHaveBeenCalled();
   });
 });
