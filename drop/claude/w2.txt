@@ -1,0 +1,410 @@
+任务 W2(secureinchat.com 文本脱敏工具):自定义词替换 + 把 AI 的回复还原。我是研发总监 Claude,负责合并、跑测试(Node 单元测试 + Playwright 页面测试 + 严格 CSP)和审查;你写代码。
+
+产品目的:用户把日志/邮件/文档贴给 ChatGPT 之类的 AI 之前先脱敏;AI 的回复里会出现 [EMAIL_1]、[NAME_2] 这类占位符,用户要能一键把回复还原成真实内容。全部在浏览器里完成,不联网、不存储。
+
+硬性规则(违反就退回):
+- 纯原生 JS(ES5 风格,和现有 redact.js 一致,UMD 包装,Node 和浏览器都能加载)。不加依赖,不用 eval、不用 innerHTML 插入用户内容(用 textContent),不写 localStorage/sessionStorage/IndexedDB/cookie,不发任何网络请求。页面有严格 CSP:不能有内联 script / 内联事件处理器 / 内联 style 属性。
+- 对照表(占位符 → 原文)只存在页面内存里;刷新或点 Clear 就没了。界面上要如实说明这一点。
+- 现有测试 tests/redact.test.js 和 tests/redactor.py 的所有断言必须照旧通过(redact() 的现有返回字段 text/counts/total 不变,行为不变)。
+- 英文界面文案,短句,说清边界;不要夸大(例如不能说"保证安全")。
+
+一、redact.js(逻辑)
+1. redact(text, enabled, opts) 增加第三个可选参数 opts:
+   - opts.terms:字符串数组,用户自己要隐藏的名字/公司/地址等。每项 trim 后长度 < 2 的忽略;去重(不区分大小写);长的优先匹配(避免 "Ann" 抢在 "Ann Lee" 前)。
+   - 匹配不区分大小写。对含拉丁字母或数字的词,要求两侧不是字母/数字/下划线(Unicode 意义上:用 /[\p{L}\p{N}_]/u 判断前后各一个字符;如果运行环境不支持 \p 就退回 [A-Za-z0-9_]);对纯 CJK 词(中文、日文、韩文)不要求边界。
+   - 这些命中用 rule id 'term',tag 'NAME',优先级高于所有现有规则(排在 RULES 处理之前,重叠时 term 赢)。同一个词(不区分大小写)用同一个编号。
+   - enabled.term === false 时不替换 terms。
+   - 返回值新增 mapping:对象,键是完整占位符(如 "[EMAIL_1]"),值是第一次出现时的原文(保留原大小写)。url_cred 规则的 mapping 值是被替换掉的那段(user:password),和 text 里被替换的内容一致。
+2. 新函数 restore(text, mapping):
+   - 把 text 里出现的占位符换回原文。识别这些写法(AI 经常改格式):[EMAIL_1]、[ EMAIL_1 ]、[email_1](大小写不敏感)、\[EMAIL\_1\](Markdown 转义)、【EMAIL_1】(全角方括号)。不识别不带括号的 EMAIL_1(太容易误伤)。
+   - 返回 { text, restored: 替换次数, unknown: 文本里出现但 mapping 里没有的占位符数组(规范化成 "[TAG_N]" 形式,去重,按出现顺序) }。
+   - mapping 为空或不是对象时原样返回,restored 0。
+   - 原文里如果含有 "$" 等特殊字符也必须原样还原(不要用 String.replace 的替换字符串语法踩坑)。
+3. 导出 { RULES, redact, restore, luhn, ibanOk, parseTerms }。parseTerms(str):按换行和英文/中文逗号、分号拆分,trim,去空,返回数组。
+
+二、redact-app.js(页面逻辑)
+1. 新输入框 #rd-terms(textarea,多行),标签 "Names and other words to hide",提示 "One per line or separated by commas. Matched without regard to case."。输入变化时重新脱敏。规则勾选区新增复选框 #rule-term(默认勾选)"Your words"。
+2. 每次 run() 保存最近一次的 mapping 到闭包变量。
+3. 新区块 "Put the real values back":textarea #rd-reply(标签 "Paste the AI's reply"),只读 textarea #rd-restored(标签 "Reply with real values"),按钮 #rd-restore-copy "Copy restored reply"(无内容时 disabled)。#rd-reply 输入时调用 restore(reply, mapping),并在 #rd-restore-status(role="status")显示:"N placeholders put back." ;有 unknown 时追加 "Not found in this session: [X_1], [Y_2]. They may come from a different redaction or the page was reloaded."。
+4. 说明文字(放在该区块下):"The list that links placeholders to real values exists only in this tab. It is cleared when you reload the page or press Clear. Nothing is sent or saved."
+5. Clear 按钮同时清空 terms、reply、restored 和 mapping。
+6. 结果表格里 term 规则的行和其他规则一样显示(label "Your words")。
+
+三、HTML(src/tools/text-redactor.html)
+给出要插入的 HTML 片段和插入位置(用现有 class:rd-grid、rd-text、rd-rules、check、rd-actions、btn、btn--quiet、hint、summary)。#rd-terms 放在规则复选框上方;"Put the real values back" 区块放在 rd-actions 之后、hint 之前,用 <h2> 标题。并更新 "What it does not do" 和 FAQ "Why did it miss a name or an address?" 的文字:说明可以把名字加进 "Names and other words to hide",但工具不会自己发现名字。不要动页面其它部分(头部、导航、合作伙伴区块、结构化数据之外的内容)。结构化数据 FAQ 里对应的那条答案也同步改。
+
+四、测试
+1. tests/redact.test.js 末尾追加(保持现有写法 t(name, fn) + assert):至少这些:
+   a. terms 基本替换和同词同号("Ann Lee" 出现两次都是 [NAME_1],大小写不同也是);
+   b. 长词优先("Ann" 和 "Ann Lee" 同时给);
+   c. 拉丁词边界:terms ["Ann"] 不替换 "Annual";CJK 词 "张伟" 在 "我是张伟。" 里被替换;
+   d. term 与 email 重叠时 term 赢(terms 里给一个邮箱的用户名部分不应破坏邮箱?——你定规则并写进测试和注释:我建议 term 赢,但只有完整命中才替换);
+   e. enabled.term === false 时不替换;
+   f. mapping 内容正确(包括保留原大小写、url_cred 的值);
+   g. restore:五种写法都能还原;unknown 列表;mapping 为空;原文含 "$&"、"$1" 时原样还原;
+   h. 往返:redact 后 restore(text, mapping) 等于原文(对一段混合了邮箱、IP、卡号、名字、中文名的文本)。
+   h 有一个例外要处理:url_cred 往返也必须等于原文。
+   i. parseTerms:换行、英文逗号、中文逗号、分号、空项。
+   运行命令:node tests/redact.test.js
+2. tests/redactor.py 末尾(在 b.close() 之前,沿用 ok() 写法)追加页面测试:填 #rd-terms "Ann Lee",#rd-in 含 "Ann Lee" 和一个邮箱 → 输出含 [NAME_1];在 #rd-reply 填 "Dear [NAME_1], we wrote to [email_1]." → #rd-restored 等于真实值;状态文字含 "2 placeholders put back";填一个不存在的 [PHONE_9] → 状态含 "Not found in this session";点 Clear 后 #rd-restored 为空。并检查整个过程没有外部请求、没有 CSP 报错(现有 reqs / errs 变量)。
+
+输出格式:每个改动的文件给完整内容(redact.js、redact-app.js、tests/redact.test.js 全文;tests/redactor.py 给全文);HTML 只给片段 + 插入/替换位置(写明"在 X 这一行之后插入"或"把 X 替换成",X 必须和原文逐字一致)。每个文件一个代码块,代码块前一行写仓库内路径。不要省略号。不要写进度百分比。
+
+下面是当前源码(以此为准)。
+
+--- public/tools/assets/redact.js(完整)---
+/* Text redaction rules. Pure functions, no network. Loaded by the page and by the Node tests. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(); else root.RD = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  function luhn(digits) {
+    var sum = 0, alt = false;
+    for (var i = digits.length - 1; i >= 0; i--) {
+      var n = digits.charCodeAt(i) - 48;
+      if (alt) { n *= 2; if (n > 9) n -= 9; }
+      sum += n; alt = !alt;
+    }
+    return sum % 10 === 0;
+  }
+  function ibanOk(s) {
+    var v = s.replace(/\s/g, '').toUpperCase();
+    if (v.length < 15 || v.length > 34 || !/^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(v)) return false;
+    var r = v.slice(4) + v.slice(0, 4), rem = 0;
+    for (var i = 0; i < r.length; i++) {
+      var c = r.charCodeAt(i), d = c >= 65 ? String(c - 55) : r[i];
+      for (var j = 0; j < d.length; j++) rem = (rem * 10 + (d.charCodeAt(j) - 48)) % 97;
+    }
+    return rem === 1;
+  }
+  function ipv4ok(s) {
+    var p = s.split('.');
+    return p.length === 4 && p.every(function (x) { return x.length > 0 && x.length <= 3 && +x <= 255 && (x === '0' || x[0] !== '0'); });
+  }
+
+  // Order matters: earlier rules win when matches overlap.
+  var RULES = [
+    { id: 'privkey', label: 'Private key block', tag: 'PRIVATE_KEY', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g },
+    { id: 'jwt', label: 'JSON Web Token', tag: 'JWT', re: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g },
+    { id: 'apikey', label: 'API key or token', tag: 'API_KEY', re: /\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|sk-[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35})\b/g },
+    { id: 'url_cred', label: 'Password inside a URL', tag: 'URL_CREDENTIALS', re: /\b[a-z][a-z0-9+.-]*:\/\/[^\s\/:@]+:[^\s\/@]+@/gi, keep: function (m) { return m.slice(0, m.indexOf('://') + 3); }, suffix: '@' },
+    { id: 'email', label: 'Email address', tag: 'EMAIL', re: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g },
+    { id: 'iban', label: 'IBAN', tag: 'IBAN', re: /\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b/g, test: ibanOk },
+    { id: 'card', label: 'Payment card number', tag: 'CARD', re: /\b(?:\d[ -]?){12,18}\d\b/g, test: function (m) { var d = m.replace(/[ -]/g, ''); return d.length >= 13 && d.length <= 19 && luhn(d); } },
+    { id: 'ipv6', label: 'IPv6 address', tag: 'IPV6', re: /\b(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}\b|\b(?:[0-9A-Fa-f]{1,4}:){1,6}(?::[0-9A-Fa-f]{1,4}){1,6}\b|\b(?:[0-9A-Fa-f]{1,4}:){1,7}:(?![0-9A-Fa-f:])/g, test: function (m) { return /[0-9A-Fa-f]{2,}|:/.test(m) && m.indexOf(':') !== -1 && m.length > 4; } },
+    { id: 'ipv4', label: 'IPv4 address', tag: 'IPV4', re: /\b\d{1,3}(?:\.\d{1,3}){3}\b/g, test: ipv4ok },
+    { id: 'mac', label: 'MAC address', tag: 'MAC', re: /\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/g },
+    { id: 'phone', label: 'Phone number', tag: 'PHONE', re: /(?:\+\d{1,3}[ .-]?)?(?:\(\d{2,4}\)[ .-]?|\d{2,4}[ .-])\d{3,4}[ .-]\d{3,4}\b|\+\d{8,15}\b/g, test: function (m) { var d = m.replace(/\D/g, ''); return d.length >= 8 && d.length <= 15; } },
+  ];
+
+  function redact(text, enabled) {
+    text = String(text);
+    var on = enabled || {};
+    var hits = [];
+    RULES.forEach(function (r) {
+      if (on[r.id] === false) return;
+      r.re.lastIndex = 0;
+      var m;
+      while ((m = r.re.exec(text)) !== null) {
+        if (m[0].length === 0) { r.re.lastIndex++; continue; }
+        if (r.test && !r.test(m[0])) continue;
+        var start = m.index, end = m.index + m[0].length;
+        if (r.id === 'url_cred') { start = m.index + m[0].indexOf('://') + 3; end = m.index + m[0].length - 1; }
+        hits.push({ start: start, end: end, rule: r });
+      }
+    });
+    hits.sort(function (a, b) { return a.start - b.start || b.end - a.end; });
+    var picked = [], last = 0;
+    hits.forEach(function (h) { if (h.start >= last) { picked.push(h); last = h.end; } });
+    var counts = {}, out = '', pos = 0, seen = {};
+    picked.forEach(function (h) {
+      var original = text.slice(h.start, h.end);
+      var key = h.rule.id + '|' + original.toLowerCase();
+      var k = seen[h.rule.id] || (seen[h.rule.id] = { n: 0, map: {} });
+      if (!(key in k.map)) k.map[key] = ++k.n;
+      counts[h.rule.id] = (counts[h.rule.id] || 0) + 1;
+      out += text.slice(pos, h.start) + '[' + h.rule.tag + '_' + k.map[key] + ']';
+      pos = h.end;
+    });
+    out += text.slice(pos);
+    return { text: out, counts: counts, total: picked.length };
+  }
+
+  return { RULES: RULES, redact: redact, luhn: luhn, ibanOk: ibanOk };
+});
+
+--- public/tools/assets/redact-app.js(完整)---
+/* Text redactor page. All work happens in this page; nothing is sent anywhere or stored. */
+(function () {
+  'use strict';
+  var R = window.RD;
+  var src = document.getElementById('rd-in');
+  var out = document.getElementById('rd-out');
+  var tbody = document.getElementById('rows');
+  var summary = document.getElementById('summary');
+  var copyBtn = document.getElementById('rd-copy');
+  var clearBtn = document.getElementById('rd-clear');
+  var boxes = {};
+  R.RULES.forEach(function (r) { boxes[r.id] = document.getElementById('rule-' + r.id); });
+
+  function enabled() { var o = {}; R.RULES.forEach(function (r) { o[r.id] = boxes[r.id].checked; }); return o; }
+
+  function row(rule, count) {
+    var tr = document.createElement('tr'); tr.setAttribute('data-status', count ? 'warn' : 'info');
+    var th = document.createElement('th'); th.scope = 'row'; th.setAttribute('data-label', 'Check');
+    var n = document.createElement('span'); n.className = 'c-name'; n.textContent = rule.label; th.appendChild(n);
+    var td = document.createElement('td'); td.setAttribute('data-label', 'Result');
+    var v = document.createElement('div'); v.className = 'val mono'; v.textContent = count ? count + ' replaced with [' + rule.tag + '_n]' : 'None found'; td.appendChild(v);
+    var ts = document.createElement('td'); ts.setAttribute('data-label', 'Status');
+    var p = document.createElement('span'); p.className = 'pill'; p.textContent = count ? 'Redacted' : 'None'; ts.appendChild(p);
+    tr.appendChild(th); tr.appendChild(td); tr.appendChild(ts);
+    return tr;
+  }
+
+  function run() {
+    var res = R.redact(src.value, enabled());
+    out.value = res.text;
+    tbody.textContent = '';
+    R.RULES.forEach(function (r) { if (!boxes[r.id].checked) return; if (res.counts[r.id]) tbody.appendChild(row(r, res.counts[r.id])); });
+    if (!src.value) {
+      summary.textContent = 'Paste text to redact it.'; summary.setAttribute('data-tone', 'idle');
+    } else if (!res.total) {
+      summary.textContent = 'Nothing matched the selected rules. This does not mean the text is free of personal data.'; summary.setAttribute('data-tone', 'warn');
+    } else {
+      summary.textContent = res.total + ' item' + (res.total === 1 ? '' : 's') + ' replaced. Read the output before you share it: names and addresses are not detected.'; summary.setAttribute('data-tone', 'ok');
+    }
+    copyBtn.disabled = !out.value;
+  }
+
+  src.addEventListener('input', run);
+  R.RULES.forEach(function (r) { boxes[r.id].addEventListener('change', run); });
+  clearBtn.addEventListener('click', function () { src.value = ''; run(); src.focus(); });
+  copyBtn.addEventListener('click', function () {
+    var done = function () { copyBtn.textContent = 'Copied'; setTimeout(function () { copyBtn.textContent = 'Copy result'; }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(out.value).then(done, function () { out.select(); });
+    else { out.select(); }
+  });
+  run();
+})();
+
+--- tests/redact.test.js(完整)---
+const assert = require('assert');
+const { redact, luhn } = require('../public/tools/assets/redact.js');
+let n = 0; const t = (name, fn) => { fn(); n++; };
+t('email', () => { const r = redact('mail bob@example.com and BOB@example.com and ann@x.org'); assert.strictEqual(r.text, 'mail [EMAIL_1] and [EMAIL_1] and [EMAIL_2]'); assert.strictEqual(r.counts.email, 3); });
+t('ipv4', () => { assert.strictEqual(redact('from 192.168.1.10 to 8.8.8.8').text, 'from [IPV4_1] to [IPV4_2]'); });
+t('ipv4 invalid not matched', () => { assert.strictEqual(redact('v 1.2.3.999 and 256.1.1.1').total, 0); });
+t('version numbers not ip', () => { assert.strictEqual(redact('version 1.2.3').total, 0); });
+t('ipv6', () => { assert.strictEqual(redact('addr 2001:db8::1 up').text, 'addr [IPV6_1] up'); assert.strictEqual(redact('2001:0db8:85a3:0000:0000:8a2e:0370:7334').text, '[IPV6_1]'); });
+t('time not ipv6', () => { assert.strictEqual(redact('at 12:30:45 today').total, 0); });
+t('card luhn', () => { assert.ok(luhn('4111111111111111')); assert.strictEqual(redact('card 4111 1111 1111 1111 ok').text, 'card [CARD_1] ok'); assert.strictEqual(redact('order 1234567890123456').total, 0); });
+t('phone', () => { assert.strictEqual(redact('call +1 415-555-0132 now').text, 'call [PHONE_1] now'); assert.strictEqual(redact('call +8613812345678').text, 'call [PHONE_1]'); });
+t('date not phone', () => { assert.strictEqual(redact('on 2026-10-20 it ran').total, 0); });
+t('api keys', () => { const r = redact('k AKIAIOSFODNN7EXAMPLE and ghp_' + 'a'.repeat(36)); assert.strictEqual(r.counts.apikey, 2); });
+t('jwt', () => { assert.strictEqual(redact('t eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijk end').text, 't [JWT_1] end'); });
+t('private key', () => { assert.strictEqual(redact('a\n-----BEGIN RSA PRIVATE KEY-----\nMIIE\n-----END RSA PRIVATE KEY-----\nb').text, 'a\n[PRIVATE_KEY_1]\nb'); });
+t('url credentials keep host', () => { assert.strictEqual(redact('postgres://user:hunter2@db.local/x').text, 'postgres://[URL_CREDENTIALS_1]@db.local/x'); });
+t('mac', () => { assert.strictEqual(redact('aa:bb:cc:dd:ee:ff').text, '[MAC_1]'); });
+t('disable a rule', () => { assert.strictEqual(redact('a@b.co 1.1.1.1', { email: false }).text, 'a@b.co [IPV4_1]'); });
+t('empty and plain', () => { assert.strictEqual(redact('').text, ''); assert.strictEqual(redact('nothing here').total, 0); });
+t('iban valid', () => { assert.ok(require('../public/tools/assets/redact.js').ibanOk('GB29NWBK60161331926819')); assert.strictEqual(redact('pay GB29 NWBK 6016 1331 9268 19 now').text, 'pay [IBAN_1] now'); assert.strictEqual(redact('DE89370400440532013000').text, '[IBAN_1]'); });
+t('iban bad checksum not matched', () => { assert.strictEqual(redact('GB29NWBK60161331926818').counts.iban, undefined); assert.strictEqual(redact('order AB12CD34EF56GH78').counts.iban, undefined); });
+console.log(n + ' tests passed');
+
+--- tests/redactor.py(完整)---
+import http.server, threading, socketserver, os, re
+from playwright.sync_api import sync_playwright
+ROOT = os.path.join(os.path.dirname(__file__), '..', 'public')
+csp = re.search(r'/tools/\*\n\s*Content-Security-Policy: (.*)', open(os.path.join(ROOT, '_headers')).read()).group(1)
+class H(http.server.SimpleHTTPRequestHandler):
+    def __init__(s, *a, **k): super().__init__(*a, directory=ROOT, **k)
+    def end_headers(s): s.send_header('Content-Security-Policy', csp); super().end_headers()
+    def log_message(s, *a): pass
+srv = socketserver.TCPServer(('127.0.0.1', 0), H); port = srv.server_address[1]
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+fails = []
+def ok(c, m):
+    print(('ok   ' if c else 'FAIL ') + m)
+    if not c: fails.append(m)
+with sync_playwright() as p:
+    b = p.chromium.launch(); pg = b.new_page(viewport={'width': 1280, 'height': 800}); errs = []; reqs = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.on('console', lambda m: errs.append(m.text) if 'Content Security' in m.text else None)
+    pg.on('request', lambda r: reqs.append(r.url) if not r.url.startswith(f'http://127.0.0.1:{port}') else None)
+    pg.goto(f'http://127.0.0.1:{port}/tools/text-redactor/')
+    ok(pg.is_disabled('#rd-copy'), 'copy disabled when empty')
+    pg.fill('#rd-in', 'Contact bob@example.com from 10.0.0.5 (+1 415-555-0132). Again bob@example.com. Card 4111 1111 1111 1111.')
+    out = pg.input_value('#rd-out')
+    ok(out == 'Contact [EMAIL_1] from [IPV4_1] ([PHONE_1]). Again [EMAIL_1]. Card [CARD_1].', 'redacts and reuses placeholders: ' + out)
+    ok(pg.locator('#rows tr').count() == 4, 'one row per category found')
+    ok('replaced' in pg.inner_text('#summary'), 'summary reports count')
+    pg.uncheck('#rule-email')
+    ok('bob@example.com' in pg.input_value('#rd-out'), 'unchecking a rule leaves those items')
+    pg.fill('#rd-in', 'nothing personal here')
+    ok('Nothing matched' in pg.inner_text('#summary'), 'warns that no match is not proof of safety')
+    pg.click('#rd-clear')
+    ok(pg.input_value('#rd-in') == '' and pg.is_disabled('#rd-copy'), 'clear resets')
+    ok(not reqs, 'no external requests')
+    ok(not errs, 'no page or CSP errors ' + str(errs))
+    pg.set_viewport_size({'width': 390, 'height': 800})
+    ok(pg.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'no overflow at 390px')
+    b.close()
+print('REDACTOR PAGE ' + ('FAILED' if fails else 'PASSED'))
+raise SystemExit(1 if fails else 0)
+
+--- src/tools/text-redactor.html(完整)---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Text Redactor: Remove Emails, IPs, Phone Numbers and Keys Locally</title>
+<meta name="description" content="Paste text and replace emails, phone numbers, IP addresses, card numbers and API keys with placeholders. Runs in your browser, nothing is uploaded.">
+<link rel="canonical" href="https://secureinchat.com/tools/text-redactor/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Text Redactor: Remove Emails, IPs, Phone Numbers and Keys Locally">
+<meta property="og:description" content="Paste text and replace emails, phone numbers, IP addresses, card numbers and API keys with placeholders. Runs in your browser, nothing is uploaded.">
+<meta property="og:url" content="https://secureinchat.com/tools/text-redactor/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Text redactor",
+      "url": "https://secureinchat.com/tools/text-redactor/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Paste text and replace emails, phone numbers, IP addresses, card numbers and API keys with placeholders. Runs in your browser, nothing is uploaded.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is my text sent to a server?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The matching runs in your browser. The page makes no network request when you paste or redact text."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why did it miss a name or an address?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It matches patterns such as emails and numbers. A name has no fixed pattern, so it is not detected. Check the output yourself before you share it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why is the same placeholder used twice?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Equal values get the same placeholder, for example [IP_1] or [EMAIL_1], so you can still follow what happened in a log after redaction."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can it find every API key?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. It recognises common formats such as AWS, GitHub, Slack, Google and OpenAI-style keys, plus JSON Web Tokens and private key blocks. Other secrets, and keys in a custom format, can pass through. Rotate any secret that has been exposed."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can it redact a file?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Not yet. Paste the text into the box. For photos, use the photo metadata remover."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">Text redactor</h1>
+    <p class="lede">Remove emails, phone numbers, IP addresses and secrets from text before you share it. It runs in your browser.</p>
+    <div class="rd-grid">
+      <div><label for="rd-in">Text to redact</label><textarea id="rd-in" class="rd-text" spellcheck="false" autocomplete="off" placeholder="Paste a log, an email or a config here"></textarea></div>
+      <div><label for="rd-out">Redacted text</label><textarea id="rd-out" class="rd-text" readonly spellcheck="false"></textarea></div>
+    </div>
+    <div class="rd-rules" role="group" aria-label="What to redact"><label class="check"><input id="rule-email" type="checkbox" checked> <span>Email addresses</span></label><label class="check"><input id="rule-phone" type="checkbox" checked> <span>Phone numbers</span></label><label class="check"><input id="rule-ipv4" type="checkbox" checked> <span>IPv4 addresses</span></label><label class="check"><input id="rule-ipv6" type="checkbox" checked> <span>IPv6 addresses</span></label><label class="check"><input id="rule-mac" type="checkbox" checked> <span>MAC addresses</span></label><label class="check"><input id="rule-card" type="checkbox" checked> <span>Card numbers</span></label><label class="check"><input id="rule-iban" type="checkbox" checked> <span>IBANs</span></label><label class="check"><input id="rule-apikey" type="checkbox" checked> <span>API keys and tokens</span></label><label class="check"><input id="rule-jwt" type="checkbox" checked> <span>JSON Web Tokens</span></label><label class="check"><input id="rule-url_cred" type="checkbox" checked> <span>Passwords in URLs</span></label><label class="check"><input id="rule-privkey" type="checkbox" checked> <span>Private keys</span></label></div>
+    <div class="rd-actions"><button id="rd-copy" class="btn" type="button" disabled>Copy result</button><button id="rd-clear" class="btn btn--quiet" type="button">Clear</button></div>
+    <p class="hint">Nothing you paste is uploaded or stored. It finds patterns, not names or addresses, so read the result before sharing. See <a href="/privacy/">how this site handles data</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Paste text to redact it.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">Items replaced in the text</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="rows">
+
+      </tbody>
+    </table>
+  </section>
+
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">What it does</h2>
+    <p>Paste text and the tool replaces emails, phone numbers, IP and MAC addresses, card numbers, IBANs (checked with the standard checksum), API keys, tokens, passwords inside URLs and private keys with labelled placeholders such as <span class="mono">[EMAIL_1]</span>. The same value always gets the same placeholder, so a log stays readable after redaction. This is useful before you paste a log, a config or an email into a bug report, a forum or an AI assistant.</p>
+    <h2>What it does not do</h2>
+    <p>It finds patterns, not meaning. Names, street addresses, company names and anything written in an unusual format are not detected. Always read the result before you share it. A card number is only replaced if it passes the standard checksum, so a made-up number may be left alone.</p>
+    <h2>How your text is handled</h2>
+    <p>The text is processed in this page. It is not uploaded, logged or stored, and the page loads no analytics. Your browser or an extension may still keep what you type, so use a private window for sensitive material. Related: <a href="/tools/photo-metadata-remover/">remove metadata from a photo</a>.</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>Is my text sent to a server?</h3>
+    <p>No. The matching runs in your browser. The page makes no network request when you paste or redact text.</p>
+    <h3>Why did it miss a name or an address?</h3>
+    <p>It matches patterns such as emails and numbers. A name has no fixed pattern, so it is not detected. Check the output yourself before you share it.</p>
+    <h3>Why is the same placeholder used twice?</h3>
+    <p>Equal values get the same placeholder, for example [IP_1] or [EMAIL_1], so you can still follow what happened in a log after redaction.</p>
+    <h3>Can it find every API key?</h3>
+    <p>No. It recognises common formats such as AWS, GitHub, Slack, Google and OpenAI-style keys, plus JSON Web Tokens and private key blocks. Other secrets, and keys in a custom format, can pass through. Rotate any secret that has been exposed.</p>
+    <h3>Can it redact a file?</h3>
+    <p>Not yet. Paste the text into the box. For photos, use the photo metadata remover.</p>
+  </section>
+  <aside class="wrap prose" id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">Tools from our partner</h2>
+    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a> (affiliate link) is encrypted cloud storage for files you need to keep or share after cleaning them. Or go to <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a> without a commission link.</p>
+  </aside>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/redact.js" defer></script>
+<script src="/tools/assets/redact-app.js" defer></script>
+</body>
+</html>
