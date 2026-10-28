@@ -81,6 +81,12 @@ export interface FileMetaEnvelope {
   /** 图片/语音/普通文件——决定 UI 怎么渲染（显示缩略图 / 播放器 / 文件卡片） */
   mediaKind: "image" | "voice" | "file";
   sentAtMs: number;
+  /**
+   * 语音消息时长（毫秒）。只对 voice 有意义。
+   * 可选字段：老客户端没有，接收方要能容忍缺失（回退到 audio 元素的 duration）。
+   * WebView 读不到 webm 的时长元数据，所以由发送方在录音结束时算好带过来。
+   */
+  durationMs?: number;
 }
 
 export interface FileChunkEnvelope {

@@ -85,6 +85,7 @@ import {
   type GroupSessions,
 } from "./groupSession";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
+import { isScreenSecurityEnabled, setScreenSecurityEnabled, applyScreenSecurity, screenSecuritySupported } from "./screenSecurity";
 
 interface ActiveCall {
   session: CallSession;
@@ -176,6 +177,28 @@ export function App() {
   const pendingAudioRef = useRef<Map<string, AnnouncementCategory>>(new Map());
   const arrivedAudioRef = useRef<Map<string, string>>(new Map());
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // 截屏保护：启动时读本机偏好并应用到窗口。
+  // 默认关闭——邀请卡片就是为了截图转发；开启后本应用界面无法截屏。
+  const [screenSecurityEnabled, setScreenSecurityEnabledState] = useState(false);
+
+  useEffect(() => {
+    if (!screenSecuritySupported()) return;
+    void (async () => {
+      const enabled = await isScreenSecurityEnabled();
+      setScreenSecurityEnabledState(enabled);
+      await applyScreenSecurity(enabled);
+    })();
+  }, []);
+
+  const handleToggleScreenSecurity = () => {
+    const next = !screenSecurityEnabled;
+    setScreenSecurityEnabledState(next);
+    void (async () => {
+      await setScreenSecurityEnabled(next);
+      await applyScreenSecurity(next);
+    })();
+  };
   /** null = 还没查完是否启用了应用锁 */
   const [locked, setLocked] = useState<boolean | null>(null);
   const [capability, setCapability] = useState<CapabilityResult | null>(null);
@@ -467,6 +490,7 @@ export function App() {
             mimeType: done.mimeType,
             objectUrl,
             sizeBytes: done.bytes.byteLength,
+            ...(done.durationMs !== undefined ? { durationMs: done.durationMs } : {}),
           },
         },
         done.bytes
@@ -807,7 +831,11 @@ export function App() {
     }
   }
 
-  async function handleSendFile(file: File, mediaKind: "image" | "voice" | "file") {
+  async function handleSendFile(
+    file: File,
+    mediaKind: "image" | "voice" | "file",
+    extra?: { durationMs?: number }
+  ) {
     const session = activeSession();
     if (!session) return;
     const { groupId, client } = session;
@@ -823,6 +851,7 @@ export function App() {
         mimeType: file.type || "application/octet-stream",
         mediaKind,
         bytes,
+        ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
       });
 
       // meta 必须先到，接收方才知道总共有多少片。
@@ -852,6 +881,7 @@ export function App() {
             mimeType: file.type || "application/octet-stream",
             objectUrl: URL.createObjectURL(file),
             sizeBytes: bytes.byteLength,
+            ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
           },
         },
         bytes
@@ -1384,6 +1414,8 @@ export function App() {
         nickname={nickname}
         onOpenServerSettings={() => setScreen({ name: "serverSettings" })}
         relayUrl={relayUrl}
+        screenSecurityEnabled={screenSecurityEnabled}
+        onToggleScreenSecurity={screenSecuritySupported() ? handleToggleScreenSecurity : undefined}
       />
     );
   }

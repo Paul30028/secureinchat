@@ -184,3 +184,99 @@ describe("buildFileEnvelopes + FileAssembler", () => {
     expect(done!.bytes.byteLength).toBe(0);
   });
 });
+
+describe("voice durationMs", () => {
+  const bytes = new Uint8Array([1, 2, 3, 4]);
+
+  it("round-trips a valid duration", () => {
+    const { meta, chunks } = buildFileEnvelopes({
+      fileId: "voice-1",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      mediaKind: "voice",
+      bytes,
+      durationMs: 7000,
+    });
+    expect(meta.durationMs).toBe(7000);
+
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    let done;
+    for (const c of chunks) done = assembler.acceptChunk(c);
+    expect(done).toBeDefined();
+    expect(done?.durationMs).toBe(7000);
+  });
+
+  it("does not write negative or NaN duration into meta", () => {
+    for (const bad of [-1, Number.NaN]) {
+      const { meta } = buildFileEnvelopes({
+        fileId: "voice-2",
+        fileName: "voice.webm",
+        mimeType: "audio/webm",
+        mediaKind: "voice",
+        bytes,
+        durationMs: bad,
+      });
+      expect(meta.durationMs).toBeUndefined();
+    }
+  });
+
+  it("clamps an over-limit send value to 3,600,000", () => {
+    const { meta } = buildFileEnvelopes({
+      fileId: "voice-3",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      mediaKind: "voice",
+      bytes,
+      durationMs: 3_600_001,
+    });
+    expect(meta.durationMs).toBe(3_600_000);
+  });
+
+  it("drops an over-limit value on receive but still assembles the file", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "voice-4",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "voice" as const,
+      sentAtMs: 1,
+      durationMs: 3_600_001,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "voice-4",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.durationMs).toBeUndefined();
+  });
+
+  it("assembles old-format meta without durationMs", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "voice-5",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "voice" as const,
+      sentAtMs: 1,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "voice-5",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.durationMs).toBeUndefined();
+  });
+});

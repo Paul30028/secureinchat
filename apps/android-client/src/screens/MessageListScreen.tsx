@@ -36,6 +36,10 @@ export interface MessageListScreenProps {
   relayUrl: string;
   /** 默认打开哪个 tab，不传就是公告 */
   initialTab?: BottomNavKey | undefined;
+  /** 截屏保护是否开启 */
+  screenSecurityEnabled?: boolean | undefined;
+  /** 点按「截屏保护」开关。不传（Web 端没有这个系统能力）就不显示这一行——不放点了没用的开关 */
+  onToggleScreenSecurity?: (() => void) | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -58,6 +62,8 @@ export function MessageListScreen({
   onOpenServerSettings,
   relayUrl,
   initialTab,
+  screenSecurityEnabled,
+  onToggleScreenSecurity,
 }: MessageListScreenProps) {
   // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
   // 而不是像通用 IM 那样落在会话列表。
@@ -255,6 +261,29 @@ export function MessageListScreen({
               <div style={{ fontSize: 14, color: colors.textPrimary }}>应用密码</div>
               <div style={{ fontSize: 11, color: "#9A9A94" }}>打开应用前需要输入密码</div>
             </button>
+
+            {onToggleScreenSecurity ? (
+            <button
+              onClick={onToggleScreenSecurity}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>截屏保护</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>
+                {screenSecurityEnabled
+                  ? "已开启：本应用界面无法截屏或录屏，最近任务里显示空白"
+                  : "已关闭：开启后无法截图转发邀请卡片"}
+              </div>
+            </button>
+            ) : null}
 
             <button
               onClick={onOpenAdminRecovery}

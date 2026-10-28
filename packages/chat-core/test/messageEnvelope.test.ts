@@ -52,3 +52,36 @@ describe("message envelope", () => {
     );
   });
 });
+
+describe("FileMetaEnvelope durationMs", () => {
+  it("round-trips a valid durationMs", () => {
+    const envelope: FileMetaEnvelope = {
+      kind: "file-meta",
+      fileId: "f1",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      totalBytes: 3,
+      totalChunks: 1,
+      mediaKind: "voice",
+      sentAtMs: 1,
+      durationMs: 7000,
+    };
+    const decoded = decodeEnvelope(encodeEnvelope(envelope));
+    expect(decoded).toMatchObject({ kind: "file-meta", durationMs: 7000 });
+  });
+
+  it("tolerates old meta without durationMs", () => {
+    const envelope: FileMetaEnvelope = {
+      kind: "file-meta",
+      fileId: "f2",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      totalBytes: 3,
+      totalChunks: 1,
+      mediaKind: "voice",
+      sentAtMs: 1,
+    };
+    const decoded = decodeEnvelope(encodeEnvelope(envelope));
+    expect(decoded).not.toHaveProperty("durationMs");
+  });
+});

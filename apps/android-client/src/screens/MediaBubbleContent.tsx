@@ -6,12 +6,26 @@ export interface MediaContent {
   mimeType: string;
   objectUrl: string;
   sizeBytes: number;
+  /** 语音时长（毫秒）。有就显示 m:ss，没有就回退到 audio 元素自己的行为。 */
+  durationMs?: number | undefined;
 }
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * 把毫秒格式化成 m:ss。
+ * 规则：不足 1 秒向下取整为 0:00；1 小时显示成 60:00。
+ */
+export function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "0:00";
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 /** 图片/语音/文件三种媒体消息的渲染。放在 ChatBubble 内部作为 children。 */
@@ -50,11 +64,14 @@ export function MediaBubbleContent({
   }
 
   if (media.mediaKind === "voice") {
+    const durationLabel = media.durationMs !== undefined ? formatDuration(media.durationMs) : undefined;
     return (
       <div style={{ minWidth: 180 }}>
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <audio controls src={media.objectUrl} style={{ width: "100%", height: 32 }} />
-        <div style={{ fontSize: 10, color: subduedColor, marginTop: 4 }}>语音 · {formatSize(media.sizeBytes)}</div>
+        <div style={{ fontSize: 10, color: subduedColor, marginTop: 4 }}>
+          语音{durationLabel ? ` · ${durationLabel}` : ""} · {formatSize(media.sizeBytes)}
+        </div>
       </div>
     );
   }

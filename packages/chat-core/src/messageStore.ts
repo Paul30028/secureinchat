@@ -32,6 +32,8 @@ export interface StoredMessage {
         /** base64url；超过 MAX_PERSISTED_MEDIA_BYTES 时为 undefined（内容没留下） */
         dataB64Url?: string | undefined;
         sizeBytes: number;
+        /** 语音时长（毫秒）。老记录没有这个字段，读出来照常显示。 */
+        durationMs?: number | undefined;
       }
     | undefined;
 }

@@ -36,6 +36,7 @@ export function toStored(msg: DisplayMessage, mediaBytes?: Uint8Array): StoredMe
       // 超过上限的媒体只留元信息：重启后会显示文件名和大小，但内容打不开。
       // 这比整条消息消失要好，用户至少知道当时收到过什么。
       dataB64Url: persistBytes ? bytesToBase64Url(mediaBytes) : undefined,
+      ...(msg.media.durationMs !== undefined ? { durationMs: msg.media.durationMs } : {}),
     },
   };
 }
@@ -64,6 +65,7 @@ export function fromStored(stored: StoredMessage): DisplayMessage {
       mimeType: stored.media.mimeType,
       objectUrl,
       sizeBytes: stored.media.sizeBytes,
+      ...(stored.media.durationMs !== undefined ? { durationMs: stored.media.durationMs } : {}),
     },
   };
 }

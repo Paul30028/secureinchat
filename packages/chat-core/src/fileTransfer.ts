@@ -14,6 +14,9 @@ import type { FileChunkEnvelope, FileMetaEnvelope } from "./messageEnvelope";
 /** 64KB 一片。WebSocket 单帧不宜过大，base64 编码后约 87KB，是个稳妥的值。 */
 export const CHUNK_SIZE_BYTES = 64 * 1024;
 
+/** 语音时长上限：一小时。超过这个值的语音基本可以认为是异常数据。 */
+export const MAX_VOICE_DURATION_MS = 3_600_000;
+
 export function bytesToBase64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
@@ -33,6 +36,20 @@ export function totalChunksFor(totalBytes: number, chunkSize = CHUNK_SIZE_BYTES)
   return Math.max(1, Math.ceil(totalBytes / chunkSize));
 }
 
+/** 发送端：有限正数才保留，四舍五入，clamp 到上限。 */
+export function normalizeDurationForSend(v: number | undefined): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return undefined;
+  return Math.min(Math.round(v), MAX_VOICE_DURATION_MS);
+}
+
+/** 接收端：不是有限正数或超过上限就丢弃。 */
+export function normalizeDurationForReceive(v: unknown): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0 || v > MAX_VOICE_DURATION_MS) {
+    return undefined;
+  }
+  return Math.round(v);
+}
+
 export interface BuildFileEnvelopesInput {
   fileId: string;
   fileName: string;
@@ -42,6 +59,8 @@ export interface BuildFileEnvelopesInput {
   senderName?: string;
   sentAtMs?: number;
   chunkSize?: number;
+  /** 语音时长（毫秒）。只对 voice 有意义；非法值不会写进 meta。 */
+  durationMs?: number;
 }
 
 /** 把一个文件拆成 1 个 meta 信封 + N 个分片信封，按顺序发送即可。 */
@@ -51,6 +70,7 @@ export function buildFileEnvelopes(input: BuildFileEnvelopesInput): {
 } {
   const chunkSize = input.chunkSize ?? CHUNK_SIZE_BYTES;
   const totalChunks = totalChunksFor(input.bytes.byteLength, chunkSize);
+  const durationMs = normalizeDurationForSend(input.durationMs);
 
   const meta: FileMetaEnvelope = {
     kind: "file-meta",
@@ -62,6 +82,7 @@ export function buildFileEnvelopes(input: BuildFileEnvelopesInput): {
     mediaKind: input.mediaKind,
     sentAtMs: input.sentAtMs ?? Date.now(),
     ...(input.senderName ? { senderName: input.senderName } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {}),
   };
 
   const chunks: FileChunkEnvelope[] = [];
@@ -84,6 +105,8 @@ export interface AssembledFile {
   mediaKind: FileMetaEnvelope["mediaKind"];
   bytes: Uint8Array;
   senderName?: string | undefined;
+  /** 语音时长（毫秒）。非法值在接收端丢弃，不会让整条消息失败。 */
+  durationMs?: number | undefined;
 }
 
 export interface IncomingFileProgress {
@@ -146,6 +169,7 @@ export class FileAssembler {
       mediaKind: entry.meta.mediaKind,
       bytes,
       senderName: entry.meta.senderName,
+      durationMs: normalizeDurationForReceive(entry.meta.durationMs),
     };
   }
 

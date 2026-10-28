@@ -63,7 +63,11 @@ export interface ChatScreenProps {
   /** 群里见过的设备，用于成员列表 */
   knownDevices?: import("@secureinchat/chat-core").KnownDevice[] | undefined;
   myDeviceId?: string | undefined;
-  onSendFile: (file: File, mediaKind: "image" | "voice" | "file") => Promise<void>;
+  onSendFile: (
+    file: File,
+    mediaKind: "image" | "voice" | "file",
+    extra?: { durationMs?: number }
+  ) => Promise<void>;
   sendError?: string | undefined;
   connectionStatus?: "connecting" | "connected" | "reconnecting" | "disconnected" | undefined;
   /** 断线期间排队等待发送的消息条数 */
@@ -164,12 +168,16 @@ export function ChatScreen({
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       const parts: Blob[] = [];
+      const startedAtMs = performance.now();
       recorder.ondataavailable = (e) => parts.push(e.data);
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        // WebView 读不到 webm 的时长元数据，所以录音结束时自己算好，
+        // 让接收方不用依赖 audio 元素加载完才知道多长。
+        const durationMs = Math.round(performance.now() - startedAtMs);
         const blob = new Blob(parts, { type: recorder.mimeType || "audio/webm" });
         const file = new File([blob], `voice-${Date.now()}.webm`, { type: blob.type });
-        await onSendFile(file, "voice");
+        await onSendFile(file, "voice", { durationMs });
       };
       recorderRef.current = recorder;
       recorder.start();
