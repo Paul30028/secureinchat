@@ -12,7 +12,40 @@ const topBlocks = (main) => {
 };
 const cleanAttrs = (a) => a.replace(/\s*class="([^"]*)"/, (x, c) => { const k = c.split(/\s+/).filter((w) => !['wrap', 'prose', 'hero'].includes(w)).join(' '); return k ? ` class="${k}"` : ''; });
 
-export function toolPage({ slug, src, icon, label, flow, figure, crumbName }) {
+// Shell chrome strings. English is the default, so pages that do not pass lang keep their exact output.
+// Chinese tool pages reuse the English tools index until a Chinese one exists; only the page paths move.
+const CHROME = {
+  'en': {
+    lang: 'en',
+    crumbLabel: 'Breadcrumb',
+    crumbHome: 'Home',
+    crumbTools: 'Tools',
+    handling: 'How your data is handled',
+    stays: 'Stays on your device',
+    sent: 'Sent to others',
+    flowLink: 'See every tool\'s data flow',
+    other: 'Need a different check?',
+    otherText: 'Compare tools by what they do and what data they need.',
+    browse: 'Browse all tools',
+  },
+  'zh-CN': {
+    lang: 'zh-CN',
+    crumbLabel: '面包屑',
+    crumbHome: '首页',
+    crumbTools: '工具',
+    handling: '你的数据如何处理',
+    stays: '留在你的设备上',
+    sent: '发送给他人',
+    flowLink: '查看每个工具的数据流',
+    other: '需要别的检查？',
+    otherText: '按用途和数据需要比较这些工具。',
+    browse: '浏览所有工具',
+  },
+};
+
+export function toolPage({ slug, src, icon, label, flow, figure, crumbName, lang = 'en', alt }) {
+  const chrome = CHROME[lang] || CHROME.en;
+  const zh = chrome === CHROME['zh-CN'];
   const head = src.slice(0, src.indexOf('</head>'));
   const bodyEnd = src.slice(src.indexOf('</main>'));
   const title = /<title>([\s\S]*?)<\/title>/.exec(head)[1];
@@ -41,29 +74,31 @@ ${work.map((b) => `       <div class="legacy-tool"><${b.tag}${cleanAttrs(b.attrs
 ${prose.map((b) => `<${b.tag}${cleanAttrs(b.attrs)}>${mapTags(b.inner)}</${b.tag}>`).join('\n')}
       </div>` : '';
   const row = (mark, t, p) => `<div class="data-handling-row"><span class="data-handling-mark">${mark}</span><div><strong>${t}</strong><p>${p}</p></div></div>`;
+  const sentIsNone = flow.sent === 'Nothing' || flow.sent === '无';
   const side = `     <aside class="tool-sidebar">
       <section class="content-panel">
-       <h2>How your data is handled</h2>
+       <h2>${chrome.handling}</h2>
        <div class="data-handling">
-        ${row('✓', 'Stays on your device', flow.stays)}
-        ${row(flow.sent === 'Nothing' ? '✓' : '↗', 'Sent to others', flow.sent)}
+        ${row('✓', chrome.stays, flow.stays)}
+        ${row(sentIsNone ? '✓' : '↗', chrome.sent, flow.sent)}
        </div>
        <p class="state-list"><span class="${label[1]}">${label[0]}</span></p>
-       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
+       <a class="text-link" href="/principles/">${chrome.flowLink} <span aria-hidden="true">→</span></a>
       </section>
       ${figure ? `<figure class="editorial-figure"><img alt="${figure.alt}" height="${figure.h}" src="/assets/illustrations/${figure.src}" width="760"/></figure>` : ''}
       <section class="content-panel content-panel--soft">
-       <h2>Need a different check?</h2>
-       <p>Compare tools by what they do and what data they need.</p>
-       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+       <h2>${chrome.other}</h2>
+       <p>${chrome.otherText}</p>
+       <a class="text-link" href="/tools/">${chrome.browse} <span aria-hidden="true">→</span></a>
       </section>
      </aside>`;
+  const homeHref = zh ? '/zh/' : '/';
   const mainHtml = `   <section class="tool-detail-hero">
     <div class="subpage-shell">
-     <nav aria-label="Breadcrumb" class="breadcrumbs">
-      <a href="/">Home</a>
+     <nav aria-label="${chrome.crumbLabel}" class="breadcrumbs">
+      <a href="${homeHref}">${chrome.crumbHome}</a>
       <span aria-hidden="true" class="breadcrumb-separator">/</span>
-      <a href="/tools/">Tools</a>
+      <a href="/tools/">${chrome.crumbTools}</a>
       <span aria-hidden="true" class="breadcrumb-separator">/</span>
       <span aria-current="page">${crumbName}</span>
      </nav>
@@ -86,15 +121,29 @@ ${info}
 ${side}
     </div>
    </section>`;
-  const canonical = `/tools/${slug}/`;
+  const canonical = `${zh ? '/zh' : ''}/tools/${slug}/`;
+  // Alternate-language links are emitted only for pages that pass alt (a page with a translation),
+  // so every other page keeps its exact output.
+  const headAlt = alt ? [
+    `  <link href="https://secureinchat.com${alt.en}" hreflang="en" rel="alternate"/>`,
+    `  <link href="https://secureinchat.com${alt['zh-CN']}" hreflang="zh-CN" rel="alternate"/>`,
+    `  <link href="https://secureinchat.com${alt.en}" hreflang="x-default" rel="alternate"/>`,
+  ].join('\n') + '\n' : '';
   const keep = headScripts.filter((s) => /application\/ld\+json/.test(s));
   const scriptsHead = headScripts.filter((s) => !/application\/ld\+json/.test(s));
   const headExtra = `  <link href="https://secureinchat.com${canonical}" rel="canonical"/>
-  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+${headAlt}  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
   <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
 ${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
 `;
-  let html = shell({ title, desc, canonical, headExtra, current: '/tools/', main: mainHtml });
+  const shellArgs = { title, desc, canonical, headExtra, current: '/tools/', main: mainHtml };
+  // Passed only for a translation. If the shell does not know the key it is ignored, so the English
+  // call signature and its output are unchanged.
+  if (zh) shellArgs.lang = chrome.lang;
+  let html = shell(shellArgs);
+  if (zh) {
+    html = html.replace(/<html([^>]*)>/, (m, a) => `<html lang="${chrome.lang}"${a.replace(/\slang="[^"]*"/, '')}>`);
+  }
   html = html.replace(' </body>', `${tailScripts.map((s) => `  ${s}`).join('\n')}\n </body>`);
   // the kit stylesheets load after tool-legacy.css in the shell head order; move tool-legacy last so widgets keep their look
   html = html.replace('  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n', '').replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>');

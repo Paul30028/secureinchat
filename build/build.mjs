@@ -779,8 +779,37 @@ write('blog/index.html', blogIndex());
   for (const [slug, name, label, figure] of TOOLS) {
     const src = fs.readFileSync(path.join(ROOT, 'src/tools', `${slug}.html`), 'utf8');
     if (!FLOW[slug]) throw new Error('no data-flow row for ' + slug);
-    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name }));
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, ...(slug === 'photo-metadata-remover' ? { alt: { en: '/tools/photo-metadata-remover/', 'zh-CN': '/zh/tools/photo-metadata-remover/' } } : {}) }));
   }
+}
+
+
+// Chinese photo metadata remover. Same tool markup and scripts as the English page, so exif-app.js and
+// net-log.js switch their interface strings on document.documentElement.lang instead of being duplicated.
+// The icons and the data-flow row are built here because ICONS and FLOW live inside the block above.
+{
+  const PHOTO_ALT = { en: '/tools/photo-metadata-remover/', 'zh-CN': '/zh/tools/photo-metadata-remover/' };
+  const idxZh = KIT_T('tools-index.en.html');
+  let photoIcon = '';
+  for (const a of idxZh.match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'photo-metadata-remover') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) photoIcon = svg[0];
+    break;
+  }
+  const zhSrc = fs.readFileSync(path.join(ROOT, 'src/tools/zh/photo-metadata-remover.html'), 'utf8');
+  write('zh/tools/photo-metadata-remover/index.html', toolPage({
+    slug: 'photo-metadata-remover',
+    src: zhSrc,
+    icon: photoIcon,
+    label: ['本地处理', 'state-label'],
+    flow: { stays: '留在本机：照片和读出的元数据', sent: '无' },
+    figure: { ...FIG.photo, alt: '照片里的位置、时间和设备信息' },
+    crumbName: '照片元数据清理',
+    lang: 'zh-CN',
+    alt: PHOTO_ALT,
+  }));
 }
 
 
@@ -836,7 +865,7 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -858,6 +887,11 @@ ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`
 
 # Tools: no analytics, only the lookups the tests need.
 /tools/*
+  Content-Security-Policy: ${TOOLS_CSP}
+${common}
+
+# Translated tool pages live outside /tools/ and get the same tools policy.
+/zh/tools/photo-metadata-remover/
   Content-Security-Policy: ${TOOLS_CSP}
 ${common}
 

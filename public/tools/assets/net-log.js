@@ -11,6 +11,29 @@
   var fallback = root.querySelector('.netlog-fallback');
   if (!details || !countEl || !tbody) return;
 
+  // Cell labels, sizes and the fallback line follow the document language. The English page is the
+  // default, so its output is unchanged; the Chinese photo page sets lang="zh-CN" and gets Chinese.
+  var ZH = /^zh/i.test(document.documentElement.lang || '');
+  var T = ZH ? {
+    notAvailable: '不可用',
+    time: '时间', type: '类型', address: '地址', size: '大小',
+    timeTitle: '自本页开始加载以来的时间',
+    other: '其他',
+    cached: '缓存',
+    cachedWhy: '传输 0 字节：浏览器报告该资源来自缓存。',
+    notReported: '大小未报告。浏览器没有返回该资源的传输大小：可能是缓存命中，或者服务器没有发送 Timing-Allow-Origin。',
+    external: '外部',
+  } : {
+    notAvailable: 'not available',
+    time: 'Time', type: 'Type', address: 'Address', size: 'Size',
+    timeTitle: 'Time since this page started loading',
+    other: 'other',
+    cached: 'cached',
+    cachedWhy: '0 bytes transferred: the browser reports this resource came from cache.',
+    notReported: 'Size not reported. The browser did not return a transfer size for this resource: it may have been cached, or the server did not send Timing-Allow-Origin.',
+    external: 'external',
+  };
+
   // If the browser does not expose resource timing to pages, show the fallback and stop.
   if (typeof PerformanceObserver !== 'function' ||
       typeof window.performance === 'undefined' ||
@@ -19,7 +42,7 @@
     if (fallback) fallback.hidden = false;
     var scroll = root.querySelector('.netlog-scroll');
     if (scroll) scroll.hidden = true;
-    countEl.textContent = 'not available';
+    countEl.textContent = T.notAvailable;
     return;
   }
 
@@ -61,15 +84,15 @@
 
   function buildSize(entry) {
     var td = document.createElement('td');
-    td.setAttribute('data-label', 'Size');
+    td.setAttribute('data-label', T.size);
     if (entry.transferSize > 0) {
       td.textContent = fmtBytes(entry.transferSize);
     } else if (isSameOrigin(entry.name)) {
-      td.textContent = 'cached';
-      td.title = '0 bytes transferred: the browser reports this resource came from cache.';
+      td.textContent = T.cached;
+      td.title = T.cachedWhy;
     } else {
       td.textContent = '\u2014';
-      td.title = 'Size not reported. The browser did not return a transfer size for this resource: it may have been cached, or the server did not send Timing-Allow-Origin.';
+      td.title = T.notReported;
     }
     return td;
   }
@@ -89,16 +112,16 @@
     }
 
     var tdTime = document.createElement('td');
-    tdTime.setAttribute('data-label', 'Time');
+    tdTime.setAttribute('data-label', T.time);
     tdTime.textContent = (entry.startTime / 1000).toFixed(1) + 's';
-    tdTime.title = 'Time since this page started loading';
+    tdTime.title = T.timeTitle;
 
     var tdType = document.createElement('td');
-    tdType.setAttribute('data-label', 'Type');
-    tdType.textContent = entry.initiatorType || 'other';
+    tdType.setAttribute('data-label', T.type);
+    tdType.textContent = entry.initiatorType || T.other;
 
     var tdUrl = document.createElement('td');
-    tdUrl.setAttribute('data-label', 'Address');
+    tdUrl.setAttribute('data-label', T.address);
     tdUrl.className = 'netlog-url';
     var code = document.createElement('code');
     code.textContent = displayUrl(entry.name);
@@ -107,7 +130,7 @@
       tdUrl.appendChild(document.createTextNode(' '));
       var tag = document.createElement('span');
       tag.className = 'netlog-tag';
-      tag.textContent = 'external';
+      tag.textContent = T.external;
       tdUrl.appendChild(tag);
     }
 
