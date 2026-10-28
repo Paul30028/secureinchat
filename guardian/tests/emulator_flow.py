@@ -333,41 +333,39 @@ def main():
     print("ok: pause and resume work")
 
     # 4d. The user's own block list (G8): type a domain, Block, it resolves to the block address;
-    #     an invalid entry shows an error; Remove, and a not-yet-cached subdomain resolves for real again.
+    #     Remove, and a not-yet-cached subdomain resolves for real again; then an invalid entry shows
+    #     an error. The valid entry goes first, into the empty field: clearing a field over adb is
+    #     unreliable (backspaces landed as stray text on API 29).
     user_dom = "example.org"
-    field = None
-    for _ in range(6):
-        nodes = dump()
-        field = next((b for t, d, b, c in nodes if d == "Domain to block" and b), None)
-        if field and button(nodes, "Block"):
-            break
-        swipe_up()
-        time.sleep(1)
-    if not field:
-        fail("no 'Domain to block' field", nodes)
+
+    def find_field():
+        nodes = []
+        for _ in range(6):
+            nodes = dump()
+            f = next((b for t, d, b, c in nodes if d == "Domain to block" and b), None)
+            if f and button(nodes, "Block"):
+                return f, nodes
+            swipe_up()
+            time.sleep(1)
+        fail("no 'Domain to block' field with a Block button", nodes)
+
+    field, nodes = find_field()
     tap(field)
     time.sleep(1)
-    sh("input text not_a_domain")
-    tap(button(dump(), "Block"))
-    # The error line sits just below the input row, often under the bottom edge: scroll to it.
-    time.sleep(1)
-    nodes = scroll_find(lambda s: "Not a valid domain" in s, "invalid domain did not show 'Not a valid domain'")
-    field = next((b for t, d, b, c in nodes if d == "Domain to block" and b), None)
-    if not field:
-        fail("'Domain to block' field scrolled out of view", nodes)
-    tap(field)
-    for _ in range(14):
-        sh("input keyevent 67", check=False)  # backspace
     sh(f"input text {user_dom}")
-    tap(button(dump(), "Block"))
+    time.sleep(1)
+    b = button(dump(), "Block")
+    if not b:
+        fail("Block button hidden after typing", dump())
+    tap(b)
     blocked_row = re.compile(rf"^{re.escape(user_dom)}$", re.M)
-    nodes = scroll_find(lambda s: blocked_row.search(s) and "Not a valid domain" not in s,
-                        f"'Blocked by you' does not list {user_dom}")
+    nodes = scroll_find(lambda s: blocked_row.search(s), f"'Blocked by you' does not list {user_dom}")
     snap("blocked-by-user")
     addr, out = resolve(user_dom)
     print(f"guardian after Block: {user_dom} -> {addr}")
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{user_dom} should be blocked after the user blocked it, got {addr}: {out}")
+    nodes = scroll_find(lambda s: blocked_row.search(s), f"'Blocked by you' does not list {user_dom}")
     b = button_on_row(nodes, "Remove", user_dom)
     if not b:
         fail(f"no Remove button on the {user_dom} row", nodes)
@@ -379,6 +377,20 @@ def main():
     print(f"guardian after Remove: {probe5} -> {addr}")
     if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{probe5} should resolve for real after removing the user block, got {addr}: {out}")
+
+    field, nodes = find_field()
+    tap(field)
+    time.sleep(1)
+    sh("input text not_a_domain")
+    time.sleep(1)
+    tap(button(dump(), "Block"))
+    # The error line sits just below the input row, often under the bottom edge: scroll to it.
+    time.sleep(1)
+    scroll_find(lambda s: "Not a valid domain" in s, "invalid domain did not show 'Not a valid domain'")
+    # Close the keyboard if it is up (Back with no keyboard would leave the app).
+    if re.search(r"mInputShown=true", sh("dumpsys input_method", check=False)):
+        sh("input keyevent 4", check=False)
+        time.sleep(1)
     scroll_top()
     nodes = dump()
     print("ok: user block list works")
