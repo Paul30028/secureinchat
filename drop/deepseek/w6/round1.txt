@@ -1,0 +1,1591 @@
+<<<FULL
+仓库内路径：build/toolshell.mjs
+
+javascript
+Copy
+Download
+// Tool detail pages in ChatGPT's Subpages Design Kit v2 layout (tool-detail template).
+// Integration only: each tool's live markup (ids, data-* hooks, scripts) is moved unchanged into the kit's
+// workspace slot, as the kit README asks. Widget styling inside the slot comes from the previous tool
+// stylesheet, scoped to .legacy-tool, until ChatGPT restyles the widgets.
+import { shell, mapTags } from './subshell.mjs';
+
+const topBlocks = (main) => {
+  // Top-level <section>/<aside> blocks start at column 0 in the tool sources.
+  const out = []; const re = /^[ \t]*<(section|aside)([^>]*)>([\s\S]*?)^[ \t]*<\/\1>/gm; let m;
+  while ((m = re.exec(main))) out.push({ tag: m[1], attrs: m[2], inner: m[3] });
+  return out;
+};
+const cleanAttrs = (a) => a.replace(/\s*class="([^"]*)"/, (x, c) => { const k = c.split(/\s+/).filter((w) => !['wrap', 'prose', 'hero'].includes(w)).join(' '); return k ? ` class="${k}"` : ''; });
+
+// Shell chrome strings. English is the default, so pages that do not pass lang keep their exact output.
+// Chinese tool pages reuse the English tools index until a Chinese one exists; only the page paths move.
+const CHROME = {
+  'en': {
+    lang: 'en',
+    crumbLabel: 'Breadcrumb',
+    crumbHome: 'Home',
+    crumbTools: 'Tools',
+    handling: 'How your data is handled',
+    stays: 'Stays on your device',
+    sent: 'Sent to others',
+    flowLink: 'See every tool\'s data flow',
+    other: 'Need a different check?',
+    otherText: 'Compare tools by what they do and what data they need.',
+    browse: 'Browse all tools',
+  },
+  'zh-CN': {
+    lang: 'zh-CN',
+    crumbLabel: '面包屑',
+    crumbHome: '首页',
+    crumbTools: '工具',
+    handling: '你的数据如何处理',
+    stays: '留在你的设备上',
+    sent: '发送给他人',
+    flowLink: '查看每个工具的数据流',
+    other: '需要别的检查？',
+    otherText: '按用途和数据需要比较这些工具。',
+    browse: '浏览所有工具',
+  },
+};
+
+export function toolPage({ slug, src, icon, label, flow, figure, crumbName, lang = 'en', alt }) {
+  const chrome = CHROME[lang] || CHROME.en;
+  const zh = chrome === CHROME['zh-CN'];
+  const head = src.slice(0, src.indexOf('</head>'));
+  const bodyEnd = src.slice(src.indexOf('</main>'));
+  const title = /<title>([\s\S]*?)<\/title>/.exec(head)[1];
+  const desc = /<meta name="description" content="([^"]*)"/.exec(head)[1];
+  const headScripts = head.match(/<script[\s\S]*?<\/script>/g) || [];
+  const tailScripts = bodyEnd.match(/<script[\s\S]*?<\/script>/g) || [];
+  const main = src.slice(src.indexOf('<main'), src.indexOf('</main>'));
+  const blocks = topBlocks(main);
+  const hero = blocks.find((b) => /class="[^"]*\bhero\b/.test(b.attrs));
+  const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(hero.inner)[1];
+  const ledeM = /<p class="lede">([\s\S]*?)<\/p>/.exec(hero.inner);
+  const heroRest = hero.inner.replace(/<h1[^>]*>[\s\S]*?<\/h1>\s*/, '').replace(/<p class="lede">[\s\S]*?<\/p>\s*/, '');
+  const work = []; const prose = [];
+  for (const b of blocks) {
+    if (b === hero) continue;
+    if (/id="ad-slot/.test(b.attrs)) continue;
+    if (/\bprose\b/.test(b.attrs)) prose.push(b); else work.push(b);
+  }
+  const ws = `      <section class="tool-workspace" aria-label="${h1.replace(/"/g, '&quot;')}">
+       <div class="legacy-tool">
+${heroRest}
+       </div>
+${work.map((b) => `       <div class="legacy-tool"><${b.tag}${cleanAttrs(b.attrs)}>${b.inner}</${b.tag}></div>`).join('\n')}
+      </section>`;
+  const info = prose.length ? `      <div class="info-content tool-prose">
+${prose.map((b) => `<${b.tag}${cleanAttrs(b.attrs)}>${mapTags(b.inner)}</${b.tag}>`).join('\n')}
+      </div>` : '';
+  const row = (mark, t, p) => `<div class="data-handling-row"><span class="data-handling-mark">${mark}</span><div><strong>${t}</strong><p>${p}</p></div></div>`;
+  const sentIsNone = flow.sent === 'Nothing' || flow.sent === '无';
+  const side = `     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>${chrome.handling}</h2>
+       <div class="data-handling">
+        ${row('✓', chrome.stays, flow.stays)}
+        ${row(sentIsNone ? '✓' : '↗', chrome.sent, flow.sent)}
+       </div>
+       <p class="state-list"><span class="${label[1]}">${label[0]}</span></p>
+       <a class="text-link" href="/principles/">${chrome.flowLink} <span aria-hidden="true">→</span></a>
+      </section>
+      ${figure ? `<figure class="editorial-figure"><img alt="${figure.alt}" height="${figure.h}" src="/assets/illustrations/${figure.src}" width="760"/></figure>` : ''}
+      <section class="content-panel content-panel--soft">
+       <h2>${chrome.other}</h2>
+       <p>${chrome.otherText}</p>
+       <a class="text-link" href="/tools/">${chrome.browse} <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>`;
+  const homeHref = zh ? '/zh/' : '/';
+  const mainHtml = `   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="${chrome.crumbLabel}" class="breadcrumbs">
+      <a href="${homeHref}">${chrome.crumbHome}</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/tools/">${chrome.crumbTools}</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">${crumbName}</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      ${icon ? `<span class="tool-detail-emblem">${icon.replace('tool-catalogue-icon-art', 'tool-detail-emblem-art')}</span>` : ''}
+      <div>
+       <h1 id="h1">${h1}</h1>
+       ${ledeM ? `<p class="page-lead">${ledeM[1]}</p>` : ''}
+       <ul class="state-list"><li><span class="${label[1]}">${label[0]}</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+${ws}
+${info}
+     </div>
+${side}
+    </div>
+   </section>`;
+  const canonical = `${zh ? '/zh' : ''}/tools/${slug}/`;
+  // Alternate-language links are only emitted for a translated page, so the English page stays byte-for-byte
+  // what it was before this parameter existed. The English page is found through the Chinese page's hreflang.
+  const headAlt = (zh && alt) ? [
+    `  <link href="https://secureinchat.com${alt.en}" hreflang="en" rel="alternate"/>`,
+    `  <link href="https://secureinchat.com${alt['zh-CN']}" hreflang="zh-CN" rel="alternate"/>`,
+    `  <link href="https://secureinchat.com${alt.en}" hreflang="x-default" rel="alternate"/>`,
+  ].join('\n') + '\n' : '';
+  const keep = headScripts.filter((s) => /application\/ld\+json/.test(s));
+  const scriptsHead = headScripts.filter((s) => !/application\/ld\+json/.test(s));
+  const headExtra = `  <link href="https://secureinchat.com${canonical}" rel="canonical"/>
+${headAlt}  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
+`;
+  const shellArgs = { title, desc, canonical, headExtra, current: '/tools/', main: mainHtml };
+  // Passed only for a translation. If the shell does not know the key it is ignored, so the English
+  // call signature and its output are unchanged.
+  if (zh) shellArgs.lang = chrome.lang;
+  let html = shell(shellArgs);
+  if (zh) {
+    html = html.replace(/<html([^>]*)>/, (m, a) => `<html lang="${chrome.lang}"${a.replace(/\slang="[^"]*"/, '')}>`);
+  }
+  html = html.replace(' </body>', `${tailScripts.map((s) => `  ${s}`).join('\n')}\n </body>`);
+  // the kit stylesheets load after tool-legacy.css in the shell head order; move tool-legacy last so widgets keep their look
+  html = html.replace('  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n', '').replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>');
+  return html;
+}
+
+// Scope the previous tool stylesheet to .legacy-tool. Page-level rules (html, body, header, hero, skip link) are dropped.
+export function scopeLegacyCss(css) {
+  const DROP = /^(html|body|\*|::selection|\.top\b|\.top__in|\.brand|\.skip|\.hero\b|\.lede|\.foot\b|\.foot__in|h1\b)/;
+  const scopeSel = (sel) => sel.split(',').map((x) => x.trim()).filter((x) => x && !DROP.test(x))
+    .map((x) => (x.startsWith(':root') ? x : `.legacy-tool ${x}`)).join(', ');
+  let out = ''; let i = 0;
+  const readBlock = (from) => { let d = 0; for (let j = from; j < css.length; j++) { if (css[j] === '{') d++; else if (css[j] === '}') { d--; if (d === 0) return j; } } return css.length; };
+  while (i < css.length) {
+    const ob = css.indexOf('{', i); if (ob < 0) break;
+    const pre = css.slice(i, ob).trim(); const cb = readBlock(ob);
+    const inner = css.slice(ob + 1, cb);
+    const sel = pre.replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    if (sel.startsWith('@font-face') || sel.startsWith('@keyframes')) out += `${sel} {${inner}}\n`;
+    else if (sel.startsWith('@media') || sel.startsWith('@supports')) out += `${sel} {\n${scopeLegacyCss(inner)}}\n`;
+    else if (sel.startsWith(':root')) out += `${sel} {${inner}}\n`;
+    else { const s2 = scopeSel(sel); if (s2) out += `${s2} {${inner}}\n`; }
+    i = cb + 1;
+  }
+  return out;
+}
+
+仓库内路径：build/build.mjs
+在 TOOLS 块的结尾这三行之后插入：
+
+javascript
+Copy
+Download
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name }));
+  }
+}
+
+插入片段：
+
+javascript
+Copy
+Download
+
+// Chinese photo metadata remover. Same tool markup and scripts as the English page, so exif-app.js and
+// net-log.js switch their interface strings on document.documentElement.lang instead of being duplicated.
+// The icons and the data-flow row are built here because ICONS and FLOW live inside the block above.
+{
+  const PHOTO_ALT = { en: '/tools/photo-metadata-remover/', 'zh-CN': '/zh/tools/photo-metadata-remover/' };
+  const idxZh = KIT_T('tools-index.en.html');
+  let photoIcon = '';
+  for (const a of idxZh.match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'photo-metadata-remover') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) photoIcon = svg[0];
+    break;
+  }
+  const zhSrc = fs.readFileSync(path.join(ROOT, 'src/tools/zh/photo-metadata-remover.html'), 'utf8');
+  write('zh/tools/photo-metadata-remover/index.html', toolPage({
+    slug: 'photo-metadata-remover',
+    src: zhSrc,
+    icon: photoIcon,
+    label: ['本地处理', 'state-label'],
+    flow: { stays: '留在本机：照片和读出的元数据', sent: '无' },
+    figure: FIG.photo,
+    crumbName: '照片元数据清理',
+    lang: 'zh-CN',
+    alt: PHOTO_ALT,
+  }));
+  // Sitemap: if the sitemap is generated by walking the files written above, the new page is included
+  // automatically and nothing else is needed. If it comes from an explicit list, add this entry next to
+  // the English one, for example SITEMAP.push('/zh/tools/photo-metadata-remover/');
+}
+
+仓库内路径：src/tools/zh/photo-metadata-remover.html
+
+html
+Copy
+Download
+Run
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>照片元数据清理：在本机查看并删除 EXIF 与 GPS 信息</title>
+<meta name="description" content="免费的照片元数据清理工具。查看一张 JPEG 里藏着的 GPS 位置、设备和时间，然后在浏览器里保存一份清理后的副本，照片不会被上传。">
+<link rel="canonical" href="https://secureinchat.com/zh/tools/photo-metadata-remover/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="照片元数据清理：在本机查看并删除 EXIF 与 GPS 信息">
+<meta property="og:description" content="免费的照片元数据清理工具。查看一张 JPEG 里藏着的 GPS 位置、设备和时间，然后在浏览器里保存一份清理后的副本，照片不会被上传。">
+<meta property="og:url" content="https://secureinchat.com/zh/tools/photo-metadata-remover/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "照片元数据清理",
+      "url": "https://secureinchat.com/zh/tools/photo-metadata-remover/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "需要 JavaScript。",
+      "description": "免费的照片元数据清理工具。查看一张 JPEG 里藏着的 GPS 位置、设备和时间，然后在浏览器里保存一份清理后的副本，照片不会被上传。",
+      "inLanguage": "zh-CN",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "我的照片会被上传吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。文件在本页内读取并重新编码，没有上传，页面代码不保存任何东西，也不加载统计脚本。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "照片里有哪些元数据？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "手机和相机拍的 JPEG 通常带 EXIF：设备品牌和型号、日期和时间，常常还有 GPS 坐标，有时还有软件、镜头或序列号。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "社交网站会帮我删掉元数据吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "有些在你上传时会删，但你无法确认是哪一些；而且用邮件、云链接或某些聊天软件发原图，可能把原文件原样带过去。分享之前自己先删掉。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "这里是怎么删除的？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "页面把图片解码后画到一块空白画布上，再把画布保存成新文件。元数据不属于像素，所以不会被复制。之后页面会再读一遍新的 JPEG，确认没有残留的 EXIF。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "画质会变吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG 会以高质量重新编码，所以可能有很小的损失。PNG 输出是无损的。内嵌的色彩配置会被去掉，在某些查看器里颜色可能有轻微变化。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "支持哪些格式？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG、PNG 和 WebP，前提是你的浏览器能解码。这里不支持 HEIC 和动图。清理前只显示 JPEG 的元数据，但清理会去掉所有支持格式的元数据。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "画面里的东西会被删掉吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。路牌、人脸或地标仍然可能暴露你在哪里。这个工具只删除隐藏数据。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">跳到结果</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/zh/">SecureInChat</a>
+    <nav aria-label="主导航"><a href="/zh/">首页</a><a href="/tools/" aria-current="page">工具</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">照片元数据清理</h1>
+    <p class="lede">看看一张照片暴露了拍摄的地点和时间，然后保存一份去掉这些信息的副本。文件不会离开你的设备。</p>
+    <div class="picker"><input id="file" type="file" accept="image/*" aria-label="选择一张照片"><button id="clean" class="btn" type="button" hidden>删除元数据并下载</button></div>
+    <p class="hint">选择 JPEG、PNG 或 WebP。原文件不会被改动，页面不保存任何东西。另见 <a href="/tools/ip-leak-test/">IP 泄露测试</a>。</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">结果</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">选择一张照片开始。</p>
+    </div>
+    <table class="results">
+      <caption class="sr">按类别列出的照片元数据</caption>
+      <thead><tr><th scope="col">检查</th><th scope="col">结果</th><th scope="col">状态</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="检查"><span class="c-name">照片</span><span class="c-desc">选择一张照片，看看它带着什么。</span></th>
+          <td data-label="结果"><div class="vals"><div class="val mono">尚未运行</div></div></td>
+          <td data-label="状态"><span class="pill">未运行</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap netlog-section" aria-label="本页发出的网络请求">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">本页发出的网络请求：<span class="netlog-count">0</span></summary>
+        <p class="netlog-note">本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。照片只在本标签页里读取：选择一张照片后，这里不应出现新的请求。</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="本页发出的网络请求">
+            <thead>
+              <tr>
+                <th scope="col">时间</th>
+                <th scope="col">类型</th>
+                <th scope="col">地址</th>
+                <th scope="col">大小</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>你的浏览器没有向页面公开请求计时信息。</p>
+        <p class="netlog-footer">本列表来自你浏览器的 Resource Timing API，显示本页通过 fetch、XHR 和信标加载或发出的资源。它看不到 WebSocket 或 WebRTC 流量、浏览器扩展，以及浏览器对页面隐藏的请求，所以这是证据，不是证明。更可靠的保证是页面的 Content-Security-Policy，你可以在浏览器的开发者工具（Network 标签，响应头）里读到，以及 <a href="https://github.com/Paul30028/secureinchat" rel="noopener">GitHub 上的源代码</a>。</p>
+      </details>
+    </div>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">照片里藏着什么</h2>
+    <p>多数手机照片会存下一块叫 EXIF 的隐藏数据。其中可能有你站立位置的精确坐标、拍摄时间，以及设备型号。如果你把原文件发出去，收到的人用免费软件就能读到这些。</p>
+    <p>本页先显示一张 JPEG 里有什么，再生成一份去掉这些数据的副本。原文件不会被改动。检查和清理都在你的浏览器里完成，所以照片不会离开你的设备。</p>
+    <h2 id="how-h">分享照片之前</h2>
+    <ul>
+      <li>删掉文件里的元数据，就像本页这样。</li>
+      <li>看看画面里有没有暴露地点的细节：路牌、门牌号、窗外的景色。</li>
+      <li>如果你很少需要定位，在相机应用里关掉记录位置。</li>
+    </ul>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">常见问题</h2>
+    <h3>我的照片会被上传吗？</h3>
+    <p>不会。文件在本页内读取并重新编码，没有上传，页面代码不保存任何东西，也不加载统计脚本。</p>
+    <h3>照片里有哪些元数据？</h3>
+    <p>手机和相机拍的 JPEG 通常带 EXIF：设备品牌和型号、日期和时间，常常还有 GPS 坐标，有时还有软件、镜头或序列号。</p>
+    <h3>社交网站会帮我删掉元数据吗？</h3>
+    <p>有些在你上传时会删，但你无法确认是哪一些；而且用邮件、云链接或某些聊天软件发原图，可能把原文件原样带过去。分享之前自己先删掉。</p>
+    <h3>这里是怎么删除的？</h3>
+    <p>页面把图片解码后画到一块空白画布上，再把画布保存成新文件。元数据不属于像素，所以不会被复制。之后页面会再读一遍新的 JPEG，确认没有残留的 EXIF。</p>
+    <h3>画质会变吗？</h3>
+    <p>JPEG 会以高质量重新编码，所以可能有很小的损失。PNG 输出是无损的。内嵌的色彩配置会被去掉，在某些查看器里颜色可能有轻微变化。</p>
+    <h3>支持哪些格式？</h3>
+    <p>JPEG、PNG 和 WebP，前提是你的浏览器能解码。这里不支持 HEIC 和动图。清理前只显示 JPEG 的元数据，但清理会去掉所有支持格式的元数据。HEIC 照片、视频、PDF 和 Office 文件请用 <a href="/tools/file-metadata-remover/">文件元数据清理</a>，它不重新编码就能去掉元数据。</p>
+    <h3>画面里的东西会被删掉吗？</h3>
+    <p>不会。路牌、人脸或地标仍然可能暴露你在哪里。这个工具只删除隐藏数据。</p>
+  </section>
+  <aside class="wrap prose" id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">合作伙伴的工具</h2>
+    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a>（推广链接）是加密云存储，适合存放或分享清理之后的文件。也可以直接访问 <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a>，不带推广佣金。</p>
+  </aside>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat。看清你交出了什么，再把它关掉。</p>
+    <nav aria-label="页脚"><a href="/mission/">使命</a><a href="/principles/">原则</a><a href="/privacy/">隐私</a><a href="/principles/#labels">状态标签</a><a href="/sponsor/">赞助与推广披露</a><a href="/contact/">联系</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/exif.js" defer></script>
+<script src="/tools/assets/exif-app.js" defer></script>
+<script src="/tools/assets/net-log.js" defer></script>
+</body>
+</html>
+
+仓库内路径：public/tools/assets/exif-app.js
+
+javascript
+Copy
+Download
+/* Photo metadata remover. Everything runs in this page: the file is read and re-encoded locally and never uploaded. */
+(function () {
+  'use strict';
+  var E = window.EXIFR;
+  var input = document.getElementById('file');
+  var tbody = document.getElementById('rows');
+  var summary = document.getElementById('summary');
+  var clean = document.getElementById('clean');
+  var current = null;
+  var MAX_BYTES = 40 * 1024 * 1024, MAX_PIXELS = 100 * 1000 * 1000;
+
+  // Interface strings. The page is shared by /tools/photo-metadata-remover/ and its Chinese translation,
+  // so the wording is picked from the document language and the English page keeps its old strings.
+  var ZH = /^zh/i.test(document.documentElement.lang || '');
+  var T = ZH ? {
+    labelCheck: '检查', labelResult: '结果', labelStatus: '状态',
+    onlyJpeg: '这里只支持 JPEG、PNG 和 WebP 照片。',
+    tooBig: '这个文件超过 40 MB，换一个小一点的。',
+    file: '文件', fileDesc: '你选的文件。', info: '信息',
+    location: '位置', locationDesc: '照片拍摄的地点。', found: '已找到',
+    gpsBlock: '存在 GPS 数据块',
+    gpsWhy: '拿到这个文件的人都能读到这些坐标，通常精确到几米。',
+    none: '未发现', noGps: '没有 GPS 数据',
+    device: '设备', deviceDesc: '相机、手机、软件和所有者。',
+    deviceWhy: '这些细节可能指向你的设备或你本人。', noDevice: '没有设备信息',
+    dates: '时间', datesDesc: '拍摄或编辑的时间。',
+    datesWhy: '时间会说明你什么时候在什么地方。', noDates: '没有时间信息',
+    carries: '这张照片带有元数据。分享前先删掉。',
+    noMeta: '没有读到可识别的元数据。清理仍然是安全的。',
+    metadata: '元数据', metadataDesc: '文件里的隐藏数据。', notRead: '未读取',
+    jpegOnly: '本页只读取 JPEG 的元数据',
+    otherFormat: 'PNG、WebP 和其他格式也可能带元数据。清理会重写文件，不带上它们。',
+    notReadHere: '这里不读取这种格式，但清理同样会去掉它的元数据。',
+    cleanBtn: '删除元数据并下载',
+    cantRead: '读不了这个文件。',
+    working: '处理中…',
+    done: '完成。清理后的副本已保存到下载文件夹，原文件没有改动。',
+    stillHas: '清理后的副本仍然带着元数据。不要分享它。',
+    cantDecode: '这个浏览器无法解码这张图片。这里不支持 HEIC 和动图。',
+    mark: '你选择了一张照片',
+  } : {
+    labelCheck: 'Check', labelResult: 'Result', labelStatus: 'Status',
+    onlyJpeg: 'Only JPEG, PNG and WebP photos are supported here.',
+    tooBig: 'That file is over 40 MB. Try a smaller one.',
+    file: 'File', fileDesc: 'What you chose.', info: 'Info',
+    location: 'Location', locationDesc: 'Where the photo was taken.', found: 'Found',
+    gpsBlock: 'GPS block present',
+    gpsWhy: 'Anyone who gets this file can read these coordinates, usually accurate to a few metres.',
+    none: 'None found', noGps: 'No GPS data',
+    device: 'Device', deviceDesc: 'Camera, phone, software and owner.',
+    deviceWhy: 'These details can identify your device or you.', noDevice: 'No device details',
+    dates: 'Dates', datesDesc: 'When the photo was taken or edited.',
+    datesWhy: 'Dates show when you were somewhere.', noDates: 'No dates',
+    carries: 'This photo carries metadata. Remove it before you share it.',
+    noMeta: 'No readable metadata found. Cleaning is still safe.',
+    metadata: 'Metadata', metadataDesc: 'Hidden data inside the file.', notRead: 'Not read',
+    jpegOnly: 'This page reads JPEG metadata only',
+    otherFormat: 'PNG, WebP and other formats can also hold metadata. Cleaning rewrites the file without it.',
+    notReadHere: 'This format is not read here, but cleaning removes its metadata too.',
+    cleanBtn: 'Remove metadata and download',
+    cantRead: 'Could not read that file.',
+    working: 'Working...',
+    done: 'Done. The cleaned copy was saved to your downloads. Your original is unchanged.',
+    stillHas: 'The cleaned copy still shows metadata. Do not share it.',
+    cantDecode: 'This browser could not decode that image. HEIC and animated files are not supported here.',
+    mark: 'You picked a photo',
+  };
+
+  function row(name, desc, status, label, lines, why) {
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-status', status);
+    var th = document.createElement('th'); th.scope = 'row'; th.setAttribute('data-label', T.labelCheck);
+    var n = document.createElement('span'); n.className = 'c-name'; n.textContent = name;
+    var d = document.createElement('span'); d.className = 'c-desc'; d.textContent = desc;
+    th.appendChild(n); th.appendChild(d);
+    var td = document.createElement('td'); td.setAttribute('data-label', T.labelResult);
+    var vals = document.createElement('div'); vals.className = 'vals';
+    lines.forEach(function (l) { var v = document.createElement('div'); v.className = 'val mono'; v.textContent = l; vals.appendChild(v); });
+    td.appendChild(vals);
+    var p = document.createElement('p'); p.className = 'why'; p.textContent = why || ''; td.appendChild(p);
+    var ts = document.createElement('td'); ts.setAttribute('data-label', T.labelStatus);
+    var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = label; ts.appendChild(pill);
+    tr.appendChild(th); tr.appendChild(td); tr.appendChild(ts);
+    return tr;
+  }
+
+  function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+  function show(rows) { tbody.textContent = ''; rows.forEach(function (r) { tbody.appendChild(r); }); }
+
+  function inspect(file) {
+    current = null; clean.hidden = true;
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { summary.textContent = T.onlyJpeg; summary.setAttribute('data-tone', 'fail'); show([]); return; }
+    if (file.size > MAX_BYTES) { summary.textContent = T.tooBig; summary.setAttribute('data-tone', 'fail'); show([]); return; }
+    file.arrayBuffer().then(function (buf) {
+      var r = E.parse(buf);
+      var rows = [row(T.file, T.fileDesc, 'info', T.info, [file.name, file.type + ', ' + fmtSize(file.size)])];
+      if (r.kind === 'jpeg') {
+        if (r.hasGPS) {
+          var coords = r.gps ? r.gps.lat.toFixed(5) + ', ' + r.gps.lon.toFixed(5) : T.gpsBlock;
+          rows.push(row(T.location, T.locationDesc, 'fail', T.found, [coords], T.gpsWhy));
+        } else {
+          rows.push(row(T.location, T.locationDesc, 'pass', T.none, [T.noGps]));
+        }
+        var dev = r.fields.filter(function (f) { return /camera|lens|software|owner/i.test(f[0]); });
+        var dates = r.fields.filter(function (f) { return /date/i.test(f[0]); });
+        rows.push(dev.length ? row(T.device, T.deviceDesc, 'warn', T.found, dev.map(function (f) { return f[0] + ': ' + f[1]; }), T.deviceWhy)
+                             : row(T.device, T.deviceDesc, 'pass', T.none, [T.noDevice]));
+        rows.push(dates.length ? row(T.dates, T.datesDesc, 'warn', T.found, dates.map(function (f) { return f[0] + ': ' + f[1]; }), T.datesWhy)
+                               : row(T.dates, T.datesDesc, 'pass', T.none, [T.noDates]));
+        summary.textContent = r.found ? T.carries : T.noMeta;
+        summary.setAttribute('data-tone', r.found ? 'fail' : 'ok');
+      } else {
+        rows.push(row(T.metadata, T.metadataDesc, 'warn', T.notRead, [T.jpegOnly], T.otherFormat));
+        summary.textContent = T.notReadHere;
+        summary.setAttribute('data-tone', 'warn');
+      }
+      show(rows);
+      current = file; clean.hidden = false; clean.disabled = false; clean.textContent = T.cleanBtn;
+    }).catch(function () { summary.textContent = T.cantRead; summary.setAttribute('data-tone', 'fail'); });
+  }
+
+  function outType(t) { return t === 'image/png' ? 'image/png' : t === 'image/webp' ? 'image/webp' : 'image/jpeg'; }
+  function ext(t) { return t === 'image/png' ? 'png' : t === 'image/webp' ? 'webp' : 'jpg'; }
+
+  function cleanFile() {
+    if (!current) return;
+    var file = current;
+    clean.disabled = true; clean.textContent = T.working;
+    createImageBitmap(file).then(function (bmp) {
+      if (bmp.width * bmp.height > MAX_PIXELS) { bmp.close(); throw new Error('big'); }
+      var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      c.getContext('2d').drawImage(bmp, 0, 0); bmp.close();
+      var type = outType(file.type);
+      return new Promise(function (res, rej) { c.toBlob(function (b) { b ? res(b) : rej(new Error('encode')); }, type, 0.92); }).then(function (blob) {
+        return blob.arrayBuffer().then(function (buf) {
+          var again = E.parse(buf);
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = file.name.replace(/\.[^.]+$/, '') + '-clean.' + ext(type);
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+          var ok = type !== 'image/jpeg' || !again.found;
+          summary.textContent = ok ? T.done : T.stillHas;
+          summary.setAttribute('data-tone', ok ? 'ok' : 'fail');
+          clean.disabled = false; clean.textContent = T.cleanBtn;
+        });
+      });
+    }).catch(function () {
+      summary.textContent = T.cantDecode;
+      summary.setAttribute('data-tone', 'fail'); clean.disabled = false; clean.textContent = T.cleanBtn;
+    });
+  }
+
+  input.addEventListener('change', function () { if (input.files && input.files[0]) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: T.mark } })); inspect(input.files && input.files[0]); });
+  clean.addEventListener('click', cleanFile);
+})();
+
+仓库内路径：public/tools/assets/net-log.js
+
+javascript
+Copy
+Download
+/* Network request log. Reads browser Resource Timing data and lists it. No network, no storage. */
+(function () {
+  'use strict';
+
+  var root = document.getElementById('netlog');
+  if (!root) return;
+
+  var details = root.querySelector('.netlog-details');
+  var countEl = root.querySelector('.netlog-count');
+  var tbody = root.querySelector('.netlog-rows');
+  var fallback = root.querySelector('.netlog-fallback');
+  if (!details || !countEl || !tbody) return;
+
+  // Cell labels, sizes and the fallback line follow the document language. The English page is the
+  // default, so its output is unchanged; the Chinese photo page sets lang="zh-CN" and gets Chinese.
+  var ZH = /^zh/i.test(document.documentElement.lang || '');
+  var T = ZH ? {
+    notAvailable: '不可用',
+    time: '时间', type: '类型', address: '地址', size: '大小',
+    timeTitle: '自本页开始加载以来的时间',
+    other: '其他',
+    cached: '缓存',
+    cachedWhy: '传输 0 字节：浏览器报告该资源来自缓存。',
+    notReported: '大小未报告。浏览器没有返回该资源的传输大小：可能是缓存命中，或者服务器没有发送 Timing-Allow-Origin。',
+    external: '外部',
+  } : {
+    notAvailable: 'not available',
+    time: 'Time', type: 'Type', address: 'Address', size: 'Size',
+    timeTitle: 'Time since this page started loading',
+    other: 'other',
+    cached: 'cached',
+    cachedWhy: '0 bytes transferred: the browser reports this resource came from cache.',
+    notReported: 'Size not reported. The browser did not return a transfer size for this resource: it may have been cached, or the server did not send Timing-Allow-Origin.',
+    external: 'external',
+  };
+
+  // If the browser does not expose resource timing to pages, show the fallback and stop.
+  if (typeof PerformanceObserver !== 'function' ||
+      typeof window.performance === 'undefined' ||
+      typeof window.performance.getEntriesByType !== 'function') {
+    // The fallback line sits inside <details>, so keep the panel and hide only the table and count.
+    if (fallback) fallback.hidden = false;
+    var scroll = root.querySelector('.netlog-scroll');
+    if (scroll) scroll.hidden = true;
+    countEl.textContent = T.notAvailable;
+    return;
+  }
+
+  var seen = {};
+  var count = 0;
+  var firstMarkTime = null;
+  var addedMarkers = {};
+
+  function fmtBytes(n) {
+    if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
+    if (n >= 1024) return Math.round(n / 1024) + ' KB';
+    return n + ' B';
+  }
+
+  function isSameOrigin(url) {
+    try { return new URL(url, location.href).origin === location.origin; }
+    catch (e) { return false; }
+  }
+
+  function displayUrl(url) {
+    try {
+      var u = new URL(url, location.href);
+      if (u.origin === location.origin) return u.pathname + u.search;
+      return u.origin + u.pathname + (u.search || '');
+    } catch (e) { return url; }
+  }
+
+  function insertByTime(tr, time) {
+    var children = tbody.children;
+    for (var i = 0; i < children.length; i++) {
+      var rt = parseFloat(children[i].getAttribute('data-time'));
+      if (!isNaN(rt) && rt > time) {
+        tbody.insertBefore(tr, children[i]);
+        return;
+      }
+    }
+    tbody.appendChild(tr);
+  }
+
+  function buildSize(entry) {
+    var td = document.createElement('td');
+    td.setAttribute('data-label', T.size);
+    if (entry.transferSize > 0) {
+      td.textContent = fmtBytes(entry.transferSize);
+    } else if (isSameOrigin(entry.name)) {
+      td.textContent = T.cached;
+      td.title = T.cachedWhy;
+    } else {
+      td.textContent = '\u2014';
+      td.title = T.notReported;
+    }
+    return td;
+  }
+
+  function addEntry(entry) {
+    if (!entry || !entry.name) return;
+    var key = entry.name + '|' + entry.startTime + '|' + (entry.initiatorType || '');
+    if (seen[key]) return;
+    seen[key] = true;
+    count += 1;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-row';
+    tr.setAttribute('data-time', String(entry.startTime));
+    if (firstMarkTime !== null && entry.startTime > firstMarkTime) {
+      tr.classList.add('netlog-after');
+    }
+
+    var tdTime = document.createElement('td');
+    tdTime.setAttribute('data-label', T.time);
+    tdTime.textContent = (entry.startTime / 1000).toFixed(1) + 's';
+    tdTime.title = T.timeTitle;
+
+    var tdType = document.createElement('td');
+    tdType.setAttribute('data-label', T.type);
+    tdType.textContent = entry.initiatorType || T.other;
+
+    var tdUrl = document.createElement('td');
+    tdUrl.setAttribute('data-label', T.address);
+    tdUrl.className = 'netlog-url';
+    var code = document.createElement('code');
+    code.textContent = displayUrl(entry.name);
+    tdUrl.appendChild(code);
+    if (!isSameOrigin(entry.name)) {
+      tdUrl.appendChild(document.createTextNode(' '));
+      var tag = document.createElement('span');
+      tag.className = 'netlog-tag';
+      tag.textContent = T.external;
+      tdUrl.appendChild(tag);
+    }
+
+    tr.appendChild(tdTime);
+    tr.appendChild(tdType);
+    tr.appendChild(tdUrl);
+    tr.appendChild(buildSize(entry));
+    insertByTime(tr, entry.startTime);
+    countEl.textContent = String(count);
+  }
+
+  function addMarker(label) {
+    if (addedMarkers[label]) return;
+    addedMarkers[label] = true;
+
+    var time = (typeof performance.now === 'function') ? performance.now() : 0;
+    if (firstMarkTime === null) firstMarkTime = time;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-marker';
+    tr.setAttribute('data-time', String(time));
+    var th = document.createElement('th');
+    th.scope = 'row';
+    th.colSpan = 4;
+    th.textContent = label;
+    tr.appendChild(th);
+    insertByTime(tr, time);
+  }
+
+  try {
+    var initial = window.performance.getEntriesByType('resource');
+    for (var i = 0; i < initial.length; i++) addEntry(initial[i]);
+  } catch (e) {}
+
+  try {
+    var observer = new PerformanceObserver(function (list) {
+      var entries = list.getEntries();
+      for (var j = 0; j < entries.length; j++) addEntry(entries[j]);
+    });
+    observer.observe({ type: 'resource', buffered: true });
+  } catch (e) {
+    // Live updates unavailable; whatever the initial read produced stays shown.
+  }
+
+  document.addEventListener('netlog:mark', function (e) {
+    var label = e && e.detail && e.detail.label;
+    if (typeof label !== 'string' || !label) return;
+    addMarker(label);
+  });
+
+  countEl.textContent = String(count);
+})();
+
+建议的 Playwright 检查点（供你写 tests/zhphoto.py）
+
+打开 /zh/tools/photo-metadata-remover/，断言 document.documentElement.lang === 'zh-CN'，h1 文本为「照片元数据清理」。
+
+面包屑：文本包含「首页」「工具」「照片元数据清理」；第一个链接 href="/zh/"，第二个 href="/tools/"。
+
+侧栏：包含「你的数据如何处理」「留在本机：照片和读出的元数据」「发送给他人」「无」「本地处理」。
+
+页面加载后（未选文件）：
+
+#netlog .netlog-summary 文本含「本页发出的网络请求」；
+
+表格行数等于 performance.getEntriesByType('resource').length；
+
+表头为「时间 / 类型 / 地址 / 大小」；
+
+#clean 处于 hidden。
+
+用 Pillow + piexif 生成带 GPS 的 JPEG，set_input_files('#file', ...)：
+
+表格出现「位置」行、「已找到」、GPS 坐标；
+
+#summary 文本为「这张照片带有元数据。分享前先删掉。」；
+
+#clean 可见且文本为「删除元数据并下载」；
+
+netlog 里出现分隔行「你选择了一张照片」，且选图后资源条目数没有增加（照片页不应加载新脚本或 WASM）。
+
+点 #clean，expect_download：
+
+文件名以 -clean.jpg 结尾；
+
+piexif 读下载文件，GPS 为空；
+
+#summary 文本为「完成。清理后的副本已保存到下载文件夹，原文件没有改动。」
+
+选一个 .txt（用 set_input_files 传非图片路径）：#summary 含「这里只支持 JPEG、PNG 和 WebP 照片。」，#clean hidden。
+
+全局：reqs 里没有非本站请求（blob:/data: 除外）；errs 为空（含 CSP）；document.documentElement.scrollWidth <= innerWidth 在 390×800 下成立。
+
+英文页回归：打开 /tools/photo-metadata-remover/，lang === 'en'，#netlog 表头仍是 Time / Type / Address / Size，选图后 marker 文本是 You picked a photo；同时构建后 git diff public/tools/ 对英文页为空。
+FULL>>>
+<<<CODE 0
+// Tool detail pages in ChatGPT's Subpages Design Kit v2 layout (tool-detail template).
+// Integration only: each tool's live markup (ids, data-* hooks, scripts) is moved unchanged into the kit's
+// workspace slot, as the kit README asks. Widget styling inside the slot comes from the previous tool
+// stylesheet, scoped to .legacy-tool, until ChatGPT restyles the widgets.
+import { shell, mapTags } from './subshell.mjs';
+
+const topBlocks = (main) => {
+  // Top-level <section>/<aside> blocks start at column 0 in the tool sources.
+  const out = []; const re = /^[ \t]*<(section|aside)([^>]*)>([\s\S]*?)^[ \t]*<\/\1>/gm; let m;
+  while ((m = re.exec(main))) out.push({ tag: m[1], attrs: m[2], inner: m[3] });
+  return out;
+};
+const cleanAttrs = (a) => a.replace(/\s*class="([^"]*)"/, (x, c) => { const k = c.split(/\s+/).filter((w) => !['wrap', 'prose', 'hero'].includes(w)).join(' '); return k ? ` class="${k}"` : ''; });
+
+// Shell chrome strings. English is the default, so pages that do not pass lang keep their exact output.
+// Chinese tool pages reuse the English tools index until a Chinese one exists; only the page paths move.
+const CHROME = {
+  'en': {
+    lang: 'en',
+    crumbLabel: 'Breadcrumb',
+    crumbHome: 'Home',
+    crumbTools: 'Tools',
+    handling: 'How your data is handled',
+    stays: 'Stays on your device',
+    sent: 'Sent to others',
+    flowLink: 'See every tool\'s data flow',
+    other: 'Need a different check?',
+    otherText: 'Compare tools by what they do and what data they need.',
+    browse: 'Browse all tools',
+  },
+  'zh-CN': {
+    lang: 'zh-CN',
+    crumbLabel: '面包屑',
+    crumbHome: '首页',
+    crumbTools: '工具',
+    handling: '你的数据如何处理',
+    stays: '留在你的设备上',
+    sent: '发送给他人',
+    flowLink: '查看每个工具的数据流',
+    other: '需要别的检查？',
+    otherText: '按用途和数据需要比较这些工具。',
+    browse: '浏览所有工具',
+  },
+};
+
+export function toolPage({ slug, src, icon, label, flow, figure, crumbName, lang = 'en', alt }) {
+  const chrome = CHROME[lang] || CHROME.en;
+  const zh = chrome === CHROME['zh-CN'];
+  const head = src.slice(0, src.indexOf('</head>'));
+  const bodyEnd = src.slice(src.indexOf('</main>'));
+  const title = /<title>([\s\S]*?)<\/title>/.exec(head)[1];
+  const desc = /<meta name="description" content="([^"]*)"/.exec(head)[1];
+  const headScripts = head.match(/<script[\s\S]*?<\/script>/g) || [];
+  const tailScripts = bodyEnd.match(/<script[\s\S]*?<\/script>/g) || [];
+  const main = src.slice(src.indexOf('<main'), src.indexOf('</main>'));
+  const blocks = topBlocks(main);
+  const hero = blocks.find((b) => /class="[^"]*\bhero\b/.test(b.attrs));
+  const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(hero.inner)[1];
+  const ledeM = /<p class="lede">([\s\S]*?)<\/p>/.exec(hero.inner);
+  const heroRest = hero.inner.replace(/<h1[^>]*>[\s\S]*?<\/h1>\s*/, '').replace(/<p class="lede">[\s\S]*?<\/p>\s*/, '');
+  const work = []; const prose = [];
+  for (const b of blocks) {
+    if (b === hero) continue;
+    if (/id="ad-slot/.test(b.attrs)) continue;
+    if (/\bprose\b/.test(b.attrs)) prose.push(b); else work.push(b);
+  }
+  const ws = `      <section class="tool-workspace" aria-label="${h1.replace(/"/g, '&quot;')}">
+       <div class="legacy-tool">
+${heroRest}
+       </div>
+${work.map((b) => `       <div class="legacy-tool"><${b.tag}${cleanAttrs(b.attrs)}>${b.inner}</${b.tag}></div>`).join('\n')}
+      </section>`;
+  const info = prose.length ? `      <div class="info-content tool-prose">
+${prose.map((b) => `<${b.tag}${cleanAttrs(b.attrs)}>${mapTags(b.inner)}</${b.tag}>`).join('\n')}
+      </div>` : '';
+  const row = (mark, t, p) => `<div class="data-handling-row"><span class="data-handling-mark">${mark}</span><div><strong>${t}</strong><p>${p}</p></div></div>`;
+  const sentIsNone = flow.sent === 'Nothing' || flow.sent === '无';
+  const side = `     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>${chrome.handling}</h2>
+       <div class="data-handling">
+        ${row('✓', chrome.stays, flow.stays)}
+        ${row(sentIsNone ? '✓' : '↗', chrome.sent, flow.sent)}
+       </div>
+       <p class="state-list"><span class="${label[1]}">${label[0]}</span></p>
+       <a class="text-link" href="/principles/">${chrome.flowLink} <span aria-hidden="true">→</span></a>
+      </section>
+      ${figure ? `<figure class="editorial-figure"><img alt="${figure.alt}" height="${figure.h}" src="/assets/illustrations/${figure.src}" width="760"/></figure>` : ''}
+      <section class="content-panel content-panel--soft">
+       <h2>${chrome.other}</h2>
+       <p>${chrome.otherText}</p>
+       <a class="text-link" href="/tools/">${chrome.browse} <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>`;
+  const homeHref = zh ? '/zh/' : '/';
+  const mainHtml = `   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="${chrome.crumbLabel}" class="breadcrumbs">
+      <a href="${homeHref}">${chrome.crumbHome}</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/tools/">${chrome.crumbTools}</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">${crumbName}</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      ${icon ? `<span class="tool-detail-emblem">${icon.replace('tool-catalogue-icon-art', 'tool-detail-emblem-art')}</span>` : ''}
+      <div>
+       <h1 id="h1">${h1}</h1>
+       ${ledeM ? `<p class="page-lead">${ledeM[1]}</p>` : ''}
+       <ul class="state-list"><li><span class="${label[1]}">${label[0]}</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+${ws}
+${info}
+     </div>
+${side}
+    </div>
+   </section>`;
+  const canonical = `${zh ? '/zh' : ''}/tools/${slug}/`;
+  // Alternate-language links are only emitted for a translated page, so the English page stays byte-for-byte
+  // what it was before this parameter existed. The English page is found through the Chinese page's hreflang.
+  const headAlt = (zh && alt) ? [
+    `  <link href="https://secureinchat.com${alt.en}" hreflang="en" rel="alternate"/>`,
+    `  <link href="https://secureinchat.com${alt['zh-CN']}" hreflang="zh-CN" rel="alternate"/>`,
+    `  <link href="https://secureinchat.com${alt.en}" hreflang="x-default" rel="alternate"/>`,
+  ].join('\n') + '\n' : '';
+  const keep = headScripts.filter((s) => /application\/ld\+json/.test(s));
+  const scriptsHead = headScripts.filter((s) => !/application\/ld\+json/.test(s));
+  const headExtra = `  <link href="https://secureinchat.com${canonical}" rel="canonical"/>
+${headAlt}  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
+`;
+  const shellArgs = { title, desc, canonical, headExtra, current: '/tools/', main: mainHtml };
+  // Passed only for a translation. If the shell does not know the key it is ignored, so the English
+  // call signature and its output are unchanged.
+  if (zh) shellArgs.lang = chrome.lang;
+  let html = shell(shellArgs);
+  if (zh) {
+    html = html.replace(/<html([^>]*)>/, (m, a) => `<html lang="${chrome.lang}"${a.replace(/\slang="[^"]*"/, '')}>`);
+  }
+  html = html.replace(' </body>', `${tailScripts.map((s) => `  ${s}`).join('\n')}\n </body>`);
+  // the kit stylesheets load after tool-legacy.css in the shell head order; move tool-legacy last so widgets keep their look
+  html = html.replace('  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n', '').replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>');
+  return html;
+}
+
+// Scope the previous tool stylesheet to .legacy-tool. Page-level rules (html, body, header, hero, skip link) are dropped.
+export function scopeLegacyCss(css) {
+  const DROP = /^(html|body|\*|::selection|\.top\b|\.top__in|\.brand|\.skip|\.hero\b|\.lede|\.foot\b|\.foot__in|h1\b)/;
+  const scopeSel = (sel) => sel.split(',').map((x) => x.trim()).filter((x) => x && !DROP.test(x))
+    .map((x) => (x.startsWith(':root') ? x : `.legacy-tool ${x}`)).join(', ');
+  let out = ''; let i = 0;
+  const readBlock = (from) => { let d = 0; for (let j = from; j < css.length; j++) { if (css[j] === '{') d++; else if (css[j] === '}') { d--; if (d === 0) return j; } } return css.length; };
+  while (i < css.length) {
+    const ob = css.indexOf('{', i); if (ob < 0) break;
+    const pre = css.slice(i, ob).trim(); const cb = readBlock(ob);
+    const inner = css.slice(ob + 1, cb);
+    const sel = pre.replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    if (sel.startsWith('@font-face') || sel.startsWith('@keyframes')) out += `${sel} {${inner}}\n`;
+    else if (sel.startsWith('@media') || sel.startsWith('@supports')) out += `${sel} {\n${scopeLegacyCss(inner)}}\n`;
+    else if (sel.startsWith(':root')) out += `${sel} {${inner}}\n`;
+    else { const s2 = scopeSel(sel); if (s2) out += `${s2} {${inner}}\n`; }
+    i = cb + 1;
+  }
+  return out;
+}
+CODE>>>
+<<<CODE 1
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name }));
+  }
+}
+CODE>>>
+<<<CODE 2
+
+// Chinese photo metadata remover. Same tool markup and scripts as the English page, so exif-app.js and
+// net-log.js switch their interface strings on document.documentElement.lang instead of being duplicated.
+// The icons and the data-flow row are built here because ICONS and FLOW live inside the block above.
+{
+  const PHOTO_ALT = { en: '/tools/photo-metadata-remover/', 'zh-CN': '/zh/tools/photo-metadata-remover/' };
+  const idxZh = KIT_T('tools-index.en.html');
+  let photoIcon = '';
+  for (const a of idxZh.match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'photo-metadata-remover') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) photoIcon = svg[0];
+    break;
+  }
+  const zhSrc = fs.readFileSync(path.join(ROOT, 'src/tools/zh/photo-metadata-remover.html'), 'utf8');
+  write('zh/tools/photo-metadata-remover/index.html', toolPage({
+    slug: 'photo-metadata-remover',
+    src: zhSrc,
+    icon: photoIcon,
+    label: ['本地处理', 'state-label'],
+    flow: { stays: '留在本机：照片和读出的元数据', sent: '无' },
+    figure: FIG.photo,
+    crumbName: '照片元数据清理',
+    lang: 'zh-CN',
+    alt: PHOTO_ALT,
+  }));
+  // Sitemap: if the sitemap is generated by walking the files written above, the new page is included
+  // automatically and nothing else is needed. If it comes from an explicit list, add this entry next to
+  // the English one, for example SITEMAP.push('/zh/tools/photo-metadata-remover/');
+}
+CODE>>>
+<<<CODE 3
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>照片元数据清理：在本机查看并删除 EXIF 与 GPS 信息</title>
+<meta name="description" content="免费的照片元数据清理工具。查看一张 JPEG 里藏着的 GPS 位置、设备和时间，然后在浏览器里保存一份清理后的副本，照片不会被上传。">
+<link rel="canonical" href="https://secureinchat.com/zh/tools/photo-metadata-remover/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="照片元数据清理：在本机查看并删除 EXIF 与 GPS 信息">
+<meta property="og:description" content="免费的照片元数据清理工具。查看一张 JPEG 里藏着的 GPS 位置、设备和时间，然后在浏览器里保存一份清理后的副本，照片不会被上传。">
+<meta property="og:url" content="https://secureinchat.com/zh/tools/photo-metadata-remover/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "照片元数据清理",
+      "url": "https://secureinchat.com/zh/tools/photo-metadata-remover/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "需要 JavaScript。",
+      "description": "免费的照片元数据清理工具。查看一张 JPEG 里藏着的 GPS 位置、设备和时间，然后在浏览器里保存一份清理后的副本，照片不会被上传。",
+      "inLanguage": "zh-CN",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "我的照片会被上传吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。文件在本页内读取并重新编码，没有上传，页面代码不保存任何东西，也不加载统计脚本。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "照片里有哪些元数据？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "手机和相机拍的 JPEG 通常带 EXIF：设备品牌和型号、日期和时间，常常还有 GPS 坐标，有时还有软件、镜头或序列号。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "社交网站会帮我删掉元数据吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "有些在你上传时会删，但你无法确认是哪一些；而且用邮件、云链接或某些聊天软件发原图，可能把原文件原样带过去。分享之前自己先删掉。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "这里是怎么删除的？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "页面把图片解码后画到一块空白画布上，再把画布保存成新文件。元数据不属于像素，所以不会被复制。之后页面会再读一遍新的 JPEG，确认没有残留的 EXIF。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "画质会变吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG 会以高质量重新编码，所以可能有很小的损失。PNG 输出是无损的。内嵌的色彩配置会被去掉，在某些查看器里颜色可能有轻微变化。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "支持哪些格式？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG、PNG 和 WebP，前提是你的浏览器能解码。这里不支持 HEIC 和动图。清理前只显示 JPEG 的元数据，但清理会去掉所有支持格式的元数据。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "画面里的东西会被删掉吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。路牌、人脸或地标仍然可能暴露你在哪里。这个工具只删除隐藏数据。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">跳到结果</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/zh/">SecureInChat</a>
+    <nav aria-label="主导航"><a href="/zh/">首页</a><a href="/tools/" aria-current="page">工具</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">照片元数据清理</h1>
+    <p class="lede">看看一张照片暴露了拍摄的地点和时间，然后保存一份去掉这些信息的副本。文件不会离开你的设备。</p>
+    <div class="picker"><input id="file" type="file" accept="image/*" aria-label="选择一张照片"><button id="clean" class="btn" type="button" hidden>删除元数据并下载</button></div>
+    <p class="hint">选择 JPEG、PNG 或 WebP。原文件不会被改动，页面不保存任何东西。另见 <a href="/tools/ip-leak-test/">IP 泄露测试</a>。</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">结果</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">选择一张照片开始。</p>
+    </div>
+    <table class="results">
+      <caption class="sr">按类别列出的照片元数据</caption>
+      <thead><tr><th scope="col">检查</th><th scope="col">结果</th><th scope="col">状态</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="检查"><span class="c-name">照片</span><span class="c-desc">选择一张照片，看看它带着什么。</span></th>
+          <td data-label="结果"><div class="vals"><div class="val mono">尚未运行</div></div></td>
+          <td data-label="状态"><span class="pill">未运行</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap netlog-section" aria-label="本页发出的网络请求">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">本页发出的网络请求：<span class="netlog-count">0</span></summary>
+        <p class="netlog-note">本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。照片只在本标签页里读取：选择一张照片后，这里不应出现新的请求。</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="本页发出的网络请求">
+            <thead>
+              <tr>
+                <th scope="col">时间</th>
+                <th scope="col">类型</th>
+                <th scope="col">地址</th>
+                <th scope="col">大小</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>你的浏览器没有向页面公开请求计时信息。</p>
+        <p class="netlog-footer">本列表来自你浏览器的 Resource Timing API，显示本页通过 fetch、XHR 和信标加载或发出的资源。它看不到 WebSocket 或 WebRTC 流量、浏览器扩展，以及浏览器对页面隐藏的请求，所以这是证据，不是证明。更可靠的保证是页面的 Content-Security-Policy，你可以在浏览器的开发者工具（Network 标签，响应头）里读到，以及 <a href="https://github.com/Paul30028/secureinchat" rel="noopener">GitHub 上的源代码</a>。</p>
+      </details>
+    </div>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">照片里藏着什么</h2>
+    <p>多数手机照片会存下一块叫 EXIF 的隐藏数据。其中可能有你站立位置的精确坐标、拍摄时间，以及设备型号。如果你把原文件发出去，收到的人用免费软件就能读到这些。</p>
+    <p>本页先显示一张 JPEG 里有什么，再生成一份去掉这些数据的副本。原文件不会被改动。检查和清理都在你的浏览器里完成，所以照片不会离开你的设备。</p>
+    <h2 id="how-h">分享照片之前</h2>
+    <ul>
+      <li>删掉文件里的元数据，就像本页这样。</li>
+      <li>看看画面里有没有暴露地点的细节：路牌、门牌号、窗外的景色。</li>
+      <li>如果你很少需要定位，在相机应用里关掉记录位置。</li>
+    </ul>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">常见问题</h2>
+    <h3>我的照片会被上传吗？</h3>
+    <p>不会。文件在本页内读取并重新编码，没有上传，页面代码不保存任何东西，也不加载统计脚本。</p>
+    <h3>照片里有哪些元数据？</h3>
+    <p>手机和相机拍的 JPEG 通常带 EXIF：设备品牌和型号、日期和时间，常常还有 GPS 坐标，有时还有软件、镜头或序列号。</p>
+    <h3>社交网站会帮我删掉元数据吗？</h3>
+    <p>有些在你上传时会删，但你无法确认是哪一些；而且用邮件、云链接或某些聊天软件发原图，可能把原文件原样带过去。分享之前自己先删掉。</p>
+    <h3>这里是怎么删除的？</h3>
+    <p>页面把图片解码后画到一块空白画布上，再把画布保存成新文件。元数据不属于像素，所以不会被复制。之后页面会再读一遍新的 JPEG，确认没有残留的 EXIF。</p>
+    <h3>画质会变吗？</h3>
+    <p>JPEG 会以高质量重新编码，所以可能有很小的损失。PNG 输出是无损的。内嵌的色彩配置会被去掉，在某些查看器里颜色可能有轻微变化。</p>
+    <h3>支持哪些格式？</h3>
+    <p>JPEG、PNG 和 WebP，前提是你的浏览器能解码。这里不支持 HEIC 和动图。清理前只显示 JPEG 的元数据，但清理会去掉所有支持格式的元数据。HEIC 照片、视频、PDF 和 Office 文件请用 <a href="/tools/file-metadata-remover/">文件元数据清理</a>，它不重新编码就能去掉元数据。</p>
+    <h3>画面里的东西会被删掉吗？</h3>
+    <p>不会。路牌、人脸或地标仍然可能暴露你在哪里。这个工具只删除隐藏数据。</p>
+  </section>
+  <aside class="wrap prose" id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">合作伙伴的工具</h2>
+    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a>（推广链接）是加密云存储，适合存放或分享清理之后的文件。也可以直接访问 <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a>，不带推广佣金。</p>
+  </aside>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat。看清你交出了什么，再把它关掉。</p>
+    <nav aria-label="页脚"><a href="/mission/">使命</a><a href="/principles/">原则</a><a href="/privacy/">隐私</a><a href="/principles/#labels">状态标签</a><a href="/sponsor/">赞助与推广披露</a><a href="/contact/">联系</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/exif.js" defer></script>
+<script src="/tools/assets/exif-app.js" defer></script>
+<script src="/tools/assets/net-log.js" defer></script>
+</body>
+</html>
+CODE>>>
+<<<CODE 4
+/* Photo metadata remover. Everything runs in this page: the file is read and re-encoded locally and never uploaded. */
+(function () {
+  'use strict';
+  var E = window.EXIFR;
+  var input = document.getElementById('file');
+  var tbody = document.getElementById('rows');
+  var summary = document.getElementById('summary');
+  var clean = document.getElementById('clean');
+  var current = null;
+  var MAX_BYTES = 40 * 1024 * 1024, MAX_PIXELS = 100 * 1000 * 1000;
+
+  // Interface strings. The page is shared by /tools/photo-metadata-remover/ and its Chinese translation,
+  // so the wording is picked from the document language and the English page keeps its old strings.
+  var ZH = /^zh/i.test(document.documentElement.lang || '');
+  var T = ZH ? {
+    labelCheck: '检查', labelResult: '结果', labelStatus: '状态',
+    onlyJpeg: '这里只支持 JPEG、PNG 和 WebP 照片。',
+    tooBig: '这个文件超过 40 MB，换一个小一点的。',
+    file: '文件', fileDesc: '你选的文件。', info: '信息',
+    location: '位置', locationDesc: '照片拍摄的地点。', found: '已找到',
+    gpsBlock: '存在 GPS 数据块',
+    gpsWhy: '拿到这个文件的人都能读到这些坐标，通常精确到几米。',
+    none: '未发现', noGps: '没有 GPS 数据',
+    device: '设备', deviceDesc: '相机、手机、软件和所有者。',
+    deviceWhy: '这些细节可能指向你的设备或你本人。', noDevice: '没有设备信息',
+    dates: '时间', datesDesc: '拍摄或编辑的时间。',
+    datesWhy: '时间会说明你什么时候在什么地方。', noDates: '没有时间信息',
+    carries: '这张照片带有元数据。分享前先删掉。',
+    noMeta: '没有读到可识别的元数据。清理仍然是安全的。',
+    metadata: '元数据', metadataDesc: '文件里的隐藏数据。', notRead: '未读取',
+    jpegOnly: '本页只读取 JPEG 的元数据',
+    otherFormat: 'PNG、WebP 和其他格式也可能带元数据。清理会重写文件，不带上它们。',
+    notReadHere: '这里不读取这种格式，但清理同样会去掉它的元数据。',
+    cleanBtn: '删除元数据并下载',
+    cantRead: '读不了这个文件。',
+    working: '处理中…',
+    done: '完成。清理后的副本已保存到下载文件夹，原文件没有改动。',
+    stillHas: '清理后的副本仍然带着元数据。不要分享它。',
+    cantDecode: '这个浏览器无法解码这张图片。这里不支持 HEIC 和动图。',
+    mark: '你选择了一张照片',
+  } : {
+    labelCheck: 'Check', labelResult: 'Result', labelStatus: 'Status',
+    onlyJpeg: 'Only JPEG, PNG and WebP photos are supported here.',
+    tooBig: 'That file is over 40 MB. Try a smaller one.',
+    file: 'File', fileDesc: 'What you chose.', info: 'Info',
+    location: 'Location', locationDesc: 'Where the photo was taken.', found: 'Found',
+    gpsBlock: 'GPS block present',
+    gpsWhy: 'Anyone who gets this file can read these coordinates, usually accurate to a few metres.',
+    none: 'None found', noGps: 'No GPS data',
+    device: 'Device', deviceDesc: 'Camera, phone, software and owner.',
+    deviceWhy: 'These details can identify your device or you.', noDevice: 'No device details',
+    dates: 'Dates', datesDesc: 'When the photo was taken or edited.',
+    datesWhy: 'Dates show when you were somewhere.', noDates: 'No dates',
+    carries: 'This photo carries metadata. Remove it before you share it.',
+    noMeta: 'No readable metadata found. Cleaning is still safe.',
+    metadata: 'Metadata', metadataDesc: 'Hidden data inside the file.', notRead: 'Not read',
+    jpegOnly: 'This page reads JPEG metadata only',
+    otherFormat: 'PNG, WebP and other formats can also hold metadata. Cleaning rewrites the file without it.',
+    notReadHere: 'This format is not read here, but cleaning removes its metadata too.',
+    cleanBtn: 'Remove metadata and download',
+    cantRead: 'Could not read that file.',
+    working: 'Working...',
+    done: 'Done. The cleaned copy was saved to your downloads. Your original is unchanged.',
+    stillHas: 'The cleaned copy still shows metadata. Do not share it.',
+    cantDecode: 'This browser could not decode that image. HEIC and animated files are not supported here.',
+    mark: 'You picked a photo',
+  };
+
+  function row(name, desc, status, label, lines, why) {
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-status', status);
+    var th = document.createElement('th'); th.scope = 'row'; th.setAttribute('data-label', T.labelCheck);
+    var n = document.createElement('span'); n.className = 'c-name'; n.textContent = name;
+    var d = document.createElement('span'); d.className = 'c-desc'; d.textContent = desc;
+    th.appendChild(n); th.appendChild(d);
+    var td = document.createElement('td'); td.setAttribute('data-label', T.labelResult);
+    var vals = document.createElement('div'); vals.className = 'vals';
+    lines.forEach(function (l) { var v = document.createElement('div'); v.className = 'val mono'; v.textContent = l; vals.appendChild(v); });
+    td.appendChild(vals);
+    var p = document.createElement('p'); p.className = 'why'; p.textContent = why || ''; td.appendChild(p);
+    var ts = document.createElement('td'); ts.setAttribute('data-label', T.labelStatus);
+    var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = label; ts.appendChild(pill);
+    tr.appendChild(th); tr.appendChild(td); tr.appendChild(ts);
+    return tr;
+  }
+
+  function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+  function show(rows) { tbody.textContent = ''; rows.forEach(function (r) { tbody.appendChild(r); }); }
+
+  function inspect(file) {
+    current = null; clean.hidden = true;
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { summary.textContent = T.onlyJpeg; summary.setAttribute('data-tone', 'fail'); show([]); return; }
+    if (file.size > MAX_BYTES) { summary.textContent = T.tooBig; summary.setAttribute('data-tone', 'fail'); show([]); return; }
+    file.arrayBuffer().then(function (buf) {
+      var r = E.parse(buf);
+      var rows = [row(T.file, T.fileDesc, 'info', T.info, [file.name, file.type + ', ' + fmtSize(file.size)])];
+      if (r.kind === 'jpeg') {
+        if (r.hasGPS) {
+          var coords = r.gps ? r.gps.lat.toFixed(5) + ', ' + r.gps.lon.toFixed(5) : T.gpsBlock;
+          rows.push(row(T.location, T.locationDesc, 'fail', T.found, [coords], T.gpsWhy));
+        } else {
+          rows.push(row(T.location, T.locationDesc, 'pass', T.none, [T.noGps]));
+        }
+        var dev = r.fields.filter(function (f) { return /camera|lens|software|owner/i.test(f[0]); });
+        var dates = r.fields.filter(function (f) { return /date/i.test(f[0]); });
+        rows.push(dev.length ? row(T.device, T.deviceDesc, 'warn', T.found, dev.map(function (f) { return f[0] + ': ' + f[1]; }), T.deviceWhy)
+                             : row(T.device, T.deviceDesc, 'pass', T.none, [T.noDevice]));
+        rows.push(dates.length ? row(T.dates, T.datesDesc, 'warn', T.found, dates.map(function (f) { return f[0] + ': ' + f[1]; }), T.datesWhy)
+                               : row(T.dates, T.datesDesc, 'pass', T.none, [T.noDates]));
+        summary.textContent = r.found ? T.carries : T.noMeta;
+        summary.setAttribute('data-tone', r.found ? 'fail' : 'ok');
+      } else {
+        rows.push(row(T.metadata, T.metadataDesc, 'warn', T.notRead, [T.jpegOnly], T.otherFormat));
+        summary.textContent = T.notReadHere;
+        summary.setAttribute('data-tone', 'warn');
+      }
+      show(rows);
+      current = file; clean.hidden = false; clean.disabled = false; clean.textContent = T.cleanBtn;
+    }).catch(function () { summary.textContent = T.cantRead; summary.setAttribute('data-tone', 'fail'); });
+  }
+
+  function outType(t) { return t === 'image/png' ? 'image/png' : t === 'image/webp' ? 'image/webp' : 'image/jpeg'; }
+  function ext(t) { return t === 'image/png' ? 'png' : t === 'image/webp' ? 'webp' : 'jpg'; }
+
+  function cleanFile() {
+    if (!current) return;
+    var file = current;
+    clean.disabled = true; clean.textContent = T.working;
+    createImageBitmap(file).then(function (bmp) {
+      if (bmp.width * bmp.height > MAX_PIXELS) { bmp.close(); throw new Error('big'); }
+      var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      c.getContext('2d').drawImage(bmp, 0, 0); bmp.close();
+      var type = outType(file.type);
+      return new Promise(function (res, rej) { c.toBlob(function (b) { b ? res(b) : rej(new Error('encode')); }, type, 0.92); }).then(function (blob) {
+        return blob.arrayBuffer().then(function (buf) {
+          var again = E.parse(buf);
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = file.name.replace(/\.[^.]+$/, '') + '-clean.' + ext(type);
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+          var ok = type !== 'image/jpeg' || !again.found;
+          summary.textContent = ok ? T.done : T.stillHas;
+          summary.setAttribute('data-tone', ok ? 'ok' : 'fail');
+          clean.disabled = false; clean.textContent = T.cleanBtn;
+        });
+      });
+    }).catch(function () {
+      summary.textContent = T.cantDecode;
+      summary.setAttribute('data-tone', 'fail'); clean.disabled = false; clean.textContent = T.cleanBtn;
+    });
+  }
+
+  input.addEventListener('change', function () { if (input.files && input.files[0]) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: T.mark } })); inspect(input.files && input.files[0]); });
+  clean.addEventListener('click', cleanFile);
+})();
+CODE>>>
+<<<CODE 5
+/* Network request log. Reads browser Resource Timing data and lists it. No network, no storage. */
+(function () {
+  'use strict';
+
+  var root = document.getElementById('netlog');
+  if (!root) return;
+
+  var details = root.querySelector('.netlog-details');
+  var countEl = root.querySelector('.netlog-count');
+  var tbody = root.querySelector('.netlog-rows');
+  var fallback = root.querySelector('.netlog-fallback');
+  if (!details || !countEl || !tbody) return;
+
+  // Cell labels, sizes and the fallback line follow the document language. The English page is the
+  // default, so its output is unchanged; the Chinese photo page sets lang="zh-CN" and gets Chinese.
+  var ZH = /^zh/i.test(document.documentElement.lang || '');
+  var T = ZH ? {
+    notAvailable: '不可用',
+    time: '时间', type: '类型', address: '地址', size: '大小',
+    timeTitle: '自本页开始加载以来的时间',
+    other: '其他',
+    cached: '缓存',
+    cachedWhy: '传输 0 字节：浏览器报告该资源来自缓存。',
+    notReported: '大小未报告。浏览器没有返回该资源的传输大小：可能是缓存命中，或者服务器没有发送 Timing-Allow-Origin。',
+    external: '外部',
+  } : {
+    notAvailable: 'not available',
+    time: 'Time', type: 'Type', address: 'Address', size: 'Size',
+    timeTitle: 'Time since this page started loading',
+    other: 'other',
+    cached: 'cached',
+    cachedWhy: '0 bytes transferred: the browser reports this resource came from cache.',
+    notReported: 'Size not reported. The browser did not return a transfer size for this resource: it may have been cached, or the server did not send Timing-Allow-Origin.',
+    external: 'external',
+  };
+
+  // If the browser does not expose resource timing to pages, show the fallback and stop.
+  if (typeof PerformanceObserver !== 'function' ||
+      typeof window.performance === 'undefined' ||
+      typeof window.performance.getEntriesByType !== 'function') {
+    // The fallback line sits inside <details>, so keep the panel and hide only the table and count.
+    if (fallback) fallback.hidden = false;
+    var scroll = root.querySelector('.netlog-scroll');
+    if (scroll) scroll.hidden = true;
+    countEl.textContent = T.notAvailable;
+    return;
+  }
+
+  var seen = {};
+  var count = 0;
+  var firstMarkTime = null;
+  var addedMarkers = {};
+
+  function fmtBytes(n) {
+    if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
+    if (n >= 1024) return Math.round(n / 1024) + ' KB';
+    return n + ' B';
+  }
+
+  function isSameOrigin(url) {
+    try { return new URL(url, location.href).origin === location.origin; }
+    catch (e) { return false; }
+  }
+
+  function displayUrl(url) {
+    try {
+      var u = new URL(url, location.href);
+      if (u.origin === location.origin) return u.pathname + u.search;
+      return u.origin + u.pathname + (u.search || '');
+    } catch (e) { return url; }
+  }
+
+  function insertByTime(tr, time) {
+    var children = tbody.children;
+    for (var i = 0; i < children.length; i++) {
+      var rt = parseFloat(children[i].getAttribute('data-time'));
+      if (!isNaN(rt) && rt > time) {
+        tbody.insertBefore(tr, children[i]);
+        return;
+      }
+    }
+    tbody.appendChild(tr);
+  }
+
+  function buildSize(entry) {
+    var td = document.createElement('td');
+    td.setAttribute('data-label', T.size);
+    if (entry.transferSize > 0) {
+      td.textContent = fmtBytes(entry.transferSize);
+    } else if (isSameOrigin(entry.name)) {
+      td.textContent = T.cached;
+      td.title = T.cachedWhy;
+    } else {
+      td.textContent = '\u2014';
+      td.title = T.notReported;
+    }
+    return td;
+  }
+
+  function addEntry(entry) {
+    if (!entry || !entry.name) return;
+    var key = entry.name + '|' + entry.startTime + '|' + (entry.initiatorType || '');
+    if (seen[key]) return;
+    seen[key] = true;
+    count += 1;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-row';
+    tr.setAttribute('data-time', String(entry.startTime));
+    if (firstMarkTime !== null && entry.startTime > firstMarkTime) {
+      tr.classList.add('netlog-after');
+    }
+
+    var tdTime = document.createElement('td');
+    tdTime.setAttribute('data-label', T.time);
+    tdTime.textContent = (entry.startTime / 1000).toFixed(1) + 's';
+    tdTime.title = T.timeTitle;
+
+    var tdType = document.createElement('td');
+    tdType.setAttribute('data-label', T.type);
+    tdType.textContent = entry.initiatorType || T.other;
+
+    var tdUrl = document.createElement('td');
+    tdUrl.setAttribute('data-label', T.address);
+    tdUrl.className = 'netlog-url';
+    var code = document.createElement('code');
+    code.textContent = displayUrl(entry.name);
+    tdUrl.appendChild(code);
+    if (!isSameOrigin(entry.name)) {
+      tdUrl.appendChild(document.createTextNode(' '));
+      var tag = document.createElement('span');
+      tag.className = 'netlog-tag';
+      tag.textContent = T.external;
+      tdUrl.appendChild(tag);
+    }
+
+    tr.appendChild(tdTime);
+    tr.appendChild(tdType);
+    tr.appendChild(tdUrl);
+    tr.appendChild(buildSize(entry));
+    insertByTime(tr, entry.startTime);
+    countEl.textContent = String(count);
+  }
+
+  function addMarker(label) {
+    if (addedMarkers[label]) return;
+    addedMarkers[label] = true;
+
+    var time = (typeof performance.now === 'function') ? performance.now() : 0;
+    if (firstMarkTime === null) firstMarkTime = time;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-marker';
+    tr.setAttribute('data-time', String(time));
+    var th = document.createElement('th');
+    th.scope = 'row';
+    th.colSpan = 4;
+    th.textContent = label;
+    tr.appendChild(th);
+    insertByTime(tr, time);
+  }
+
+  try {
+    var initial = window.performance.getEntriesByType('resource');
+    for (var i = 0; i < initial.length; i++) addEntry(initial[i]);
+  } catch (e) {}
+
+  try {
+    var observer = new PerformanceObserver(function (list) {
+      var entries = list.getEntries();
+      for (var j = 0; j < entries.length; j++) addEntry(entries[j]);
+    });
+    observer.observe({ type: 'resource', buffered: true });
+  } catch (e) {
+    // Live updates unavailable; whatever the initial read produced stays shown.
+  }
+
+  document.addEventListener('netlog:mark', function (e) {
+    var label = e && e.detail && e.detail.label;
+    if (typeof label !== 'string' || !label) return;
+    addMarker(label);
+  });
+
+  countEl.textContent = String(count);
+})();
+CODE>>>
