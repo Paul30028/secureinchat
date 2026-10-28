@@ -154,6 +154,27 @@ def button_on_row(nodes, label, row_text_prefix):
     return None
 
 
+def type_into_field(desc, text, tries=3):
+    """Taps the EditText with content-desc [desc] and types [text]; retries until the field shows it.
+    On API 29 the first tap sometimes only brings up the keyboard without focusing the field."""
+    nodes = []
+    for _ in range(tries):
+        nodes = dump()
+        f = next((b for t, d, b, c in nodes if d == desc and b), None)
+        if not f:
+            swipe_up()
+            time.sleep(1)
+            continue
+        tap(f)
+        time.sleep(1.5)
+        sh(f"input text {text}")
+        time.sleep(1)
+        nodes = dump()
+        if any(d == desc and t == text for t, d, b, c in nodes):
+            return nodes
+    fail(f"could not type {text!r} into {desc!r}", nodes)
+
+
 def hide_keyboard():
     """Closes the soft keyboard if it is up. Swipes that start on the keyboard do not scroll the app,
     so lists below the input field stay out of reach while it is shown. Back with no keyboard would
@@ -360,12 +381,9 @@ def main():
             time.sleep(1)
         fail("no 'Domain to block' field with a Block button", nodes)
 
-    field, nodes = find_field()
-    tap(field)
-    time.sleep(1)
-    sh(f"input text {user_dom}")
-    time.sleep(1)
-    b = button(dump(), "Block")
+    find_field()
+    nodes = type_into_field("Domain to block", user_dom)
+    b = button(nodes, "Block")
     if not b:
         fail("Block button hidden after typing", dump())
     tap(b)
@@ -391,12 +409,9 @@ def main():
     if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{probe5} should resolve for real after removing the user block, got {addr}: {out}")
 
-    field, nodes = find_field()
-    tap(field)
-    time.sleep(1)
-    sh("input text not_a_domain")
-    time.sleep(1)
-    tap(button(dump(), "Block"))
+    find_field()
+    nodes = type_into_field("Domain to block", "not_a_domain")
+    tap(button(nodes, "Block"))
     # The error line sits just below the input row, often under the bottom edge: scroll to it.
     time.sleep(1)
     hide_keyboard()
