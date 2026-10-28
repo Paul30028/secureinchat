@@ -404,15 +404,9 @@ def main():
     scroll_top()
     wait_ui(lambda s: "0 blocked by you" in s, "rules line does not return to 0 blocked by you")
     # The row itself must go too (it once stayed: an empty list's signature equalled the reset value).
-    gone = False
-    for _ in range(4):
-        if not blocked_row.search(joined(dump())):
-            gone = True
-            break
-        swipe_up()
-        time.sleep(1)
-    if not gone:
-        fail(f"{user_dom} row still shown after Remove", dump())
+    sect = re.compile(r"Blocked by you(?:(?!Allowed by you)[\s\S]){0,400}?\(none\)")
+    scroll_find(lambda s: sect.search(s) and not blocked_row.search(s),
+                f"'Blocked by you' does not show (none) after removing {user_dom}", tries=8)
     scroll_top()
     probe5 = "www." + user_dom
     addr, out = resolve(probe5)
