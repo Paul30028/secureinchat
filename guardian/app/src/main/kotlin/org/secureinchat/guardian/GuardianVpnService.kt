@@ -8,21 +8,16 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.net.ConnectivityManager
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
-import android.system.OsConstants
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.net.InetAddress
-import java.net.InetSocketAddress
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import org.secureinchat.guardian.dns.Action
 import org.secureinchat.guardian.dns.Blocklist
 import org.secureinchat.guardian.dns.BlockMode
-import org.secureinchat.guardian.dns.DnsQuery
 import org.secureinchat.guardian.dns.QueryHandler
 
 class GuardianVpnService : VpnService() {
@@ -71,7 +66,9 @@ class GuardianVpnService : VpnService() {
             val blocklist = loadBlocklist()
             val userAllowed = UserRulesStore.allowed(applicationContext)
             val effective = if (userAllowed.isEmpty()) blocklist else blocklist.plusAllowed(userAllowed)
-            val h = QueryHandler(effective, BlockMode.NULL_IP, { q -> uidOfQuery(q) })
+            // No uid lookup: on Android 10+ every query reaching the VPN is sent by the system DNS
+            // service, so getConnectionOwnerUid names that service, not the app (seen in the emulator flow).
+            val h = QueryHandler(effective, BlockMode.NULL_IP)
             if (gen != startGeneration) return
 
             val builder = Builder()
@@ -114,18 +111,6 @@ class GuardianVpnService : VpnService() {
         } catch (_: Throwable) {
             isLoading = false
             stopSelf()
-        }
-    }
-
-    private fun uidOfQuery(q: DnsQuery): Int {
-        if (Build.VERSION.SDK_INT < 29) return -1
-        return try {
-            val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val src = InetSocketAddress(InetAddress.getByAddress(q.srcIp), q.srcPort)
-            val dst = InetSocketAddress(InetAddress.getByAddress(q.dstIp), q.dstPort)
-            cm.getConnectionOwnerUid(OsConstants.IPPROTO_UDP, src, dst)
-        } catch (_: Throwable) {
-            -1
         }
     }
 

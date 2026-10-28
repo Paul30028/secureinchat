@@ -246,31 +246,11 @@ def main():
     snap("block-and-allow")
     print(f"ok: {ALLOWED} forwarded and answered")
 
-    # 4b. Per-app view and the user's allowlist (G3b). ping runs as the shell uid, so its queries form
-    #     one row; tap it, allow doubleclick.net from the expanded row, check a not-yet-cached subdomain
-    #     now resolves for real, then remove the rule again.
-    nodes = scroll_find(lambda s: re.search(r"— blocked [1-9]", s), "per-app view shows no app with blocked queries")
-    # Match the expanded domain row itself ("doubleclick.net (2)"), not the log line, which also
-    # contains "doubleclick.net (type 1)".
+    # 4b. "Blocked most often" list and the user's allowlist (G3b): allow doubleclick.net from its row,
+    #     check a not-yet-cached subdomain now resolves for real, then remove the rule again.
+    # Match the list row itself ("doubleclick.net (2)"), not the log line "doubleclick.net (type 1)".
     dom_row = re.compile(rf"^{re.escape(BLOCKED)} \(\d+\)$", re.M)
-    # Other apps (Android system services) may have blocked queries too and sort above the shell's
-    # row, so expand the rows one by one until the doubleclick.net row shows up.
-    tapped = set()
-    for _ in range(6):
-        if dom_row.search(joined(nodes)):
-            break
-        # Key by app name: the counts in the row text change while queries keep arriving.
-        rows = [(t, b) for t, _, b, _ in nodes if re.search(r"— blocked [1-9]", t) and t.split(" — ")[0] not in tapped]
-        if not rows:
-            break
-        t, b = rows[0]
-        tapped.add(t.split(" — ")[0])
-        print(f"expanding app row: {t}")
-        tap(b)
-        time.sleep(2)
-        nodes = dump()
-    if not dom_row.search(joined(nodes)):
-        nodes = scroll_find(lambda s: dom_row.search(s), f"expanded app rows do not list {BLOCKED}")
+    nodes = scroll_find(lambda s: dom_row.search(s), f"'Blocked most often' does not list {BLOCKED}")
     b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
     if not b:
         # The row may sit at the bottom edge with its button cut off; scroll a little and look again.
@@ -281,19 +261,21 @@ def main():
     if not b:
         fail(f"no Allow button on the {BLOCKED} row", nodes)
     tap(b)
-    nodes = scroll_find(lambda s: "1 allowed by you" in s, "rules line does not show 1 allowed by you")
+    allowed_row = re.compile(rf"^{re.escape(BLOCKED)}$", re.M)
+    nodes = scroll_find(lambda s: allowed_row.search(s), f"'Allowed by you' does not list {BLOCKED}")
     snap("allowed-by-user")
     probe = "www." + BLOCKED
     addr, out = resolve(probe)
     print(f"guardian after Allow: {probe} -> {addr}")
     if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{probe} should resolve for real after allowing {BLOCKED}, got {addr}: {out}")
-    nodes = scroll_find(lambda s: "Remove" in s or "REMOVE" in s, "allowlist has no Remove button")
+    nodes = scroll_find(lambda s: allowed_row.search(s), f"'Allowed by you' does not list {BLOCKED}")
     b = button_on_row(nodes, "Remove", BLOCKED)
     if not b:
         fail(f"no Remove button on the {BLOCKED} allowlist row", nodes)
     tap(b)
-    scroll_find(lambda s: "0 allowed by you" in s, "rules line does not return to 0 allowed by you")
+    scroll_top()
+    wait_ui(lambda s: "0 allowed by you" in s, "rules line does not return to 0 allowed by you")
     probe2 = "googleads.g." + BLOCKED
     addr, out = resolve(probe2)
     print(f"guardian after Remove: {probe2} -> {addr}")
@@ -301,7 +283,7 @@ def main():
         fail(f"{probe2} should be blocked again after removing the rule, got {addr}: {out}")
     scroll_top()
     nodes = dump()
-    print("ok: per-app view, Allow and Remove work")
+    print("ok: 'Blocked most often', Allow and Remove work")
 
     # 5. Stop from the app
     b = button(nodes, "Stop")

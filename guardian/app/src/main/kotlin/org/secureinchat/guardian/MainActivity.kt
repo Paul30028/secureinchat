@@ -45,7 +45,6 @@ class MainActivity : Activity() {
     private var appListSignature: String = ""
     private var allowedSignature: String = ""
     private var appListBuiltAt = 0L
-    private val expandedUids = HashSet<Int>()
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private val refreshTick = object : Runnable {
@@ -160,7 +159,7 @@ class MainActivity : Activity() {
 
         root.addView(TextView(this).apply {
             textSize = 16f
-            text = txt("By app", "按应用")
+            text = txt("Blocked most often", "拦截最多的域名")
             setPadding(0, pad, 0, pad / 4)
         })
         appListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -277,14 +276,12 @@ class MainActivity : Activity() {
         setIfChanged(logView, sb)
     }
 
+    // "Blocked most often": the domains blocked in this session, each with an Allow button for false
+    // positives. Not per app: on Android 10+ apps resolve names through the system DNS service, so every
+    // query reaching the VPN comes from that service's uid (1051 on the emulator), not from the app.
     private fun renderAppList(h: QueryHandler?) {
-        val rows = h?.tally?.snapshot(30) ?: emptyList()
-        val sig = buildString {
-            for (r in rows) {
-                append(r.uid).append(',').append(r.queries).append(',').append(r.blocked).append(';')
-                for (d in r.topBlocked) append(d.first).append(':').append(d.second).append(';')
-            }
-        }
+        val top = h?.tally?.snapshot(1)?.firstOrNull()?.topBlocked ?: emptyList()
+        val sig = top.joinToString(";") { "${it.first}:${it.second}" }
         if (sig == appListSignature) return
         // Counts change with every DNS query. Rebuild the list at most every 5 s unless a tap reset the
         // signature, so background traffic does not re-lay out the screen every second.
@@ -296,51 +293,38 @@ class MainActivity : Activity() {
         if (h == null) return
         val density = resources.displayMetrics.density
         val vpad = (4 * density).toInt()
-        val hpad = (16 * density).toInt()
-        for (r in rows) {
-            val name = AppLabels.label(this, r.uid)
-            val expanded = expandedUids.contains(r.uid)
-            val rowView = TextView(this).apply {
-                textSize = 14f
-                text = txt(
-                    "$name — blocked ${r.blocked} / queries ${r.queries}",
-                    "$name — 拦截 ${r.blocked} / 查询 ${r.queries}"
-                )
+        if (top.isEmpty()) {
+            appListContainer.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt("(nothing blocked yet)", "(还没有拦截)")
                 setPadding(0, vpad, 0, vpad)
+            })
+            return
+        }
+        for (d in top) {
+            val domRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, vpad, 0, vpad)
+            }
+            val dom = TextView(this).apply {
+                textSize = 13f
+                text = "${d.first} (${d.second})"
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val allowBtn = Button(this).apply {
+                text = txt("Allow", "放行")
+                textSize = 12f
                 setOnClickListener {
-                    if (!expandedUids.add(r.uid)) expandedUids.remove(r.uid)
+                    UserRulesStore.add(this@MainActivity, d.first)
+                    GuardianVpnService.applyUserRules(applicationContext)
                     appListSignature = ""
+                    allowedSignature = ""
                     uiHandler.post { refreshUi() }
                 }
             }
-            appListContainer.addView(rowView)
-            if (expanded) {
-                for (d in r.topBlocked) {
-                    val domRow = LinearLayout(this).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        setPadding(hpad, 0, 0, 0)
-                    }
-                    val dom = TextView(this).apply {
-                        textSize = 13f
-                        text = "${d.first} (${d.second})"
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    }
-                    val allowBtn = Button(this).apply {
-                        text = txt("Allow", "放行")
-                        textSize = 12f
-                        setOnClickListener {
-                            UserRulesStore.add(this@MainActivity, d.first)
-                            GuardianVpnService.applyUserRules(applicationContext)
-                            appListSignature = ""
-                            allowedSignature = ""
-                            uiHandler.post { refreshUi() }
-                        }
-                    }
-                    domRow.addView(dom)
-                    domRow.addView(allowBtn)
-                    appListContainer.addView(domRow)
-                }
-            }
+            domRow.addView(dom)
+            domRow.addView(allowBtn)
+            appListContainer.addView(domRow)
         }
     }
 
