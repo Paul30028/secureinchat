@@ -105,8 +105,7 @@ class GuardianVpnService : VpnService() {
     private fun startVpnBackground(gen: Int) {
         try {
             val blocklist = loadBlocklist()
-            val userAllowed = UserRulesStore.allowed(applicationContext)
-            val effective = if (userAllowed.isEmpty()) blocklist else blocklist.plusAllowed(userAllowed)
+            val effective = applyUserRulesTo(blocklist, applicationContext)
             // No uid lookup: on Android 10+ every query reaching the VPN is sent by the system DNS
             // service, so getConnectionOwnerUid names that service, not the app (seen in the emulator flow).
             val h = QueryHandler(effective, BlockMode.NULL_IP)
@@ -369,15 +368,25 @@ class GuardianVpnService : VpnService() {
             }
         }
 
+        // Bundled list + user blocks + user allows. Precedence inside Blocklist is
+        // "user allow > user block > builtin allow > builtin block", so the order of the two calls
+        // below only matters for building the object, not for matching.
+        private fun applyUserRulesTo(base: Blocklist, ctx: Context): Blocklist {
+            var eff = base
+            val userBlocked = UserRulesStore.blocked(ctx)
+            if (userBlocked.isNotEmpty()) eff = eff.plusBlocked(userBlocked)
+            val userAllowed = UserRulesStore.allowed(ctx)
+            if (userAllowed.isNotEmpty()) eff = eff.plusAllowed(userAllowed)
+            return eff
+        }
+
         fun applyUserRules(ctx: Context) {
             val h = activeHandler ?: return
             Thread {
                 synchronized(rulesLock) {
                     try {
                         val base = loadBlocklistStatic(ctx)
-                        val userAllowed = UserRulesStore.allowed(ctx)
-                        val effective = if (userAllowed.isEmpty()) base else base.plusAllowed(userAllowed)
-                        h.blocklist = effective
+                        h.blocklist = applyUserRulesTo(base, ctx)
                     } catch (_: Throwable) {}
                 }
             }.apply { name = "guardian-rules" }.start()

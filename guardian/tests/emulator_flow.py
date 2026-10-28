@@ -332,6 +332,54 @@ def main():
         fail(f"{probe4} should be blocked again after Resume, got {addr}: {out}")
     print("ok: pause and resume work")
 
+    # 4d. The user's own block list (G8): type a domain, Block, it resolves to the block address;
+    #     an invalid entry shows an error; Remove, and a not-yet-cached subdomain resolves for real again.
+    user_dom = "example.org"
+    field = None
+    for _ in range(6):
+        nodes = dump()
+        field = next((b for t, d, b, c in nodes if d == "Domain to block" and b), None)
+        if field and button(nodes, "Block"):
+            break
+        swipe_up()
+        time.sleep(1)
+    if not field:
+        fail("no 'Domain to block' field", nodes)
+    tap(field)
+    time.sleep(1)
+    sh("input text not_a_domain")
+    tap(button(dump(), "Block"))
+    wait_ui(lambda s: "Not a valid domain" in s, "invalid domain did not show 'Not a valid domain'")
+    nodes = dump()
+    field = next((b for t, d, b, c in nodes if d == "Domain to block" and b), None)
+    tap(field)
+    for _ in range(14):
+        sh("input keyevent 67", check=False)  # backspace
+    sh(f"input text {user_dom}")
+    tap(button(dump(), "Block"))
+    blocked_row = re.compile(rf"^{re.escape(user_dom)}$", re.M)
+    nodes = scroll_find(lambda s: blocked_row.search(s) and "Not a valid domain" not in s,
+                        f"'Blocked by you' does not list {user_dom}")
+    snap("blocked-by-user")
+    addr, out = resolve(user_dom)
+    print(f"guardian after Block: {user_dom} -> {addr}")
+    if addr not in ("0.0.0.0", "127.0.0.1"):
+        fail(f"{user_dom} should be blocked after the user blocked it, got {addr}: {out}")
+    b = button_on_row(nodes, "Remove", user_dom)
+    if not b:
+        fail(f"no Remove button on the {user_dom} row", nodes)
+    tap(b)
+    scroll_top()
+    wait_ui(lambda s: "0 blocked by you" in s, "rules line does not return to 0 blocked by you")
+    probe5 = "www." + user_dom
+    addr, out = resolve(probe5)
+    print(f"guardian after Remove: {probe5} -> {addr}")
+    if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
+        fail(f"{probe5} should resolve for real after removing the user block, got {addr}: {out}")
+    scroll_top()
+    nodes = dump()
+    print("ok: user block list works")
+
     # 5. Stop from the app
     b = button(nodes, "Stop")
     if not b:

@@ -17,6 +17,7 @@ Licensed GPL-3.0-or-later.
 | DNS over IPv6 (G4) | DeepSeek wrote to Claude's spec: IPv6/UDP queries (no extension headers), blocked and upstream answers with the IPv6 pseudo-header checksum, and an IPv6 DNS server address (fd00:6a72:6764::2) on the VPN, falling back to IPv4 only if the platform refuses it. `DnsIpv6Test` (14 groups) and `tests/dns_oracle6.py` (8 answers, 6 rejects, 4 upstream cases checked with dnspython and a separate checksum) pass. |
 | Quick Settings tile (G5) | DeepSeek wrote to Claude's spec: a tile that starts and stops Guardian; if VPN consent is missing it opens the app. The emulator flow adds the tile and clicks it to start and stop. |
 | Pause 5 minutes, app icon, lint (G6) | DeepSeek wrote to Claude's spec: pause/resume in QueryHandler (PauseTest, 7 groups), a Pause/Resume button, a notification with Resume, and the tile showing Paused; an adaptive launcher icon (shield and check from the site favicon); data_extraction_rules.xml excluding every domain. The emulator flow pauses, checks a blocked name resolves, resumes, and checks it is blocked again. |
+| Your own block list (G8) | DeepSeek wrote to Claude's spec: user-blocked domains in Blocklist with precedence user allow > user block > builtin allow > builtin block (UserRulesTest, 7 groups); a "Blocked by you" field with Block, an error for invalid names, and Remove. A domain sits in at most one of your two lists. The emulator flow blocks example.org, checks it resolves to the block address, removes it, and checks a subdomain resolves for real. |
 | Real-device test | none |
 
 ## Run the checks
@@ -28,6 +29,7 @@ Licensed GPL-3.0-or-later.
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.AppTallyTestKt
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsIpv6TestKt
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.PauseTestKt
+    java -cp /tmp/g.jar org.secureinchat.guardian.dns.UserRulesTestKt
     kotlinc core/src/main/kotlin tests/oracle/Cli.kt -include-runtime -d /tmp/cli.jar
     pip install dnspython && python3 tests/dns_oracle.py /tmp/cli.jar && python3 tests/dns_oracle6.py /tmp/cli.jar
 

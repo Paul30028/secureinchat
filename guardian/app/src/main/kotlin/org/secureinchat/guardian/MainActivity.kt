@@ -16,11 +16,14 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputType
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -41,9 +44,17 @@ class MainActivity : Activity() {
     private lateinit var toggleBtn: Button
     private lateinit var pauseBtn: Button
     private lateinit var appListContainer: LinearLayout
+    private lateinit var blockedListContainer: LinearLayout
     private lateinit var allowedListContainer: LinearLayout
 
+    // The "Block by you" input is only rebuilt when the activity is created, so its text and error
+    // state survive the 1 Hz refresh; refreshUi() never touches these views.
+    private lateinit var addBlockedInput: EditText
+    private lateinit var addBlockedBtn: Button
+    private lateinit var addBlockedError: TextView
+
     private var appListSignature: String = ""
+    private var blockedSignature: String = ""
     private var allowedSignature: String = ""
     private var appListBuiltAt = 0L
 
@@ -104,6 +115,7 @@ class MainActivity : Activity() {
     private fun buildUi() {
         val density = resources.displayMetrics.density
         val pad = (16 * density).toInt()
+        val small = (8 * density).toInt()
 
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
@@ -175,6 +187,59 @@ class MainActivity : Activity() {
         appListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(appListContainer)
 
+        // --- Blocked by you ---------------------------------------------------
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("Blocked by you", "你拦截的")
+            setPadding(0, pad, 0, pad / 4)
+        })
+
+        val addRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        addBlockedInput = EditText(this).apply {
+            hint = "example.com"
+            // contentDescription is what `adb shell input text` and most UI tools pick up; the
+            // emulator script types into the focused EditText, but having this makes the field
+            // discoverable for "input text" without needing the specific view id.
+            contentDescription = "Domain to block"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            maxLines = 1
+            isSingleLine = true
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    submitBlockedDomain()
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+        addBlockedBtn = Button(this).apply {
+            text = txt("Block", "拦截")
+            textSize = 12f
+            setOnClickListener { submitBlockedDomain() }
+        }
+        addRow.addView(addBlockedInput)
+        addRow.addView(addBlockedBtn)
+        root.addView(addRow)
+
+        addBlockedError = TextView(this).apply {
+            textSize = 12f
+            setTextColor(0xFFFF4444.toInt())
+            visibility = View.GONE
+            text = txt("Not a valid domain", "不是有效的域名")
+            setPadding(0, pad / 4, 0, 0)
+        }
+        root.addView(addBlockedError)
+
+        blockedListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(blockedListContainer)
+
+        // --- Allowed by you ---------------------------------------------------
         root.addView(TextView(this).apply {
             textSize = 16f
             text = txt("Allowed by you", "你放行的")
@@ -183,7 +248,28 @@ class MainActivity : Activity() {
         allowedListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(allowedListContainer)
 
+        // A little slack at the bottom so the last row is not glued to the scroll edge.
+        root.addView(View(this).apply { minimumHeight = small })
+
         setContentView(ScrollView(this).apply { addView(root) })
+    }
+
+    private fun submitBlockedDomain() {
+        val raw = addBlockedInput.text?.toString().orEmpty()
+        val ok = UserRulesStore.addBlocked(this, raw)
+        if (!ok) {
+            addBlockedError.visibility = View.VISIBLE
+            return
+        }
+        addBlockedInput.setText("")
+        addBlockedError.visibility = View.GONE
+        GuardianVpnService.applyUserRules(applicationContext)
+        // Clear signatures so the list is rebuilt on the next refresh even if it is inside the
+        // 5 s throttle window used for the "blocked most often" list.
+        blockedSignature = ""
+        allowedSignature = ""
+        appListSignature = ""
+        uiHandler.post { refreshUi() }
     }
 
     private fun onToggleClicked() {
@@ -263,6 +349,7 @@ class MainActivity : Activity() {
             setIfChanged(rulesView, "")
             setIfChanged(logView, "")
             renderAppList(null)
+            renderBlockedList()
             renderAllowedList()
         } else {
             val s = h.snapshot()
@@ -273,12 +360,15 @@ class MainActivity : Activity() {
                 "应答: ${s.answered}  失败: ${s.failed}  畸形: ${s.malformed}"
             ))
             val userAllowed = UserRulesStore.allowed(this).size
+            val userBlocked = UserRulesStore.blocked(this).size
+            // The substring "N allowed by you" is matched by the emulator flow; keep it verbatim.
             setIfChanged(rulesView, txt(
-                "Rules: ${h.blocklist.blockedCount} blocked, $userAllowed allowed by you",
-                "规则:拦截 ${h.blocklist.blockedCount},你放行 $userAllowed"
+                "Rules: ${h.blocklist.blockedCount} blocked, $userAllowed allowed by you, $userBlocked blocked by you",
+                "规则:拦截 ${h.blocklist.blockedCount},你放行 $userAllowed,你拦截 $userBlocked"
             ))
             renderLog(h.recent())
             renderAppList(h)
+            renderBlockedList()
             renderAllowedList()
         }
 
@@ -364,6 +454,7 @@ class MainActivity : Activity() {
                     UserRulesStore.add(this@MainActivity, d.first)
                     GuardianVpnService.applyUserRules(applicationContext)
                     appListSignature = ""
+                    blockedSignature = ""
                     allowedSignature = ""
                     uiHandler.post { refreshUi() }
                 }
@@ -371,6 +462,52 @@ class MainActivity : Activity() {
             domRow.addView(dom)
             domRow.addView(allowBtn)
             appListContainer.addView(domRow)
+        }
+    }
+
+    // "Blocked by you": the user's own block list. Mirror of the allow list below it; both are
+    // read from SharedPreferences each refresh and rendered only when the serialized set changes.
+    private fun renderBlockedList() {
+        val blocked = UserRulesStore.blocked(this).sorted()
+        val sig = blocked.joinToString(",")
+        if (sig == blockedSignature) return
+        blockedSignature = sig
+        blockedListContainer.removeAllViews()
+        val density = resources.displayMetrics.density
+        val vpad = (4 * density).toInt()
+        if (blocked.isEmpty()) {
+            blockedListContainer.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt("(none)", "(无)")
+                setPadding(0, vpad, 0, vpad)
+            })
+            return
+        }
+        for (d in blocked) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, vpad, 0, vpad)
+            }
+            val dom = TextView(this).apply {
+                textSize = 13f
+                text = d
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val removeBtn = Button(this).apply {
+                text = txt("Remove", "移除")
+                textSize = 12f
+                setOnClickListener {
+                    UserRulesStore.removeBlocked(this@MainActivity, d)
+                    GuardianVpnService.applyUserRules(applicationContext)
+                    appListSignature = ""
+                    blockedSignature = ""
+                    allowedSignature = ""
+                    uiHandler.post { refreshUi() }
+                }
+            }
+            row.addView(dom)
+            row.addView(removeBtn)
+            blockedListContainer.addView(row)
         }
     }
 
@@ -407,6 +544,7 @@ class MainActivity : Activity() {
                     UserRulesStore.remove(this@MainActivity, d)
                     GuardianVpnService.applyUserRules(applicationContext)
                     appListSignature = ""
+                    blockedSignature = ""
                     allowedSignature = ""
                     uiHandler.post { refreshUi() }
                 }

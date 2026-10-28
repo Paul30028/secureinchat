@@ -1,26 +1,65 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package org.secureinchat.guardian.dns
 
+/**
+ * Domain block/allow matcher.
+ *
+ * Four rule sets are kept separately so that precedence is explicit and stable:
+ *
+ *   user allow  >  user block  >  builtin allow (@@)  >  builtin block
+ *
+ * The first three are consulted in that order, walking the query name and each of its parent
+ * domains one label at a time. The first hit decides the answer. This means:
+ *
+ *  - a user allow always wins, even over a user block of the same name or a builtin block;
+ *  - a user block beats a builtin @@ allow, which is the point of letting users blacklist a
+ *    domain whose builtin whitelisting they disagree with;
+ *  - builtin @@ still overrides builtin block, as before.
+ *
+ * The bundled lists are immutable per process; the user lists are applied with plusAllowed /
+ * plusBlocked, both of which return a new instance and leave the receiver untouched.
+ *
+ * matched by suffix: "example.com" covers "a.b.example.com" but not "badexample.com".
+ */
 class Blocklist private constructor(
-    private val blocked: HashSet<String>,
-    private val allowed: HashSet<String>
+    private val builtinBlocked: HashSet<String>,
+    private val builtinAllowed: HashSet<String>,
+    private val userBlocked: HashSet<String>,
+    private val userAllowed: HashSet<String>
 ) {
-    val blockedCount: Int get() = blocked.size
-    val allowedCount: Int get() = allowed.size
+    /** Number of domains in the bundled block list (not counting user blocks). */
+    val blockedCount: Int get() = builtinBlocked.size
+
+    /** Number of builtin @@ allow rules (not counting user allows). */
+    val allowedCount: Int get() = builtinAllowed.size
 
     fun isBlocked(name: String): Boolean {
         try {
             val n = normalizeHostname(name) ?: return false
             var cur = n
             while (true) {
-                if (allowed.contains(cur)) return false
+                if (userAllowed.contains(cur)) return false
                 val dot = cur.indexOf('.')
                 if (dot < 0) break
                 cur = cur.substring(dot + 1)
             }
             cur = n
             while (true) {
-                if (blocked.contains(cur)) return true
+                if (userBlocked.contains(cur)) return true
+                val dot = cur.indexOf('.')
+                if (dot < 0) break
+                cur = cur.substring(dot + 1)
+            }
+            cur = n
+            while (true) {
+                if (builtinAllowed.contains(cur)) return false
+                val dot = cur.indexOf('.')
+                if (dot < 0) break
+                cur = cur.substring(dot + 1)
+            }
+            cur = n
+            while (true) {
+                if (builtinBlocked.contains(cur)) return true
                 val dot = cur.indexOf('.')
                 if (dot < 0) break
                 cur = cur.substring(dot + 1)
@@ -31,13 +70,32 @@ class Blocklist private constructor(
         }
     }
 
+    /**
+     * Returns a new Blocklist with [extra] added to the user allow set. Invalid entries are ignored.
+     * User allow is the highest-priority set, so a user allow overrides both user blocks and the
+     * builtin lists.
+     */
     fun plusAllowed(extra: Collection<String>): Blocklist {
-        val newAllowed = HashSet<String>(allowed)
+        val newAllowed = HashSet<String>(userAllowed)
         for (s in extra) {
             val n = normalizeOrNull(s) ?: continue
             newAllowed.add(n)
         }
-        return Blocklist(HashSet(blocked), newAllowed)
+        return Blocklist(HashSet(builtinBlocked), HashSet(builtinAllowed), HashSet(userBlocked), newAllowed)
+    }
+
+    /**
+     * Returns a new Blocklist with [extra] added to the user block set. Invalid entries are ignored.
+     * User block is consulted after user allow but before the builtin lists, so it overrides
+     * builtin @@ rules while still losing to an explicit user allow of the same name.
+     */
+    fun plusBlocked(extra: Collection<String>): Blocklist {
+        val newBlocked = HashSet<String>(userBlocked)
+        for (s in extra) {
+            val n = normalizeOrNull(s) ?: continue
+            newBlocked.add(n)
+        }
+        return Blocklist(HashSet(builtinBlocked), HashSet(builtinAllowed), newBlocked, HashSet(userAllowed))
     }
 
     companion object {
@@ -51,8 +109,8 @@ class Blocklist private constructor(
         fun normalizeOrNull(s: String): String? = normalizeHostname(s)
 
         fun parse(text: String): Blocklist {
-            val blocked = HashSet<String>(1024)
-            val allowed = HashSet<String>(64)
+            val builtinBlocked = HashSet<String>(1024)
+            val builtinAllowed = HashSet<String>(64)
 
             for (rawLine in text.lineSequence()) {
                 var line = rawLine.trim()
@@ -71,13 +129,13 @@ class Blocklist private constructor(
 
                 if (line.startsWith("@@")) {
                     val domain = parseAdblock(line.substring(2))
-                    if (domain != null) allowed.add(domain)
+                    if (domain != null) builtinAllowed.add(domain)
                     continue
                 }
 
                 if (line.startsWith("||")) {
                     val domain = parseAdblock(line)
-                    if (domain != null) blocked.add(domain)
+                    if (domain != null) builtinBlocked.add(domain)
                     continue
                 }
 
@@ -86,17 +144,17 @@ class Blocklist private constructor(
                     for (k in 1 until tokens.size) {
                         val d = normalizeHostname(tokens[k]) ?: continue
                         if (d in IGNORED) continue
-                        blocked.add(d)
+                        builtinBlocked.add(d)
                     }
                     continue
                 }
 
                 val d = normalizeHostname(line) ?: continue
                 if (d in IGNORED) continue
-                blocked.add(d)
+                builtinBlocked.add(d)
             }
 
-            return Blocklist(blocked, allowed)
+            return Blocklist(builtinBlocked, builtinAllowed, HashSet(16), HashSet(16))
         }
 
         private fun parseAdblock(s: String): String? {
