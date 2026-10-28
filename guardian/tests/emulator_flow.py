@@ -132,6 +132,22 @@ def scroll_find(pred, what, tries=6):
     fail(what, nodes)
 
 
+def find_anywhere(pred, what, timeout=45, swipes=6):
+    """Like scroll_find, but keeps going from the top until [timeout]: for text that appears only
+    after a throttled rebuild (the 'Blocked most often' rows refresh at most every 5 s)."""
+    end = time.time() + timeout
+    nodes = []
+    while time.time() < end:
+        scroll_top()
+        for _ in range(swipes):
+            nodes = dump()
+            if pred(joined(nodes)):
+                return nodes
+            swipe_up()
+            time.sleep(1)
+    fail(what, nodes)
+
+
 def scroll_top():
     w, h = screen_size()
     for _ in range(5):
@@ -304,6 +320,11 @@ def main():
     # Match the list row itself ("doubleclick.net (2)"), not the log line "doubleclick.net (type 1)".
     dom_row = re.compile(rf"^{re.escape(BLOCKED)} \(\d+\)$", re.M)
     nodes = scroll_find(lambda s: dom_row.search(s), f"'Blocked most often' does not list {BLOCKED}")
+    # G11: the row says which rule blocked it. The query was the bare name, so the rule is the name.
+    rule_builtin = f"Rule: {BLOCKED} (built-in list)"
+    nodes = find_anywhere(lambda s: dom_row.search(s) and rule_builtin in s,
+                          f"'Blocked most often' row lacks '{rule_builtin}'")
+    print(f"ok: row shows '{rule_builtin}'")
     b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
     if not b:
         # The row may sit at the bottom edge with its button cut off; scroll a little and look again.
@@ -396,6 +417,11 @@ def main():
     print(f"guardian after Block: {user_dom} -> {addr}")
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{user_dom} should be blocked after the user blocked it, got {addr}: {out}")
+    # G11: the new "Blocked most often" row for it names the user's own rule.
+    rule_user = f"Rule: {user_dom} (blocked by you)"
+    find_anywhere(lambda s: rule_user in s, f"'Blocked most often' has no '{rule_user}' line")
+    snap("rule-blocked-by-you")
+    print(f"ok: row shows '{rule_user}'")
     nodes = scroll_find(lambda s: blocked_row.search(s), f"'Blocked by you' does not list {user_dom}")
     b = button_on_row(nodes, "Remove", user_dom)
     if not b:

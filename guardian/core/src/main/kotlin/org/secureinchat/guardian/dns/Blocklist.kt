@@ -33,40 +33,47 @@ class Blocklist private constructor(
     /** Number of builtin @@ allow rules (not counting user allows). */
     val allowedCount: Int get() = builtinAllowed.size
 
-    fun isBlocked(name: String): Boolean {
+    /** Which of the four rule sets a [Match] came from. */
+    enum class RuleSource { USER_ALLOW, USER_BLOCK, BUILTIN_ALLOW, BUILTIN_BLOCK }
+
+    /**
+     * The rule that decided a name: [rule] is the stored entry (the name itself or one of its
+     * parent domains) and [source] the set it lives in.
+     */
+    data class Match(val rule: String, val source: RuleSource) {
+        val blocks: Boolean get() = source == RuleSource.USER_BLOCK || source == RuleSource.BUILTIN_BLOCK
+    }
+
+    /**
+     * Returns the first rule that applies to [name], using the precedence and suffix walk described
+     * on the class, or null when no rule applies (or the name is not a valid hostname).
+     * [isBlocked] is defined in terms of this function so the two can never disagree.
+     */
+    fun match(name: String): Match? {
         try {
-            val n = normalizeHostname(name) ?: return false
-            var cur = n
-            while (true) {
-                if (userAllowed.contains(cur)) return false
-                val dot = cur.indexOf('.')
-                if (dot < 0) break
-                cur = cur.substring(dot + 1)
-            }
-            cur = n
-            while (true) {
-                if (userBlocked.contains(cur)) return true
-                val dot = cur.indexOf('.')
-                if (dot < 0) break
-                cur = cur.substring(dot + 1)
-            }
-            cur = n
-            while (true) {
-                if (builtinAllowed.contains(cur)) return false
-                val dot = cur.indexOf('.')
-                if (dot < 0) break
-                cur = cur.substring(dot + 1)
-            }
-            cur = n
-            while (true) {
-                if (builtinBlocked.contains(cur)) return true
-                val dot = cur.indexOf('.')
-                if (dot < 0) break
-                cur = cur.substring(dot + 1)
-            }
-            return false
+            val n = normalizeHostname(name) ?: return null
+            walk(n, userAllowed)?.let { return Match(it, RuleSource.USER_ALLOW) }
+            walk(n, userBlocked)?.let { return Match(it, RuleSource.USER_BLOCK) }
+            walk(n, builtinAllowed)?.let { return Match(it, RuleSource.BUILTIN_ALLOW) }
+            walk(n, builtinBlocked)?.let { return Match(it, RuleSource.BUILTIN_BLOCK) }
+            return null
         } catch (t: Throwable) {
-            return false
+            return null
+        }
+    }
+
+    /** Called for every DNS query; allocates at most one Match. */
+    fun isBlocked(name: String): Boolean = match(name)?.blocks ?: false
+
+    /** [n] or the nearest parent domain of [n] contained in [set], else null. */
+    private fun walk(n: String, set: HashSet<String>): String? {
+        if (set.isEmpty()) return null
+        var cur = n
+        while (true) {
+            if (set.contains(cur)) return cur
+            val dot = cur.indexOf('.')
+            if (dot < 0) return null
+            cur = cur.substring(dot + 1)
         }
     }
 

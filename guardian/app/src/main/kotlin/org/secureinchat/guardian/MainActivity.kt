@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import org.secureinchat.guardian.dns.Blocklist
 import org.secureinchat.guardian.dns.LogEntry
 import org.secureinchat.guardian.dns.QueryHandler
 import org.secureinchat.guardian.dns.RulesText
@@ -626,7 +627,13 @@ class MainActivity : Activity() {
     // query reaching the VPN comes from that service's uid (1051 on the emulator), not from the app.
     private fun renderAppList(h: QueryHandler?) {
         val top = h?.tally?.snapshot(1)?.firstOrNull()?.topBlocked ?: emptyList()
-        val sig = top.joinToString(";") { "${it.first}:${it.second}" }
+        // G11: the rule behind each row, worked out now from the live rules (the log does not store
+        // it). It is part of the signature so a rule change (Allow, Block, import) rebuilds the rows
+        // once the background rules thread has swapped the list, not only when counts change.
+        val bl = h?.blocklist
+        val rules = top.map { bl?.match(it.first) }
+        val sig = top.joinToString(";") { "${it.first}:${it.second}" } + "|" +
+            rules.joinToString(";") { m -> if (m == null) "-" else "${m.rule}:${m.source}" }
         if (sig == appListSignature) return
         // Counts change with every DNS query. Rebuild the list at most every 5 s unless a tap reset the
         // signature, so background traffic does not re-lay out the screen every second.
@@ -646,16 +653,27 @@ class MainActivity : Activity() {
             })
             return
         }
-        for (d in top) {
+        val secondary = secondaryTextColors()
+        for ((i, d) in top.withIndex()) {
             val domRow = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 setPadding(0, vpad, 0, vpad)
             }
+            // Domain on the first line, the rule that blocked it in small grey text below.
+            val texts = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
             val dom = TextView(this).apply {
                 textSize = 13f
                 text = "${d.first} (${d.second})"
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
+            texts.addView(dom)
+            texts.addView(TextView(this).apply {
+                textSize = 11f
+                if (secondary != null) setTextColor(secondary)
+                text = ruleLine(rules[i])
+            })
             val allowBtn = Button(this).apply {
                 text = txt("Allow", "放行")
                 textSize = 12f
@@ -668,9 +686,33 @@ class MainActivity : Activity() {
                     uiHandler.post { refreshUi() }
                 }
             }
-            domRow.addView(dom)
+            domRow.addView(texts)
             domRow.addView(allowBtn)
             appListContainer.addView(domRow)
+        }
+    }
+
+    /**
+     * Text for the rule line under a "Blocked most often" row. The list counts past blocks, so the
+     * current rules may no longer block the name (the user allowed it, or removed their own block);
+     * say so rather than showing a rule that no longer applies.
+     */
+    private fun ruleLine(m: Blocklist.Match?): String = if (m == null) {
+        txt("No longer blocked", "现在不再拦截")
+    } else when (m.source) {
+        Blocklist.RuleSource.BUILTIN_BLOCK -> txt("Rule: ${m.rule} (built-in list)", "规则:${m.rule}(内置名单)")
+        Blocklist.RuleSource.USER_BLOCK -> txt("Rule: ${m.rule} (blocked by you)", "规则:${m.rule}(你拦截的)")
+        Blocklist.RuleSource.USER_ALLOW -> txt("Now allowed by you: ${m.rule}", "现已被你放行:${m.rule}")
+        Blocklist.RuleSource.BUILTIN_ALLOW -> txt("Now allowed by the built-in list: ${m.rule}", "现已被内置名单放行:${m.rule}")
+    }
+
+    /** The theme's secondary text colour, or null to keep the default colour. */
+    private fun secondaryTextColors(): android.content.res.ColorStateList? {
+        val a = obtainStyledAttributes(intArrayOf(android.R.attr.textColorSecondary))
+        try {
+            return a.getColorStateList(0)
+        } finally {
+            a.recycle()
         }
     }
 

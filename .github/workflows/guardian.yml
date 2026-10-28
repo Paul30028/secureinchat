@@ -33,6 +33,7 @@ jobs:
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.PauseTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.UserRulesTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.RulesTextTestKt
+          java -cp /tmp/g.jar org.secureinchat.guardian.dns.MatchTestKt
       - name: Independent oracle (dnspython)
         run: |
           /tmp/kotlinc/bin/kotlinc core/src/main/kotlin tests/oracle/Cli.kt -include-runtime -d /tmp/cli.jar
