@@ -20,6 +20,11 @@ for name, r in rep.items():
     if not r.get('ok'):
         fails.append(f'{name}: tool error {r.get("error")}'); continue
     before, after = exif(f'{src}/{name}'), exif(f'{out}/{name}')
+    raw_in, raw_out = open(f'{src}/{name}', 'rb').read(), open(f'{out}/{name}', 'rb').read()
+    if r.get('found_before') and raw_in == raw_out: fails.append(f'{name}: output is byte-identical to the input')
+    if len(raw_in) == len(raw_out):
+        diff = sum(1 for a, b in zip(raw_in, raw_out) if a != b)
+        print(f'     {name}: same length, {diff} bytes changed in place')
     if MARK not in before and 'GPS' not in before: fails.append(f'{name}: fixture has no marker (test bug)')
     for bad in [MARK, 'GPSLatitude', 'GPSLongitude', 'GPSCoordinates', 'TestMake', 'TestModel', 'W1Creator', 'W1Soft', '+31.2304']:
         if bad in after: fails.append(f'{name}: still contains {bad}')
