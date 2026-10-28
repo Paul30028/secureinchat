@@ -154,6 +154,17 @@ def button_on_row(nodes, label, row_text_prefix):
     return None
 
 
+def hide_keyboard():
+    """Closes the soft keyboard if it is up. Swipes that start on the keyboard do not scroll the app,
+    so lists below the input field stay out of reach while it is shown. Back with no keyboard would
+    leave the app, so check first."""
+    for _ in range(2):
+        if not re.search(r"mInputShown=true", sh("dumpsys input_method", check=False)):
+            return
+        sh("input keyevent 4", check=False)
+        time.sleep(1)
+
+
 def service_running():
     out = sh(f"dumpsys activity services {PKG}", check=False)
     return "GuardianVpnService" in out and "isForeground=true" in out
@@ -358,6 +369,8 @@ def main():
     if not b:
         fail("Block button hidden after typing", dump())
     tap(b)
+    time.sleep(1)
+    hide_keyboard()
     blocked_row = re.compile(rf"^{re.escape(user_dom)}$", re.M)
     nodes = scroll_find(lambda s: blocked_row.search(s), f"'Blocked by you' does not list {user_dom}")
     snap("blocked-by-user")
@@ -387,10 +400,7 @@ def main():
     # The error line sits just below the input row, often under the bottom edge: scroll to it.
     time.sleep(1)
     scroll_find(lambda s: "Not a valid domain" in s, "invalid domain did not show 'Not a valid domain'")
-    # Close the keyboard if it is up (Back with no keyboard would leave the app).
-    if re.search(r"mInputShown=true", sh("dumpsys input_method", check=False)):
-        sh("input keyevent 4", check=False)
-        time.sleep(1)
+    hide_keyboard()
     scroll_top()
     nodes = dump()
     print("ok: user block list works")
