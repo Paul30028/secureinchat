@@ -21,6 +21,56 @@ object UserRulesStore {
 
     fun removeBlocked(ctx: Context, domain: String) = removeFrom(ctx, KEY_BLOCKED, domain)
 
+    /**
+     * Replace both lists in one atomic write. Entries are normalized; a domain that appears in both
+     * input sets ends up only in "allowed", matching the store's invariant that a domain lives in at
+     * most one list and that allow wins in Blocklist.
+     */
+    fun replaceAll(ctx: Context, blocked: Set<String>, allowed: Set<String>) {
+        val nextAllowed = HashSet<String>(allowed.size)
+        for (s in allowed) {
+            val n = Blocklist.normalizeOrNull(s) ?: continue
+            nextAllowed.add(n)
+        }
+        val nextBlocked = HashSet<String>(blocked.size)
+        for (s in blocked) {
+            val n = Blocklist.normalizeOrNull(s) ?: continue
+            if (nextAllowed.contains(n)) continue
+            nextBlocked.add(n)
+        }
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putStringSet(KEY_ALLOWED, nextAllowed)
+            .putStringSet(KEY_BLOCKED, nextBlocked)
+            .apply()
+    }
+
+    /**
+     * Merge imported rules into the existing lists. Each imported entry replaces the previous choice
+     * for that domain, like add()/addBlocked(): an imported allow removes it from the block list and
+     * an imported block removes it from the allow list. RulesText.parse never returns a domain in
+     * both sets, so the order of the two loops does not matter.
+     */
+    fun mergeIn(ctx: Context, blocked: Set<String>, allowed: Set<String>) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val curAllowed = HashSet(prefs.getStringSet(KEY_ALLOWED, emptySet()) ?: emptySet())
+        val curBlocked = HashSet(prefs.getStringSet(KEY_BLOCKED, emptySet()) ?: emptySet())
+        for (s in allowed) {
+            val n = Blocklist.normalizeOrNull(s) ?: continue
+            curBlocked.remove(n)
+            curAllowed.add(n)
+        }
+        for (s in blocked) {
+            val n = Blocklist.normalizeOrNull(s) ?: continue
+            curAllowed.remove(n)
+            curBlocked.add(n)
+        }
+        prefs.edit()
+            .putStringSet(KEY_ALLOWED, curAllowed)
+            .putStringSet(KEY_BLOCKED, curBlocked)
+            .apply()
+    }
+
     private fun readSet(ctx: Context, key: String): Set<String> {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val raw = prefs.getStringSet(key, emptySet()) ?: emptySet()

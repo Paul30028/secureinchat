@@ -2,6 +2,7 @@
 package org.secureinchat.guardian
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,7 @@ import android.net.LinkProperties
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
@@ -35,6 +37,7 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import org.secureinchat.guardian.dns.LogEntry
 import org.secureinchat.guardian.dns.QueryHandler
+import org.secureinchat.guardian.dns.RulesText
 
 class MainActivity : Activity() {
 
@@ -56,6 +59,10 @@ class MainActivity : Activity() {
     private lateinit var addBlockedInput: EditText
     private lateinit var addBlockedBtn: Button
     private lateinit var addBlockedError: TextView
+    // Only shown when an export/import fails or the document picker cannot be opened; cleared on
+    // the next successful action. A TextView rather than a Toast so it does not disappear before
+    // the user can read it (and so the emulator flow can find it).
+    private lateinit var rulesIoError: TextView
 
     private var appListSignature: String = ""
     private var blockedSignature: String = ""
@@ -264,6 +271,36 @@ class MainActivity : Activity() {
         allowedListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(allowedListContainer)
 
+        // --- Export / import (G10) -------------------------------------------
+        // Two side-by-side buttons; a full-width row each would push the Always-on controls further
+        // down for no benefit. Both pick a file through the Storage Access Framework, so no storage
+        // permission is needed and nothing is written into the app's private directory.
+        val ioRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, pad / 2, 0, 0)
+        }
+        ioRow.addView(Button(this).apply {
+            text = txt("Export rules", "导出规则")
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnClickListener { onExportClicked() }
+        })
+        ioRow.addView(Button(this).apply {
+            text = txt("Import rules", "导入规则")
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnClickListener { onImportClicked() }
+        })
+        root.addView(ioRow)
+
+        rulesIoError = TextView(this).apply {
+            textSize = 12f
+            setTextColor(0xFFFF4444.toInt())
+            visibility = View.GONE
+            setPadding(0, pad / 4, 0, 0)
+        }
+        root.addView(rulesIoError)
+
         // A little slack at the bottom so the last row is not glued to the scroll edge.
         // --- Always-on VPN (G9) ---------------------------------------------
         // At the bottom so the controls people use daily keep their place.
@@ -318,6 +355,113 @@ class MainActivity : Activity() {
         }
     }
 
+    // ACTION_CREATE_DOCUMENT opens the system picker in "save as" mode. The app never touches the
+    // file path itself; it only receives a content Uri back and streams into it.
+    private fun onExportClicked() {
+        try {
+            val i = Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("text/plain")
+                .putExtra(Intent.EXTRA_TITLE, "guardian-rules.txt")
+            startActivityForResult(i, REQ_EXPORT)
+            rulesIoError.visibility = View.GONE
+        } catch (_: ActivityNotFoundException) {
+            rulesIoError.visibility = View.VISIBLE
+            rulesIoError.text = txt("Could not open the file picker", "无法打开文件选择器")
+        }
+    }
+
+    // ACTION_OPEN_DOCUMENT, same picker but in "open" mode. Some file managers report .txt as
+    // application/octet-stream, so the accepted types are widened rather than trusting the name.
+    private fun onImportClicked() {
+        try {
+            val i = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("text/plain")
+                .putExtra(
+                    Intent.EXTRA_MIME_TYPES,
+                    arrayOf("text/plain", "text/*", "application/octet-stream")
+                )
+            startActivityForResult(i, REQ_IMPORT)
+            rulesIoError.visibility = View.GONE
+        } catch (_: ActivityNotFoundException) {
+            rulesIoError.visibility = View.VISIBLE
+            rulesIoError.text = txt("Could not open the file picker", "无法打开文件选择器")
+        }
+    }
+
+    private fun handleExportResult(uri: Uri?) {
+        if (uri == null) return
+        try {
+            val text = RulesText.format(
+                UserRulesStore.blocked(this),
+                UserRulesStore.allowed(this)
+            )
+            // "wt" truncates, so re-exporting over an existing file does not leave trailing bytes.
+            contentResolver.openOutputStream(uri, "wt").use { out ->
+                if (out == null) throw IllegalStateException("no output stream")
+                out.write(text.toByteArray(Charsets.UTF_8))
+            }
+            rulesIoError.visibility = View.GONE
+        } catch (_: Throwable) {
+            rulesIoError.visibility = View.VISIBLE
+            rulesIoError.text = txt("Could not write the file", "无法写入文件")
+        }
+    }
+
+    private fun handleImportResult(uri: Uri?) {
+        if (uri == null) return
+        // Read at most MAX_BYTES so a wrong pick (a video, an APK) cannot tie up the main thread.
+        val text: String? = try {
+            contentResolver.openInputStream(uri)?.use { input ->
+                val buf = ByteArray(RulesText.MAX_BYTES)
+                var total = 0
+                while (total < buf.size) {
+                    val n = input.read(buf, total, buf.size - total)
+                    if (n <= 0) break
+                    total += n
+                }
+                String(buf, 0, total, Charsets.UTF_8)
+            }
+        } catch (_: Throwable) {
+            null
+        }
+        if (text == null) {
+            rulesIoError.visibility = View.VISIBLE
+            rulesIoError.text = txt("Could not read the file", "无法读取文件")
+            return
+        }
+        val parsed = RulesText.parse(text)
+        val summary = txt(
+            "${parsed.blocked.size} to block, ${parsed.allowed.size} to allow, ${parsed.skipped} lines skipped",
+            "拦截 ${parsed.blocked.size} 条,放行 ${parsed.allowed.size} 条,跳过 ${parsed.skipped} 行"
+        )
+        // Three-way choice. Merge keeps the existing rules and lets imported entries replace the
+        // current choice for a domain; Replace discards the current lists entirely.
+        AlertDialog.Builder(this)
+            .setTitle(txt("Import rules", "导入规则"))
+            .setMessage(summary)
+            .setPositiveButton(txt("Merge", "合并")) { _, _ -> applyImport(parsed, merge = true) }
+            .setNeutralButton(txt("Replace", "替换")) { _, _ -> applyImport(parsed, merge = false) }
+            .setNegativeButton(txt("Cancel", "取消"), null)
+            .show()
+    }
+
+    private fun applyImport(parsed: RulesText.ParseResult, merge: Boolean) {
+        if (merge) {
+            UserRulesStore.mergeIn(this, parsed.blocked, parsed.allowed)
+        } else {
+            UserRulesStore.replaceAll(this, parsed.blocked, parsed.allowed)
+        }
+        GuardianVpnService.applyUserRules(applicationContext)
+        // Clear signatures so both lists rebuild on the next refresh even inside the throttle window.
+        blockedSignature = ""
+        allowedSignature = ""
+        appListSignature = ""
+        rulesIoError.visibility = View.GONE
+        uiHandler.post { refreshUi() }
+    }
+
     private fun renderAlwaysOnRow() {
         val on = GuardianVpnService.alwaysOn
         if (on == null) {
@@ -363,8 +507,12 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQ_VPN_PREPARE && resultCode == RESULT_OK) {
-            startVpnService()
+        // Picker cancels and a denied VPN consent both arrive with RESULT_CANCELED; nothing to do.
+        if (resultCode != RESULT_OK) return
+        when (requestCode) {
+            REQ_VPN_PREPARE -> startVpnService()
+            REQ_EXPORT -> handleExportResult(data?.data)
+            REQ_IMPORT -> handleImportResult(data?.data)
         }
     }
 
@@ -628,5 +776,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQ_VPN_PREPARE = 100
         private const val REQ_NOTIF = 101
+        private const val REQ_EXPORT = 102
+        private const val REQ_IMPORT = 103
     }
 }

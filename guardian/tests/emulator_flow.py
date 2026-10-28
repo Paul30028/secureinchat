@@ -437,6 +437,38 @@ def main():
     nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after returning from VPN settings")
     print("ok: Always-on row and VPN settings button work")
 
+    # 4f. Export / import of your rules (G10): Export opens the system document picker (DocumentsUI);
+    #     Back returns to Guardian, still running. Picking a file is not automated (no reliable adb
+    #     route); the format itself is covered by RulesTextTest.
+    nodes = scroll_find(lambda s: "Export rules" in s, "no 'Export rules' button", tries=10)
+    b = button(nodes, "Export rules")
+    if not b:
+        swipe_up(0.15)
+        time.sleep(1)
+        nodes = dump()
+        b = button(nodes, "Export rules")
+    if not b:
+        fail("'Export rules' button not tappable", nodes)
+    tap(b)
+    top = ""
+    for _ in range(10):
+        time.sleep(1)
+        out = sh("dumpsys activity activities", check=False)
+        m = re.search(r"(?:mResumedActivity|topResumedActivity|ResumedActivity)[^\n]*?\{[^}]*?\s(\S+/\S+)", out)
+        top = m.group(1) if m else ""
+        if "documentsui" in top:
+            break
+    print(f"guardian: resumed after Export -> {top}")
+    if "documentsui" not in top:
+        fail(f"Export did not open the document picker (resumed: {top!r})")
+    snap("export-picker")
+    sh("input keyevent 4")  # Back: cancel the picker
+    time.sleep(2)
+    hide_keyboard()
+    scroll_top()
+    nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after cancelling the export picker")
+    print("ok: Export opens the document picker")
+
     # 5. Stop from the app
     b = button(nodes, "Stop")
     if not b:
