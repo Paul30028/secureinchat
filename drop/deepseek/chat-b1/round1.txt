@@ -1,0 +1,1528 @@
+以下是任务 C-batch1 的全部代码。按文件组织，新文件和小文件给完整内容；ChatScreen.tsx 和 App.tsx 只给替换块/插入块。
+
+仓库内路径：apps/android-client/android/app/src/main/java/com/sic/invitechat/next/ScreenSecurityPlugin.java
+
+<<<CODE
+package com.sic.invitechat.next;
+
+import android.view.WindowManager;
+
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+@CapacitorPlugin(name = "ScreenSecurity")
+public class ScreenSecurityPlugin extends Plugin {
+
+    @PluginMethod
+    public void setSecure(PluginCall call) {
+        Boolean enabled = call.getBoolean("enabled", false);
+        try {
+            getActivity().runOnUiThread(() -> {
+                if (Boolean.TRUE.equals(enabled)) {
+                    getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                } else {
+                    getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+                }
+                call.resolve();
+            });
+        } catch (Exception e) {
+            String message = e.getMessage() != null ? e.getMessage() : "设置截屏保护失败";
+            call.reject(message);
+        }
+    }
+}
+CODE>>>
+
+仓库内路径：apps/android-client/android/app/src/main/java/com/sic/invitechat/next/MainActivity.java
+
+<<<CODE
+package com.sic.invitechat.next;
+
+import android.os.Bundle;
+
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(ScreenSecurityPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+CODE>>>
+
+仓库内路径：apps/android-client/src/screenSecurity.ts
+
+<<<CODE
+import { Capacitor, registerPlugin } from "@capacitor/core";
+import { IndexedDbStorageBackend } from "@secureinchat/secure-storage";
+
+/**
+ * 截屏保护（Android FLAG_SECURE）。
+ *
+ * 默认关闭——邀请卡片就是为了截图转发，开了会截不到。打开后本应用界面
+ * 无法截屏或录屏，最近任务里显示空白。这是本机偏好，不同步到其他设备。
+ *
+ * Web 端没有对应的系统能力，applyScreenSecurity 直接返回 false，
+ * 不假装生效。
+ */
+
+const PREF_KEY = "screensecurity:v1";
+
+const backend = new IndexedDbStorageBackend();
+
+interface ScreenSecurityPlugin {
+  setSecure(o: { enabled: boolean }): Promise<void>;
+}
+
+const ScreenSecurity = registerPlugin<ScreenSecurityPlugin>("ScreenSecurity");
+
+export async function isScreenSecurityEnabled(): Promise<boolean> {
+  try {
+    const bytes = await backend.get(PREF_KEY);
+    if (!bytes) return false;
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (typeof parsed !== "object" || parsed === null) return false;
+    return (parsed as { enabled?: unknown }).enabled === true;
+  } catch {
+    // 坏 JSON / 读取失败——当 false，不能让应用起不来
+    return false;
+  }
+}
+
+export async function setScreenSecurityEnabled(v: boolean): Promise<void> {
+  await backend.set(PREF_KEY, new TextEncoder().encode(JSON.stringify({ enabled: v })));
+}
+
+/**
+ * 把开关应用到当前窗口。返回是否真的生效：
+ * - Web 端 / 测试环境：返回 false（没有系统能力）
+ * - 原生插件报错：吞掉错误但返回 false（截屏保护不是关键路径）
+ */
+export async function applyScreenSecurity(enabled: boolean): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    await ScreenSecurity.setSecure({ enabled });
+    return true;
+  } catch {
+    return false;
+  }
+}
+CODE>>>
+
+仓库内路径：apps/android-client/src/screens/MessageListScreen.tsx
+
+<<<CODE
+import { useState } from "react";
+import { colors, MessageListItem, BottomNav, Button, touchTarget, type BottomNavKey } from "@secureinchat/ui";
+import { TodayScreen, type TodayContent } from "./TodayScreen";
+import { registerTap, INITIAL_TAP_STATE, type TapState } from "../adminAccess";
+import { formatListTime } from "../timeFormat";
+import { APP_VERSION } from "../version";
+
+export interface GroupListItem {
+  groupId: string;
+  groupName: string;
+  unread: number;
+  onlineCount: number;
+  lastMessage?: { preview: string; sentAtMs: number } | undefined;
+}
+
+export interface MessageListScreenProps {
+  groups: GroupListItem[];
+  onOpenGroup: (groupId: string) => void;
+  /** 长按群条目触发——直接到群设置，退群/改名都在那儿 */
+  onOpenGroupSettings: (groupId: string) => void;
+  /** 去加入/创建另一个群 */
+  onJoinAnotherGroup: () => void;
+  todayContent: TodayContent;
+  isAdmin: boolean;
+  onOpenAdmin: () => void;
+  /** 版本号连点 7 次后触发 */
+  onAdminUnlocked: () => void;
+  onOpenAdminRecovery: () => void;
+  onOpenLockSetup: () => void;
+  onOpenDiagnostics: () => void;
+  onOpenDevices: () => void;
+  onOpenEditProfile: () => void;
+  deviceId: string;
+  nickname?: string | undefined;
+  onOpenServerSettings: () => void;
+  relayUrl: string;
+  /** 默认打开哪个 tab，不传就是公告 */
+  initialTab?: BottomNavKey | undefined;
+  /** 截屏保护是否开启 */
+  screenSecurityEnabled: boolean;
+  /** 点按「截屏保护」开关 */
+  onToggleScreenSecurity: () => void;
+}
+
+/** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
+export function MessageListScreen({
+  groups,
+  onOpenGroup,
+  onOpenGroupSettings,
+  onJoinAnotherGroup,
+  todayContent,
+  isAdmin,
+  onOpenAdmin,
+  onAdminUnlocked,
+  onOpenAdminRecovery,
+  onOpenLockSetup,
+  onOpenDiagnostics,
+  onOpenDevices,
+  onOpenEditProfile,
+  deviceId,
+  nickname,
+  onOpenServerSettings,
+  relayUrl,
+  initialTab,
+  screenSecurityEnabled,
+  onToggleScreenSecurity,
+}: MessageListScreenProps) {
+  // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
+  // 而不是像通用 IM 那样落在会话列表。
+  const [activeTab, setActiveTab] = useState<BottomNavKey>(initialTab ?? "announcements");
+  const [tapState, setTapState] = useState<TapState>(INITIAL_TAP_STATE);
+  const [tapHint, setTapHint] = useState<string | null>(null);
+
+  const inputStyle = {
+    minHeight: touchTarget.minDp,
+    border: `0.5px solid ${colors.sageMint}`,
+    borderRadius: 14,
+    padding: "8px 16px",
+    fontSize: 14,
+    background: colors.ivory,
+    color: colors.textPrimary,
+    boxShadow: "none",
+    width: "100%",
+    boxSizing: "border-box" as const,
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: colors.ivory, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "16px 16px 8px", fontSize: 16, fontWeight: 500, color: colors.deepInkGreen }}>
+        邀群密聊
+      </div>
+
+      <div style={{ flex: 1, padding: "0 12px" }}>
+        {activeTab === "messages" ? (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {groups.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "48px 16px 24px" }}>
+                <div style={{ fontSize: 15, color: colors.textPrimary, marginBottom: 6 }}>还没有加入任何群聊</div>
+                <div style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7 }}>
+                  这个应用只能通过邀请码加入，
+                  <br />
+                  没有搜索、没有好友列表、也不需要手机号。
+                </div>
+              </div>
+            ) : null}
+            {groups.map((g) => (
+              <div key={g.groupId}>
+                <MessageListItem
+                  name={g.groupName}
+                  previewText={g.lastMessage ? g.lastMessage.preview : "还没有消息"}
+                  timeLabel={g.lastMessage ? formatListTime(g.lastMessage.sentAtMs) : ""}
+                  unreadCount={g.unread}
+                  onClick={() => onOpenGroup(g.groupId)}
+                  onContextMenu={(e) => {
+                    // 移动端长按走 contextmenu；不再需要先进群才能改名或退群
+                    e.preventDefault();
+                    onOpenGroupSettings(g.groupId);
+                  }}
+                />
+                <div style={{ padding: "0 6px 6px 60px", fontSize: 11, color: "#9A9A94" }}>
+                  {g.onlineCount > 0 ? `${g.onlineCount} 位成员在线` : "群里暂时只有你在线"}
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={onJoinAnotherGroup}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 12,
+                background: "transparent",
+                border: `0.5px dashed ${colors.sageMint}`,
+                borderRadius: 14,
+                color: colors.deepInkGreen,
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              + 加入或创建其他群聊
+            </button>
+          </div>
+        ) : activeTab === "announcements" ? (
+          <TodayScreen content={todayContent} isAdmin={isAdmin} onOpenAdmin={onOpenAdmin} />
+        ) : (
+          <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+            <button
+              onClick={onOpenEditProfile}
+              style={{
+                minHeight: touchTarget.minDp,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>昵称</div>
+              <div style={{ fontSize: 15, color: colors.deepInkGreen }}>{nickname ?? "未设置"}</div>
+            </button>
+            <div style={{ fontSize: 13, color: colors.textPrimary, marginTop: 8 }}>本机身份</div>
+            <div style={{ fontSize: 11, color: "#8A8A82", wordBreak: "break-all", fontFamily: "monospace" }}>
+              {deviceId}
+            </div>
+            <button
+              onClick={onOpenDevices}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>群内设备</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>看看有没有不认识的设备</div>
+            </button>
+
+            <button
+              onClick={onOpenDiagnostics}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>连接诊断</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>延迟、掉线次数</div>
+            </button>
+
+            <button
+              onClick={onOpenServerSettings}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 12,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>服务器设置</div>
+              <div style={{ fontSize: 11, color: "#9A9A94", fontFamily: "monospace", wordBreak: "break-all" }}>
+                {relayUrl}
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                const result = registerTap(tapState);
+                setTapState(result.state);
+                if (result.unlocked) {
+                  setTapHint("管理员入口已开启");
+                  onAdminUnlocked();
+                } else if (result.remaining <= 3) {
+                  // 到最后三次才给提示——否则误触也会看到莫名其妙的倒数
+                  setTapHint(`还差 ${result.remaining} 次`);
+                } else {
+                  setTapHint(null);
+                }
+              }}
+              style={{
+                minHeight: touchTarget.minDp,
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+                color: "#9A9A94",
+                fontSize: 11,
+                cursor: "default",
+                marginTop: 12,
+              }}
+            >
+              版本 {APP_VERSION}
+              {tapHint ? <span style={{ marginLeft: 8, color: colors.wheatGold }}>{tapHint}</span> : null}
+            </button>
+
+            <button
+              onClick={onOpenLockSetup}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>应用密码</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>打开应用前需要输入密码</div>
+            </button>
+
+            <button
+              onClick={onToggleScreenSecurity}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>截屏保护</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>
+                {screenSecurityEnabled
+                  ? "已开启：本应用界面无法截屏或录屏，最近任务里显示空白"
+                  : "已关闭：开启后无法截图转发邀请卡片"}
+              </div>
+            </button>
+
+            <button
+              onClick={onOpenAdminRecovery}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>恢复管理员权限</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>换手机后用恢复码找回发布权限</div>
+            </button>
+
+            <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.6, marginTop: 8 }}>
+              设备身份、群密钥和聊天记录都加密保存在本机。清除应用数据会全部丢失，
+              且无法从服务器恢复——中继按设计不保存任何聊天内容。
+            </p>
+          </div>
+        )}
+      </div>
+
+      <BottomNav active={activeTab} onChange={setActiveTab} />
+    </div>
+  );
+}
+CODE>>>
+
+仓库内路径：packages/chat-core/src/messageEnvelope.ts
+
+<<<CODE
+import type { AnnouncementCategory } from "./announcementCategories";
+
+/**
+ * 消息信封——放在**加密之后的载荷内部**，中继看不到。
+ *
+ * 这是个刻意的设计决定：图片、语音、文件、公告都不给 relay 加新的帧类型，
+ * 而是复用同一个 `forward` 密文帧，把"这是什么类型的消息"放进加密内容里。
+ * 好处是中继依然完全不知道你在传什么（盲中继原则），加新消息类型不需要动
+ * 服务端一行代码；代价是中继无法针对不同类型做优化（比如大文件限流），
+ * 这个取舍在当前"隐私优先"的定位下是划算的。
+ */
+
+export type MessageEnvelope =
+  | TextEnvelope
+  | AnnouncementEnvelope
+  | FileMetaEnvelope
+  | FileChunkEnvelope;
+
+export interface TextEnvelope {
+  kind: "text";
+  /**
+   * 发送方自己维护的递增序号，用于重放检测（见 ordering.ts）。
+   * 在加密载荷里，中继看不到也改不了。老客户端没有这个字段，
+   * 接收方要能容忍缺失——那种消息只能跳过重放检查，不能整条丢掉。
+   */
+  seq?: number;
+  /** 客户端生成的消息 ID，用于去重（见 dedup.ts） */
+  id: string;
+  text: string;
+  sentAtMs: number;
+  /** 发送者昵称。在加密载荷内部，中继看不到。老版本客户端发的消息没有这个字段，
+   *  接收方要能容忍缺失（回退到设备 ID 短前缀）。 */
+  senderName?: string;
+  /** 回复的目标消息。整段在加密载荷里，中继看不到引用了什么。
+   *  存的是快照而不是消息 ID——对方可能已经把原消息删了，
+   *  或者根本没收到过（比如他是后来才加入的）。 */
+  replyTo?: {
+    senderName: string;
+    /** 被引用消息的摘要，最多截断到 60 字 */
+    excerpt: string;
+  };
+}
+
+export interface AnnouncementEnvelope {
+  kind: "announcement";
+  id: string;
+  /**
+   * 栏目。老版本客户端发的公告没有这个字段，接收方要能容忍缺失
+   * （回退到"通知"栏），不能因此丢掉整条公告。
+   */
+  category?: AnnouncementCategory;
+  title: string;
+  body: string;
+  sentAtMs: number;
+  senderName?: string;
+  /**
+   * 关联的音频文件 ID（赞美圣诗用）。音频本身走已有的分片加密传输
+   * （file-meta/file-chunk），这里只带一个引用——公告帧不适合塞几 MB 的内容。
+   * 这个字段也在签名范围内，否则别人可以把音频换掉。
+   */
+  audioFileId?: string;
+  /**
+   * 管理员签名（base64url）。收到方用邀请串里的管理员公钥验证——验不过
+   * 就不当公告，因为发送者没有管理员私钥。没有签名的公告同样不被接受。
+   */
+  adminSignature?: string;
+}
+
+/** 文件传输的第一帧：告诉接收方接下来会有多少个分片、原始文件名是什么。
+ *  文件名在这里（也就是在加密内容里），中继看不到——对应第十节
+ *  "文件名经过加密保护"的要求。 */
+export interface FileMetaEnvelope {
+  kind: "file-meta";
+  senderName?: string;
+  /** 文件 ID，后续分片用它关联回来 */
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  totalBytes: number;
+  totalChunks: number;
+  /** 图片/语音/普通文件——决定 UI 怎么渲染（显示缩略图 / 播放器 / 文件卡片） */
+  mediaKind: "image" | "voice" | "file";
+  sentAtMs: number;
+  /**
+   * 语音消息时长（毫秒）。只对 voice 有意义。
+   * 可选字段：老客户端没有，接收方要能容忍缺失（回退到 audio 元素的 duration）。
+   * WebView 读不到 webm 的时长元数据，所以由发送方在录音结束时算好带过来。
+   */
+  durationMs?: number;
+}
+
+export interface FileChunkEnvelope {
+  kind: "file-chunk";
+  fileId: string;
+  /** 从 0 开始的分片序号 */
+  chunkIndex: number;
+  /** 这一片的内容，base64url */
+  dataB64Url: string;
+}
+
+export function encodeEnvelope(envelope: MessageEnvelope): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify(envelope));
+}
+
+export class EnvelopeDecodeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EnvelopeDecodeError";
+  }
+}
+
+const VALID_KINDS = new Set(["text", "announcement", "file-meta", "file-chunk"]);
+
+export function decodeEnvelope(bytes: Uint8Array): MessageEnvelope {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    throw new EnvelopeDecodeError("载荷不是合法 JSON");
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new EnvelopeDecodeError("载荷不是对象");
+  }
+  const kind = (parsed as { kind?: unknown }).kind;
+  if (typeof kind !== "string" || !VALID_KINDS.has(kind)) {
+    // 未知类型可能是对端用了更新版本的客户端——调用方应该忽略这条消息而不是崩溃
+    throw new EnvelopeDecodeError(`未知的消息类型: ${String(kind)}`);
+  }
+  return parsed as MessageEnvelope;
+}
+CODE>>>
+
+仓库内路径：packages/chat-core/src/fileTransfer.ts
+
+<<<CODE
+import type { FileChunkEnvelope, FileMetaEnvelope } from "./messageEnvelope";
+
+/**
+ * 文件分片与重组。
+ *
+ * ⚠️ 与原始需求第十节的差距，如实说明：需求要求"每个文件生成独立随机文件密钥"，
+ * 当前实现**没有**做这一层——分片和普通消息一样用群 epoch 密钥加密，只是通过
+ * AAD 绑定了 fileId + chunkIndex + epoch（"分片绑定文件ID、分片序号和群组
+ * epoch"这条是满足的）。独立文件密钥需要接收方也能派生出同一把密钥，而
+ * RelayClient 目前只持有派生后的 epoch 密钥、拿不到原始密钥材料，要补这一层
+ * 得改密钥分发路径。这是明确的已知缺口，不是遗漏。
+ */
+
+/** 64KB 一片。WebSocket 单帧不宜过大，base64 编码后约 87KB，是个稳妥的值。 */
+export const CHUNK_SIZE_BYTES = 64 * 1024;
+
+/** 语音时长上限：一小时。超过这个值的语音基本可以认为是异常数据。 */
+export const MAX_VOICE_DURATION_MS = 3_600_000;
+
+export function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export function base64UrlToBytes(s: string): Uint8Array {
+  const padded = s + "=".repeat((4 - (s.length % 4)) % 4);
+  const binary = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+export function totalChunksFor(totalBytes: number, chunkSize = CHUNK_SIZE_BYTES): number {
+  // 空文件也算一个分片，避免"0 个分片"这种需要特殊处理的边界情况
+  return Math.max(1, Math.ceil(totalBytes / chunkSize));
+}
+
+/** 发送端：有限正数才保留，四舍五入，clamp 到上限。 */
+export function normalizeDurationForSend(v: number | undefined): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return undefined;
+  return Math.min(Math.round(v), MAX_VOICE_DURATION_MS);
+}
+
+/** 接收端：不是有限正数或超过上限就丢弃。 */
+export function normalizeDurationForReceive(v: unknown): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0 || v > MAX_VOICE_DURATION_MS) {
+    return undefined;
+  }
+  return Math.round(v);
+}
+
+export interface BuildFileEnvelopesInput {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  mediaKind: FileMetaEnvelope["mediaKind"];
+  bytes: Uint8Array;
+  senderName?: string;
+  sentAtMs?: number;
+  chunkSize?: number;
+  /** 语音时长（毫秒）。只对 voice 有意义；非法值不会写进 meta。 */
+  durationMs?: number;
+}
+
+/** 把一个文件拆成 1 个 meta 信封 + N 个分片信封，按顺序发送即可。 */
+export function buildFileEnvelopes(input: BuildFileEnvelopesInput): {
+  meta: FileMetaEnvelope;
+  chunks: FileChunkEnvelope[];
+} {
+  const chunkSize = input.chunkSize ?? CHUNK_SIZE_BYTES;
+  const totalChunks = totalChunksFor(input.bytes.byteLength, chunkSize);
+  const durationMs = normalizeDurationForSend(input.durationMs);
+
+  const meta: FileMetaEnvelope = {
+    kind: "file-meta",
+    fileId: input.fileId,
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+    totalBytes: input.bytes.byteLength,
+    totalChunks,
+    mediaKind: input.mediaKind,
+    sentAtMs: input.sentAtMs ?? Date.now(),
+    ...(input.senderName ? { senderName: input.senderName } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {}),
+  };
+
+  const chunks: FileChunkEnvelope[] = [];
+  for (let i = 0; i < totalChunks; i++) {
+    const slice = input.bytes.slice(i * chunkSize, (i + 1) * chunkSize);
+    chunks.push({
+      kind: "file-chunk",
+      fileId: input.fileId,
+      chunkIndex: i,
+      dataB64Url: bytesToBase64Url(slice),
+    });
+  }
+  return { meta, chunks };
+}
+
+export interface AssembledFile {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  mediaKind: FileMetaEnvelope["mediaKind"];
+  bytes: Uint8Array;
+  senderName?: string | undefined;
+  /** 语音时长（毫秒）。非法值在接收端丢弃，不会让整条消息失败。 */
+  durationMs?: number | undefined;
+}
+
+export interface IncomingFileProgress {
+  fileId: string;
+  fileName: string;
+  mediaKind: FileMetaEnvelope["mediaKind"];
+  receivedChunks: number;
+  totalChunks: number;
+}
+
+/**
+ * 接收端的重组器。分片可能乱序到达（网络本来就不保证顺序），所以按 index
+ * 存进 Map 而不是直接 append，集齐了再按序拼起来。
+ */
+export class FileAssembler {
+  private pending = new Map<string, { meta: FileMetaEnvelope; chunks: Map<number, Uint8Array> }>();
+
+  /** 收到 meta 帧。重复的 meta（重发/重连）不会清空已经收到的分片。 */
+  acceptMeta(meta: FileMetaEnvelope): void {
+    const existing = this.pending.get(meta.fileId);
+    if (existing) {
+      existing.meta = meta;
+      return;
+    }
+    this.pending.set(meta.fileId, { meta, chunks: new Map() });
+  }
+
+  /**
+   * 收到分片。集齐所有分片时返回组装好的文件，否则返回 undefined。
+   * 如果 meta 还没到（分片先到了），也返回 undefined——分片会被丢弃，
+   * 因为没有 meta 就不知道总共该有多少片、文件叫什么。
+   */
+  acceptChunk(chunk: FileChunkEnvelope): AssembledFile | undefined {
+    const entry = this.pending.get(chunk.fileId);
+    if (!entry) return undefined;
+
+    entry.chunks.set(chunk.chunkIndex, base64UrlToBytes(chunk.dataB64Url));
+    if (entry.chunks.size < entry.meta.totalChunks) return undefined;
+
+    const ordered: Uint8Array[] = [];
+    for (let i = 0; i < entry.meta.totalChunks; i++) {
+      const part = entry.chunks.get(i);
+      if (!part) return undefined; // 数量够了但序号有洞——还不能组装
+      ordered.push(part);
+    }
+
+    const totalLength = ordered.reduce((sum, part) => sum + part.byteLength, 0);
+    const bytes = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const part of ordered) {
+      bytes.set(part, offset);
+      offset += part.byteLength;
+    }
+
+    this.pending.delete(chunk.fileId);
+    return {
+      fileId: entry.meta.fileId,
+      fileName: entry.meta.fileName,
+      mimeType: entry.meta.mimeType,
+      mediaKind: entry.meta.mediaKind,
+      bytes,
+      senderName: entry.meta.senderName,
+      durationMs: normalizeDurationForReceive(entry.meta.durationMs),
+    };
+  }
+
+  /** 当前正在接收中的文件进度，供 UI 显示"接收中 3/12" */
+  progress(): IncomingFileProgress[] {
+    return [...this.pending.values()].map((entry) => ({
+      fileId: entry.meta.fileId,
+      fileName: entry.meta.fileName,
+      mediaKind: entry.meta.mediaKind,
+      receivedChunks: entry.chunks.size,
+      totalChunks: entry.meta.totalChunks,
+    }));
+  }
+}
+CODE>>>
+
+仓库内路径：packages/chat-core/src/messageStore.ts
+
+<<<CODE
+import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+
+/**
+ * 消息历史的本地持久化。
+ *
+ * 和昵称、服务器地址不同，聊天内容是敏感的——所以走 EncryptedKeyValueStore
+ * （用设备主密钥加密后落盘），不能直接塞 IndexedDB 明文。
+ *
+ * 中继按设计不存任何消息，所以历史只能存在本地：换设备看不到旧消息，
+ * 清除应用数据也会丢。这是盲中继架构的必然结果，不是没做完。
+ */
+
+/** 每个群最多保留多少条。超出后丢最旧的——避免长期使用后本地存储无限膨胀。 */
+export const MAX_STORED_MESSAGES_PER_GROUP = 300;
+
+/** 单条媒体消息超过这个大小就不持久化（只留一条占位记录）。
+ *  几张大图就能把本地存储撑爆，而且加解密大 blob 也慢。 */
+export const MAX_PERSISTED_MEDIA_BYTES = 512 * 1024;
+
+export interface StoredMessage {
+  id: string;
+  isOwn: boolean;
+  /** 发送者显示名（昵称，或设备 ID 短前缀） */
+  senderLabel?: string | undefined;
+  sentAtMs: number;
+  text?: string | undefined;
+  media?:
+    | {
+        mediaKind: "image" | "voice" | "file";
+        fileName: string;
+        mimeType: string;
+        /** base64url；超过 MAX_PERSISTED_MEDIA_BYTES 时为 undefined（内容没留下） */
+        dataB64Url?: string | undefined;
+        sizeBytes: number;
+        /** 语音时长（毫秒）。老记录没有这个字段，读出来照常显示。 */
+        durationMs?: number | undefined;
+      }
+    | undefined;
+}
+
+export function storageKeyForGroupMessages(groupId: string): string {
+  return `messages:${groupId}`;
+}
+
+/** 只保留最近 N 条 */
+export function trimToLimit(messages: StoredMessage[], limit = MAX_STORED_MESSAGES_PER_GROUP): StoredMessage[] {
+  return messages.length <= limit ? messages : messages.slice(messages.length - limit);
+}
+
+export async function loadMessages(store: EncryptedKeyValueStore, groupId: string): Promise<StoredMessage[]> {
+  try {
+    const bytes = await store.get(storageKeyForGroupMessages(groupId));
+    if (!bytes) return [];
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(parsed) ? (parsed as StoredMessage[]) : [];
+  } catch {
+    // 解密失败（换了设备主密钥）或内容损坏——当作没有历史，不要因此让应用起不来。
+    // 用户会看到空的聊天记录，但功能是好的。
+    return [];
+  }
+}
+
+export async function saveMessages(
+  store: EncryptedKeyValueStore,
+  groupId: string,
+  messages: StoredMessage[]
+): Promise<void> {
+  const trimmed = trimToLimit(messages);
+  const bytes = new TextEncoder().encode(JSON.stringify(trimmed));
+  await store.set(storageKeyForGroupMessages(groupId), bytes);
+}
+
+export async function clearMessages(store: EncryptedKeyValueStore, groupId: string): Promise<void> {
+  await store.delete(storageKeyForGroupMessages(groupId));
+}
+
+/** 媒体内容是否值得持久化——太大就只留元信息 */
+export function shouldPersistMediaBytes(sizeBytes: number): boolean {
+  return sizeBytes <= MAX_PERSISTED_MEDIA_BYTES;
+}
+CODE>>>
+
+仓库内路径：apps/android-client/src/messageMapping.ts
+
+<<<CODE
+import {
+  bytesToBase64Url,
+  base64UrlToBytes,
+  shouldPersistMediaBytes,
+  type StoredMessage,
+} from "@secureinchat/chat-core";
+import type { DisplayMessage } from "./screens/ChatScreen";
+
+/**
+ * 内存里的消息（媒体用 objectUrl 渲染）和落盘的消息（媒体存 base64）之间的转换。
+ *
+ * objectUrl 是当次页面会话内的临时引用，重启后必然失效，所以不能直接存；
+ * 反过来读出来的时候要重新 createObjectURL 才能渲染。
+ */
+
+export function toStored(msg: DisplayMessage, mediaBytes?: Uint8Array): StoredMessage {
+  const base: StoredMessage = {
+    id: msg.id,
+    isOwn: msg.isOwn,
+    senderLabel: msg.fromDeviceId,
+    // 用消息自己的时间，不是落盘那一刻——否则重启后所有历史消息
+    // 的时间都会变成最后一次保存的时间
+    sentAtMs: msg.sentAtMs,
+    text: msg.text,
+  };
+  if (!msg.media) return base;
+
+  const persistBytes = mediaBytes && shouldPersistMediaBytes(msg.media.sizeBytes);
+  return {
+    ...base,
+    media: {
+      mediaKind: msg.media.mediaKind,
+      fileName: msg.media.fileName,
+      mimeType: msg.media.mimeType,
+      sizeBytes: msg.media.sizeBytes,
+      // 超过上限的媒体只留元信息：重启后会显示文件名和大小，但内容打不开。
+      // 这比整条消息消失要好，用户至少知道当时收到过什么。
+      dataB64Url: persistBytes ? bytesToBase64Url(mediaBytes) : undefined,
+      ...(msg.media.durationMs !== undefined ? { durationMs: msg.media.durationMs } : {}),
+    },
+  };
+}
+
+export function fromStored(stored: StoredMessage): DisplayMessage {
+  const base: DisplayMessage = {
+    id: stored.id,
+    isOwn: stored.isOwn,
+    fromDeviceId: stored.senderLabel,
+    sentAtMs: stored.sentAtMs,
+    text: stored.text,
+  };
+  if (!stored.media) return base;
+
+  let objectUrl = "";
+  if (stored.media.dataB64Url) {
+    const bytes = base64UrlToBytes(stored.media.dataB64Url);
+    objectUrl = URL.createObjectURL(new Blob([bytes as BlobPart], { type: stored.media.mimeType }));
+  }
+
+  return {
+    ...base,
+    media: {
+      mediaKind: stored.media.mediaKind,
+      fileName: stored.media.fileName,
+      mimeType: stored.media.mimeType,
+      objectUrl,
+      sizeBytes: stored.media.sizeBytes,
+      ...(stored.media.durationMs !== undefined ? { durationMs: stored.media.durationMs } : {}),
+    },
+  };
+}
+CODE>>>
+
+仓库内路径：apps/android-client/src/screens/MediaBubbleContent.tsx
+
+<<<CODE
+import { colors, radii } from "@secureinchat/ui";
+
+export interface MediaContent {
+  mediaKind: "image" | "voice" | "file";
+  fileName: string;
+  mimeType: string;
+  objectUrl: string;
+  sizeBytes: number;
+  /** 语音时长（毫秒）。有就显示 m:ss，没有就回退到 audio 元素自己的行为。 */
+  durationMs?: number | undefined;
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * 把毫秒格式化成 m:ss。
+ * 规则：不足 1 秒向下取整为 0:00；1 小时显示成 60:00。
+ */
+export function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return "0:00";
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+/** 图片/语音/文件三种媒体消息的渲染。放在 ChatBubble 内部作为 children。 */
+export function MediaBubbleContent({
+  media,
+  isOwn,
+  onOpenImage,
+}: {
+  media: MediaContent;
+  isOwn: boolean;
+  onOpenImage?: ((media: MediaContent) => void) | undefined;
+}) {
+  const subduedColor = isOwn ? "rgba(235,236,229,0.75)" : "#8A8A82";
+
+  if (media.mediaKind === "image") {
+    return (
+      <button
+        onClick={() => onOpenImage?.(media)}
+        aria-label={`查看 ${media.fileName}`}
+        style={{
+          display: "block",
+          padding: 0,
+          background: "transparent",
+          border: "none",
+          boxShadow: "none",
+          cursor: "pointer",
+        }}
+      >
+        <img
+          src={media.objectUrl}
+          alt={media.fileName}
+          style={{ maxWidth: 200, maxHeight: 200, borderRadius: radii.cardSmall, display: "block" }}
+        />
+      </button>
+    );
+  }
+
+  if (media.mediaKind === "voice") {
+    const durationLabel = media.durationMs !== undefined ? formatDuration(media.durationMs) : undefined;
+    return (
+      <div style={{ minWidth: 180 }}>
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <audio controls src={media.objectUrl} style={{ width: "100%", height: 32 }} />
+        <div style={{ fontSize: 10, color: subduedColor, marginTop: 4 }}>
+          语音{durationLabel ? ` · ${durationLabel}` : ""} · {formatSize(media.sizeBytes)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={media.objectUrl}
+      download={media.fileName}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        textDecoration: "none",
+        color: "inherit",
+        minWidth: 160,
+      }}
+    >
+      <span style={{ fontSize: 20 }} aria-hidden="true">
+        📎
+      </span>
+      <span style={{ minWidth: 0 }}>
+        <span
+          style={{
+            display: "block",
+            fontSize: 13,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {media.fileName}
+        </span>
+        <span style={{ display: "block", fontSize: 10, color: subduedColor }}>
+          {formatSize(media.sizeBytes)} · 已加密 · 点击下载
+        </span>
+      </span>
+    </a>
+  );
+}
+
+/** 每日公告卡片——展示在聊天流上方，不是普通气泡 */
+export function AnnouncementCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div
+      style={{
+        background: `${colors.sageMint}44`,
+        border: `0.5px solid ${colors.sageMint}`,
+        borderRadius: radii.cardMedium,
+        padding: "10px 14px",
+        margin: "0 0 4px",
+      }}
+    >
+      <div style={{ fontSize: 12, fontWeight: 500, color: colors.wheatGold, marginBottom: 4 }}>{title}</div>
+      <div style={{ fontSize: 13, color: colors.textPrimary, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{body}</div>
+    </div>
+  );
+}
+CODE>>>
+
+仓库内路径：apps/android-client/src/screens/ChatScreen.tsx（替换块 1：onSendFile 签名）
+把从 onSendFile: (file: File, mediaKind: "image" | "voice" | "file") => Promise<void>; 到 onSendFile: (file: File, mediaKind: "image" | "voice" | "file") => Promise<void>; 的这段替换成：
+
+<<<CODE
+  onSendFile: (
+    file: File,
+    mediaKind: "image" | "voice" | "file",
+    extra?: { durationMs?: number }
+  ) => Promise<void>;
+CODE>>>
+
+仓库内路径：apps/android-client/src/screens/ChatScreen.tsx（替换块 2：录音记录时长）
+把从 async function startRecording() { 到 }（startRecording 函数的闭合）的这段替换成：
+
+<<<CODE
+  async function startRecording() {
+    setRecordError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const parts: Blob[] = [];
+      const startedAtMs = performance.now();
+      recorder.ondataavailable = (e) => parts.push(e.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        // WebView 读不到 webm 的时长元数据，所以录音结束时自己算好，
+        // 让接收方不用依赖 audio 元素加载完才知道多长。
+        const durationMs = Math.round(performance.now() - startedAtMs);
+        const blob = new Blob(parts, { type: recorder.mimeType || "audio/webm" });
+        const file = new File([blob], `voice-${Date.now()}.webm`, { type: blob.type });
+        await onSendFile(file, "voice", { durationMs });
+      };
+      recorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+    } catch {
+      // 权限被拒绝 / 设备不支持——明确告诉用户，不要静默失败
+      setRecordError("无法录音，请检查麦克风权限");
+    }
+  }
+CODE>>>
+
+仓库内路径：apps/android-client/src/App.tsx（插入块 1：import）
+在 App.tsx 的 import 区域末尾（import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard"; 之后）增加：
+
+<<<CODE
+import { isScreenSecurityEnabled, setScreenSecurityEnabled, applyScreenSecurity } from "./screenSecurity";
+CODE>>>
+
+仓库内路径：apps/android-client/src/App.tsx（插入块 2：截屏保护状态与启动应用）
+在 App 组件内、现有的初始化 useEffect 中插入以下代码。该 useEffect 通常位于 App 组件顶部（Screen 状态定义之后），负责读取 appLock、nickname、relayUrl 等初始化状态。需要同时在该组件作用域内新增 screenSecurityEnabled state 和 handleToggleScreenSecurity 函数：
+
+<<<CODE
+  // 截屏保护：启动时读本机偏好并应用到窗口。
+  // 默认关闭——邀请卡片就是为了截图转发；开启后本应用界面无法截屏。
+  const [screenSecurityEnabled, setScreenSecurityEnabledState] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const enabled = await isScreenSecurityEnabled();
+      setScreenSecurityEnabledState(enabled);
+      await applyScreenSecurity(enabled);
+    })();
+  }, []);
+
+  const handleToggleScreenSecurity = () => {
+    const next = !screenSecurityEnabled;
+    setScreenSecurityEnabledState(next);
+    void (async () => {
+      await setScreenSecurityEnabled(next);
+      await applyScreenSecurity(next);
+    })();
+  };
+CODE>>>
+
+仓库内路径：apps/android-client/src/App.tsx（替换块 1：接收文件时把 durationMs 写进 media）
+把从 appendMessage( 到 );（该 appendMessage 调用的闭合）的这段替换成：
+
+<<<CODE
+      appendMessage(
+        {
+          id: `recv-${nextMessageId++}`,
+          isOwn: false,
+          fromDeviceId: displayNameFor(done.senderName, msg.fromDeviceId),
+          sentAtMs: Date.now(),
+          media: {
+            mediaKind: done.mediaKind,
+            fileName: done.fileName,
+            mimeType: done.mimeType,
+            objectUrl,
+            sizeBytes: done.bytes.byteLength,
+            ...(done.durationMs !== undefined ? { durationMs: done.durationMs } : {}),
+          },
+        },
+        done.bytes
+      );
+CODE>>>
+
+仓库内路径：apps/android-client/src/App.tsx（替换块 2：handleSendFile 签名）
+把从 async function handleSendFile(file: File, mediaKind: "image" | "voice" | "file") { 到 async function handleSendFile(file: File, mediaKind: "image" | "voice" | "file") { 的这段替换成：
+
+<<<CODE
+  async function handleSendFile(
+    file: File,
+    mediaKind: "image" | "voice" | "file",
+    extra?: { durationMs?: number }
+  ) {
+CODE>>>
+
+仓库内路径：apps/android-client/src/App.tsx（替换块 3：buildFileEnvelopes 调用带上 durationMs）
+把从 const { meta, chunks } = buildFileEnvelopes({ 到 }); 的这段替换成：
+
+<<<CODE
+      const { meta, chunks } = buildFileEnvelopes({
+        fileId,
+        ...(nickname ? { senderName: nickname } : {}),
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        mediaKind,
+        bytes,
+        ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
+      });
+CODE>>>
+
+仓库内路径：apps/android-client/src/App.tsx（替换块 4：自己发送的媒体消息带上 durationMs）
+把从 media: { 到 },（appendOwnMessage 里 media 对象的闭合）的这段替换成：
+
+<<<CODE
+          media: {
+            mediaKind,
+            fileName: file.name,
+            mimeType: file.type || "application/octet-stream",
+            objectUrl: URL.createObjectURL(file),
+            sizeBytes: bytes.byteLength,
+            ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
+          },
+CODE>>>
+
+仓库内路径：apps/android-client/src/App.tsx（替换块 5：MessageListScreen 调用）
+把从 <MessageListScreen 到 /> 的这段替换成：
+
+<<<CODE
+      <MessageListScreen
+        initialTab={screen.activeGroupId === null && cameFromChatRef.current ? "messages" : undefined}
+        groups={sortSessions(sessions).map((s) => ({
+          groupId: s.groupId,
+          groupName: s.groupName,
+          unread: unreadFor(s),
+          onlineCount: s.onlinePeers.length,
+          lastMessage: previewFor(s),
+        }))}
+        onOpenGroupSettings={(groupId) => setScreen({ name: "groupSettings", groupId, from: "list" })}
+        onOpenGroup={(groupId) => {
+          // 打开即标记已读
+          setSessions((prev) => patchSession(prev, groupId, { lastReadAtMs: Date.now() }));
+          setScreen((prev) =>
+            prev.name === "connected" ? { ...prev, activeGroupId: groupId, view: "chat" } : prev
+          );
+        }}
+        onJoinAnotherGroup={() => setScreen({ name: "join" })}
+        todayContent={mergedToday()}
+        // 只看有没有管理员密钥。七次点击本来是为了对普通成员隐藏发布入口，
+        // 但没有密钥的人本来就发不出去——那个手势只是把入口对唯一需要它的人
+        // （建群者）也藏了起来，他根本不知道要去点版本号。
+        isAdmin={holdsAdminKey}
+        onOpenAdmin={() => setScreen({ name: "adminPublish" })}
+        onOpenAdminRecovery={() => setScreen({ name: "adminRecovery" })}
+        onOpenLockSetup={() => setShowLockSetup(true)}
+        onOpenDiagnostics={() => setScreen({ name: "diagnostics" })}
+        onOpenDevices={() => setScreen({ name: "devices" })}
+        onOpenEditProfile={() => setScreen({ name: "editProfile" })}
+        onAdminUnlocked={() => {
+          void setAdminUnlocked(true);
+          setIsAdmin(true);
+        }}
+        deviceId={screen.deviceId}
+        nickname={nickname}
+        onOpenServerSettings={() => setScreen({ name: "serverSettings" })}
+        relayUrl={relayUrl}
+        screenSecurityEnabled={screenSecurityEnabled}
+        onToggleScreenSecurity={handleToggleScreenSecurity}
+      />
+CODE>>>
+
+仓库内路径：apps/android-client/test/screenSecurity.test.ts
+
+<<<CODE
+import "fake-indexeddb/auto";
+import { describe, expect, it } from "vitest";
+import {
+  isScreenSecurityEnabled,
+  setScreenSecurityEnabled,
+  applyScreenSecurity,
+} from "../src/screenSecurity";
+
+const PREF_KEY = "screensecurity:v1";
+
+describe("screen security preference", () => {
+  it("is off by default", async () => {
+    const { IndexedDbStorageBackend } = await import("@secureinchat/secure-storage");
+    const backend = new IndexedDbStorageBackend();
+    await backend.delete(PREF_KEY);
+    expect(await isScreenSecurityEnabled()).toBe(false);
+  });
+
+  it("reads back what was written", async () => {
+    await setScreenSecurityEnabled(true);
+    expect(await isScreenSecurityEnabled()).toBe(true);
+    await setScreenSecurityEnabled(false);
+    expect(await isScreenSecurityEnabled()).toBe(false);
+  });
+
+  it("treats bad JSON as false", async () => {
+    const { IndexedDbStorageBackend } = await import("@secureinchat/secure-storage");
+    const backend = new IndexedDbStorageBackend();
+    await backend.set(PREF_KEY, new TextEncoder().encode("not json at all"));
+    expect(await isScreenSecurityEnabled()).toBe(false);
+  });
+});
+
+describe("applyScreenSecurity", () => {
+  it("returns false on non-native platforms and does not throw", async () => {
+    await expect(applyScreenSecurity(true)).resolves.toBe(false);
+  });
+});
+CODE>>>
+
+仓库内路径：apps/android-client/test/MessageListScreen.test.tsx
+
+<<<CODE
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { MessageListScreen } from "../src/screens/MessageListScreen";
+import type { TodayContent } from "../src/screens/TodayScreen";
+
+function renderScreen(overrides: {
+  screenSecurityEnabled?: boolean;
+  onToggleScreenSecurity?: () => void;
+} = {}) {
+  const onToggleScreenSecurity = overrides.onToggleScreenSecurity ?? vi.fn();
+  const props = {
+    groups: [],
+    onOpenGroup: vi.fn(),
+    onOpenGroupSettings: vi.fn(),
+    onJoinAnotherGroup: vi.fn(),
+    todayContent: {} as TodayContent,
+    isAdmin: false,
+    onOpenAdmin: vi.fn(),
+    onAdminUnlocked: vi.fn(),
+    onOpenAdminRecovery: vi.fn(),
+    onOpenLockSetup: vi.fn(),
+    onOpenDiagnostics: vi.fn(),
+    onOpenDevices: vi.fn(),
+    onOpenEditProfile: vi.fn(),
+    deviceId: "device-1",
+    nickname: "测试昵称",
+    onOpenServerSettings: vi.fn(),
+    relayUrl: "wss://relay.example",
+    initialTab: "me" as const,
+    screenSecurityEnabled: overrides.screenSecurityEnabled ?? false,
+    onToggleScreenSecurity,
+  };
+  render(<MessageListScreen {...props} />);
+  return { onToggleScreenSecurity };
+}
+
+describe("MessageListScreen 截屏保护开关", () => {
+  it("点按「截屏保护」触发 onToggleScreenSecurity", () => {
+    const { onToggleScreenSecurity } = renderScreen();
+    const button = screen.getByText("截屏保护").closest("button");
+    expect(button).not.toBeNull();
+    fireEvent.click(button as HTMLButtonElement);
+    expect(onToggleScreenSecurity).toHaveBeenCalledTimes(1);
+  });
+
+  it("关闭时显示关闭说明", () => {
+    renderScreen({ screenSecurityEnabled: false });
+    expect(screen.getByText("已关闭：开启后无法截图转发邀请卡片")).toBeInTheDocument();
+  });
+
+  it("开启时显示开启说明", () => {
+    renderScreen({ screenSecurityEnabled: true });
+    expect(
+      screen.getByText("已开启：本应用界面无法截屏或录屏，最近任务里显示空白")
+    ).toBeInTheDocument();
+  });
+});
+CODE>>>
+
+仓库内路径：apps/android-client/test/durationFormat.test.ts
+
+<<<CODE
+import { describe, expect, it } from "vitest";
+import { formatDuration } from "../src/screens/MediaBubbleContent";
+
+describe("formatDuration", () => {
+  it("formats zero", () => {
+    expect(formatDuration(0)).toBe("0:00");
+  });
+
+  it("floors sub-second values to 0:00", () => {
+    expect(formatDuration(999)).toBe("0:00");
+  });
+
+  it("formats 61 seconds as 1:01", () => {
+    expect(formatDuration(61_000)).toBe("1:01");
+  });
+
+  it("formats one hour as 60:00", () => {
+    expect(formatDuration(3_600_000)).toBe("60:00");
+  });
+
+  it("handles negative / non-finite defensively", () => {
+    expect(formatDuration(-1)).toBe("0:00");
+    expect(formatDuration(Number.NaN)).toBe("0:00");
+  });
+});
+CODE>>>
+
+仓库内路径：packages/chat-core/test/fileTransfer.test.ts（在文件末尾追加以下 describe 块；假设文件已导入 buildFileEnvelopes、FileAssembler、bytesToBase64Url）
+
+<<<CODE
+describe("voice durationMs", () => {
+  const bytes = new Uint8Array([1, 2, 3, 4]);
+
+  it("round-trips a valid duration", () => {
+    const { meta, chunks } = buildFileEnvelopes({
+      fileId: "voice-1",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      mediaKind: "voice",
+      bytes,
+      durationMs: 7000,
+    });
+    expect(meta.durationMs).toBe(7000);
+
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    let done;
+    for (const c of chunks) done = assembler.acceptChunk(c);
+    expect(done).toBeDefined();
+    expect(done?.durationMs).toBe(7000);
+  });
+
+  it("does not write negative or NaN duration into meta", () => {
+    for (const bad of [-1, Number.NaN]) {
+      const { meta } = buildFileEnvelopes({
+        fileId: "voice-2",
+        fileName: "voice.webm",
+        mimeType: "audio/webm",
+        mediaKind: "voice",
+        bytes,
+        durationMs: bad,
+      });
+      expect(meta.durationMs).toBeUndefined();
+    }
+  });
+
+  it("clamps an over-limit send value to 3,600,000", () => {
+    const { meta } = buildFileEnvelopes({
+      fileId: "voice-3",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      mediaKind: "voice",
+      bytes,
+      durationMs: 3_600_001,
+    });
+    expect(meta.durationMs).toBe(3_600_000);
+  });
+
+  it("drops an over-limit value on receive but still assembles the file", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "voice-4",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "voice" as const,
+      sentAtMs: 1,
+      durationMs: 3_600_001,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "voice-4",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.durationMs).toBeUndefined();
+  });
+
+  it("assembles old-format meta without durationMs", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "voice-5",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "voice" as const,
+      sentAtMs: 1,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "voice-5",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.durationMs).toBeUndefined();
+  });
+});
+CODE>>>
+
+仓库内路径：packages/chat-core/test/messageEnvelope.test.ts（在文件末尾追加以下 describe 块；假设文件已导入 encodeEnvelope、decodeEnvelope、type FileMetaEnvelope）
+
+<<<CODE
+describe("FileMetaEnvelope durationMs", () => {
+  it("round-trips a valid durationMs", () => {
+    const envelope: FileMetaEnvelope = {
+      kind: "file-meta",
+      fileId: "f1",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      totalBytes: 3,
+      totalChunks: 1,
+      mediaKind: "voice",
+      sentAtMs: 1,
+      durationMs: 7000,
+    };
+    const decoded = decodeEnvelope(encodeEnvelope(envelope));
+    expect(decoded).toMatchObject({ kind: "file-meta", durationMs: 7000 });
+  });
+
+  it("tolerates old meta without durationMs", () => {
+    const envelope: FileMetaEnvelope = {
+      kind: "file-meta",
+      fileId: "f2",
+      fileName: "voice.webm",
+      mimeType: "audio/webm",
+      totalBytes: 3,
+      totalChunks: 1,
+      mediaKind: "voice",
+      sentAtMs: 1,
+    };
+    const decoded = decodeEnvelope(encodeEnvelope(envelope));
+    expect(decoded).not.toHaveProperty("durationMs");
+  });
+});
+CODE>>>
+
+真机验证点：
+Android 上打开「我的」→「截屏保护」，确认系统截屏被拦截、最近任务卡片显示空白；关闭后恢复可截屏。
+
+应用被杀掉重开后，截屏保护开关状态保持，且 FLAG_SECURE 在启动时就被应用（不出现短暂可截屏窗口）。
+
+应用密码开启状态下再开截屏保护，两个开关互不影响。
+
+录音发送后，接收端语音气泡在音频未加载完成时也显示正确 m:ss（例如 0:07、1:23）。
+
+旧版客户端发来的语音（meta 无 durationMs）在新客户端照常显示和播放，不出现 0:00 以外的异常。
+
+新版客户端发语音给旧版客户端，旧版忽略未知字段、文件照常组装播放。
+
+发送一条超过 1 小时的语音（或构造超上限值），确认时长被 clamp/丢弃但消息本身不失败。
+
+Web 端打开「我的」，截屏保护开关可点，但说明中不承诺系统级拦截；不出现插件调用报错。
