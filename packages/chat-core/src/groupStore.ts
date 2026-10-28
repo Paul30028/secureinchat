@@ -1,4 +1,5 @@
 import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+import { DISAPPEAR_OPTIONS_MS } from "./disappearing";
 
 /**
  * 已加入的群列表。
@@ -26,6 +27,12 @@ export interface JoinedGroup {
   joinedAtMs: number;
   /** 最后一次查看这个群的时间，用来算未读数 */
   lastReadAtMs: number;
+  /**
+   * 本机在这个群里的「消息定时消失」时长（毫秒），0/缺省表示关闭。
+   * 每台设备、每个群独立——只影响自己之后发出的消息；收到的消息按
+   * 消息里自带的 expiresInMs 处理。老记录没有这个字段，按关闭处理。
+   */
+  disappearAfterMs?: number | undefined;
 }
 
 export async function loadJoinedGroups(store: EncryptedKeyValueStore): Promise<JoinedGroup[]> {
@@ -70,6 +77,24 @@ export function renameGroup(groups: JoinedGroup[], groupId: string, groupName: s
 
 export function markGroupRead(groups: JoinedGroup[], groupId: string, atMs = Date.now()): JoinedGroup[] {
   return groups.map((g) => (g.groupId === groupId ? { ...g, lastReadAtMs: atMs } : g));
+}
+
+/**
+ * 设置某个群的「消息定时消失」时长。
+ * ms 不在 DISAPPEAR_OPTIONS_MS 里就原样返回——调用方传错值不该静默改存储。
+ * 0 表示关闭，把字段清掉（而不是留一个 0）。
+ */
+export function setDisappearAfter(
+  groups: JoinedGroup[],
+  groupId: string,
+  ms: number
+): JoinedGroup[] {
+  if (!(DISAPPEAR_OPTIONS_MS as readonly number[]).includes(ms)) return groups;
+  return groups.map((g) =>
+    g.groupId === groupId
+      ? { ...g, ...(ms > 0 ? { disappearAfterMs: ms } : { disappearAfterMs: undefined }) }
+      : g
+  );
 }
 
 /** 未读数 = 这个群里晚于 lastReadAtMs 且不是自己发的消息条数 */

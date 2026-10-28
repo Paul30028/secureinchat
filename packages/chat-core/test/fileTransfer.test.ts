@@ -280,3 +280,84 @@ describe("voice durationMs", () => {
     expect(done?.durationMs).toBeUndefined();
   });
 });
+
+describe("disappearing expiresInMs", () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+
+  it("writes a valid expiresInMs into meta and returns it on assembly", () => {
+    const { meta, chunks } = buildFileEnvelopes({
+      fileId: "f1",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      mediaKind: "file",
+      bytes,
+      expiresInMs: 5 * 60_000,
+    });
+    expect(meta.expiresInMs).toBe(5 * 60_000);
+
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    let done;
+    for (const c of chunks) done = assembler.acceptChunk(c);
+    expect(done?.expiresInMs).toBe(5 * 60_000);
+  });
+
+  it("does not write an out-of-range expiresInMs into meta", () => {
+    const { meta } = buildFileEnvelopes({
+      fileId: "f2",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      mediaKind: "file",
+      bytes,
+      expiresInMs: 59_999,
+    });
+    expect(meta.expiresInMs).toBeUndefined();
+  });
+
+  it("drops an invalid expiresInMs on receive but still assembles the file", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "f3",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "file" as const,
+      sentAtMs: 1,
+      expiresInMs: 7 * 86_400_000 + 1,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "f3",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.expiresInMs).toBeUndefined();
+  });
+
+  it("assembles old-format meta without expiresInMs", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "f4",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "file" as const,
+      sentAtMs: 1,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "f4",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.expiresInMs).toBeUndefined();
+  });
+});

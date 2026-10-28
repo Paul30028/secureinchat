@@ -1,4 +1,5 @@
 import type { FileChunkEnvelope, FileMetaEnvelope } from "./messageEnvelope";
+import { sanitizeExpiresInMs } from "./disappearing";
 
 /**
  * 文件分片与重组。
@@ -61,6 +62,8 @@ export interface BuildFileEnvelopesInput {
   chunkSize?: number;
   /** 语音时长（毫秒）。只对 voice 有意义；非法值不会写进 meta。 */
   durationMs?: number;
+  /** 阅后即焚时长（毫秒）。非法值不会写进 meta；只对 text/file-meta 有意义。 */
+  expiresInMs?: number;
 }
 
 /** 把一个文件拆成 1 个 meta 信封 + N 个分片信封，按顺序发送即可。 */
@@ -71,6 +74,7 @@ export function buildFileEnvelopes(input: BuildFileEnvelopesInput): {
   const chunkSize = input.chunkSize ?? CHUNK_SIZE_BYTES;
   const totalChunks = totalChunksFor(input.bytes.byteLength, chunkSize);
   const durationMs = normalizeDurationForSend(input.durationMs);
+  const expiresInMs = sanitizeExpiresInMs(input.expiresInMs);
 
   const meta: FileMetaEnvelope = {
     kind: "file-meta",
@@ -83,6 +87,7 @@ export function buildFileEnvelopes(input: BuildFileEnvelopesInput): {
     sentAtMs: input.sentAtMs ?? Date.now(),
     ...(input.senderName ? { senderName: input.senderName } : {}),
     ...(durationMs !== undefined ? { durationMs } : {}),
+    ...(expiresInMs !== undefined ? { expiresInMs } : {}),
   };
 
   const chunks: FileChunkEnvelope[] = [];
@@ -107,6 +112,8 @@ export interface AssembledFile {
   senderName?: string | undefined;
   /** 语音时长（毫秒）。非法值在接收端丢弃，不会让整条消息失败。 */
   durationMs?: number | undefined;
+  /** 阅后即焚时长（毫秒）。非法值在接收端丢弃，不会让整条消息失败。 */
+  expiresInMs?: number | undefined;
 }
 
 export interface IncomingFileProgress {
@@ -170,6 +177,7 @@ export class FileAssembler {
       bytes,
       senderName: entry.meta.senderName,
       durationMs: normalizeDurationForReceive(entry.meta.durationMs),
+      expiresInMs: sanitizeExpiresInMs(entry.meta.expiresInMs),
     };
   }
 

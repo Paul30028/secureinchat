@@ -24,6 +24,11 @@ export interface StoredMessage {
   senderLabel?: string | undefined;
   sentAtMs: number;
   text?: string | undefined;
+  /**
+   * 阅后即焚的到期时刻（毫秒时间戳）。有就说明这条消息会定时消失；
+   * 重启后重新加载时要按当前时间把它过滤掉。老记录没有这个字段，照常显示。
+   */
+  expiresAtMs?: number | undefined;
   media?:
     | {
         mediaKind: "image" | "voice" | "file";

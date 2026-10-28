@@ -9,6 +9,7 @@ import {
   markGroupRead,
   renameGroup,
   unreadCount,
+  setDisappearAfter,
   type JoinedGroup,
 } from "../src/groupStore";
 
@@ -163,5 +164,39 @@ describe("admin public key persistence", () => {
     const existing = [{ ...group("g1"), adminPublicKeyRawB64Url: "BAdminKey" }];
     const result = upsertGroup(existing, { ...group("g1"), adminPublicKeyRawB64Url: "BAdminKey" });
     expect(result[0]!.adminPublicKeyRawB64Url).toBe("BAdminKey");
+  });
+});
+
+describe("setDisappearAfter", () => {
+  const baseGroup: JoinedGroup = {
+    groupId: "g1",
+    groupName: "群",
+    keyMaterialB64Url: "KEY",
+    epoch: 0,
+    joinedAtMs: 1,
+    lastReadAtMs: 1,
+  };
+
+  it("sets an allowed value", () => {
+    const result = setDisappearAfter([baseGroup], "g1", 5 * 60_000);
+    expect(result[0]?.disappearAfterMs).toBe(5 * 60_000);
+  });
+
+  it("clears the field when set to 0", () => {
+    const withValue: JoinedGroup = { ...baseGroup, disappearAfterMs: 3_600_000 };
+    const result = setDisappearAfter([withValue], "g1", 0);
+    expect(result[0]?.disappearAfterMs).toBeUndefined();
+  });
+
+  it("returns the same array for a value outside the allowed options", () => {
+    const groups = [baseGroup];
+    expect(setDisappearAfter(groups, "g1", 1234)).toBe(groups);
+  });
+
+  it("does not touch other groups", () => {
+    const other: JoinedGroup = { ...baseGroup, groupId: "g2" };
+    const result = setDisappearAfter([baseGroup, other], "g1", 86_400_000);
+    expect(result[0]?.disappearAfterMs).toBe(86_400_000);
+    expect(result[1]?.disappearAfterMs).toBeUndefined();
   });
 });

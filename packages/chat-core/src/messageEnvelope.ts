@@ -39,6 +39,12 @@ export interface TextEnvelope {
     /** 被引用消息的摘要，最多截断到 60 字 */
     excerpt: string;
   };
+  /**
+   * 阅后即焚：这条消息在接收方收到后多少毫秒消失。
+   * 在加密载荷里，中继看不到。老客户端不认识这个字段会忽略它——
+   * 这是已知限制：消息在旧版客户端上不会消失，界面说明里要讲清楚。
+   */
+  expiresInMs?: number;
 }
 
 export interface AnnouncementEnvelope {
@@ -87,6 +93,12 @@ export interface FileMetaEnvelope {
    * WebView 读不到 webm 的时长元数据，所以由发送方在录音结束时算好带过来。
    */
   durationMs?: number;
+  /**
+   * 阅后即焚：这条文件在接收方组装完成之后多少毫秒消失。
+   * 在加密载荷里，中继看不到。老客户端会忽略这个字段——已知限制，
+   * 消息在旧版客户端上不会消失。
+   */
+  expiresInMs?: number;
 }
 
 export interface FileChunkEnvelope {
