@@ -41,5 +41,22 @@
                 <action android:name="android.net.VpnService" />
             </intent-filter>
         </service>
+
+        <!-- Quick Settings tile. BIND_QUICK_SETTINGS_TILE is a service-level protection, not a
+             uses-permission: it tells the system only it may bind to this TileService. Exported
+             is true because the system (SystemUI) is the caller. -->
+        <service
+            android:name=".GuardianTileService"
+            android:exported="true"
+            android:icon="@android:drawable/ic_lock_lock"
+            android:label="Guardian"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.ACTIVE_TILE"
+                android:value="false" />
+        </service>
     </application>
 </manifest>

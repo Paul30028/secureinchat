@@ -125,6 +125,14 @@ class GuardianVpnService : VpnService() {
             running = true
             isRunning = true
             isLoading = false
+            // Let the Quick Settings tile refresh from "Starting…" to "On" without waiting for a tap.
+            // Fully qualified to avoid touching this file's imports.
+            try {
+                android.service.quicksettings.TileService.requestListeningState(
+                    applicationContext,
+                    android.content.ComponentName(applicationContext, GuardianTileService::class.java)
+                )
+            } catch (_: Throwable) {}
 
             val t = Thread { readLoop(pfd) }
             t.name = "guardian-tun-read"
@@ -233,6 +241,14 @@ class GuardianVpnService : VpnService() {
         upstream = null
         handler = null
         activeHandler = null
+
+        // Let the Quick Settings tile flip back to "Off" without waiting for a tap.
+        try {
+            android.service.quicksettings.TileService.requestListeningState(
+                applicationContext,
+                android.content.ComponentName(applicationContext, GuardianTileService::class.java)
+            )
+        } catch (_: Throwable) {}
     }
 
     private fun loadBlocklist(): Blocklist = loadBlocklistStatic(applicationContext)

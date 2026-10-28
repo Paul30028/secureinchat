@@ -342,6 +342,23 @@ def main():
     sh("cmd statusbar collapse", check=False)
     print("ok: stopped from the notification")
 
+    # 6b. Quick Settings tile (G5): start and stop without opening the app. The VPN is already authorised.
+    tile = f"{PKG}/.GuardianTileService"
+    sh(f"cmd statusbar add-tile {tile}", check=False)
+    time.sleep(1)
+    sh(f"cmd statusbar click-tile {tile}", check=False)
+    end = time.time() + 30
+    while time.time() < end and not (service_running() and vpn_up()):
+        time.sleep(1)
+    if not (service_running() and vpn_up()):
+        fail("tile click did not start the VPN")
+    print("ok: started from the Quick Settings tile")
+    time.sleep(2)
+    sh(f"cmd statusbar click-tile {tile}", check=False)
+    wait_stopped("stop from tile")
+    sh("cmd statusbar collapse", check=False)
+    print("ok: stopped from the Quick Settings tile")
+
     # 7. No crash
     c = crashes()
     if c:
