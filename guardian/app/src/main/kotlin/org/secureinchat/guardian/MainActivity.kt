@@ -466,7 +466,7 @@ class MainActivity : Activity() {
     }
 
     // "Blocked by you": the user's own block list. Mirror of the allow list below it; both are
-    // read from SharedPreferences each refresh and rendered only when the serialized set changes.
+    // read from UserRulesStore each refresh and rendered only when the serialized set changes.
     private fun renderBlockedList() {
         val blocked = UserRulesStore.blocked(this).sorted()
         val sig = blocked.joinToString(",")
