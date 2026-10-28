@@ -259,11 +259,12 @@ def main():
     for _ in range(6):
         if dom_row.search(joined(nodes)):
             break
-        rows = [(t, b) for t, _, b, _ in nodes if re.search(r"— blocked [1-9]", t) and t not in tapped]
+        # Key by app name: the counts in the row text change while queries keep arriving.
+        rows = [(t, b) for t, _, b, _ in nodes if re.search(r"— blocked [1-9]", t) and t.split(" — ")[0] not in tapped]
         if not rows:
             break
         t, b = rows[0]
-        tapped.add(t)
+        tapped.add(t.split(" — ")[0])
         print(f"expanding app row: {t}")
         tap(b)
         time.sleep(2)
