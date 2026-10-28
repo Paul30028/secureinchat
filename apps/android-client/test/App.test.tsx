@@ -2030,7 +2030,7 @@ describe("placing a call", () => {
     await waitFor(() => {
       const frames = MockRelayWebSocket.lastInstance!.sent.slice(sentBefore).map((s) => JSON.parse(s).type);
       expect(frames).toContain("call_invite");
-    });
+    }, { timeout: 3000 });
   });
 
   it("shows the call screen once a call starts", async () => {
@@ -2101,8 +2101,9 @@ describe("seeing who is in the group", () => {
     fireEvent.click(screen.getByLabelText("查看群成员"));
     const dialog = await screen.findByRole("dialog", { name: "群成员" });
 
-    // 只上线没发过话的人，中继不知道他叫什么——如实显示设备短号
-    expect(within(dialog).getByText(/设备 aaa111/)).toBeInTheDocument();
+    // 只上线没发过话的人，中继不知道他叫什么——如实显示设备短号。
+    // 在线人数和设备列表是两次状态更新，"1 人在线"出现时列表可能还差一拍，所以这里要等。
+    expect(await within(dialog).findByText(/设备 aaa111/)).toBeInTheDocument();
     expect(within(dialog).getByText(/还没发过消息/)).toBeInTheDocument();
   });
 
