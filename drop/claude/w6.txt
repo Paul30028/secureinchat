@@ -1,0 +1,665 @@
+任务 W6(网站):中文版「照片元数据清理」页面 /zh/tools/photo-metadata-remover/,并让工具页外壳支持中文。
+
+背景:W5 已合并(提交 6f8fe88)。照片页和密码页的网络请求面板测试都通过:照片页选图后没有新请求;密码页查泄露后只有一条 api.pwnedpasswords.com/range/<5 位前缀> 的请求,标为 external。
+
+为什么做这个:网站已有中文首页 /zh/ 和中文「手机号隐私自查」/zh/tools/phone-checkup/,但工具页全是英文。照片元数据(GPS、拍摄时间、设备型号)是中文用户分享照片时最常见的隐私泄露,工具本身完全本地运行、和语言无关,适合作为第一个中文工具页。
+
+硬性规则:
+- CSP 不变(script-src 'self',无内联脚本、无 style 属性、无事件属性)。不加依赖。
+- 不改英文页的输出:英文页构建结果必须逐字节不变(我会用 git diff public/tools/ 检查)。
+- 中文文案:简体,口语清楚,不夸大;不写「绝对安全」「100%」这类说法;照片「只在本标签页里读取,不上传」可以说,因为页面 CSP 禁止外发。
+- 面板(W4 的网络请求面板)也要有中文版:net-log.js 里的固定文字(cached、external、表头、回退提示、"not available")改为按 document.documentElement.lang 选择中英文;英文页行为不变。
+- 不做中国定向的翻墙或规避内容;这是隐私工具页。
+- 不写进度百分比。
+
+需要你给:
+1. build/toolshell.mjs:toolPage 增加可选参数 lang('en' 默认 / 'zh-CN'),中文时面包屑为「首页 / 工具 / <名称>」,链接到 /zh/ 和 /tools/(中文工具索引还没有,先链英文 /tools/),<html lang="zh-CN">,以及外壳里其他固定英文文字的中文。给出完整新文件。
+2. build/build.mjs:在 TOOLS 循环之后加一段,生成 zh/tools/photo-metadata-remover/index.html(源文件 src/tools/zh/photo-metadata-remover.html),标签 L.local 的中文「本地处理」,数据流行(FLOW)用中文:「留在本机:照片和读出的元数据」「发送:无」。写进 sitemap、和英文页互相 hreflang(参照 PHONE_ALT 的做法)。给出「锚点 → 插入片段」。
+3. src/tools/zh/photo-metadata-remover.html:完整中文页面(结构和英文版一致,保留同样的元素 id,让 exif-app.js 能直接用;加上网络请求面板)。
+4. public/tools/assets/exif-app.js 和 net-log.js:界面字符串按 lang 选择。给「锚点 → 替换」,或完整文件(exif-app.js 100 行,可以给完整)。请保留原注释。
+5. 你建议的 Playwright 检查点(我来写测试)。
+
+下面是相关源码(以此为准)。
+
+=== build/toolshell.mjs ===
+// Tool detail pages in ChatGPT's Subpages Design Kit v2 layout (tool-detail template).
+// Integration only: each tool's live markup (ids, data-* hooks, scripts) is moved unchanged into the kit's
+// workspace slot, as the kit README asks. Widget styling inside the slot comes from the previous tool
+// stylesheet, scoped to .legacy-tool, until ChatGPT restyles the widgets.
+import { shell, mapTags } from './subshell.mjs';
+
+const topBlocks = (main) => {
+  // Top-level <section>/<aside> blocks start at column 0 in the tool sources.
+  const out = []; const re = /^[ \t]*<(section|aside)([^>]*)>([\s\S]*?)^[ \t]*<\/\1>/gm; let m;
+  while ((m = re.exec(main))) out.push({ tag: m[1], attrs: m[2], inner: m[3] });
+  return out;
+};
+const cleanAttrs = (a) => a.replace(/\s*class="([^"]*)"/, (x, c) => { const k = c.split(/\s+/).filter((w) => !['wrap', 'prose', 'hero'].includes(w)).join(' '); return k ? ` class="${k}"` : ''; });
+
+export function toolPage({ slug, src, icon, label, flow, figure, crumbName }) {
+  const head = src.slice(0, src.indexOf('</head>'));
+  const bodyEnd = src.slice(src.indexOf('</main>'));
+  const title = /<title>([\s\S]*?)<\/title>/.exec(head)[1];
+  const desc = /<meta name="description" content="([^"]*)"/.exec(head)[1];
+  const headScripts = head.match(/<script[\s\S]*?<\/script>/g) || [];
+  const tailScripts = bodyEnd.match(/<script[\s\S]*?<\/script>/g) || [];
+  const main = src.slice(src.indexOf('<main'), src.indexOf('</main>'));
+  const blocks = topBlocks(main);
+  const hero = blocks.find((b) => /class="[^"]*\bhero\b/.test(b.attrs));
+  const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(hero.inner)[1];
+  const ledeM = /<p class="lede">([\s\S]*?)<\/p>/.exec(hero.inner);
+  const heroRest = hero.inner.replace(/<h1[^>]*>[\s\S]*?<\/h1>\s*/, '').replace(/<p class="lede">[\s\S]*?<\/p>\s*/, '');
+  const work = []; const prose = [];
+  for (const b of blocks) {
+    if (b === hero) continue;
+    if (/id="ad-slot/.test(b.attrs)) continue;
+    if (/\bprose\b/.test(b.attrs)) prose.push(b); else work.push(b);
+  }
+  const ws = `      <section class="tool-workspace" aria-label="${h1.replace(/"/g, '&quot;')}">
+       <div class="legacy-tool">
+${heroRest}
+       </div>
+${work.map((b) => `       <div class="legacy-tool"><${b.tag}${cleanAttrs(b.attrs)}>${b.inner}</${b.tag}></div>`).join('\n')}
+      </section>`;
+  const info = prose.length ? `      <div class="info-content tool-prose">
+${prose.map((b) => `<${b.tag}${cleanAttrs(b.attrs)}>${mapTags(b.inner)}</${b.tag}>`).join('\n')}
+      </div>` : '';
+  const row = (mark, t, p) => `<div class="data-handling-row"><span class="data-handling-mark">${mark}</span><div><strong>${t}</strong><p>${p}</p></div></div>`;
+  const side = `     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>How your data is handled</h2>
+       <div class="data-handling">
+        ${row('✓', 'Stays on your device', flow.stays)}
+        ${row(flow.sent === 'Nothing' ? '✓' : '↗', 'Sent to others', flow.sent)}
+       </div>
+       <p class="state-list"><span class="${label[1]}">${label[0]}</span></p>
+       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
+      </section>
+      ${figure ? `<figure class="editorial-figure"><img alt="${figure.alt}" height="${figure.h}" src="/assets/illustrations/${figure.src}" width="760"/></figure>` : ''}
+      <section class="content-panel content-panel--soft">
+       <h2>Need a different check?</h2>
+       <p>Compare tools by what they do and what data they need.</p>
+       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>`;
+  const mainHtml = `   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+      <a href="/">Home</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/tools/">Tools</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">${crumbName}</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      ${icon ? `<span class="tool-detail-emblem">${icon.replace('tool-catalogue-icon-art', 'tool-detail-emblem-art')}</span>` : ''}
+      <div>
+       <h1 id="h1">${h1}</h1>
+       ${ledeM ? `<p class="page-lead">${ledeM[1]}</p>` : ''}
+       <ul class="state-list"><li><span class="${label[1]}">${label[0]}</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+${ws}
+${info}
+     </div>
+${side}
+    </div>
+   </section>`;
+  const canonical = `/tools/${slug}/`;
+  const keep = headScripts.filter((s) => /application\/ld\+json/.test(s));
+  const scriptsHead = headScripts.filter((s) => !/application\/ld\+json/.test(s));
+  const headExtra = `  <link href="https://secureinchat.com${canonical}" rel="canonical"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
+`;
+  let html = shell({ title, desc, canonical, headExtra, current: '/tools/', main: mainHtml });
+  html = html.replace(' </body>', `${tailScripts.map((s) => `  ${s}`).join('\n')}\n </body>`);
+  // the kit stylesheets load after tool-legacy.css in the shell head order; move tool-legacy last so widgets keep their look
+  html = html.replace('  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n', '').replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>');
+  return html;
+}
+
+// Scope the previous tool stylesheet to .legacy-tool. Page-level rules (html, body, header, hero, skip link) are dropped.
+export function scopeLegacyCss(css) {
+  const DROP = /^(html|body|\*|::selection|\.top\b|\.top__in|\.brand|\.skip|\.hero\b|\.lede|\.foot\b|\.foot__in|h1\b)/;
+  const scopeSel = (sel) => sel.split(',').map((x) => x.trim()).filter((x) => x && !DROP.test(x))
+    .map((x) => (x.startsWith(':root') ? x : `.legacy-tool ${x}`)).join(', ');
+  let out = ''; let i = 0;
+  const readBlock = (from) => { let d = 0; for (let j = from; j < css.length; j++) { if (css[j] === '{') d++; else if (css[j] === '}') { d--; if (d === 0) return j; } } return css.length; };
+  while (i < css.length) {
+    const ob = css.indexOf('{', i); if (ob < 0) break;
+    const pre = css.slice(i, ob).trim(); const cb = readBlock(ob);
+    const inner = css.slice(ob + 1, cb);
+    const sel = pre.replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    if (sel.startsWith('@font-face') || sel.startsWith('@keyframes')) out += `${sel} {${inner}}\n`;
+    else if (sel.startsWith('@media') || sel.startsWith('@supports')) out += `${sel} {\n${scopeLegacyCss(inner)}}\n`;
+    else if (sel.startsWith(':root')) out += `${sel} {${inner}}\n`;
+    else { const s2 = scopeSel(sel); if (s2) out += `${s2} {${inner}}\n`; }
+    i = cb + 1;
+  }
+  return out;
+}
+
+=== build/build.mjs 第 640-660 行 (PHONE_ALT 用法) ===
+  { '@type': 'Organization', '@id': SITE + '/#org', name: 'SecureInChat', url: SITE + '/' },
+  { '@type': 'WebSite', '@id': SITE + '/#site', url: SITE + '/', name: 'SecureInChat', publisher: { '@id': SITE + '/#org' }, inLanguage: 'en' },
+] };
+write('index.html', gptHome('en.html', '/', 'en_US', 'SecureInChat — Practical Privacy Tools', 'Practical privacy tools and guides. Check your browser privacy, protect sensitive information, and learn what your devices and online services can access.', HOME_JSONLD));
+write('zh/index.html', gptHome('zh.html', '/zh/', 'zh_CN', 'SecureInChat — 实用隐私保护工具', 'SecureInChat：实用的隐私工具与指南。', null));
+write('assets/css/home.css', fs.readFileSync(path.join(ROOT, 'src/home/home.css'), 'utf8')
+  .replace('src: url("/assets/fonts/noto-serif-variable.ttf") format("truetype");', 'src: url("/assets/fonts/noto-serif-latin-var.woff2") format("woff2");'));
+if (fs.existsSync(path.join(ROOT, 'src/home/home.js'))) write('assets/js/home.js', fs.readFileSync(path.join(ROOT, 'src/home/home.js')));
+for (const n of GPT_IMAGES) write(`assets/img/${n}.webp`, fs.readFileSync(path.join(ROOT, 'src/img', n + '.webp')));
+// Privacy checkup (designed and coded by ChatGPT, 2026-10-22; official sources filled and checked by Claude).
+const CHECKUP_ALT = { en: '/checkup/', 'zh-CN': '/zh/checkup/' };
+const PHONE_ALT = { en: '/tools/phone-checkup/', 'zh-CN': '/zh/tools/phone-checkup/' };
+write('checkup/index.html', gptPage('src/checkup/checkup-en.html', '/checkup/', 'en_US', 'SecureInChat — Privacy Checkup', 'Choose a practical privacy check for your IP, a URL, phone-number settings or account security.', null, CHECKUP_ALT));
+write('zh/checkup/index.html', gptPage('src/checkup/checkup-zh.html', '/zh/checkup/', 'zh_CN', 'SecureInChat — 隐私体检', '选择适合你的隐私检查：网址、手机号设置或账号安全。', null, CHECKUP_ALT));
+write('tools/phone-checkup/index.html', gptPage('src/checkup/phone-en.html', '/tools/phone-checkup/', 'en_US', 'Phone Number Privacy Checkup', 'A six-item checklist to protect your phone number from SIM swaps and exposure. You never enter your number; nothing is saved or sent.', null, PHONE_ALT));
+write('zh/tools/phone-checkup/index.html', gptPage('src/checkup/phone-zh.html', '/zh/tools/phone-checkup/', 'zh_CN', '手机号隐私自查', '六项自查，保护手机号免受换卡诈骗和泄露。无需输入号码，不保存、不发送。', null, PHONE_ALT));
+write('assets/css/subpages.css', fs.readFileSync(path.join(ROOT, 'src/subpages/subpages.css')));
+for (const f of fs.readdirSync(path.join(ROOT, 'src/subpages/illustrations'))) write(`assets/illustrations/${f}`, fs.readFileSync(path.join(ROOT, 'src/subpages/illustrations', f)));
+write('assets/css/checkup.css', fs.readFileSync(path.join(ROOT, 'src/checkup/checkup.css')));
+write('assets/js/phone-checkup.js', fs.readFileSync(path.join(ROOT, 'src/checkup/phone-checkup.js')));
+for (const f of ['noto-serif-latin-var.woff2', 'OFL-noto-serif.txt']) write('assets/fonts/' + f, fs.readFileSync(path.join(ROOT, 'src/fonts', f)));
+
+=== build/build.mjs 第 760-785 行 (TOOLS 循环) ===
+// Tool detail pages: kit tool-detail layout around each tool's unchanged live markup (src/tools/<slug>.html).
+{
+  const idx = KIT_T('tools-index.en.html');
+  const ICONS = {};
+  for (const a of idx.match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a); const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (href && svg) ICONS[href[1] === 'website-health-check' ? 'site-health-check' : href[1]] = svg[0];
+  }
+  const FLOW = {};
+  for (const r of PRINCIPLES.matchAll(/<tr><td><a href="\/tools\/([a-z0-9-]+)\/">[^<]*<\/a><\/td><td>([\s\S]*?)<\/td><td>([\s\S]*?)<\/td><\/tr>/g)) FLOW[r[1]] = { stays: r[2], sent: r[3] };
+  FLOW['browser-fingerprint-test'] = FLOW['browser-fingerprint-test'] || FLOW['fingerprint-test'];
+  const L = { local: ['Local processing', 'state-label'], list: ['Local checklist', 'state-label'], net: ['Network lookup', 'state-label state-label--network'], some: ['Some network lookups', 'state-label state-label--network'], limited: ['Limited lookup', 'state-label state-label--network'], site: ['Site request', 'state-label state-label--network'] };
+  const TOOLS = [
+    ['link-checker', 'Link checker', L.local, FIG.url], ['photo-metadata-remover', 'Photo metadata remover', L.local, FIG.photo], ['file-metadata-remover', 'File metadata remover', L.local, FIG.photo], ['text-redactor', 'Text redactor', L.local, FIG.redact],
+    ['browser-fingerprint-test', 'Browser fingerprint test', L.local, FIG.flows], ['account-checkup', 'Account security checkup', L.list, FIG.account],
+    ['ip-leak-test', 'IP leak test', L.net, FIG.flows], ['webrtc-leak-test', 'WebRTC leak test', L.net, FIG.flows], ['ipv6-leak-test', 'IPv6 leak test', L.net, FIG.flows],
+    ['privacy-report', 'Browser privacy report', L.some, FIG.flows], ['password-checker', 'Password checker', L.limited, FIG.account], ['site-health-check', 'Website health check', L.site, FIG.flows],
+  ];
+  write('assets/css/tool-legacy.css', `/* Previous tool widget styles, scoped to .legacy-tool (generated from src/tools/legacy-style.css). */\n${scopeLegacyCss(fs.readFileSync(path.join(ROOT, 'src/tools/legacy-style.css'), 'utf8'))}`);
+  for (const [slug, name, label, figure] of TOOLS) {
+    const src = fs.readFileSync(path.join(ROOT, 'src/tools', `${slug}.html`), 'utf8');
+    if (!FLOW[slug]) throw new Error('no data-flow row for ' + slug);
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name }));
+  }
+}
+
+
+=== public/tools/assets/exif-app.js ===
+/* Photo metadata remover. Everything runs in this page: the file is read and re-encoded locally and never uploaded. */
+(function () {
+  'use strict';
+  var E = window.EXIFR;
+  var input = document.getElementById('file');
+  var tbody = document.getElementById('rows');
+  var summary = document.getElementById('summary');
+  var clean = document.getElementById('clean');
+  var current = null;
+  var MAX_BYTES = 40 * 1024 * 1024, MAX_PIXELS = 100 * 1000 * 1000;
+
+  function row(name, desc, status, label, lines, why) {
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-status', status);
+    var th = document.createElement('th'); th.scope = 'row'; th.setAttribute('data-label', 'Check');
+    var n = document.createElement('span'); n.className = 'c-name'; n.textContent = name;
+    var d = document.createElement('span'); d.className = 'c-desc'; d.textContent = desc;
+    th.appendChild(n); th.appendChild(d);
+    var td = document.createElement('td'); td.setAttribute('data-label', 'Result');
+    var vals = document.createElement('div'); vals.className = 'vals';
+    lines.forEach(function (l) { var v = document.createElement('div'); v.className = 'val mono'; v.textContent = l; vals.appendChild(v); });
+    td.appendChild(vals);
+    var p = document.createElement('p'); p.className = 'why'; p.textContent = why || ''; td.appendChild(p);
+    var ts = document.createElement('td'); ts.setAttribute('data-label', 'Status');
+    var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = label; ts.appendChild(pill);
+    tr.appendChild(th); tr.appendChild(td); tr.appendChild(ts);
+    return tr;
+  }
+
+  function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+  function show(rows) { tbody.textContent = ''; rows.forEach(function (r) { tbody.appendChild(r); }); }
+
+  function inspect(file) {
+    current = null; clean.hidden = true;
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { summary.textContent = 'Only JPEG, PNG and WebP photos are supported here.'; summary.setAttribute('data-tone', 'fail'); show([]); return; }
+    if (file.size > MAX_BYTES) { summary.textContent = 'That file is over 40 MB. Try a smaller one.'; summary.setAttribute('data-tone', 'fail'); show([]); return; }
+    file.arrayBuffer().then(function (buf) {
+      var r = E.parse(buf);
+      var rows = [row('File', 'What you chose.', 'info', 'Info', [file.name, file.type + ', ' + fmtSize(file.size)])];
+      if (r.kind === 'jpeg') {
+        if (r.hasGPS) {
+          var coords = r.gps ? r.gps.lat.toFixed(5) + ', ' + r.gps.lon.toFixed(5) : 'GPS block present';
+          rows.push(row('Location', 'Where the photo was taken.', 'fail', 'Found', [coords], 'Anyone who gets this file can read these coordinates, usually accurate to a few metres.'));
+        } else {
+          rows.push(row('Location', 'Where the photo was taken.', 'pass', 'None found', ['No GPS data']));
+        }
+        var dev = r.fields.filter(function (f) { return /camera|lens|software|owner/i.test(f[0]); });
+        var dates = r.fields.filter(function (f) { return /date/i.test(f[0]); });
+        rows.push(dev.length ? row('Device', 'Camera, phone, software and owner.', 'warn', 'Found', dev.map(function (f) { return f[0] + ': ' + f[1]; }), 'These details can identify your device or you.')
+                             : row('Device', 'Camera, phone, software and owner.', 'pass', 'None found', ['No device details']));
+        rows.push(dates.length ? row('Dates', 'When the photo was taken or edited.', 'warn', 'Found', dates.map(function (f) { return f[0] + ': ' + f[1]; }), 'Dates show when you were somewhere.')
+                               : row('Dates', 'When the photo was taken or edited.', 'pass', 'None found', ['No dates']));
+        summary.textContent = r.found ? 'This photo carries metadata. Remove it before you share it.' : 'No readable metadata found. Cleaning is still safe.';
+        summary.setAttribute('data-tone', r.found ? 'fail' : 'ok');
+      } else {
+        rows.push(row('Metadata', 'Hidden data inside the file.', 'warn', 'Not read', ['This page reads JPEG metadata only'], 'PNG, WebP and other formats can also hold metadata. Cleaning rewrites the file without it.'));
+        summary.textContent = 'This format is not read here, but cleaning removes its metadata too.';
+        summary.setAttribute('data-tone', 'warn');
+      }
+      show(rows);
+      current = file; clean.hidden = false; clean.disabled = false; clean.textContent = 'Remove metadata and download';
+    }).catch(function () { summary.textContent = 'Could not read that file.'; summary.setAttribute('data-tone', 'fail'); });
+  }
+
+  function outType(t) { return t === 'image/png' ? 'image/png' : t === 'image/webp' ? 'image/webp' : 'image/jpeg'; }
+  function ext(t) { return t === 'image/png' ? 'png' : t === 'image/webp' ? 'webp' : 'jpg'; }
+
+  function cleanFile() {
+    if (!current) return;
+    var file = current;
+    clean.disabled = true; clean.textContent = 'Working...';
+    createImageBitmap(file).then(function (bmp) {
+      if (bmp.width * bmp.height > MAX_PIXELS) { bmp.close(); throw new Error('big'); }
+      var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      c.getContext('2d').drawImage(bmp, 0, 0); bmp.close();
+      var type = outType(file.type);
+      return new Promise(function (res, rej) { c.toBlob(function (b) { b ? res(b) : rej(new Error('encode')); }, type, 0.92); }).then(function (blob) {
+        return blob.arrayBuffer().then(function (buf) {
+          var again = E.parse(buf);
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = file.name.replace(/\.[^.]+$/, '') + '-clean.' + ext(type);
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+          var ok = type !== 'image/jpeg' || !again.found;
+          summary.textContent = ok ? 'Done. The cleaned copy was saved to your downloads. Your original is unchanged.' : 'The cleaned copy still shows metadata. Do not share it.';
+          summary.setAttribute('data-tone', ok ? 'ok' : 'fail');
+          clean.disabled = false; clean.textContent = 'Remove metadata and download';
+        });
+      });
+    }).catch(function () {
+      summary.textContent = 'This browser could not decode that image. HEIC and animated files are not supported here.';
+      summary.setAttribute('data-tone', 'fail'); clean.disabled = false; clean.textContent = 'Remove metadata and download';
+    });
+  }
+
+  input.addEventListener('change', function () { if (input.files && input.files[0]) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You picked a photo' } })); inspect(input.files && input.files[0]); });
+  clean.addEventListener('click', cleanFile);
+})();
+
+=== public/tools/assets/net-log.js ===
+/* Network request log. Reads browser Resource Timing data and lists it. No network, no storage. */
+(function () {
+  'use strict';
+
+  var root = document.getElementById('netlog');
+  if (!root) return;
+
+  var details = root.querySelector('.netlog-details');
+  var countEl = root.querySelector('.netlog-count');
+  var tbody = root.querySelector('.netlog-rows');
+  var fallback = root.querySelector('.netlog-fallback');
+  if (!details || !countEl || !tbody) return;
+
+  // If the browser does not expose resource timing to pages, show the fallback and stop.
+  if (typeof PerformanceObserver !== 'function' ||
+      typeof window.performance === 'undefined' ||
+      typeof window.performance.getEntriesByType !== 'function') {
+    // The fallback line sits inside <details>, so keep the panel and hide only the table and count.
+    if (fallback) fallback.hidden = false;
+    var scroll = root.querySelector('.netlog-scroll');
+    if (scroll) scroll.hidden = true;
+    countEl.textContent = 'not available';
+    return;
+  }
+
+  var seen = {};
+  var count = 0;
+  var firstMarkTime = null;
+  var addedMarkers = {};
+
+  function fmtBytes(n) {
+    if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
+    if (n >= 1024) return Math.round(n / 1024) + ' KB';
+    return n + ' B';
+  }
+
+  function isSameOrigin(url) {
+    try { return new URL(url, location.href).origin === location.origin; }
+    catch (e) { return false; }
+  }
+
+  function displayUrl(url) {
+    try {
+      var u = new URL(url, location.href);
+      if (u.origin === location.origin) return u.pathname + u.search;
+      return u.origin + u.pathname + (u.search || '');
+    } catch (e) { return url; }
+  }
+
+  function insertByTime(tr, time) {
+    var children = tbody.children;
+    for (var i = 0; i < children.length; i++) {
+      var rt = parseFloat(children[i].getAttribute('data-time'));
+      if (!isNaN(rt) && rt > time) {
+        tbody.insertBefore(tr, children[i]);
+        return;
+      }
+    }
+    tbody.appendChild(tr);
+  }
+
+  function buildSize(entry) {
+    var td = document.createElement('td');
+    td.setAttribute('data-label', 'Size');
+    if (entry.transferSize > 0) {
+      td.textContent = fmtBytes(entry.transferSize);
+    } else if (isSameOrigin(entry.name)) {
+      td.textContent = 'cached';
+      td.title = '0 bytes transferred: the browser reports this resource came from cache.';
+    } else {
+      td.textContent = '\u2014';
+      td.title = 'Size not reported. The browser did not return a transfer size for this resource: it may have been cached, or the server did not send Timing-Allow-Origin.';
+    }
+    return td;
+  }
+
+  function addEntry(entry) {
+    if (!entry || !entry.name) return;
+    var key = entry.name + '|' + entry.startTime + '|' + (entry.initiatorType || '');
+    if (seen[key]) return;
+    seen[key] = true;
+    count += 1;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-row';
+    tr.setAttribute('data-time', String(entry.startTime));
+    if (firstMarkTime !== null && entry.startTime > firstMarkTime) {
+      tr.classList.add('netlog-after');
+    }
+
+    var tdTime = document.createElement('td');
+    tdTime.setAttribute('data-label', 'Time');
+    tdTime.textContent = (entry.startTime / 1000).toFixed(1) + 's';
+    tdTime.title = 'Time since this page started loading';
+
+    var tdType = document.createElement('td');
+    tdType.setAttribute('data-label', 'Type');
+    tdType.textContent = entry.initiatorType || 'other';
+
+    var tdUrl = document.createElement('td');
+    tdUrl.setAttribute('data-label', 'Address');
+    tdUrl.className = 'netlog-url';
+    var code = document.createElement('code');
+    code.textContent = displayUrl(entry.name);
+    tdUrl.appendChild(code);
+    if (!isSameOrigin(entry.name)) {
+      tdUrl.appendChild(document.createTextNode(' '));
+      var tag = document.createElement('span');
+      tag.className = 'netlog-tag';
+      tag.textContent = 'external';
+      tdUrl.appendChild(tag);
+    }
+
+    tr.appendChild(tdTime);
+    tr.appendChild(tdType);
+    tr.appendChild(tdUrl);
+    tr.appendChild(buildSize(entry));
+    insertByTime(tr, entry.startTime);
+    countEl.textContent = String(count);
+  }
+
+  function addMarker(label) {
+    if (addedMarkers[label]) return;
+    addedMarkers[label] = true;
+
+    var time = (typeof performance.now === 'function') ? performance.now() : 0;
+    if (firstMarkTime === null) firstMarkTime = time;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-marker';
+    tr.setAttribute('data-time', String(time));
+    var th = document.createElement('th');
+    th.scope = 'row';
+    th.colSpan = 4;
+    th.textContent = label;
+    tr.appendChild(th);
+    insertByTime(tr, time);
+  }
+
+  try {
+    var initial = window.performance.getEntriesByType('resource');
+    for (var i = 0; i < initial.length; i++) addEntry(initial[i]);
+  } catch (e) {}
+
+  try {
+    var observer = new PerformanceObserver(function (list) {
+      var entries = list.getEntries();
+      for (var j = 0; j < entries.length; j++) addEntry(entries[j]);
+    });
+    observer.observe({ type: 'resource', buffered: true });
+  } catch (e) {
+    // Live updates unavailable; whatever the initial read produced stays shown.
+  }
+
+  document.addEventListener('netlog:mark', function (e) {
+    var label = e && e.detail && e.detail.label;
+    if (typeof label !== 'string' || !label) return;
+    addMarker(label);
+  });
+
+  countEl.textContent = String(count);
+})();
+
+=== src/tools/photo-metadata-remover.html ===
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Metadata Remover: See and Remove EXIF and GPS Data Locally</title>
+<meta name="description" content="Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo.">
+<link rel="canonical" href="https://secureinchat.com/tools/photo-metadata-remover/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Photo Metadata Remover: See and Remove EXIF and GPS Data Locally">
+<meta property="og:description" content="Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo.">
+<meta property="og:url" content="https://secureinchat.com/tools/photo-metadata-remover/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Photo metadata remover",
+      "url": "https://secureinchat.com/tools/photo-metadata-remover/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is my photo uploaded?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The file is read and re-encoded inside this page. There is no upload, and the page's code stores nothing. The page loads no analytics."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What metadata do photos contain?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Phone and camera JPEGs usually carry EXIF data: the device make and model, the date and time, often GPS coordinates, and sometimes software, lens or serial number."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do social networks remove metadata for me?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Some do when you upload, but you cannot tell which, and sending a photo by email, cloud link or some messengers can pass the original file through. Remove it yourself before you share."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does removal work here?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The page decodes the image and draws it onto a blank canvas, then saves that canvas as a new file. Metadata is not part of the pixels, so it is not copied. The page then reads the new JPEG again to check that no EXIF is left."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will image quality change?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A JPEG is re-encoded at high quality, so there can be a small loss. PNG output is lossless. The embedded colour profile is dropped, which can shift colours slightly in some viewers."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which formats work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG, PNG and WebP, if your browser can decode them. HEIC and animated images are not supported. Only JPEG metadata is shown before cleaning, but cleaning removes metadata from all supported formats."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it remove what is in the picture itself?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. A street sign, a face or a landmark in the photo can still give away where you are. This tool only removes hidden data."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">Photo metadata remover</h1>
+    <p class="lede">See what a photo reveals about where and when it was taken, then save a copy without it. The file never leaves your device.</p>
+    <div class="picker"><input id="file" type="file" accept="image/*" aria-label="Choose a photo"><button id="clean" class="btn" type="button" hidden>Remove metadata and download</button></div>
+    <p class="hint">Choose a JPEG, PNG or WebP. Your original is not changed. The page stores nothing. See also the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Choose a photo to begin.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">Photo metadata by category</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Photo</span><span class="c-desc">Choose a photo to see what it holds.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. A photo is read in this tab only: choosing one should not add a request here.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">What is hiding in your photos</h2>
+    <p>Most phone photos are saved with a block of hidden data called EXIF. It can include the exact coordinates where you stood, the time, and the model of your device. If you post or send the original file, whoever receives it can read that data with free software.</p>
+    <p>This page shows what a JPEG contains, then makes a copy without it. Your original file is never changed. The check and the cleaning both happen in your browser, so the photo does not leave your device.</p>
+    <h2 id="how-h">Before you share a photo</h2>
+    <ul>
+      <li>Remove metadata from the file, as this page does.</li>
+      <li>Look at the picture for details that give away a place: signs, house numbers, views from a window.</li>
+      <li>Turn off location tagging in your camera app if you rarely need it.</li>
+    </ul>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>Is my photo uploaded?</h3>
+    <p>No. The file is read and re-encoded inside this page. There is no upload, and the page's code stores nothing. The page loads no analytics.</p>
+    <h3>What metadata do photos contain?</h3>
+    <p>Phone and camera JPEGs usually carry EXIF data: the device make and model, the date and time, often GPS coordinates, and sometimes software, lens or serial number.</p>
+    <h3>Do social networks remove metadata for me?</h3>
+    <p>Some do when you upload, but you cannot tell which, and sending a photo by email, cloud link or some messengers can pass the original file through. Remove it yourself before you share.</p>
+    <h3>How does removal work here?</h3>
+    <p>The page decodes the image and draws it onto a blank canvas, then saves that canvas as a new file. Metadata is not part of the pixels, so it is not copied. The page then reads the new JPEG again to check that no EXIF is left.</p>
+    <h3>Will image quality change?</h3>
+    <p>A JPEG is re-encoded at high quality, so there can be a small loss. PNG output is lossless. The embedded colour profile is dropped, which can shift colours slightly in some viewers.</p>
+    <h3>Which formats work?</h3>
+    <p>JPEG, PNG and WebP, if your browser can decode them. HEIC and animated images are not supported here. Only JPEG metadata is shown before cleaning, but cleaning removes metadata from all supported formats. For HEIC photos, videos, PDFs and Office files, use the <a href="/tools/file-metadata-remover/">file metadata remover</a>, which removes metadata without re-encoding.</p>
+    <h3>Does it remove what is in the picture itself?</h3>
+    <p>No. A street sign, a face or a landmark in the photo can still give away where you are. This tool only removes hidden data.</p>
+  </section>
+  <aside class="wrap prose" id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">Tools from our partner</h2>
+    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a> (affiliate link) is encrypted cloud storage for files you need to keep or share after cleaning them. Or go to <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a> without a commission link.</p>
+  </aside>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/exif.js" defer></script>
+<script src="/tools/assets/exif-app.js" defer></script>
+<script src="/tools/assets/net-log.js" defer></script>
+</body>
+</html>
