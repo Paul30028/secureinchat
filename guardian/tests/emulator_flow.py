@@ -403,6 +403,17 @@ def main():
     tap(b)
     scroll_top()
     wait_ui(lambda s: "0 blocked by you" in s, "rules line does not return to 0 blocked by you")
+    # The row itself must go too (it once stayed: an empty list's signature equalled the reset value).
+    gone = False
+    for _ in range(4):
+        if not blocked_row.search(joined(dump())):
+            gone = True
+            break
+        swipe_up()
+        time.sleep(1)
+    if not gone:
+        fail(f"{user_dom} row still shown after Remove", dump())
+    scroll_top()
     probe5 = "www." + user_dom
     addr, out = resolve(probe5)
     print(f"guardian after Remove: {probe5} -> {addr}")
