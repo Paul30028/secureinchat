@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package org.secureinchat.guardian
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.net.VpnService
@@ -69,6 +70,8 @@ class GuardianTileService : TileService() {
         uiHandler.postDelayed({ refreshTile() }, 1000)
     }
 
+    // The Intent overload is the only one before API 34; the PendingIntent overload is used from 34 on.
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     private fun openMainActivityForConsent() {
         val activityIntent = Intent(this, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
