@@ -69,7 +69,7 @@
     else fallbackEl.select();
   }
 
-  src.addEventListener('input', run);
+  src.addEventListener('input', function () { if (src.value) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You ran the redactor' } })); run(); });
   terms.addEventListener('input', run);
   ALL_RULES.forEach(function (r) { if (boxes[r.id]) boxes[r.id].addEventListener('change', run); });
   reply.addEventListener('input', updateRestore);

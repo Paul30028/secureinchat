@@ -122,6 +122,29 @@
       </tbody>
     </table>
   </section>
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. Choosing a file for the first time loads the WebAssembly cleaning engine from this same site; that request appears here and is expected.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
   <section class="wrap prose" aria-labelledby="what-h">
     <h2 id="what-h">What it removes</h2>
     <p>Most files carry a block of hidden data next to the content you see. A phone photo can hold the exact coordinates where you stood, the time and the device model. A Word or PDF file can hold the author, the company, the software that wrote it, and the times it was created and last edited. A video or an audio file can hold the device, the software and the date. Whoever receives the original file can read all of it with free software.</p>
@@ -161,5 +184,6 @@
   </div>
 </footer>
 <script type="module" src="/tools/assets/mr-app.js"></script>
+<script src="/tools/assets/net-log.js" defer></script>
 </body>
 </html>
