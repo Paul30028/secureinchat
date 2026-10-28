@@ -100,21 +100,42 @@ def wait_ui(pred, what, timeout=30):
     fail(what, nodes)
 
 
-def scroll_find(pred, what, tries=5):
+_screen = None
+
+
+def screen_size():
+    """(width, height) from `wm size`; swipes must start inside the screen or they do nothing."""
+    global _screen
+    if _screen is None:
+        out = sh("wm size", check=False)
+        m = re.findall(r"(\d+)x(\d+)", out)
+        _screen = tuple(map(int, m[-1])) if m else (720, 1280)
+    return _screen
+
+
+def swipe_up(fraction=0.4):
+    """Scrolls the content down by about [fraction] of the screen height."""
+    w, h = screen_size()
+    x, y1, y2 = w // 2, int(h * 0.75), int(h * (0.75 - fraction))
+    sh(f"input swipe {x} {y1} {x} {y2} 400", check=False)
+
+
+def scroll_find(pred, what, tries=6):
     """Dumps the screen, scrolling down between attempts, until pred(joined text) holds.
     The per-app list sits below the log, so it can be off-screen on small emulator displays."""
     for i in range(tries):
         nodes = dump()
         if pred(joined(nodes)):
             return nodes
-        sh("input swipe 500 1500 500 700 400", check=False)
+        swipe_up()
         time.sleep(1)
     fail(what, nodes)
 
 
 def scroll_top():
-    for _ in range(4):
-        sh("input swipe 500 600 500 1600 300", check=False)
+    w, h = screen_size()
+    for _ in range(5):
+        sh(f"input swipe {w // 2} {int(h * 0.3)} {w // 2} {int(h * 0.8)} 300", check=False)
     time.sleep(1)
 
 
@@ -254,7 +275,7 @@ def main():
     b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
     if not b:
         # The row may sit at the bottom edge with its button cut off; scroll a little and look again.
-        sh("input swipe 500 1200 500 900 300", check=False)
+        swipe_up(0.15)
         time.sleep(1)
         nodes = dump()
         b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
