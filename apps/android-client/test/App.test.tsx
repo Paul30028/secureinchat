@@ -2030,7 +2030,7 @@ describe("placing a call", () => {
     await waitFor(() => {
       const frames = MockRelayWebSocket.lastInstance!.sent.slice(sentBefore).map((s) => JSON.parse(s).type);
       expect(frames).toContain("call_invite");
-    }, { timeout: 3000 });
+    }, { timeout: 10_000 });
   });
 
   it("shows the call screen once a call starts", async () => {

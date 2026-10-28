@@ -1,4 +1,5 @@
 import { buildSic2Invite, type ParsedInvite } from "@secureinchat/protocol";
+import { randomUUID } from "@secureinchat/crypto-core";
 
 /**
  * 群密钥轮换（epoch rotation）。
@@ -69,4 +70,36 @@ export function rotateGroupKey(input: RotateGroupInput): RotationResult {
 export function shouldAdoptInvite(current: { groupId: string; epoch: number }, incoming: ParsedInvite): boolean {
   if (incoming.groupId !== current.groupId) return false;
   return (incoming.epoch ?? 0) > current.epoch;
+}
+
+/**
+ * 为已经加入的群重新生成邀请串。
+ *
+ * 邀请串没有有效期，所以不需要单独保存——每次打开都用当前 JoinedGroup 里的
+ * 密钥材料和 epoch 现算。轮换过密钥的话，这里自然就是最新的，旧卡片随之失效。
+ *
+ * serverJoinCode 缺省时随机生成 8 位大写；中继目前不校验这个字段（见
+ * CreateGroupScreen 的注释），所以换个新的也无妨。
+ */
+export function buildInviteForGroup(
+  group: {
+    groupId: string;
+    groupName: string;
+    keyMaterialB64Url: string;
+    epoch: number;
+    adminPublicKeyRawB64Url?: string | undefined;
+  },
+  serverJoinCode?: string
+): string {
+  const code = serverJoinCode ?? randomUUID().slice(0, 8).toUpperCase();
+  return buildSic2Invite({
+    serverJoinCode: code,
+    groupId: group.groupId,
+    groupName: group.groupName,
+    keyMaterialB64Url: group.keyMaterialB64Url,
+    epoch: group.epoch,
+    ...(group.adminPublicKeyRawB64Url
+      ? { adminPublicKeyRawB64Url: group.adminPublicKeyRawB64Url }
+      : {}),
+  });
 }

@@ -7,13 +7,19 @@ export interface GroupSettingsScreenProps {
   onRename: (name: string) => Promise<void>;
   onLeave: () => Promise<void>;
   onBack: () => void;
+  /** 只有持有该群管理员私钥的设备才传这个；不传就不显示「邀请新成员」 */
+  onShowInvite?: (() => void) | undefined;
 }
 
 /**
- * 群设置：改名、退群。
+ * 群设置：改名、退群、邀请新成员。
  *
  * 改名只改本机显示的名字——中继不知道群叫什么，别人那边不会跟着变。
  * 这一点必须说出来，否则改完以为全群都看到了新名字。
+ *
+ * 「邀请新成员」只有管理员看得到：邀请串里的人能派生出群密钥、读取之后
+ * 的所有消息，不该让普通成员随手把卡片转出去。是否显示由调用方决定——
+ * 这个组件只负责渲染。
  */
 export function GroupSettingsScreen({
   groupName,
@@ -21,6 +27,7 @@ export function GroupSettingsScreen({
   onRename,
   onLeave,
   onBack,
+  onShowInvite,
 }: GroupSettingsScreenProps) {
   const [name, setName] = useState(groupName);
   const [saving, setSaving] = useState(false);
@@ -99,6 +106,28 @@ export function GroupSettingsScreen({
           只改这台手机上显示的名字。中继不知道群叫什么，其他人那边不会跟着变。
         </p>
       </div>
+
+      {onShowInvite ? (
+        <div style={{ marginTop: 20 }}>
+          <button
+            onClick={onShowInvite}
+            style={{
+              minHeight: touchTarget.minDp,
+              width: "100%",
+              textAlign: "left",
+              background: "transparent",
+              border: `0.5px solid ${colors.sageMint}`,
+              borderRadius: 12,
+              padding: "10px 14px",
+              cursor: "pointer",
+              boxShadow: "none",
+            }}
+          >
+            <div style={{ fontSize: 14, color: colors.textPrimary }}>邀请新成员</div>
+            <div style={{ fontSize: 11, color: "#9A9A94" }}>重新打开邀请卡片，发给想拉进群的人</div>
+          </button>
+        </div>
+      ) : null}
 
       <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, marginTop: 28, paddingTop: 16 }}>
         <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>退出群聊</div>

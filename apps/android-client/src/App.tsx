@@ -7,6 +7,7 @@ import {
   FileAssembler,
   buildFileEnvelopes,
   rotateGroupKey,
+  buildInviteForGroup,
   loadKnownDevices,
   removeGroup,
   renameGroup,
@@ -49,6 +50,7 @@ import { ConnectedDevicesScreen } from "./screens/ConnectedDevicesScreen";
 import { ConferenceScreen } from "./screens/ConferenceScreen";
 import { EditProfileScreen } from "./screens/EditProfileScreen";
 import { GroupSettingsScreen } from "./screens/GroupSettingsScreen";
+import { GroupInviteScreen } from "./screens/GroupInviteScreen";
 import { isLockEnabled, disableLock } from "./appLock";
 import { checkCryptoStorage, type CapabilityResult } from "./capabilityCheck";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
@@ -113,6 +115,7 @@ type Screen =
   | { name: "devices" }
   | { name: "editProfile" }
   | { name: "groupSettings"; groupId: string; from: "chat" | "list" }
+  | { name: "groupInvite"; groupId: string; from: "chat" | "list" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -295,6 +298,78 @@ export function App() {
       setHoldsAdminKey(keys.some(Boolean))
     );
   }, [sessions]);
+
+  // 群设置页是否显示「邀请新成员」——只看这个群的管理员私钥，不用全局的
+  // holdsAdminKey。那个是"有没有任意群的管理员权限"，拿到另一个群的管理员
+  // 私钥也能通过，会让非管理员看到不该看到的入口。
+  const [groupSettingsAdminAvailable, setGroupSettingsAdminAvailable] = useState(false);
+  const [groupInviteState, setGroupInviteState] = useState<
+    | { status: "loading" }
+    | { status: "ready"; groupName: string; inviteCode: string }
+    | { status: "error"; message: string }
+  >({ status: "loading" });
+
+  const settingsGroupId =
+    screen.name === "groupSettings" || screen.name === "groupInvite" ? screen.groupId : null;
+  const inviteGroupId = screen.name === "groupInvite" ? screen.groupId : null;
+
+  useEffect(() => {
+    if (!settingsGroupId) {
+      setGroupSettingsAdminAvailable(false);
+      return;
+    }
+    let cancelled = false;
+    void loadAdminKey(settingsGroupId).then((key) => {
+      if (!cancelled) setGroupSettingsAdminAvailable(Boolean(key));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [settingsGroupId]);
+
+  // 重新生成邀请卡片：打开时读一次 JoinedGroup 里的密钥材料和 epoch，
+  // 现算邀请串；找不到这个群就报错，不显示空卡片。
+  useEffect(() => {
+    if (!inviteGroupId) return;
+    let cancelled = false;
+    setGroupInviteState({ status: "loading" });
+    void (async () => {
+      try {
+        const store = await getDeviceStore();
+        const groups = await loadJoinedGroups(store);
+        const group = groups.find((g) => g.groupId === inviteGroupId);
+        if (!group) {
+          if (!cancelled) {
+            setGroupInviteState({
+              status: "error",
+              message: "找不到这个群的密钥材料，无法生成邀请卡片。请重新加入这个群。",
+            });
+          }
+          return;
+        }
+        const inviteCode = buildInviteForGroup({
+          groupId: group.groupId,
+          groupName: group.groupName,
+          keyMaterialB64Url: group.keyMaterialB64Url,
+          epoch: group.epoch,
+          adminPublicKeyRawB64Url: group.adminPublicKeyRawB64Url,
+        });
+        if (!cancelled) {
+          setGroupInviteState({ status: "ready", groupName: group.groupName, inviteCode });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setGroupInviteState({
+            status: "error",
+            message: err instanceof Error ? err.message : "生成邀请卡片失败，请重试",
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteGroupId]);
   /** 正在回复的消息（每个群独立） */
   const [replyTarget, setReplyTarget] = useState<DisplayMessage | null>(null);
   const [nickname, setNickname] = useState<string | undefined>(undefined);
@@ -1301,6 +1376,11 @@ export function App() {
         memberCount={s.onlinePeers.length}
         onRename={(name) => handleRenameGroup(s.groupId, name)}
         onLeave={() => handleLeaveGroup(s.groupId)}
+        onShowInvite={
+          groupSettingsAdminAvailable
+            ? () => setScreen({ name: "groupInvite", groupId: s.groupId, from: screen.name === "groupSettings" ? screen.from : "chat" })
+            : undefined
+        }
         onBack={() =>
           // 从哪儿进来就回哪儿——从列表长按进来的，返回不该跳进聊天页
           setScreen(
@@ -1309,6 +1389,24 @@ export function App() {
               : { name: "connected", activeGroupId: s.groupId, view: "chat", deviceId: "" }
           )
         }
+      />
+    );
+  }
+
+  if (screen.name === "groupInvite") {
+    const groupName = groupInviteState.status === "ready" ? groupInviteState.groupName : undefined;
+    const inviteCode = groupInviteState.status === "ready" ? groupInviteState.inviteCode : undefined;
+    const errorMessage = groupInviteState.status === "error" ? groupInviteState.message : undefined;
+    return (
+      <GroupInviteScreen
+        {...(groupName !== undefined ? { groupName } : {})}
+        {...(inviteCode !== undefined ? { inviteCode } : {})}
+        {...(errorMessage !== undefined ? { error: errorMessage } : {})}
+        onCopy={() => {
+          if (inviteCode) void copyToClipboard(inviteCode);
+        }}
+        // 回到群设置，并带回当初进入群设置的来源，返回键的行为保持一致
+        onBack={() => setScreen({ name: "groupSettings", groupId: screen.groupId, from: screen.from })}
       />
     );
   }
