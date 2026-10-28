@@ -1,0 +1,278 @@
+任务 G11(Guardian):显示「为什么被拦截」——每个被拦截的域名命中了哪条规则、来自哪个名单。
+
+背景:G10 已应用(提交 2751f39)。你给的锚点+替换片段全部一次匹配成功,注释都保留了,谢谢。我只改了一处:UserRulesStore.mergeIn 里导入的 block 也要把该域名从放行名单里删掉(「后来的选择替换旧的」,和 addBlocked 一致),原来是跳过。模拟器加了一步:点 Export 打开系统文件选择器、返回后仍在运行。你关于 SAF 无法可靠自动化的判断我采纳了。
+
+需求:用户在「Blocked most often」里看到一个域名被拦,想知道是被哪条规则拦的,才能判断是误拦还是该拦。例如 stats.g.doubleclick.net 是被 "doubleclick.net"(内置名单)拦的;如果是用户自己加的,就显示「你拦截的」。
+
+硬性规则同前(SPDX 头、不加依赖、不加权限、SharedPreferences 只在 UserRulesStore.kt、txt(en, zh)、保留现有注释、长文件用锚点+替换片段、不写进度百分比)。
+
+一、core
+1. Blocklist 增加:
+   enum class RuleSource { USER_ALLOW, USER_BLOCK, BUILTIN_ALLOW, BUILTIN_BLOCK }
+   data class Match(val rule: String, val source: RuleSource)
+   fun match(name: String): Match?   // 按和 isBlocked 完全相同的优先级与后缀规则,返回第一个命中;无命中返回 null
+   并把 isBlocked 改成基于 match 实现(isBlocked = match 的 source 是 USER_BLOCK 或 BUILTIN_BLOCK),保证两者永远一致。性能:isBlocked 在每次 DNS 查询时调用,不要额外分配太多对象(可以接受每次一个 Match)。
+2. 测试 core/src/test/kotlin/org/secureinchat/guardian/dns/MatchTest.kt(main 打印 "MatchTest: N passed"):各来源各一例;父域命中返回父域规则;优先级顺序;对随机生成的若干域名和规则集,match 与旧 isBlocked 逻辑结果一致(把旧逻辑复制一份到测试里做对照)。
+
+二、app
+3. QueryHandler 里不要改(日志不存规则)。MainActivity 的「Blocked most often」每行域名下面加一行灰色小字:
+   「Rule: doubleclick.net (built-in list)」/「规则:doubleclick.net(内置名单)」
+   「Rule: example.org (blocked by you)」/「规则:example.org(你拦截的)」
+   用 GuardianVpnService.activeHandler?.blocklist?.match(domain) 现算;未运行时不显示这一行。注意该列表有 5 秒节流和签名机制,规则行要跟着列表一起重建,不要每秒重排。
+4. 不改通知、磁贴、导入导出。
+
+输出:Blocklist.kt(完整,保留注释)、MatchTest.kt(完整)、MainActivity.kt 的锚点+替换片段。先给 core 和测试。
+
+当前 Blocklist.kt:
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian.dns
+
+/**
+ * Domain block/allow matcher.
+ *
+ * Four rule sets are kept separately so that precedence is explicit and stable:
+ *
+ *   user allow  >  user block  >  builtin allow (@@)  >  builtin block
+ *
+ * The first three are consulted in that order, walking the query name and each of its parent
+ * domains one label at a time. The first hit decides the answer. This means:
+ *
+ *  - a user allow always wins, even over a user block of the same name or a builtin block;
+ *  - a user block beats a builtin @@ allow, which is the point of letting users blacklist a
+ *    domain whose builtin whitelisting they disagree with;
+ *  - builtin @@ still overrides builtin block, as before.
+ *
+ * The bundled lists are immutable per process; the user lists are applied with plusAllowed /
+ * plusBlocked, both of which return a new instance and leave the receiver untouched.
+ *
+ * matched by suffix: "example.com" covers "a.b.example.com" but not "badexample.com".
+ */
+class Blocklist private constructor(
+    private val builtinBlocked: HashSet<String>,
+    private val builtinAllowed: HashSet<String>,
+    private val userBlocked: HashSet<String>,
+    private val userAllowed: HashSet<String>
+) {
+    /** Number of domains in the bundled block list (not counting user blocks). */
+    val blockedCount: Int get() = builtinBlocked.size
+
+    /** Number of builtin @@ allow rules (not counting user allows). */
+    val allowedCount: Int get() = builtinAllowed.size
+
+    fun isBlocked(name: String): Boolean {
+        try {
+            val n = normalizeHostname(name) ?: return false
+            var cur = n
+            while (true) {
+                if (userAllowed.contains(cur)) return false
+                val dot = cur.indexOf('.')
+                if (dot < 0) break
+                cur = cur.substring(dot + 1)
+            }
+            cur = n
+            while (true) {
+                if (userBlocked.contains(cur)) return true
+                val dot = cur.indexOf('.')
+                if (dot < 0) break
+                cur = cur.substring(dot + 1)
+            }
+            cur = n
+            while (true) {
+                if (builtinAllowed.contains(cur)) return false
+                val dot = cur.indexOf('.')
+                if (dot < 0) break
+                cur = cur.substring(dot + 1)
+            }
+            cur = n
+            while (true) {
+                if (builtinBlocked.contains(cur)) return true
+                val dot = cur.indexOf('.')
+                if (dot < 0) break
+                cur = cur.substring(dot + 1)
+            }
+            return false
+        } catch (t: Throwable) {
+            return false
+        }
+    }
+
+    /**
+     * Returns a new Blocklist with [extra] added to the user allow set. Invalid entries are ignored.
+     * User allow is the highest-priority set, so a user allow overrides both user blocks and the
+     * builtin lists.
+     */
+    fun plusAllowed(extra: Collection<String>): Blocklist {
+        val newAllowed = HashSet<String>(userAllowed)
+        for (s in extra) {
+            val n = normalizeOrNull(s) ?: continue
+            newAllowed.add(n)
+        }
+        return Blocklist(HashSet(builtinBlocked), HashSet(builtinAllowed), HashSet(userBlocked), newAllowed)
+    }
+
+    /**
+     * Returns a new Blocklist with [extra] added to the user block set. Invalid entries are ignored.
+     * User block is consulted after user allow but before the builtin lists, so it overrides
+     * builtin @@ rules while still losing to an explicit user allow of the same name.
+     */
+    fun plusBlocked(extra: Collection<String>): Blocklist {
+        val newBlocked = HashSet<String>(userBlocked)
+        for (s in extra) {
+            val n = normalizeOrNull(s) ?: continue
+            newBlocked.add(n)
+        }
+        return Blocklist(HashSet(builtinBlocked), HashSet(builtinAllowed), newBlocked, HashSet(userAllowed))
+    }
+
+    companion object {
+        private val WS = Regex("\\s+")
+
+        private val IGNORED = setOf(
+            "localhost", "localhost.localdomain", "broadcasthost", "local",
+            "0.0.0.0", "127.0.0.1", "ip6-localhost", "ip6-loopback"
+        )
+
+        fun normalizeOrNull(s: String): String? = normalizeHostname(s)
+
+        fun parse(text: String): Blocklist {
+            val builtinBlocked = HashSet<String>(1024)
+            val builtinAllowed = HashSet<String>(64)
+
+            for (rawLine in text.lineSequence()) {
+                var line = rawLine.trim()
+                if (line.isEmpty()) continue
+                if (line.startsWith("#") || line.startsWith("!")) continue
+
+                val hash = line.indexOf('#')
+                if (hash >= 0) line = line.substring(0, hash).trim()
+                if (line.isEmpty()) continue
+
+                var ascii = true
+                for (ch in line) {
+                    if (ch.code >= 128) { ascii = false; break }
+                }
+                if (!ascii) continue
+
+                if (line.startsWith("@@")) {
+                    val domain = parseAdblock(line.substring(2))
+                    if (domain != null) builtinAllowed.add(domain)
+                    continue
+                }
+
+                if (line.startsWith("||")) {
+                    val domain = parseAdblock(line)
+                    if (domain != null) builtinBlocked.add(domain)
+                    continue
+                }
+
+                val tokens = line.split(WS)
+                if (tokens.size >= 2 && looksLikeIp(tokens[0])) {
+                    for (k in 1 until tokens.size) {
+                        val d = normalizeHostname(tokens[k]) ?: continue
+                        if (d in IGNORED) continue
+                        builtinBlocked.add(d)
+                    }
+                    continue
+                }
+
+                val d = normalizeHostname(line) ?: continue
+                if (d in IGNORED) continue
+                builtinBlocked.add(d)
+            }
+
+            return Blocklist(builtinBlocked, builtinAllowed, HashSet(16), HashSet(16))
+        }
+
+        private fun parseAdblock(s: String): String? {
+            if (!s.startsWith("||")) return null
+            var body = s.substring(2)
+            if (!body.endsWith("^")) return null
+            body = body.substring(0, body.length - 1)
+            if (body.contains('*') || body.contains('/') || body.contains('$') || body.contains('|')) return null
+            return normalizeHostname(body)
+        }
+
+        private fun looksLikeIp(s: String): Boolean {
+            val parts = s.split('.')
+            if (parts.size != 4) return false
+            for (p in parts) {
+                if (p.isEmpty()) return false
+                for (ch in p) if (!ch.isDigit()) return false
+                val v = p.toIntOrNull() ?: return false
+                if (v < 0 || v > 255) return false
+            }
+            return true
+        }
+
+        private fun normalizeHostname(s: String): String? {
+            val d = s.trim().lowercase().trimEnd('.')
+            if (d.isEmpty()) return null
+            if (d.length > 253) return null
+            if (!d.contains('.')) return null
+            if (d.contains("..")) return null
+            for (label in d.split('.')) {
+                if (label.isEmpty()) return null
+                if (label.length > 63) return null
+                if (label.startsWith('-') || label.endsWith('-')) return null
+                for (ch in label) {
+                    val ok = (ch in 'a'..'z') || (ch in '0'..'9') || ch == '-' || ch == '_'
+                    if (!ok) return null
+                }
+            }
+            return d
+        }
+    }
+}
+
+当前 MainActivity.kt 中 renderAppList 函数:
+    private fun renderAppList(h: QueryHandler?) {
+        val top = h?.tally?.snapshot(1)?.firstOrNull()?.topBlocked ?: emptyList()
+        val sig = top.joinToString(";") { "${it.first}:${it.second}" }
+        if (sig == appListSignature) return
+        // Counts change with every DNS query. Rebuild the list at most every 5 s unless a tap reset the
+        // signature, so background traffic does not re-lay out the screen every second.
+        val now = android.os.SystemClock.uptimeMillis()
+        if (appListSignature.isNotEmpty() && now - appListBuiltAt < 5000) return
+        appListBuiltAt = now
+        appListSignature = sig
+        appListContainer.removeAllViews()
+        if (h == null) return
+        val density = resources.displayMetrics.density
+        val vpad = (4 * density).toInt()
+        if (top.isEmpty()) {
+            appListContainer.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt("(nothing blocked yet)", "(还没有拦截)")
+                setPadding(0, vpad, 0, vpad)
+            })
+            return
+        }
+        for (d in top) {
+            val domRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, vpad, 0, vpad)
+            }
+            val dom = TextView(this).apply {
+                textSize = 13f
+                text = "${d.first} (${d.second})"
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val allowBtn = Button(this).apply {
+                text = txt("Allow", "放行")
+                textSize = 12f
+                setOnClickListener {
+                    UserRulesStore.add(this@MainActivity, d.first)
+                    GuardianVpnService.applyUserRules(applicationContext)
+                    appListSignature = ""
+                    blockedSignature = ""
+                    allowedSignature = ""
+                    uiHandler.post { refreshUi() }
+                }
+            }
+            domRow.addView(dom)
+            domRow.addView(allowBtn)
+            appListContainer.addView(domRow)
+        }
+    }
+
+    // "Blocked by you": the user's own block list. Mirror of the allow list below it; both are
