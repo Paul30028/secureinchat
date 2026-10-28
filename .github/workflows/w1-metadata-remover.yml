@@ -8,7 +8,7 @@ on:
     branches: ["feature/w1-metadata-remover"]
     paths: ['tests/w1/**', '.github/workflows/w1-metadata-remover.yml']
 permissions:
-  contents: read
+  contents: write
 env:
   MR_REPO: https://github.com/iAnonymous3000/metadata-remover.git
   MR_SHA: 2524864b3135d6a77fdbb635c571d6948f8b2b3d
@@ -58,6 +58,16 @@ jobs:
         if: always()
         run: |
           { echo "## W1 metadata-remover @ ${MR_SHA:0:7}"; echo; echo '```'; cat sizes.txt 2>/dev/null; grep -E "test result" rust-tests.txt 2>/dev/null; cat check.txt 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit the built web package to this branch (only if it changed)
+        if: success() && github.ref == 'refs/heads/feature/w1-metadata-remover'
+        run: |
+          mkdir -p public/tools/assets/mr
+          cp mr/wasm/pkg-web/metadata_remover.js mr/wasm/pkg-web/metadata_remover_bg.wasm public/tools/assets/mr/
+          cp mr/LICENSE public/tools/assets/mr/LICENSE.txt
+          echo "iAnonymous3000/metadata-remover @ $MR_SHA, built by wasm-pack $WASM_PACK_VERSION (rust 1.94.1) in workflow run $GITHUB_RUN_ID" > public/tools/assets/mr/SOURCE.txt
+          git config user.name "w1-build-bot"; git config user.email "actions@users.noreply.github.com"
+          git add public/tools/assets/mr
+          if git diff --cached --quiet; then echo "package unchanged"; else git commit -qm "W1: built metadata-remover web package (pinned ${MR_SHA:0:7})" && git push -q; fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
