@@ -75,18 +75,23 @@
 
   function findTermHits(text, terms) {
     if (!terms.length) return [];
-    var lowerText = text.toLowerCase();
+    // Search the original text with a case-insensitive RegExp. Offsets taken from
+    // text.toLowerCase() are wrong when lowercasing changes length (for example 'İ'),
+    // which made a term silently stay visible.
     var all = [];
     terms.forEach(function (term) {
-      var start = 0, idx;
-      while ((idx = lowerText.indexOf(term.lower, start)) !== -1) {
-        var end = idx + term.text.length;
+      var src = term.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), re;
+      try { re = new RegExp(src, 'giu'); } catch (e) { re = new RegExp(src, 'gi'); }
+      var m;
+      while ((m = re.exec(text)) !== null) {
+        if (!m[0].length) { re.lastIndex++; continue; }
+        var idx = m.index, end = idx + m[0].length;
         var before = idx > 0 ? text.charAt(idx - 1) : '';
         var after = end < text.length ? text.charAt(end) : '';
         if (!term.word || (!isWordChar(before) && !isWordChar(after))) {
-          all.push({ start: idx, end: end, rule: TERM_RULE, len: term.text.length, order: all.length });
+          all.push({ start: idx, end: end, rule: TERM_RULE, len: m[0].length, order: all.length });
         }
-        start = idx + 1;
+        re.lastIndex = idx + 1;
       }
     });
     all.sort(function (a, b) { return b.len - a.len || a.start - b.start || a.order - b.order; });

@@ -107,4 +107,14 @@ t('parseTerms splits on lines and separators', () => {
   assert.deepStrictEqual(parseTerms(''), []);
   assert.deepStrictEqual(parseTerms('  ,  ; '), []);
 });
+t('terms still hidden when lowercasing changes length earlier in the text', () => {
+  const text = 'İstanbul: İİ Alice Smith met Bob';
+  const r = redact(text, true, { terms: ['Alice Smith'] });
+  assert.strictEqual(r.text, 'İstanbul: İİ [NAME_1] met Bob');
+  assert.strictEqual(restore(r.text, r.mapping).text, text);
+});
+t('terms containing regex characters match literally', () => {
+  const r = redact('Project (X.1) and Project X11', true, { terms: ['Project (X.1)'] });
+  assert.strictEqual(r.text, '[NAME_1] and Project X11');
+});
 console.log(n + ' tests passed');
