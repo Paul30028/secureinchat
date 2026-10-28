@@ -89,7 +89,7 @@ ${prose.map((b) => `<${b.tag}${cleanAttrs(b.attrs)}>${mapTags(b.inner)}</${b.tag
       <section class="content-panel content-panel--soft">
        <h2>${chrome.other}</h2>
        <p>${chrome.otherText}</p>
-       <a class="text-link" href="/tools/">${chrome.browse} <span aria-hidden="true">→</span></a>
+       <a class="text-link" href="${zh ? '/zh/tools/' : '/tools/'}">${chrome.browse} <span aria-hidden="true">→</span></a>
       </section>
      </aside>`;
   const homeHref = zh ? '/zh/' : '/';
@@ -98,7 +98,7 @@ ${prose.map((b) => `<${b.tag}${cleanAttrs(b.attrs)}>${mapTags(b.inner)}</${b.tag
      <nav aria-label="${chrome.crumbLabel}" class="breadcrumbs">
       <a href="${homeHref}">${chrome.crumbHome}</a>
       <span aria-hidden="true" class="breadcrumb-separator">/</span>
-      <a href="/tools/">${chrome.crumbTools}</a>
+      <a href="${zh ? '/zh/tools/' : '/tools/'}">${chrome.crumbTools}</a>
       <span aria-hidden="true" class="breadcrumb-separator">/</span>
       <span aria-current="page">${crumbName}</span>
      </nav>
@@ -140,9 +140,8 @@ ${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
   // The shared subpage shell already carries the Chinese header and footer (lang 'zh').
   if (zh) { shellArgs.lang = 'zh'; shellArgs.htmlLang = chrome.lang; }
   let html = shell(shellArgs);
-  // The Chinese header links to /zh/tools/ and /zh/blog/, which do not exist yet: point them at the
-  // English index pages until they do.
-  if (zh) html = html.replace(/href="\/zh\/(tools|blog)\/"/g, 'href="/$1/"');
+  // The Chinese header links to /zh/blog/, which does not exist yet: point it at the English guides.
+  if (zh) html = html.replace(/href="\/zh\/blog\/"/g, 'href="/blog/"');
   html = html.replace(' </body>', `${tailScripts.map((s) => `  ${s}`).join('\n')}\n </body>`);
   // the kit stylesheets load after tool-legacy.css in the shell head order; move tool-legacy last so widgets keep their look
   html = html.replace('  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n', '').replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>');

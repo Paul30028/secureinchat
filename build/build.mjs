@@ -757,6 +757,22 @@ write('blog/index.html', blogIndex());
   write('tools/index.html', kitShell({ title, desc, canonical: '/tools/', current: '/tools/', headExtra: headExtra({ canonical: '/tools/', title, desc }), main: m }));
 }
 
+// Chinese tools index: ChatGPT's tools-index.zh template. Translated tools link to their Chinese pages;
+// the rest still link to the English page and say so on the button.
+{
+  const ZH_TOOLS = { '/tools/phone-checkup/': '/zh/tools/phone-checkup/', '/tools/photo-metadata-remover/': '/zh/tools/photo-metadata-remover/' };
+  const title = '隐私工具 | SecureInChat'; const desc = '免费的隐私工具：每项检查做什么、哪些数据留在浏览器里、什么时候会用到外部服务，都写清楚。';
+  let m = kitMain('tools-index.zh.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/');
+  m = m.replace(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g, (a) => {
+    const href = /class="tool-catalogue-action" href="([^"]+)"/.exec(a);
+    if (!href) return a;
+    if (ZH_TOOLS[href[1]]) return a.replace(`href="${href[1]}"`, `href="${ZH_TOOLS[href[1]]}"`);
+    return a.replace(/(class="tool-catalogue-action" href="[^"]+"[^>]*>)\s*立即使用/, '$1 使用（英文页面）');
+  });
+  // /zh/blog/ does not exist yet: the Chinese header's guides link goes to the English guides.
+  write('zh/tools/index.html', kitShell({ lang: 'zh', title, desc, canonical: '/zh/tools/', current: '/zh/tools/', headExtra: headExtra({ canonical: '/zh/tools/', title, desc }), main: m }).replace(/href="\/zh\/blog\/"/g, 'href="/blog/"'));
+}
+
 // Tool detail pages: kit tool-detail layout around each tool's unchanged live markup (src/tools/<slug>.html).
 {
   const idx = KIT_T('tools-index.en.html');
@@ -865,7 +881,7 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -881,7 +897,7 @@ const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflar
 // so a per-page exception under /tools/* is not possible; it is set for the whole /tools/ section.
 const TOOLS_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/phone-checkup/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 
