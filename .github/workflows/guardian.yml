@@ -29,11 +29,13 @@ jobs:
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsUpstreamTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.QueryHandlerTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.AppTallyTestKt
+          java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsIpv6TestKt
       - name: Independent oracle (dnspython)
         run: |
           /tmp/kotlinc/bin/kotlinc core/src/main/kotlin tests/oracle/Cli.kt -include-runtime -d /tmp/cli.jar
           pip install dnspython==2.8.0
           python3 tests/dns_oracle.py /tmp/cli.jar
+          python3 tests/dns_oracle6.py /tmp/cli.jar
   app:
     needs: core
     runs-on: ubuntu-latest

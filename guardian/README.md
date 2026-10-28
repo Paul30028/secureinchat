@@ -14,6 +14,7 @@ Licensed GPL-3.0-or-later.
 | Android VpnService shell and screen (G2b part 2) | Done; emulator flow on API 29 and 34 passes in CI (start, block, forward, stop from app and notification). |
 | Blocklist source (G3a) | Bundled snapshot of [HaGeZi Multi LIGHT](https://github.com/hagezi/dns-blocklists) (GPL-3.0, about 72,000 domains, chosen for few false positives) plus Guardian's short `blocklist-extra.txt`. Refresh with `python3 tools/update_blocklist.py`; the app never downloads lists. Parse on a desktop JVM: about 0.4 s, 8 MB heap. |
 | "Blocked most often" list, user allowlist (G3b) | DeepSeek wrote to Claude's spec; Claude reviewed and fixed a start/stop race (Stop pressed while the list loads) and throttled list rebuilds. The spec asked for counts per app, but the emulator flow showed every query arriving from the system DNS service (uid 1051): on Android 10+ apps resolve through that service, so a DNS-only VPN cannot tell which app asked. The screen therefore lists blocked domains, each with Allow; per-app attribution would need routing all traffic through the VPN, which is not planned. Counts live in memory only; the user's allowlist is the one thing saved (`UserRulesStore`). `AppTallyTest` (9 groups) passes; the emulator flow taps Allow and Remove and checks that resolution changes. |
+| DNS over IPv6 (G4) | DeepSeek wrote to Claude's spec: IPv6/UDP queries (no extension headers), blocked and upstream answers with the IPv6 pseudo-header checksum, and an IPv6 DNS server address (fd00:6a72:6764::2) on the VPN, falling back to IPv4 only if the platform refuses it. `DnsIpv6Test` (14 groups) and `tests/dns_oracle6.py` (8 answers, 6 rejects, 4 upstream cases checked with dnspython and a separate checksum) pass. |
 | Real-device test | none |
 
 ## Run the checks
@@ -23,8 +24,9 @@ Licensed GPL-3.0-or-later.
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsUpstreamTestKt
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.QueryHandlerTestKt
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.AppTallyTestKt
+    java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsIpv6TestKt
     kotlinc core/src/main/kotlin tests/oracle/Cli.kt -include-runtime -d /tmp/cli.jar
-    pip install dnspython && python3 tests/dns_oracle.py /tmp/cli.jar
+    pip install dnspython && python3 tests/dns_oracle.py /tmp/cli.jar && python3 tests/dns_oracle6.py /tmp/cli.jar
 
 ## Blocklist credit
 

@@ -73,9 +73,31 @@ class GuardianVpnService : VpnService() {
 
             val builder = Builder()
             builder.setSession("Guardian")
+            // IPv4 DNS hijack target. Only DNS-server traffic is routed into the VPN; everything else
+            // stays on the underlying network.
             builder.addAddress("10.111.222.1", 32)
             builder.addDnsServer("10.111.222.2")
             builder.addRoute("10.111.222.2", 32)
+            // IPv6 DNS hijack target, a unique local address (fc00::/7, not routable on the internet). Some networks only
+            // hand out IPv6 DNS servers; without this, those queries bypass Guardian. If the platform
+            // refuses the IPv6 address (old build, unusual ROM), fall back to IPv4-only rather than
+            // failing the whole session.
+            var ipv6Configured = false
+            try {
+                builder.addAddress("fd00:6a72:6764::1", 128)
+                ipv6Configured = true
+            } catch (_: Throwable) {
+                ipv6Configured = false
+            }
+            if (ipv6Configured) {
+                try {
+                    builder.addDnsServer("fd00:6a72:6764::2")
+                    builder.addRoute("fd00:6a72:6764::2", 128)
+                } catch (_: Throwable) {
+                    // Address already added; a partially configured IPv6 side is harmless: no route
+                    // is installed, so no IPv6 DNS traffic will enter the VPN from this side.
+                }
+            }
             builder.setMtu(1500)
             builder.setBlocking(true)
 
