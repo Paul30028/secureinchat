@@ -1,0 +1,132 @@
+仓库内路径：src/nextbatch/tool-widgets.css
+追加到文件末尾（@media (prefers-reduced-motion: reduce) { … } 块之后）：
+
+<<<CODE
+/* Text redactor W2 — "Names and other words to hide".
+   Sits between the two-box redact grid and the rule checkboxes. The textarea reuses .rd-text
+   but should show about three lines instead of the full fifteen used by the main panes.
+   Label and hint spacing follow the existing .rd-grid label rhythm. */
+.legacy-tool .rd-terms { margin-top: .75rem; }
+.legacy-tool .rd-terms > label {
+  display: block;
+  margin-bottom: .5rem;
+  color: var(--widget-ink);
+  font-weight: 700;
+}
+.legacy-tool .rd-terms .rd-text { min-height: 5.5rem; }
+.legacy-tool .rd-terms .hint { margin: .5rem 0 0; }
+
+/* Text redactor W2 — "Put the real values back".
+   A hairline rule and generous space separate the restore block from the redact actions
+   above it. The h2 follows the .prose h2 scale so the two halves of the tool read as
+   peers. The block is a plain div, so nothing here changes the section slicing. */
+.legacy-tool .rd-restore {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--widget-line);
+}
+.legacy-tool .rd-restore h2 {
+  margin: 0 0 .8rem;
+  color: var(--widget-brand);
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1.65rem;
+  line-height: 1.25;
+}
+
+/* Text redactor W2 — restore status line.
+   Sits just under the copy button, so it takes a small top gap of its own.
+   Hidden while empty so it does not reserve space before the first reply is pasted. */
+.legacy-tool #rd-restore-status { margin: .6rem 0 0; }
+.legacy-tool #rd-restore-status:empty { display: none; }
+CODE>>>
+仓库内路径：src/subpages/templates/tools-index.en.html
+在包含 href="/tools/photo-metadata-remover/" 的 </article> 之后插入：
+
+<<<CODE
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <rect height="22" rx="2" width="15" x="5" y="3">
+           </rect>
+           <path d="M9 9h7M9 13h7M9 17h4">
+           </path>
+           <path d="m16 20 5 1-1 5-5-1z">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           File Metadata Remover
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             Local processing
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         Inspect and remove hidden metadata from photos, videos, PDFs and Office files on your device.
+        </p>
+        <a class="tool-catalogue-action" href="/tools/file-metadata-remover/">
+         Open tool
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+CODE>>>
+仓库内路径：src/subpages/templates/tools-index.zh.html
+在包含 href="/tools/photo-metadata-remover/" 的 </article> 之后插入：
+
+<<<CODE
+       <article class="tool-catalogue-item">
+        <div class="tool-catalogue-head">
+         <span class="tool-catalogue-icon">
+          <svg aria-hidden="true" class="tool-catalogue-icon-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <rect height="22" rx="2" width="15" x="5" y="3">
+           </rect>
+           <path d="M9 9h7M9 13h7M9 17h4">
+           </path>
+           <path d="m16 20 5 1-1 5-5-1z">
+           </path>
+          </svg>
+         </span>
+         <div class="tool-catalogue-title">
+          <h3>
+           文件元数据清除
+          </h3>
+          <ul class="state-list">
+           <li>
+            <span class="state-label">
+             本地处理
+            </span>
+           </li>
+          </ul>
+         </div>
+        </div>
+        <p>
+         在本机查看并删除照片、视频、PDF 和 Office 文件里隐藏的元数据。
+        </p>
+        <a class="tool-catalogue-action" href="/tools/file-metadata-remover/">
+         立即使用
+         <span aria-hidden="true">
+          →
+         </span>
+        </a>
+       </article>
+CODE>>>
+仓库内路径：src/nextbatch/tool-widgets.css
+追加到文件末尾（与前一段 CSS 同处，位于上一段之后）：
+
+<<<CODE
+/* File metadata remover — long metadata values.
+   The page already truncates each value at 200 characters and .val already carries
+   overflow-wrap: anywhere, so the cell cannot push the column wider than the phone screen.
+   The .mono variant is reinforced here because XMP and similar payloads arrive as a single
+   unbroken token and would otherwise sit flush against the cell edge. */
+.legacy-tool .val.mono { word-break: break-word; }
+CODE>>>
