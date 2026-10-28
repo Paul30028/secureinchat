@@ -2236,3 +2236,46 @@ describe("voice conference", () => {
     expect(await screen.findByText(/没有其他人在线/)).toBeInTheDocument();
   });
 });
+
+describe("disappearing messages (C7)", () => {
+  it("a message sent with 5 minutes on shows the hourglass and is gone after 5 minutes", async () => {
+    await renderApp();
+    await joinTestGroup();
+    fireEvent.click(screen.getByLabelText("群设置"));
+    fireEvent.click(await screen.findByRole("button", { name: "5 分钟" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "5 分钟" })).toHaveAttribute("aria-pressed", "true")
+    );
+    expect(screen.getByText(/对方用的是旧版本应用时/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    // The local note is shown in the chat and is never sent.
+    expect(await screen.findByText("你开启了定时消失：5 分钟")).toBeInTheDocument();
+
+    // Fake timers before sending, so the expiry timer the app schedules is a fake one;
+    // shouldAdvanceTime keeps the app's other async work (storage, socket mock) moving.
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["setTimeout", "clearTimeout", "Date"] });
+    try {
+      fireEvent.change(await screen.findByLabelText("消息输入框"), { target: { value: "五分钟后消失" } });
+      fireEvent.click(screen.getByRole("button", { name: "发送" }));
+      expect(await screen.findByText("五分钟后消失")).toBeInTheDocument();
+      expect(screen.getByText(/⏳/)).toBeInTheDocument();
+      await act(async () => {
+        vi.advanceTimersByTime(5 * 60_000 + 2_000);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    await waitFor(() => expect(screen.queryByText("五分钟后消失")).not.toBeInTheDocument(), { timeout: 5000 });
+    // The note about turning it on stays (it has no timer of its own).
+    expect(screen.getByText("你开启了定时消失：5 分钟")).toBeInTheDocument();
+  });
+
+  it("with the timer off, a sent message has no hourglass", async () => {
+    await renderApp();
+    await joinTestGroup();
+    fireEvent.change(screen.getByLabelText("消息输入框"), { target: { value: "普通消息" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+    expect(await screen.findByText("普通消息")).toBeInTheDocument();
+    expect(screen.queryByText(/⏳/)).not.toBeInTheDocument();
+  });
+});

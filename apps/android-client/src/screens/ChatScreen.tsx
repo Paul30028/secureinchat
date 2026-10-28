@@ -35,6 +35,10 @@ export interface DisplayMessage {
   queued?: boolean | undefined;
   /** 引用的消息（快照，不是 ID——对方可能已经删了原消息） */
   replyTo?: { senderName: string; excerpt: string } | undefined;
+  /** 阅后即焚的到期时刻；有就显示沙漏 */
+  expiresAtMs?: number | undefined;
+  /** 本地系统提示（如「你开启了定时消失」），不发送给别人 */
+  system?: boolean | undefined;
 }
 
 export interface Announcement {
@@ -361,7 +365,15 @@ export function ChatScreen({
         {messages.length === 0 && !announcement ? (
           <p style={{ textAlign: "center", color: "#9A9A94", fontSize: 12, marginTop: 24 }}>还没有消息，说点什么吧</p>
         ) : (
-          messages.map((m) => (
+          messages.map((m) =>
+            m.system ? (
+              <div
+                key={m.id}
+                style={{ textAlign: "center", fontSize: 11, color: "#9A9A94", margin: "8px 0" }}
+              >
+                {m.text}
+              </div>
+            ) : (
             <div
               key={m.id}
               style={
@@ -377,9 +389,30 @@ export function ChatScreen({
             >
               <ChatBubble
                 isOwn={m.isOwn}
-                timeLabel={formatMessageTime(m.sentAtMs)}
+                timeLabel={
+                  m.expiresAtMs !== undefined
+                    ? `${formatMessageTime(m.sentAtMs)} ⏳`
+                    : formatMessageTime(m.sentAtMs)
+                }
                 senderName={m.isOwn ? undefined : m.fromDeviceId}
               >
+                {m.expiresAtMs !== undefined ? (
+                  <span
+                    style={{
+                      position: "absolute",
+                      width: 1,
+                      height: 1,
+                      padding: 0,
+                      margin: -1,
+                      overflow: "hidden",
+                      clip: "rect(0 0 0 0)",
+                      whiteSpace: "nowrap",
+                      border: 0,
+                    }}
+                  >
+                    定时消失
+                  </span>
+                ) : null}
                 {m.replyTo ? (
                   <div
                     style={{
@@ -420,7 +453,8 @@ export function ChatScreen({
                 </div>
               ) : null}
             </div>
-          ))
+            )
+          )
         )}
 
         {incomingProgress?.map((p) => (

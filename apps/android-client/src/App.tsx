@@ -31,6 +31,11 @@ import {
   upsertGroup,
   copyToClipboard,
   buildReplyExcerpt,
+  sanitizeExpiresInMs,
+  expiresAtFor,
+  partitionExpired,
+  nextExpiryMs,
+  setDisappearAfter,
   type ConnectionStatus,
   type AnnouncementCategory,
 } from "@secureinchat/chat-core";
@@ -49,7 +54,7 @@ import { ConnectionDiagnosticsScreen } from "./screens/ConnectionDiagnosticsScre
 import { ConnectedDevicesScreen } from "./screens/ConnectedDevicesScreen";
 import { ConferenceScreen } from "./screens/ConferenceScreen";
 import { EditProfileScreen } from "./screens/EditProfileScreen";
-import { GroupSettingsScreen } from "./screens/GroupSettingsScreen";
+import { GroupSettingsScreen, disappearLabel } from "./screens/GroupSettingsScreen";
 import { GroupInviteScreen } from "./screens/GroupInviteScreen";
 import { isLockEnabled, disableLock } from "./appLock";
 import { checkCryptoStorage, type CapabilityResult } from "./capabilityCheck";
@@ -387,6 +392,106 @@ export function App() {
   const pendingAfterProfileRef = useRef<(() => void) | null>(null);
   const [needsProfile, setNeedsProfile] = useState(false);
 
+  // 每个群本地的「消息定时消失」时长（毫秒），0 表示关闭。
+  // 只影响自己之后发出的消息；收到的消息按消息里带的 expiresInMs 处理。
+  // 单独放一份镜像，是因为 GroupSettingsScreen 要立即显示新值，
+  // 而 JoinedGroup 是异步读写加密存储的。
+  const [disappearAfterByGroup, setDisappearAfterByGroup] = useState<Record<string, number>>({});
+
+  // 每个群一个到期定时器。用 nextExpiryMs 算出下一条何时到期，
+  // 到点再重排——不轮询。
+  const expiryTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  /** 清掉某个群的到期定时器（离开群、卸载时用）。 */
+  function clearExpiryTimer(groupId: string) {
+    const timer = expiryTimersRef.current.get(groupId);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      expiryTimersRef.current.delete(groupId);
+    }
+  }
+
+  /** 按这个群当前最早的一条到期时间重排定时器。 */
+  function scheduleExpiryFor(groupId: string) {
+    clearExpiryTimer(groupId);
+    const session = sessionsRef.current[groupId];
+    if (!session) return;
+    const next = nextExpiryMs(session.messages);
+    if (next === undefined) return;
+    // 最少 1 秒：到期时间已经在过去（时钟回拨等）时不要立刻疯狂重排
+    const delay = Math.max(1000, next - Date.now());
+    const timer = setTimeout(() => {
+      void expireMessagesFor(groupId);
+    }, delay);
+    expiryTimersRef.current.set(groupId, timer);
+  }
+
+  /**
+   * 把已经过期的消息从这个群里删掉、释放 objectUrl、落盘，然后为下一条重排。
+   * 界面和加密存储里都要删——这是「阅后即焚」的实际执行点。
+   */
+  async function expireMessagesFor(groupId: string) {
+    clearExpiryTimer(groupId);
+    const session = sessionsRef.current[groupId];
+    if (!session) return;
+    const { keep, expired } = partitionExpired(session.messages, Date.now());
+    if (expired.length === 0) {
+      scheduleExpiryFor(groupId);
+      return;
+    }
+    for (const m of expired) {
+      if (m.media?.objectUrl) URL.revokeObjectURL(m.media.objectUrl);
+    }
+    setSessions((prev) => {
+      const next = patchSession(prev, groupId, { messages: keep });
+      sessionsRef.current = next;
+      return next;
+    });
+    try {
+      const store = await getDeviceStore();
+      await saveMessages(store, groupId, keep.map((m) => toStored(m)));
+    } catch {
+      // 落盘失败不影响界面上的删除；下次写入会覆盖
+    }
+    scheduleExpiryFor(groupId);
+  }
+
+  // 消息列表一变就按最新状态重排各群的到期定时器。直接在 setSessions 之后调用
+  // scheduleExpiryFor 不够：更新函数要等下一次渲染才执行，那时 sessionsRef 还是旧的，
+  // 新消息的到期时间就被漏掉了。
+  useEffect(() => {
+    sessionsRef.current = sessions;
+    for (const groupId of Object.keys(sessions)) scheduleExpiryFor(groupId);
+  }, [sessions]);
+
+  // 组件卸载时把所有定时器清掉，避免在已卸载的组件上 setState
+  useEffect(() => {
+    return () => {
+      for (const timer of expiryTimersRef.current.values()) clearTimeout(timer);
+      expiryTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 修改某个群的「消息定时消失」。
+   * 保存到 JoinedGroup（本机、本群），并插一条本地系统提示——不发送给别人。
+   */
+  async function handleSetDisappearAfter(groupId: string, ms: number) {
+    const store = await getDeviceStore();
+    const groups = setDisappearAfter(await loadJoinedGroups(store), groupId, ms);
+    await saveJoinedGroups(store, groups);
+    setDisappearAfterByGroup((prev) => ({ ...prev, [groupId]: ms }));
+    const session = sessionsRef.current[groupId];
+    if (!session) return;
+    await appendOwnMessage(groupId, {
+      id: `sys-${nextMessageId++}`,
+      isOwn: true,
+      system: true,
+      sentAtMs: Date.now(),
+      text: ms > 0 ? `你开启了定时消失：${disappearLabel(ms)}` : "你关闭了定时消失",
+    });
+  }
+
   useEffect(() => {
     void loadSavedRelayUrl().then((saved) => {
       if (saved) setRelayUrl(saved);
@@ -403,6 +508,10 @@ export function App() {
     void (async () => {
       const store = await getDeviceStore();
       const groups = await loadJoinedGroups(store);
+      // 把各群的「消息定时消失」读进来，群设置页要立即显示当前值
+      setDisappearAfterByGroup(
+        Object.fromEntries(groups.map((g) => [g.groupId, g.disappearAfterMs ?? 0]))
+      );
       isAutoReconnectRef.current = true;
       for (const g of groups) {
         try {
@@ -497,11 +606,21 @@ export function App() {
         if (!session) return prev;
         const messages = [...session.messages, message];
         persist(messages, mediaBytes ? new Map([[message.id, mediaBytes]]) : undefined);
-        return patchSession(prev, groupId, { messages });
+        const next = patchSession(prev, groupId, { messages });
+        sessionsRef.current = next;
+        return next;
       });
+      // 新消息可能带到期时间，重排这个群的定时器
+      scheduleExpiryFor(groupId);
     };
 
-    const history = (await loadMessages(store, groupId)).map(fromStored);
+    // 重启后重新加载历史：已经过期的消息不该再出现，立即从存储里删掉。
+    const storedHistory = await loadMessages(store, groupId);
+    const { keep: keptStored, expired: expiredStored } = partitionExpired(storedHistory, Date.now());
+    if (expiredStored.length > 0) {
+      void saveMessages(store, groupId, keptStored);
+    }
+    const history = keptStored.map(fromStored);
     const knownDevices = await loadKnownDevices(store, groupId);
 
     client.onMessage((msg) => {
@@ -511,6 +630,11 @@ export function App() {
         // 发消息的人带了昵称，正好补进设备名单
         void recordSightings(groupId, [{ deviceId: msg.fromDeviceId, displayName: env.senderName }]);
 
+        const textReceivedAtMs = Date.now();
+        const textExpiresAtMs = expiresAtFor(
+          textReceivedAtMs,
+          sanitizeExpiresInMs(env.expiresInMs)
+        );
         appendMessage({
           id: `recv-${nextMessageId++}`,
           text: env.text,
@@ -520,6 +644,7 @@ export function App() {
           // 应该显示当初发出的时刻
           sentAtMs: env.sentAtMs,
           ...(env.replyTo ? { replyTo: env.replyTo } : {}),
+          ...(textExpiresAtMs !== undefined ? { expiresAtMs: textExpiresAtMs } : {}),
         });
         return;
       }
@@ -600,6 +725,11 @@ export function App() {
         });
         return;
       }
+      const fileReceivedAtMs = Date.now();
+      const fileExpiresAtMs = expiresAtFor(
+        fileReceivedAtMs,
+        sanitizeExpiresInMs(done.expiresInMs)
+      );
       appendMessage(
         {
           id: `recv-${nextMessageId++}`,
@@ -614,6 +744,7 @@ export function App() {
             sizeBytes: done.bytes.byteLength,
             ...(done.durationMs !== undefined ? { durationMs: done.durationMs } : {}),
           },
+          ...(fileExpiresAtMs !== undefined ? { expiresAtMs: fileExpiresAtMs } : {}),
         },
         done.bytes
       );
@@ -768,6 +899,8 @@ export function App() {
     const shouldOpenChat = isFirstGroup && !isAutoReconnectRef.current;
     sessionsRef.current = { ...sessionsRef.current, [groupId]: session };
     setSessions(sessionsRef.current);
+    // 历史里可能还有即将到期的消息，连上后马上排一次
+    scheduleExpiryFor(groupId);
 
     if (keepScreen) {
       // 保持当前界面不动
@@ -881,8 +1014,12 @@ export function App() {
       if (!session) return prev;
       const messages = [...session.messages, message];
       void saveMessages(store, groupId, messages.map((m) => toStored(m, mediaBytes && m.id === message.id ? mediaBytes : undefined)));
-      return patchSession(prev, groupId, { messages });
+      const next = patchSession(prev, groupId, { messages });
+      sessionsRef.current = next;
+      return next;
     });
+    // 自己发的消息也可能带到期时间（定时消失开着时），同样要排定时器
+    if (message.expiresAtMs !== undefined) scheduleExpiryFor(groupId);
   }
 
   function handleCopyMessage(message: DisplayMessage) {
@@ -927,13 +1064,19 @@ export function App() {
     try {
       // sendText 断线时会排队而不是抛错——排队也算"发出去了"，
       // 连接状态横幅会告诉用户还有几条在等待
+      // 入队时就开始计时：用户看到的就是"我发出的那一刻"，
+      // 断线排队不该让消失时间往后拖。
+      const sentAtMs = Date.now();
+      const disappearMs = disappearAfterByGroup[groupId] ?? 0;
+      const expiresInMs = sanitizeExpiresInMs(disappearMs);
       const outcome = await client.sendEnvelope({
         kind: "text",
         id: randomUUID(),
         text,
-        sentAtMs: Date.now(),
+        sentAtMs,
         ...(nickname ? { senderName: nickname } : {}),
         ...(reply ? { replyTo: reply } : {}),
+        ...(expiresInMs !== undefined ? { expiresInMs } : {}),
       });
       setReplyTarget(null);
       await appendOwnMessage(groupId, {
@@ -943,8 +1086,9 @@ export function App() {
         // 它还没真的发出去，而不是让他以为对方已经看到了
         queued: outcome === "queued",
         isOwn: true,
-        sentAtMs: Date.now(),
+        sentAtMs,
         ...(reply ? { replyTo: reply } : {}),
+        ...(expiresInMs !== undefined ? { expiresAtMs: sentAtMs + expiresInMs } : {}),
       });
     } catch {
       // sendEnvelope 断线时会排队而不是抛错，所以走到这里说明是加密或
@@ -966,6 +1110,8 @@ export function App() {
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const fileId = randomUUID();
+      const fileDisappearMs = disappearAfterByGroup[groupId] ?? 0;
+      const fileExpiresInMs = sanitizeExpiresInMs(fileDisappearMs);
       const { meta, chunks } = buildFileEnvelopes({
         fileId,
         ...(nickname ? { senderName: nickname } : {}),
@@ -974,6 +1120,7 @@ export function App() {
         mediaKind,
         bytes,
         ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
+        ...(fileExpiresInMs !== undefined ? { expiresInMs: fileExpiresInMs } : {}),
       });
 
       // meta 必须先到，接收方才知道总共有多少片。
@@ -1005,6 +1152,9 @@ export function App() {
             sizeBytes: bytes.byteLength,
             ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
           },
+          ...(fileExpiresInMs !== undefined
+            ? { expiresAtMs: Date.now() + fileExpiresInMs }
+            : {}),
         },
         bytes
       );
@@ -1198,12 +1348,24 @@ export function App() {
    * 没有需要通知服务端的状态。留下的人不会收到任何提示，这一点在界面上说了。
    */
   async function handleLeaveGroup(groupId: string): Promise<void> {
+    clearExpiryTimer(groupId);
+    const leaving = sessions[groupId];
+    if (leaving) {
+      for (const m of leaving.messages) {
+        if (m.media?.objectUrl) URL.revokeObjectURL(m.media.objectUrl);
+      }
+    }
     sessions[groupId]?.client.close();
 
     const store = await getDeviceStore();
     await saveJoinedGroups(store, removeGroup(await loadJoinedGroups(store), groupId));
     await clearMessages(store, groupId);
     await saveKnownDevices(store, groupId, []);
+    setDisappearAfterByGroup((prev) => {
+      const next = { ...prev };
+      delete next[groupId];
+      return next;
+    });
 
     setSessions((prev) => {
       const next = { ...prev };
@@ -1381,6 +1543,8 @@ export function App() {
             ? () => setScreen({ name: "groupInvite", groupId: s.groupId, from: screen.name === "groupSettings" ? screen.from : "chat" })
             : undefined
         }
+        disappearAfterMs={disappearAfterByGroup[s.groupId] ?? 0}
+        onSetDisappearAfter={(ms) => void handleSetDisappearAfter(s.groupId, ms)}
         onBack={() =>
           // 从哪儿进来就回哪儿——从列表长按进来的，返回不该跳进聊天页
           setScreen(

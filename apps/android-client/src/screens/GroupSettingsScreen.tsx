@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { colors, touchTarget, Button } from "@secureinchat/ui";
+import { DISAPPEAR_OPTIONS_MS } from "@secureinchat/chat-core";
 
 export interface GroupSettingsScreenProps {
   groupName: string;
@@ -9,10 +10,23 @@ export interface GroupSettingsScreenProps {
   onBack: () => void;
   /** 只有持有该群管理员私钥的设备才传这个；不传就不显示「邀请新成员」 */
   onShowInvite?: (() => void) | undefined;
+  /** 当前群的「消息定时消失」时长（毫秒），0/缺省表示关闭 */
+  disappearAfterMs?: number | undefined;
+  /** 修改「消息定时消失」；不传就不显示这一段 */
+  onSetDisappearAfter?: ((ms: number) => void) | undefined;
+}
+
+/** 把时长转成界面上显示的中文标签。 */
+export function disappearLabel(ms: number): string {
+  if (ms === 300_000) return "5 分钟";
+  if (ms === 3_600_000) return "1 小时";
+  if (ms === 86_400_000) return "1 天";
+  if (ms === 604_800_000) return "7 天";
+  return "关闭";
 }
 
 /**
- * 群设置：改名、退群、邀请新成员。
+ * 群设置：改名、退群、邀请新成员、消息定时消失。
  *
  * 改名只改本机显示的名字——中继不知道群叫什么，别人那边不会跟着变。
  * 这一点必须说出来，否则改完以为全群都看到了新名字。
@@ -20,6 +34,10 @@ export interface GroupSettingsScreenProps {
  * 「邀请新成员」只有管理员看得到：邀请串里的人能派生出群密钥、读取之后
  * 的所有消息，不该让普通成员随手把卡片转出去。是否显示由调用方决定——
  * 这个组件只负责渲染。
+ *
+ * 「消息定时消失」是每台设备、每个群本地的设置，只影响自己之后发出的消息；
+ * 收到的消息按消息里带的时长处理。对方用旧版本时消息不会消失，这一点
+ * 在说明里写清楚，不做虚假承诺。
  */
 export function GroupSettingsScreen({
   groupName,
@@ -28,6 +46,8 @@ export function GroupSettingsScreen({
   onLeave,
   onBack,
   onShowInvite,
+  disappearAfterMs,
+  onSetDisappearAfter,
 }: GroupSettingsScreenProps) {
   const [name, setName] = useState(groupName);
   const [saving, setSaving] = useState(false);
@@ -44,6 +64,8 @@ export function GroupSettingsScreen({
       setSaving(false);
     }
   }
+
+  const currentDisappear = disappearAfterMs ?? 0;
 
   return (
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24, overflowY: "auto" }}>
@@ -126,6 +148,46 @@ export function GroupSettingsScreen({
             <div style={{ fontSize: 14, color: colors.textPrimary }}>邀请新成员</div>
             <div style={{ fontSize: 11, color: "#9A9A94" }}>重新打开邀请卡片，发给想拉进群的人</div>
           </button>
+        </div>
+      ) : null}
+
+      {onSetDisappearAfter ? (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>消息定时消失</div>
+          <div
+            role="group"
+            aria-label="消息定时消失"
+            style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
+          >
+            {DISAPPEAR_OPTIONS_MS.map((ms) => {
+              const selected = ms === currentDisappear;
+              return (
+                <button
+                  key={ms}
+                  onClick={() => onSetDisappearAfter(ms)}
+                  aria-pressed={selected}
+                  style={{
+                    minHeight: touchTarget.minDp,
+                    minWidth: touchTarget.minDp,
+                    padding: "0 14px",
+                    background: selected ? colors.deepInkGreen : "transparent",
+                    color: selected ? colors.ivory : colors.deepInkGreen,
+                    border: `0.5px solid ${colors.sageMint}`,
+                    borderRadius: 12,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    boxShadow: "none",
+                  }}
+                >
+                  {disappearLabel(ms)}
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "10px 0 0" }}>
+            只对你之后发出的消息生效。对方用的是旧版本应用时，消息在他那边不会消失；
+            对方仍然可以截屏或拍照。
+          </p>
         </div>
       ) : null}
 

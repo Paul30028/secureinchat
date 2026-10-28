@@ -29,6 +29,8 @@ export interface StoredMessage {
    * 重启后重新加载时要按当前时间把它过滤掉。老记录没有这个字段，照常显示。
    */
   expiresAtMs?: number | undefined;
+  /** 本地系统提示（如「你开启了定时消失」），只在本机显示，从不发送。老记录没有这个字段。 */
+  system?: boolean | undefined;
   media?:
     | {
         mediaKind: "image" | "voice" | "file";

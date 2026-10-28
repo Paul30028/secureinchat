@@ -22,6 +22,10 @@ export function toStored(msg: DisplayMessage, mediaBytes?: Uint8Array): StoredMe
     // 的时间都会变成最后一次保存的时间
     sentAtMs: msg.sentAtMs,
     text: msg.text,
+    // 阅后即焚的到期时刻也要落盘：重启后重新加载时按当前时间过滤掉
+    // 已经过期的消息，不能让它再冒出来。
+    ...(msg.expiresAtMs !== undefined ? { expiresAtMs: msg.expiresAtMs } : {}),
+    ...(msg.system ? { system: true } : {}),
   };
   if (!msg.media) return base;
 
@@ -48,6 +52,8 @@ export function fromStored(stored: StoredMessage): DisplayMessage {
     fromDeviceId: stored.senderLabel,
     sentAtMs: stored.sentAtMs,
     text: stored.text,
+    ...(stored.expiresAtMs !== undefined ? { expiresAtMs: stored.expiresAtMs } : {}),
+    ...(stored.system ? { system: true } : {}),
   };
   if (!stored.media) return base;
 
