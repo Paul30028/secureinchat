@@ -82,7 +82,8 @@ import { MessageSearchScreen } from "./screens/MessageSearchScreen";
 import { loadSavedRelayUrl } from "./relayUrlSetting";
 import { ProfileSetupScreen } from "./screens/ProfileSetupScreen";
 import { loadNickname, saveNickname, displayNameFor } from "./profile";
-import { toStored, fromStored } from "./messageMapping";
+import { fromStored } from "./messageMapping";
+import { PersistedMediaCache, SerialSaver } from "./mediaPersistence";
 import {
   patchSession,
   sortSessions,
@@ -385,6 +386,25 @@ export function App() {
   const persistRef = useRef<((messages: DisplayMessage[], mediaBytesById?: Map<string, Uint8Array>) => void) | null>(
     null
   );
+  // 已经落盘过的媒体内容（每群 id → base64）。每次整体落盘都按 id 补回，
+  // 否则下一次保存会把之前存过的图片/语音内容丢掉（C8）。
+  const mediaCacheRef = useRef(new PersistedMediaCache());
+  // 每个群的写入排队，保证后调用的保存后完成（不会被旧列表覆盖）。
+  const saverRef = useRef(new SerialSaver());
+
+  /**
+   * 落盘某个群的消息列表：同步组装（保持缓存和调用顺序一致），再排队写入。
+   * newBytes 是这次新到的媒体原始字节（通常只有一条）。
+   */
+  function saveGroupMessages(
+    store: Awaited<ReturnType<typeof getDeviceStore>>,
+    groupId: string,
+    messages: readonly DisplayMessage[],
+    newBytes?: ReadonlyMap<string, Uint8Array>
+  ): Promise<void> {
+    const list = mediaCacheRef.current.buildStored(groupId, messages, newBytes);
+    return saverRef.current.enqueue(groupId, () => saveMessages(store, groupId, list));
+  }
   // 昵称是异步从 IndexedDB 读的。读完之前不能判断"有没有设过"——否则老用户
   // 会被再弹一次设置页，违反"首次设置只出现一次"。
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -449,7 +469,7 @@ export function App() {
     });
     try {
       const store = await getDeviceStore();
-      await saveMessages(store, groupId, keep.map((m) => toStored(m)));
+      await saveGroupMessages(store, groupId, keep);
     } catch {
       // 落盘失败不影响界面上的删除；下次写入会覆盖
     }
@@ -583,11 +603,7 @@ export function App() {
     // 每个群各自落盘到自己的 key。闭包捕获了 groupId，所以每条连接的
     // 回调都会写到正确的群，不会串。
     const persist = (messages: DisplayMessage[], mediaBytesById?: Map<string, Uint8Array>) => {
-      void saveMessages(
-        store,
-        groupId,
-        messages.map((m) => toStored(m, mediaBytesById?.get(m.id)))
-      );
+      void saveGroupMessages(store, groupId, messages, mediaBytesById);
     };
 
     /** 更新这个群的会话状态——不影响其他群 */
@@ -617,8 +633,10 @@ export function App() {
     // 重启后重新加载历史：已经过期的消息不该再出现，立即从存储里删掉。
     const storedHistory = await loadMessages(store, groupId);
     const { keep: keptStored, expired: expiredStored } = partitionExpired(storedHistory, Date.now());
+    // 记住已经落盘的媒体内容，之后的整体保存才不会把它们写丢（C8）
+    mediaCacheRef.current.seed(groupId, keptStored);
     if (expiredStored.length > 0) {
-      void saveMessages(store, groupId, keptStored);
+      void saverRef.current.enqueue(groupId, () => saveMessages(store, groupId, keptStored));
     }
     const history = keptStored.map(fromStored);
     const knownDevices = await loadKnownDevices(store, groupId);
@@ -1013,7 +1031,7 @@ export function App() {
       const session = prev[groupId];
       if (!session) return prev;
       const messages = [...session.messages, message];
-      void saveMessages(store, groupId, messages.map((m) => toStored(m, mediaBytes && m.id === message.id ? mediaBytes : undefined)));
+      void saveGroupMessages(store, groupId, messages, mediaBytes ? new Map([[message.id, mediaBytes]]) : undefined);
       const next = patchSession(prev, groupId, { messages });
       sessionsRef.current = next;
       return next;
@@ -1036,7 +1054,7 @@ export function App() {
       const s = prev[session.groupId];
       if (!s) return prev;
       const messages = s.messages.filter((m) => m.id !== messageId);
-      void saveMessages(store, session.groupId, messages.map((m) => toStored(m)));
+      void saveGroupMessages(store, session.groupId, messages);
       return patchSession(prev, session.groupId, { messages });
     });
   }
@@ -1359,7 +1377,8 @@ export function App() {
 
     const store = await getDeviceStore();
     await saveJoinedGroups(store, removeGroup(await loadJoinedGroups(store), groupId));
-    await clearMessages(store, groupId);
+    mediaCacheRef.current.forget(groupId);
+    await saverRef.current.enqueue(groupId, () => clearMessages(store, groupId));
     await saveKnownDevices(store, groupId, []);
     setDisappearAfterByGroup((prev) => {
       const next = { ...prev };
