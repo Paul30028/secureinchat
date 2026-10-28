@@ -140,6 +140,9 @@ ${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
   // The shared subpage shell already carries the Chinese header and footer (lang 'zh').
   if (zh) { shellArgs.lang = 'zh'; shellArgs.htmlLang = chrome.lang; }
   let html = shell(shellArgs);
+  // The Chinese header links to /zh/tools/ and /zh/blog/, which do not exist yet: point them at the
+  // English index pages until they do.
+  if (zh) html = html.replace(/href="\/zh\/(tools|blog)\/"/g, 'href="/$1/"');
   html = html.replace(' </body>', `${tailScripts.map((s) => `  ${s}`).join('\n')}\n </body>`);
   // the kit stylesheets load after tool-legacy.css in the shell head order; move tool-legacy last so widgets keep their look
   html = html.replace('  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n', '').replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>');
