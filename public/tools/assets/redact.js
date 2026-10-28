@@ -23,18 +23,38 @@
     }
     return rem === 1;
   }
+  // Second-generation Chinese resident ID number (GB 11643-1999): 17 digits plus a check character
+  // computed with ISO 7064 MOD 11-2. The birth date (digits 7-14) must be a real calendar date.
+  var CN_ID_W = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2], CN_ID_C = '10X98765432';
+  function cnIdOk(s) {
+    var v = s.replace(/ /g, '').toUpperCase();
+    if (!/^\d{17}[\dX]$/.test(v)) return false;
+    var y = +v.slice(6, 10), mo = +v.slice(10, 12), d = +v.slice(12, 14);
+    var dt = new Date(Date.UTC(y, mo - 1, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return false;
+    var sum = 0;
+    for (var i = 0; i < 17; i++) sum += (v.charCodeAt(i) - 48) * CN_ID_W[i];
+    return CN_ID_C.charAt(sum % 11) === v.charAt(17);
+  }
   function ipv4ok(s) {
     var p = s.split('.');
     return p.length === 4 && p.every(function (x) { return x.length > 0 && x.length <= 3 && +x <= 255 && (x === '0' || x[0] !== '0'); });
   }
 
-  // Order matters: earlier rules win when matches overlap.
+  // Order matters: earlier rules win when matches overlap. Matches are picked by start position
+  // (then the longer one); a rule earlier in this list only wins when two matches cover exactly the
+  // same text. That is why cn_id and cn_mobile come before card and phone: an 18-digit ID can pass
+  // the card checksum, and '+86 138 1234 5678' is also a generic phone match.
+  // cn_mobile and cn_id use \b, which in a non-unicode RegExp treats Chinese characters as non-word,
+  // so '手机13812345678' matches but a digit or letter right before or after the number does not.
   var RULES = [
     { id: 'privkey', label: 'Private key block', tag: 'PRIVATE_KEY', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g },
     { id: 'jwt', label: 'JSON Web Token', tag: 'JWT', re: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g },
     { id: 'apikey', label: 'API key or token', tag: 'API_KEY', re: /\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|sk-[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35})\b/g },
     { id: 'url_cred', label: 'Password inside a URL', tag: 'URL_CREDENTIALS', re: /\b[a-z][a-z0-9+.-]*:\/\/[^\s\/:@]+:[^\s\/@]+@/gi, keep: function (m) { return m.slice(0, m.indexOf('://') + 3); }, suffix: '@' },
     { id: 'email', label: 'Email address', tag: 'EMAIL', re: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g },
+    { id: 'cn_id', label: 'Chinese resident ID number', tag: 'ID_NUMBER', re: /\b[1-8]\d{5} ?(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01]) ?\d{3}[\dXx]\b/g, test: cnIdOk },
+    { id: 'cn_mobile', label: 'Chinese mobile number', tag: 'PHONE', re: /(?:\+86[ -]?|\b0086[ -]?|\b86[ -]?|\b)1[3-9]\d(?:[ -]?\d{4}){2}\b/g },
     { id: 'iban', label: 'IBAN', tag: 'IBAN', re: /\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b/g, test: ibanOk },
     { id: 'card', label: 'Payment card number', tag: 'CARD', re: /\b(?:\d[ -]?){12,18}\d\b/g, test: function (m) { var d = m.replace(/[ -]/g, ''); return d.length >= 13 && d.length <= 19 && luhn(d); } },
     { id: 'ipv6', label: 'IPv6 address', tag: 'IPV6', re: /\b(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}\b|\b(?:[0-9A-Fa-f]{1,4}:){1,6}(?::[0-9A-Fa-f]{1,4}){1,6}\b|\b(?:[0-9A-Fa-f]{1,4}:){1,7}:(?![0-9A-Fa-f:])/g, test: function (m) { return /[0-9A-Fa-f]{2,}|:/.test(m) && m.indexOf(':') !== -1 && m.length > 4; } },
@@ -158,8 +178,10 @@
     var counts = {}, out = '', pos = 0, seen = {}, mapping = {};
     picked.forEach(function (h) {
       var original = text.slice(h.start, h.end);
-      var key = h.rule.id + '|' + original.toLowerCase();
-      var k = seen[h.rule.id] || (seen[h.rule.id] = { n: 0, map: {} });
+      // Numbered per tag, not per rule: cn_mobile and phone share PHONE, and two different numbers
+      // must never both become [PHONE_1]. Every other rule has its own tag, so their output is unchanged.
+      var key = h.rule.tag + '|' + original.toLowerCase();
+      var k = seen[h.rule.tag] || (seen[h.rule.tag] = { n: 0, map: {} });
       if (!(key in k.map)) k.map[key] = ++k.n;
       var ph = '[' + h.rule.tag + '_' + k.map[key] + ']';
       counts[h.rule.id] = (counts[h.rule.id] || 0) + 1;
@@ -204,5 +226,5 @@
     return result;
   }
 
-  return { RULES: RULES, redact: redact, restore: restore, luhn: luhn, ibanOk: ibanOk, parseTerms: parseTerms };
+  return { RULES: RULES, redact: redact, restore: restore, luhn: luhn, ibanOk: ibanOk, cnIdOk: cnIdOk, parseTerms: parseTerms };
 });

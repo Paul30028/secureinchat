@@ -117,4 +117,58 @@ t('terms containing regex characters match literally', () => {
   const r = redact('Project (X.1) and Project X11', true, { terms: ['Project (X.1)'] });
   assert.strictEqual(r.text, '[NAME_1] and Project X11');
 });
+// W8: Chinese mainland mobile numbers and resident ID numbers. The rules are strict on purpose: a miss
+// is better than a false hit. 11010519491231002X is the example number printed in GB 11643-1999.
+t('cn mobile plain, prefixed and separated', () => {
+  const r = redact('手机13812345678，备用 +86 139-1234-5678，0086 150 1234 5678，86-18612345678');
+  assert.strictEqual(r.text, '手机[PHONE_1]，备用 [PHONE_2]，[PHONE_3]，[PHONE_4]');
+  assert.strictEqual(r.counts.cn_mobile, 4);
+  assert.strictEqual(r.mapping['[PHONE_2]'], '+86 139-1234-5678');
+});
+t('cn mobile negatives', () => {
+  assert.strictEqual(redact('座机 010-12345678').total, 0);
+  assert.strictEqual(redact('订单 12345678901').total, 0);
+  assert.strictEqual(redact('编号 213812345678 和 138123456789').total, 0);
+  assert.strictEqual(redact('号码 12812345678').total, 0);
+  assert.strictEqual(redact('id A13812345678B').total, 0);
+});
+t('cn mobile and generic phone never share a placeholder', () => {
+  const r = redact('13812345678 and +1 415-555-0132 and 13812345678');
+  assert.strictEqual(r.text, '[PHONE_1] and [PHONE_2] and [PHONE_1]');
+  assert.strictEqual(r.counts.cn_mobile, 2); assert.strictEqual(r.counts.phone, 1);
+  assert.strictEqual(restore('[PHONE_2] / [PHONE_1]', r.mapping).text, '+1 415-555-0132 / 13812345678');
+});
+t('cn mobile wins over phone on the same text', () => {
+  const r = redact('call +86 138 1234 5678');
+  assert.strictEqual(r.text, 'call [PHONE_1]');
+  assert.strictEqual(r.counts.cn_mobile, 1); assert.strictEqual(r.counts.phone, undefined);
+});
+t('cn id valid, lower-case x and spaced', () => {
+  const { cnIdOk } = require('../public/tools/assets/redact.js');
+  assert.ok(cnIdOk('11010519491231002X'));
+  assert.strictEqual(redact('身份证 11010519491231002X 号').text, '身份证 [ID_NUMBER_1] 号');
+  assert.strictEqual(redact('11010519491231002x').text, '[ID_NUMBER_1]');
+  assert.strictEqual(redact('110105 19491231 002X').text, '[ID_NUMBER_1]');
+});
+t('cn id bad check digit, bad date, wrong length', () => {
+  assert.strictEqual(redact('110105194912310021').counts.cn_id, undefined);
+  assert.strictEqual(redact('110105194902300028').counts.cn_id, undefined); // 30 February
+  assert.strictEqual(redact('110105194913010028').counts.cn_id, undefined); // month 13
+  assert.strictEqual(redact('11010519491231002').counts.cn_id, undefined);  // 17 digits
+  assert.strictEqual(redact('11010519491231002X1').total, 0);               // a digit right after
+});
+t('cn id wins over card when both checksums pass', () => {
+  // 330106199001010069 passes both the GB 11643 check and the Luhn check.
+  const r = redact('x 330106199001010069 y');
+  assert.strictEqual(r.text, 'x [ID_NUMBER_1] y');
+  assert.strictEqual(r.counts.card, undefined);
+});
+t('cn rules together with existing rules', () => {
+  const r = redact('张三 13812345678 zhang@example.com 11010519491231002X 卡 4111 1111 1111 1111 IP 1.2.3.4', true, { terms: ['张三'] });
+  assert.strictEqual(r.text, '[NAME_1] [PHONE_1] [EMAIL_1] [ID_NUMBER_1] 卡 [CARD_1] IP [IPV4_1]');
+  assert.strictEqual(restore(r.text, r.mapping).text, '张三 13812345678 zhang@example.com 11010519491231002X 卡 4111 1111 1111 1111 IP 1.2.3.4');
+});
+t('cn rules can be switched off', () => {
+  assert.strictEqual(redact('13812345678 11010519491231002X', { cn_mobile: false, cn_id: false }).total, 0);
+});
 console.log(n + ' tests passed');
