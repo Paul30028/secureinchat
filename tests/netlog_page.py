@@ -56,6 +56,40 @@ with sync_playwright() as p:
         ok(pg.locator('#netlog .netlog-tag').count() == 0, f'{path}: no external requests')
         ok(not errs, f'{path}: no console errors {errs}')
         pg.close()
+    # W5: photo page (no request after picking a photo) and password page (one k-anonymity request).
+    pg = b.new_page(); errs = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto(base + '/tools/photo-metadata-remover/'); pg.wait_for_load_state('networkidle')
+    pg.click('#netlog summary')
+    pg.set_input_files('input[type=file]', jpg); pg.wait_for_timeout(1500)
+    ok(pg.locator('#netlog .netlog-marker').inner_text().strip() == 'You picked a photo', 'photo page: marker label')
+    ok(pg.locator('#netlog .netlog-after').count() == 0, 'photo page: no requests after picking a photo')
+    n, shown, rows = pg.evaluate(COUNT_MATCH)
+    ok(n == shown == rows, f'photo page: count matches ({shown}/{n})')
+    ok(not errs, f'photo page: no page errors {errs}')
+    pg.close()
+
+    import hashlib
+    pw = 'correct horse battery staple'
+    h = hashlib.sha1(pw.encode()).hexdigest().upper()
+    ctx = b.new_context()
+    # The sandbox has no internet: answer the range query locally. Resource Timing still records it.
+    ctx.route('https://api.pwnedpasswords.com/range/*', lambda r: r.fulfill(status=200, body=h[5:] + ':3\r\n', headers={'Access-Control-Allow-Origin': '*', 'Content-Type': 'text/plain'}))
+    pg = ctx.new_page(); errs = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto(base + '/tools/password-checker/'); pg.wait_for_load_state('networkidle')
+    pg.click('#netlog summary')
+    pg.fill('#pw', pw)
+    pg.click('#breach')
+    pg.wait_for_function("() => document.querySelectorAll('#netlog .netlog-after').length > 0", timeout=10000)
+    after = pg.locator('#netlog .netlog-after code').all_inner_texts()
+    ok(len(after) >= 1 and all(a.startswith('https://api.pwnedpasswords.com/range/') for a in after), f'password page: only the range query after the check ({after})')
+    ok(all(a.rsplit('/', 1)[1] == h[:5] for a in after), 'password page: the request path holds only the 5-character hash prefix')
+    ok(pg.locator('#netlog .netlog-after .netlog-tag').count() == len(after), 'password page: request marked external')
+    ok(pg.locator('#netlog .netlog-marker').inner_text().strip() == 'You checked a password', 'password page: marker label')
+    ok(not errs, f'password page: no page errors {errs}')
+    ctx.close()
+
     # Fallback: no PerformanceObserver.
     pg = b.new_page()
     pg.add_init_script("delete window.PerformanceObserver;")

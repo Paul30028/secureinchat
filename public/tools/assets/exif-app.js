@@ -95,6 +95,6 @@
     });
   }
 
-  input.addEventListener('change', function () { inspect(input.files && input.files[0]); });
+  input.addEventListener('change', function () { if (input.files && input.files[0]) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You picked a photo' } })); inspect(input.files && input.files[0]); });
   clean.addEventListener('click', cleanFile);
 })();

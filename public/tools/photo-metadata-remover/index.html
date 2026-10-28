@@ -236,6 +236,29 @@
       </tbody>
     </table>
 </section></div>
+       <div class="legacy-tool"><section class="netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. A photo is read in this tab only: choosing one should not add a request here.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+</section></div>
       </section>
       <div class="info-content tool-prose">
 <section aria-labelledby="what-h">
@@ -354,5 +377,6 @@
   </footer>
   <script src="/tools/assets/exif.js" defer></script>
   <script src="/tools/assets/exif-app.js" defer></script>
+  <script src="/tools/assets/net-log.js" defer></script>
  </body>
 </html>

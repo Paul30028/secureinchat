@@ -61,7 +61,7 @@
   function checkBreach() {
     var pw = input.value; if (!pw) return;
     var mine = ++seq;
-    breachBtn.disabled = true; breachBtn.textContent = 'Checking...';
+    document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You checked a password' } })); breachBtn.disabled = true; breachBtn.textContent = 'Checking...';
     sha1hex(pw).then(function (h) {
       return getRange(h.slice(0, 5), true).catch(function () { return getRange(h.slice(0, 5), false); }).then(function (text) { return P.parseRange(text, h.slice(5)); });
     }).then(function (count) {
