@@ -274,3 +274,47 @@
   .legacy-tool .bypass.is-drawn { animation: none; }
   .legacy-tool tr[data-status="running"] .pill::before { animation: none; }
 }
+
+/* Text redactor W2 — "Names and other words to hide".
+   Sits between the two-box redact grid and the rule checkboxes. The textarea reuses .rd-text
+   but should show about three lines instead of the full fifteen used by the main panes.
+   Label and hint spacing follow the existing .rd-grid label rhythm. */
+.legacy-tool .rd-terms { margin-top: .75rem; }
+.legacy-tool .rd-terms > label {
+  display: block;
+  margin-bottom: .5rem;
+  color: var(--widget-ink);
+  font-weight: 700;
+}
+.legacy-tool .rd-terms .rd-text { min-height: 5.5rem; }
+.legacy-tool .rd-terms .hint { margin: .5rem 0 0; }
+
+/* Text redactor W2 — "Put the real values back".
+   A hairline rule and generous space separate the restore block from the redact actions
+   above it. The h2 follows the .prose h2 scale so the two halves of the tool read as
+   peers. The block is a plain div, so nothing here changes the section slicing. */
+.legacy-tool .rd-restore {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--widget-line);
+}
+.legacy-tool .rd-restore h2 {
+  margin: 0 0 .8rem;
+  color: var(--widget-brand);
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1.65rem;
+  line-height: 1.25;
+}
+
+/* Text redactor W2 — restore status line.
+   Sits just under the copy button, so it takes a small top gap of its own.
+   Hidden while empty so it does not reserve space before the first reply is pasted. */
+.legacy-tool #rd-restore-status { margin: .6rem 0 0; }
+.legacy-tool #rd-restore-status:empty { display: none; }
+
+/* File metadata remover — long metadata values.
+   The page already truncates each value at 200 characters and .val already carries
+   overflow-wrap: anywhere, so the cell cannot push the column wider than the phone screen.
+   The .mono variant is reinforced here because XMP and similar payloads arrive as a single
+   unbroken token and would otherwise sit flush against the cell edge. */
+.legacy-tool .val.mono { word-break: break-word; }

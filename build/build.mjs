@@ -768,9 +768,6 @@ write('blog/index.html', blogIndex());
   const FLOW = {};
   for (const r of PRINCIPLES.matchAll(/<tr><td><a href="\/tools\/([a-z0-9-]+)\/">[^<]*<\/a><\/td><td>([\s\S]*?)<\/td><td>([\s\S]*?)<\/td><\/tr>/g)) FLOW[r[1]] = { stays: r[2], sent: r[3] };
   FLOW['browser-fingerprint-test'] = FLOW['browser-fingerprint-test'] || FLOW['fingerprint-test'];
-  // The tools index (ChatGPT's template) has no entry for the file metadata remover yet; reuse the photo tool's icon so
-  // the title row keeps its two-column layout until the index gets its own icon.
-  ICONS['file-metadata-remover'] = ICONS['file-metadata-remover'] || ICONS['photo-metadata-remover'];
   const L = { local: ['Local processing', 'state-label'], list: ['Local checklist', 'state-label'], net: ['Network lookup', 'state-label state-label--network'], some: ['Some network lookups', 'state-label state-label--network'], limited: ['Limited lookup', 'state-label state-label--network'], site: ['Site request', 'state-label state-label--network'] };
   const TOOLS = [
     ['link-checker', 'Link checker', L.local, FIG.url], ['photo-metadata-remover', 'Photo metadata remover', L.local, FIG.photo], ['file-metadata-remover', 'File metadata remover', L.local, FIG.photo], ['text-redactor', 'Text redactor', L.local, FIG.redact],
