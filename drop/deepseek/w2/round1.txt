@@ -1,0 +1,309 @@
+仓库内路径：public/tools/assets/redact.js
+
+<<<CODE
+/* Text redaction rules. Pure functions, no network. Loaded by the page and by the Node tests. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(); else root.RD = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  function luhn(digits) {
+    var sum = 0, alt = false;
+    for (var i = digits.length - 1; i >= 0; i--) {
+      var n = digits.charCodeAt(i) - 48;
+      if (alt) { n *= 2; if (n > 9) n -= 9; }
+      sum += n; alt = !alt;
+    }
+    return sum % 10 === 0;
+  }
+  function ibanOk(s) {
+    var v = s.replace(/\s/g, '').toUpperCase();
+    if (v.length < 15 || v.length > 34 || !/^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(v)) return false;
+    var r = v.slice(4) + v.slice(0, 4), rem = 0;
+    for (var i = 0; i < r.length; i++) {
+      var c = r.charCodeAt(i), d = c >= 65 ? String(c - 55) : r[i];
+      for (var j = 0; j < d.length; j++) rem = (rem * 10 + (d.charCodeAt(j) - 48)) % 97;
+    }
+    return rem === 1;
+  }
+  function ipv4ok(s) {
+    var p = s.split('.');
+    return p.length === 4 && p.every(function (x) { return x.length > 0 && x.length <= 3 && +x <= 255 && (x === '0' || x[0] !== '0'); });
+  }
+
+  // Order matters: earlier rules win when matches overlap.
+  var RULES = [
+    { id: 'privkey', label: 'Private key block', tag: 'PRIVATE_KEY', re: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g },
+    { id: 'jwt', label: 'JSON Web Token', tag: 'JWT', re: /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g },
+    { id: 'apikey', label: 'API key or token', tag: 'API_KEY', re: /\b(?:AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|sk-[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AIza[0-9A-Za-z_-]{35})\b/g },
+    { id: 'url_cred', label: 'Password inside a URL', tag: 'URL_CREDENTIALS', re: /\b[a-z][a-z0-9+.-]*:\/\/[^\s\/:@]+:[^\s\/@]+@/gi, keep: function (m) { return m.slice(0, m.indexOf('://') + 3); }, suffix: '@' },
+    { id: 'email', label: 'Email address', tag: 'EMAIL', re: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b/g },
+    { id: 'iban', label: 'IBAN', tag: 'IBAN', re: /\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b/g, test: ibanOk },
+    { id: 'card', label: 'Payment card number', tag: 'CARD', re: /\b(?:\d[ -]?){12,18}\d\b/g, test: function (m) { var d = m.replace(/[ -]/g, ''); return d.length >= 13 && d.length <= 19 && luhn(d); } },
+    { id: 'ipv6', label: 'IPv6 address', tag: 'IPV6', re: /\b(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}\b|\b(?:[0-9A-Fa-f]{1,4}:){1,6}(?::[0-9A-Fa-f]{1,4}){1,6}\b|\b(?:[0-9A-Fa-f]{1,4}:){1,7}:(?![0-9A-Fa-f:])/g, test: function (m) { return /[0-9A-Fa-f]{2,}|:/.test(m) && m.indexOf(':') !== -1 && m.length > 4; } },
+    { id: 'ipv4', label: 'IPv4 address', tag: 'IPV4', re: /\b\d{1,3}(?:\.\d{1,3}){3}\b/g, test: ipv4ok },
+    { id: 'mac', label: 'MAC address', tag: 'MAC', re: /\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/g },
+    { id: 'phone', label: 'Phone number', tag: 'PHONE', re: /(?:\+\d{1,3}[ .-]?)?(?:\(\d{2,4}\)[ .-]?|\d{2,4}[ .-])\d{3,4}[ .-]\d{3,4}\b|\+\d{8,15}\b/g, test: function (m) { var d = m.replace(/\D/g, ''); return d.length >= 8 && d.length <= 15; } },
+  ];
+
+  var TERM_RULE = { id: 'term', label: 'Your words', tag: 'NAME' };
+  var WORD_RE;
+  try { WORD_RE = new RegExp('[\\p{L}\\p{N}_]', 'u'); } catch (e) { WORD_RE = /[A-Za-z0-9_]/; }
+  var RESTORE_RE = /(?:\\\[|\[|【)\s*([A-Za-z][A-Za-z0-9_]*?)\s*\\?_\s*(\d+)\s*(?:\\\]|\]|】)/g;
+
+  function isWordChar(ch) { return !!ch && WORD_RE.test(ch); }
+  function overlaps(a, b) { return a.start < b.end && b.start < a.end; }
+
+  function parseTerms(str) {
+    if (str == null) return [];
+    return String(str).split(/[\n\r,，;；]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 0; });
+  }
+
+  function normalizeTerms(terms) {
+    if (!terms) return [];
+    if (typeof terms === 'string') terms = parseTerms(terms);
+    if (!terms.length) return [];
+    var out = [], seen = {};
+    for (var i = 0; i < terms.length; i++) {
+      var s = String(terms[i] == null ? '' : terms[i]).trim();
+      if (s.length < 2) continue;
+      var key = s.toLowerCase();
+      if (seen[key]) continue;
+      seen[key] = true;
+      out.push({ text: s, lower: key, word: /[A-Za-z0-9]/.test(s), order: out.length });
+    }
+    out.sort(function (a, b) { return b.text.length - a.text.length || a.order - b.order; });
+    return out;
+  }
+
+  function findTermHits(text, terms) {
+    if (!terms.length) return [];
+    var lowerText = text.toLowerCase();
+    var all = [];
+    terms.forEach(function (term) {
+      var start = 0, idx;
+      while ((idx = lowerText.indexOf(term.lower, start)) !== -1) {
+        var end = idx + term.text.length;
+        var before = idx > 0 ? text.charAt(idx - 1) : '';
+        var after = end < text.length ? text.charAt(end) : '';
+        if (!term.word || (!isWordChar(before) && !isWordChar(after))) {
+          all.push({ start: idx, end: end, rule: TERM_RULE, len: term.text.length, order: all.length });
+        }
+        start = idx + 1;
+      }
+    });
+    all.sort(function (a, b) { return b.len - a.len || a.start - b.start || a.order - b.order; });
+    var picked = [];
+    all.forEach(function (h) {
+      for (var i = 0; i < picked.length; i++) if (overlaps(h, picked[i])) return;
+      picked.push(h);
+    });
+    picked.sort(function (a, b) { return a.start - b.start; });
+    return picked;
+  }
+
+  function normalizePlaceholderKey(s) {
+    s = String(s).replace(/\\/g, '').replace(/\s+/g, '');
+    s = s.replace(/^【/, '[').replace(/】$/, ']');
+    return s.toUpperCase();
+  }
+
+  function redact(text, enabled, opts) {
+    text = String(text);
+    var on = enabled || {};
+    opts = opts || {};
+    var termHits = (on.term === false) ? [] : findTermHits(text, normalizeTerms(opts.terms));
+    var ruleHits = [];
+    RULES.forEach(function (r) {
+      if (on[r.id] === false) return;
+      r.re.lastIndex = 0;
+      var m;
+      while ((m = r.re.exec(text)) !== null) {
+        if (m[0].length === 0) { r.re.lastIndex++; continue; }
+        if (r.test && !r.test(m[0])) continue;
+        var start = m.index, end = m.index + m[0].length;
+        if (r.id === 'url_cred') { start = m.index + m[0].indexOf('://') + 3; end = m.index + m[0].length - 1; }
+        ruleHits.push({ start: start, end: end, rule: r });
+      }
+    });
+
+    // A term wins over a rule only when it fully covers the rule match. A term that is only
+    // part of an email or URL credential is ignored, so the rule can hide the whole value.
+    var keptTerms = [];
+    termHits.forEach(function (t) {
+      var keep = true;
+      for (var i = 0; i < ruleHits.length; i++) {
+        var h = ruleHits[i];
+        if (overlaps(t, h) && !(t.start <= h.start && t.end >= h.end)) { keep = false; break; }
+      }
+      if (keep) keptTerms.push(t);
+    });
+    if (keptTerms.length) {
+      ruleHits = ruleHits.filter(function (h) {
+        for (var i = 0; i < keptTerms.length; i++) {
+          var t = keptTerms[i];
+          if (t.start <= h.start && t.end >= h.end) return false;
+        }
+        return true;
+      });
+    }
+
+    var all = keptTerms.concat(ruleHits);
+    all.sort(function (a, b) { return a.start - b.start || b.end - a.end; });
+    var picked = [], last = 0;
+    all.forEach(function (h) { if (h.start >= last) { picked.push(h); last = h.end; } });
+
+    var counts = {}, out = '', pos = 0, seen = {}, mapping = {};
+    picked.forEach(function (h) {
+      var original = text.slice(h.start, h.end);
+      var key = h.rule.id + '|' + original.toLowerCase();
+      var k = seen[h.rule.id] || (seen[h.rule.id] = { n: 0, map: {} });
+      if (!(key in k.map)) k.map[key] = ++k.n;
+      var ph = '[' + h.rule.tag + '_' + k.map[key] + ']';
+      counts[h.rule.id] = (counts[h.rule.id] || 0) + 1;
+      if (!Object.prototype.hasOwnProperty.call(mapping, ph)) mapping[ph] = original;
+      out += text.slice(pos, h.start) + ph;
+      pos = h.end;
+    });
+    out += text.slice(pos);
+    return { text: out, counts: counts, total: picked.length, mapping: mapping };
+  }
+
+  function restore(text, mapping) {
+    text = String(text);
+    var result = { text: text, restored: 0, unknown: [] };
+    if (!mapping || typeof mapping !== 'object' || (Array.isArray && Array.isArray(mapping))) return result;
+
+    var lookup = {};
+    for (var k in mapping) {
+      if (!Object.prototype.hasOwnProperty.call(mapping, k)) continue;
+      var nk = normalizePlaceholderKey(k);
+      if (nk && !Object.prototype.hasOwnProperty.call(lookup, nk)) lookup[nk] = mapping[k];
+    }
+
+    var unknownSeen = {};
+    RESTORE_RE.lastIndex = 0;
+    result.text = text.replace(RESTORE_RE, function (match, tag, num) {
+      var ph = '[' + String(tag).toUpperCase() + '_' + num + ']';
+      if (Object.prototype.hasOwnProperty.call(lookup, ph)) {
+        result.restored++;
+        return lookup[ph];
+      }
+      if (!Object.prototype.hasOwnProperty.call(unknownSeen, ph)) {
+        unknownSeen[ph] = true;
+        result.unknown.push(ph);
+      }
+      return match;
+    });
+    return result;
+  }
+
+  return { RULES: RULES, redact: redact, restore: restore, luhn: luhn, ibanOk: ibanOk, parseTerms: parseTerms };
+});
+CODE>>>
+仓库内路径：public/tools/assets/redact-app.js
+
+<<<CODE
+/* Text redactor page. All work happens in this page; nothing is sent anywhere or stored. */
+(function () {
+  'use strict';
+  var R = window.RD;
+  var TERM_RULE = { id: 'term', label: 'Your words', tag: 'NAME' };
+  var ALL_RULES = R.RULES.concat([TERM_RULE]);
+  var src = document.getElementById('rd-in');
+  var out = document.getElementById('rd-out');
+  var terms = document.getElementById('rd-terms');
+  var tbody = document.getElementById('rows');
+  var summary = document.getElementById('summary');
+  var copyBtn = document.getElementById('rd-copy');
+  var clearBtn = document.getElementById('rd-clear');
+  var reply = document.getElementById('rd-reply');
+  var restored = document.getElementById('rd-restored');
+  var restoreCopy = document.getElementById('rd-restore-copy');
+  var restoreStatus = document.getElementById('rd-restore-status');
+  var boxes = {};
+  var lastMapping = {};
+  ALL_RULES.forEach(function (r) { boxes[r.id] = document.getElementById('rule-' + r.id); });
+
+  function enabled() { var o = {}; ALL_RULES.forEach(function (r) { if (boxes[r.id]) o[r.id] = boxes[r.id].checked; }); return o; }
+
+  function row(rule, count) {
+    var tr = document.createElement('tr'); tr.setAttribute('data-status', count ? 'warn' : 'info');
+    var th = document.createElement('th'); th.scope = 'row'; th.setAttribute('data-label', 'Check');
+    var n = document.createElement('span'); n.className = 'c-name'; n.textContent = rule.label; th.appendChild(n);
+    var td = document.createElement('td'); td.setAttribute('data-label', 'Result');
+    var v = document.createElement('div'); v.className = 'val mono'; v.textContent = count ? count + ' replaced with [' + rule.tag + '_n]' : 'None found'; td.appendChild(v);
+    var ts = document.createElement('td'); ts.setAttribute('data-label', 'Status');
+    var p = document.createElement('span'); p.className = 'pill'; p.textContent = count ? 'Redacted' : 'None'; ts.appendChild(p);
+    tr.appendChild(th); tr.appendChild(td); tr.appendChild(ts);
+    return tr;
+  }
+
+  function updateRestore() {
+    var res = R.restore(reply.value, lastMapping);
+    restored.value = res.text;
+    restoreCopy.disabled = !restored.value;
+    var n = res.restored;
+    var msg = n + ' placeholder' + (n === 1 ? '' : 's') + ' put back.';
+    if (res.unknown && res.unknown.length) {
+      msg += ' Not found in this session: ' + res.unknown.join(', ') + '. They may come from a different redaction or the page was reloaded.';
+    }
+    restoreStatus.textContent = msg;
+  }
+
+  function run() {
+    var res = R.redact(src.value, enabled(), { terms: R.parseTerms(terms.value) });
+    lastMapping = res.mapping || {};
+    out.value = res.text;
+    tbody.textContent = '';
+    ALL_RULES.forEach(function (r) { if (!boxes[r.id] || !boxes[r.id].checked) return; if (res.counts[r.id]) tbody.appendChild(row(r, res.counts[r.id])); });
+    if (!src.value) {
+      summary.textContent = 'Paste text to redact it.'; summary.setAttribute('data-tone', 'idle');
+    } else if (!res.total) {
+      summary.textContent = 'Nothing matched the selected rules. This does not mean the text is free of personal data.'; summary.setAttribute('data-tone', 'warn');
+    } else {
+      summary.textContent = res.total + ' item' + (res.total === 1 ? '' : 's') + ' replaced. Read the output before you share it: names and addresses are not detected automatically.'; summary.setAttribute('data-tone', 'ok');
+    }
+    copyBtn.disabled = !out.value;
+    updateRestore();
+  }
+
+  function copyText(value, btn, label, fallbackEl) {
+    var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = label; }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(value).then(done, function () { fallbackEl.select(); });
+    else fallbackEl.select();
+  }
+
+  src.addEventListener('input', run);
+  terms.addEventListener('input', run);
+  ALL_RULES.forEach(function (r) { if (boxes[r.id]) boxes[r.id].addEventListener('change', run); });
+  reply.addEventListener('input', updateRestore);
+  clearBtn.addEventListener('click', function () {
+    src.value = ''; terms.value = ''; reply.value = ''; restored.value = ''; lastMapping = {};
+    run(); src.focus();
+  });
+  copyBtn.addEventListener('click', function () { copyText(out.value, copyBtn, 'Copy result', out); });
+  restoreCopy.addEventListener('click', function () { copyText(restored.value, restoreCopy, 'Copy restored reply', restored); });
+  run();
+})();
+CODE>>>
+仓库内路径：tests/redact.test.js
+
+<<<CODE
+const assert = require('assert');
+const { redact, restore, parseTerms, luhn } = require('../public/tools/assets/redact.js');
+let n = 0; const t = (name, fn) => { fn(); n++; };
+t('email', () => { const r = redact('mail bob@example.com and BOB@example.com and ann@x.org'); assert.strictEqual(r.text, 'mail [EMAIL_1] and [EMAIL_1] and [EMAIL_2]'); assert.strictEqual(r.counts.email, 3); });
+t('ipv4', () => { assert.strictEqual(redact('from 192.168.1.10 to 8.8.8.8').text, 'from [IPV4_1] to [IPV4_2]'); });
+t('ipv4 invalid not matched', () => { assert.strictEqual(redact('v 1.2.3.999 and 256.1.1.1').total, 0); });
+t('version numbers not ip', () => { assert.strictEqual(redact('version 1.2.3').total, 0); });
+t('ipv6', () => { assert.strictEqual(redact('addr 2001:db8::1 up').text, 'addr [IPV6_1] up'); assert.strictEqual(redact('2001:0db8:85a3:0000:0000:8a2e:0370:7334').text, '[IPV6_1]'); });
+t('time not ipv6', () => { assert.strictEqual(redact('at 12:30:45 today').total, 0); });
+t('card luhn', () => { assert.ok(luhn('4111111111111111')); assert.strictEqual(redact('card 4111 1111 1111 1111 ok').text, 'card [CARD_1] ok'); assert.strictEqual(redact('order 1234567890123456').total, 0); });
+t('phone', () => { assert.strictEqual(redact('call +1 415-555-0132 now').text, 'call [PHONE_1] now'); assert.strictEqual(redact('call +8613812345678').text, 'call [PHONE_1]'); });
+t('date not phone', () => { assert.strictEqual(redact('on 2026-10-20 it ran').total, 0); });
+t('api keys', () => { const r = redact('k AKIAIOSFODNN7EXAMPLE and ghp_' + 'a'.repeat(36)); assert.strictEqual(r.counts.apikey, 2); });
+t('jwt', () => { assert.strictEqual(redact('t eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijk end').text, 't [JWT_1] end'); });
+t('private key', () => { assert.strictEqual(redact('a\n-----BEGIN RSA PRIVATE KEY-----\nMIIE\n-----END RSA PRIVATE KEY-----\nb').text, 'a\n[PRIVATE_KEY_1]\nb'); });
+t('url credentials keep host', () => { assert.strictEqual(redact('postgres://user:hunter2@db.local/x').text, 'postgres://[URL_CREDENTIALS_1]@db.local/x'); });
+CODE>>>
