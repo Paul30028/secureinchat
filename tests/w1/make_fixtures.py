@@ -47,4 +47,19 @@ d.save(f'{out}/doc.docx')
 # A DOCX with an embedded JPEG that itself has GPS (the README says embedded images are cleaned too).
 d = docx.Document(); d.add_paragraph('Has a photo.'); d.add_picture(f'{out}/photo.jpg')
 d.core_properties.author = MARK; d.save(f'{out}/doc-with-photo.docx')
+# HEIC (what iPhones save) with EXIF and GPS, if pillow-heif is installed.
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()
+    img.save(f'{out}/photo.heic', 'HEIF', exif=exif_bytes())
+except ImportError:
+    print('pillow-heif not installed: no HEIC fixture')
+# MP4 with a title, artist and an ISO 6709 location tag (as phones write), if ffmpeg is installed.
+import shutil, subprocess
+if shutil.which('ffmpeg'):
+    subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc=size=320x240:rate=10', '-t', '2',
+                    '-pix_fmt', 'yuv420p', '-metadata', f'title={MARK}', '-metadata', f'artist={MARK}',
+                    '-metadata', 'location=+31.2304+121.4737/', '-movflags', '+use_metadata_tags', f'{out}/video.mp4'], check=True)
+else:
+    print('ffmpeg not installed: no MP4 fixture')
 print('fixtures in', out, sorted(os.listdir(out)))

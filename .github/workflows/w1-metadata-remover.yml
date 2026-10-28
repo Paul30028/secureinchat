@@ -47,8 +47,8 @@ jobs:
           done | tee ../../sizes.txt
       - name: Tools for the independent check
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq libimage-exiftool-perl > /dev/null
-          pip install -q pillow piexif pypdf python-docx
+          sudo apt-get update -qq && sudo apt-get install -y -qq libimage-exiftool-perl ffmpeg > /dev/null
+          pip install -q pillow piexif pypdf python-docx pillow-heif
       - name: Our fixtures through process_file, checked with exiftool, Pillow, pypdf and python-docx
         run: |
           python3 tests/w1/make_fixtures.py fx/in

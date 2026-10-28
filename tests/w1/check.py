@@ -3,6 +3,10 @@
 # Usage: python3 tests/w1/check.py INDIR OUTDIR
 import json, subprocess, sys, zipfile, io
 from PIL import Image
+try:
+    import pillow_heif; pillow_heif.register_heif_opener()
+except ImportError:
+    pass
 from pypdf import PdfReader
 import docx
 src, out = sys.argv[1], sys.argv[2]
@@ -17,12 +21,15 @@ for name, r in rep.items():
         fails.append(f'{name}: tool error {r.get("error")}'); continue
     before, after = exif(f'{src}/{name}'), exif(f'{out}/{name}')
     if MARK not in before and 'GPS' not in before: fails.append(f'{name}: fixture has no marker (test bug)')
-    for bad in [MARK, 'GPSLatitude', 'GPSLongitude', 'TestMake', 'TestModel', 'W1Creator', 'W1Soft']:
+    for bad in [MARK, 'GPSLatitude', 'GPSLongitude', 'GPSCoordinates', 'TestMake', 'TestModel', 'W1Creator', 'W1Soft', '+31.2304']:
         if bad in after: fails.append(f'{name}: still contains {bad}')
-    if name.endswith(('.jpg', '.png', '.webp')):
+    if name.endswith(('.jpg', '.png', '.webp', '.heic')):
         a, b = Image.open(f'{src}/{name}'), Image.open(f'{out}/{name}')
         b.load()
         if a.size != b.size: fails.append(f'{name}: size changed {a.size} -> {b.size}')
+    if name.endswith('.mp4'):
+        r2 = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,nb_frames', '-of', 'csv=p=0', f'{out}/{name}'], capture_output=True, text=True)
+        if 'video' not in r2.stdout: fails.append(f'{name}: cleaned video does not decode: {r2.stderr[:200]}')
     if name.endswith('.pdf'):
         rd = PdfReader(f'{out}/{name}')
         if len(rd.pages) != 1: fails.append(f'{name}: page count changed')
