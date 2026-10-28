@@ -9,7 +9,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 FONTS = ROOT / 'public' / 'assets' / 'fonts'
 OUT = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'dist' / 'kit' / 'phone-account-takeover-kit.pdf'
-VERSION = '0.1 (draft)'
+VERSION = '0.2 (draft)'
 
 md = (HERE / 'kit-en.md').read_text(encoding='utf-8')
 title = re.sub(r'[*#]', '', md.splitlines()[0]).strip()
