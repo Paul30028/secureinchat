@@ -81,6 +81,15 @@ class GuardianVpnService : VpnService() {
                 return START_STICKY
             }
             else -> {
+                // Besides our own Start, two ways to get here: the system starts us for Always-on
+                // VPN (action "android.net.VpnService"), or START_STICKY restarts us with a null
+                // intent. Consent may have been revoked since; without it establish() would fail,
+                // so stop and do not ask to be restarted.
+                if (VpnService.prepare(this) != null) {
+                    stopVpnInternal()
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
                 if (!running && !isLoading) {
                     // startForeground can be refused (e.g. systemExempted on API 34+ when this app
                     // is no longer the configured VPN after a sticky restart). Stop rather than run unpromoted.
@@ -165,6 +174,8 @@ class GuardianVpnService : VpnService() {
             running = true
             isRunning = true
             isLoading = false
+            instance = this
+            readAlwaysOn()
             // Let the Quick Settings tile refresh from "Starting…" to "On" without waiting for a tap.
             // Fully qualified to avoid touching this file's imports.
             try {
@@ -182,6 +193,20 @@ class GuardianVpnService : VpnService() {
             isLoading = false
             stopSelf()
         }
+    }
+
+    // API 29 added isAlwaysOn/isLockdownEnabled. Before that, or on failure, both stay null and the
+    // UI hides the row instead of guessing.
+    private fun readAlwaysOn() {
+        if (Build.VERSION.SDK_INT >= 29) {
+            try {
+                alwaysOn = isAlwaysOn
+                lockdown = isLockdownEnabled
+                return
+            } catch (_: Throwable) {}
+        }
+        alwaysOn = null
+        lockdown = null
     }
 
     override fun onRevoke() {
@@ -309,6 +334,9 @@ class GuardianVpnService : VpnService() {
         running = false
         isRunning = false
         isLoading = false
+        instance = null
+        alwaysOn = null
+        lockdown = null
         try { tun?.close() } catch (_: Throwable) {}
         try { tunIn?.close() } catch (_: Throwable) {}
         try { tunOut?.close() } catch (_: Throwable) {}
@@ -352,6 +380,18 @@ class GuardianVpnService : VpnService() {
 
         @Volatile var activeHandler: QueryHandler? = null
             private set
+
+        // null = unknown (not running, or API < 29). The UI hides the row on null.
+        @Volatile var alwaysOn: Boolean? = null
+            private set
+        @Volatile var lockdown: Boolean? = null
+            private set
+        @Volatile private var instance: GuardianVpnService? = null
+
+        /** Re-reads the Always-on state, e.g. when the user comes back from system settings. */
+        fun refreshAlwaysOn() {
+            instance?.readAlwaysOn()
+        }
 
         // The bundled lists never change while the app runs, so parse them once per process.
         @Volatile private var baseCache: Blocklist? = null

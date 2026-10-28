@@ -2,6 +2,7 @@
 package org.secureinchat.guardian
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -16,6 +17,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.text.InputType
 import android.text.SpannableStringBuilder
 import android.text.Spanned
@@ -37,6 +39,8 @@ import org.secureinchat.guardian.dns.QueryHandler
 class MainActivity : Activity() {
 
     private lateinit var statusView: TextView
+    private lateinit var alwaysOnView: TextView
+    private lateinit var alwaysOnError: TextView
     private lateinit var statsView: TextView
     private lateinit var rulesView: TextView
     private lateinit var logView: TextView
@@ -83,7 +87,12 @@ class MainActivity : Activity() {
         registerPdnsCallback()
     }
 
-    override fun onResume() { super.onResume(); uiHandler.post(refreshTick) }
+    override fun onResume() {
+        super.onResume()
+        // The user may have just changed Always-on in system settings.
+        GuardianVpnService.refreshAlwaysOn()
+        uiHandler.post(refreshTick)
+    }
     override fun onPause() { super.onPause(); uiHandler.removeCallbacks(refreshTick) }
 
     override fun onDestroy() {
@@ -128,6 +137,13 @@ class MainActivity : Activity() {
 
         statusView = TextView(this).apply { textSize = 16f }
         root.addView(statusView)
+
+        // Always-on row: shown only when the service can answer (running, API 29+); no placeholder.
+        alwaysOnView = TextView(this).apply {
+            textSize = 13f
+            visibility = View.GONE
+        }
+        root.addView(alwaysOnView)
 
         toggleBtn = Button(this).apply { setOnClickListener { onToggleClicked() } }
         root.addView(toggleBtn)
@@ -249,6 +265,27 @@ class MainActivity : Activity() {
         root.addView(allowedListContainer)
 
         // A little slack at the bottom so the last row is not glued to the scroll edge.
+        // --- Always-on VPN (G9) ---------------------------------------------
+        // At the bottom so the controls people use daily keep their place.
+        root.addView(Button(this).apply {
+            text = txt("Always-on VPN settings", "始终开启设置")
+            textSize = 13f
+            setOnClickListener { openVpnSettings() }
+        })
+        root.addView(TextView(this).apply {
+            textSize = 12f
+            text = txt(
+                "In system settings, tap the gear next to Guardian and turn on Always-on VPN. Android then restarts Guardian after a reboot.",
+                "在系统设置里点 Guardian 旁边的齿轮,打开「始终开启的 VPN」。之后手机重启时 Android 会自动启动 Guardian。"
+            )
+        })
+        alwaysOnError = TextView(this).apply {
+            textSize = 12f
+            visibility = View.GONE
+            text = txt("Open Settings > Network > VPN", "请打开 设置 > 网络 > VPN")
+        }
+        root.addView(alwaysOnError)
+
         root.addView(View(this).apply { minimumHeight = small })
 
         setContentView(ScrollView(this).apply { addView(root) })
@@ -270,6 +307,28 @@ class MainActivity : Activity() {
         allowedSignature = ""
         appListSignature = ""
         uiHandler.post { refreshUi() }
+    }
+
+    private fun openVpnSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_VPN_SETTINGS))
+            alwaysOnError.visibility = View.GONE
+        } catch (_: ActivityNotFoundException) {
+            alwaysOnError.visibility = View.VISIBLE
+        }
+    }
+
+    private fun renderAlwaysOnRow() {
+        val on = GuardianVpnService.alwaysOn
+        if (on == null) {
+            if (alwaysOnView.visibility != View.GONE) alwaysOnView.visibility = View.GONE
+            setIfChanged(alwaysOnView, "")
+            return
+        }
+        if (alwaysOnView.visibility != View.VISIBLE) alwaysOnView.visibility = View.VISIBLE
+        var text = if (on) txt("Always-on: On", "始终开启:已开启") else txt("Always-on: Off", "始终开启:未开启")
+        if (GuardianVpnService.lockdown == true) text += txt(", blocks connections without VPN", ",未连 VPN 时断网")
+        setIfChanged(alwaysOnView, text)
     }
 
     private fun onToggleClicked() {
@@ -330,6 +389,8 @@ class MainActivity : Activity() {
             running -> txt("Status: Running", "状态：运行中")
             else -> txt("Status: Stopped", "状态：已停止")
         })
+
+        renderAlwaysOnRow()
 
         toggleBtn.isEnabled = !loading
         setIfChanged(toggleBtn, if (running) txt("Stop", "停止") else txt("Start", "启动"))

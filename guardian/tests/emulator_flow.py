@@ -380,6 +380,37 @@ def main():
     nodes = dump()
     print("ok: user block list works")
 
+    # 4e. Always-on VPN (G9): the status area reports "Always-on: Off" (API 29+), and the button opens
+    #     the system VPN settings; Back returns to Guardian, still running.
+    wait_ui(lambda s: "Always-on: Off" in s, "status area does not show 'Always-on: Off'")
+    nodes = scroll_find(lambda s: "Always-on VPN settings" in s, "no 'Always-on VPN settings' button", tries=10)
+    b = button(nodes, "Always-on VPN settings")
+    if not b:
+        swipe_up(0.15)
+        time.sleep(1)
+        nodes = dump()
+        b = button(nodes, "Always-on VPN settings")
+    if not b:
+        fail("'Always-on VPN settings' button not tappable", nodes)
+    tap(b)
+    top = ""
+    for _ in range(10):
+        time.sleep(1)
+        out = sh("dumpsys activity activities", check=False)
+        m = re.search(r"(?:mResumedActivity|topResumedActivity|ResumedActivity)[^\n]*?\{[^}]*?\s(\S+/\S+)", out)
+        top = m.group(1) if m else ""
+        if top.startswith("com.android.settings"):
+            break
+    print(f"guardian: resumed after Always-on button -> {top}")
+    if not top.startswith("com.android.settings"):
+        fail(f"Always-on button did not open system settings (resumed: {top!r})")
+    snap("vpn-settings")
+    sh("input keyevent 4")  # Back
+    time.sleep(2)
+    scroll_top()
+    nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after returning from VPN settings")
+    print("ok: Always-on row and VPN settings button work")
+
     # 5. Stop from the app
     b = button(nodes, "Stop")
     if not b:
