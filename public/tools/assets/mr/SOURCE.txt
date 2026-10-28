@@ -1,0 +1,1 @@
+iAnonymous3000/metadata-remover @ 2524864b3135d6a77fdbb635c571d6948f8b2b3d, built by wasm-pack 0.14.0 (rust 1.94.1) in workflow run 40614971868
