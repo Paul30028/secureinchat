@@ -1,0 +1,1775 @@
+<<<FULL
+下面先给 chat-core 与测试。有两处需要你确认的前提：
+
+我假设 packages/chat-core/test/groupStore.test.ts 已存在（现有测试同目录同风格）。如果没有，把追加块单独建成该文件、补上对应 import 即可。
+
+packages/chat-core/test/fileTransfer.test.ts 在 batch1 里已经建过（含 durationMs 的 describe），这里给的是追加块，导入行按已有文件补充 bytesToBase64Url。
+
+仓库内路径：packages/chat-core/src/messageEnvelope.ts
+
+ts
+Copy
+Download
+import type { AnnouncementCategory } from "./announcementCategories";
+
+/**
+ * 消息信封——放在**加密之后的载荷内部**，中继看不到。
+ *
+ * 这是个刻意的设计决定：图片、语音、文件、公告都不给 relay 加新的帧类型，
+ * 而是复用同一个 `forward` 密文帧，把"这是什么类型的消息"放进加密内容里。
+ * 好处是中继依然完全不知道你在传什么（盲中继原则），加新消息类型不需要动
+ * 服务端一行代码；代价是中继无法针对不同类型做优化（比如大文件限流），
+ * 这个取舍在当前"隐私优先"的定位下是划算的。
+ */
+
+export type MessageEnvelope =
+  | TextEnvelope
+  | AnnouncementEnvelope
+  | FileMetaEnvelope
+  | FileChunkEnvelope;
+
+export interface TextEnvelope {
+  kind: "text";
+  /**
+   * 发送方自己维护的递增序号，用于重放检测（见 ordering.ts）。
+   * 在加密载荷里，中继看不到也改不了。老客户端没有这个字段，
+   * 接收方要能容忍缺失——那种消息只能跳过重放检查，不能整条丢掉。
+   */
+  seq?: number;
+  /** 客户端生成的消息 ID，用于去重（见 dedup.ts） */
+  id: string;
+  text: string;
+  sentAtMs: number;
+  /** 发送者昵称。在加密载荷内部，中继看不到。老版本客户端发的消息没有这个字段，
+   *  接收方要能容忍缺失（回退到设备 ID 短前缀）。 */
+  senderName?: string;
+  /** 回复的目标消息。整段在加密载荷里，中继看不到引用了什么。
+   *  存的是快照而不是消息 ID——对方可能已经把原消息删了，
+   *  或者根本没收到过（比如他是后来才加入的）。 */
+  replyTo?: {
+    senderName: string;
+    /** 被引用消息的摘要，最多截断到 60 字 */
+    excerpt: string;
+  };
+  /**
+   * 阅后即焚：这条消息在接收方收到后多少毫秒消失。
+   * 在加密载荷里，中继看不到。老客户端不认识这个字段会忽略它——
+   * 这是已知限制：消息在旧版客户端上不会消失，界面说明里要讲清楚。
+   */
+  expiresInMs?: number;
+}
+
+export interface AnnouncementEnvelope {
+  kind: "announcement";
+  id: string;
+  /**
+   * 栏目。老版本客户端发的公告没有这个字段，接收方要能容忍缺失
+   * （回退到"通知"栏），不能因此丢掉整条公告。
+   */
+  category?: AnnouncementCategory;
+  title: string;
+  body: string;
+  sentAtMs: number;
+  senderName?: string;
+  /**
+   * 关联的音频文件 ID（赞美圣诗用）。音频本身走已有的分片加密传输
+   * （file-meta/file-chunk），这里只带一个引用——公告帧不适合塞几 MB 的内容。
+   * 这个字段也在签名范围内，否则别人可以把音频换掉。
+   */
+  audioFileId?: string;
+  /**
+   * 管理员签名（base64url）。收到方用邀请串里的管理员公钥验证——验不过
+   * 就不当公告，因为发送者没有管理员私钥。没有签名的公告同样不被接受。
+   */
+  adminSignature?: string;
+}
+
+/** 文件传输的第一帧：告诉接收方接下来会有多少个分片、原始文件名是什么。
+ *  文件名在这里（也就是在加密内容里），中继看不到——对应第十节
+ *  "文件名经过加密保护"的要求。 */
+export interface FileMetaEnvelope {
+  kind: "file-meta";
+  senderName?: string;
+  /** 文件 ID，后续分片用它关联回来 */
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  totalBytes: number;
+  totalChunks: number;
+  /** 图片/语音/普通文件——决定 UI 怎么渲染（显示缩略图 / 播放器 / 文件卡片） */
+  mediaKind: "image" | "voice" | "file";
+  sentAtMs: number;
+  /**
+   * 语音消息时长（毫秒）。只对 voice 有意义。
+   * 可选字段：老客户端没有，接收方要能容忍缺失（回退到 audio 元素的 duration）。
+   * WebView 读不到 webm 的时长元数据，所以由发送方在录音结束时算好带过来。
+   */
+  durationMs?: number;
+  /**
+   * 阅后即焚：这条文件在接收方组装完成之后多少毫秒消失。
+   * 在加密载荷里，中继看不到。老客户端会忽略这个字段——已知限制，
+   * 消息在旧版客户端上不会消失。
+   */
+  expiresInMs?: number;
+}
+
+export interface FileChunkEnvelope {
+  kind: "file-chunk";
+  fileId: string;
+  /** 从 0 开始的分片序号 */
+  chunkIndex: number;
+  /** 这一片的内容，base64url */
+  dataB64Url: string;
+}
+
+export function encodeEnvelope(envelope: MessageEnvelope): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify(envelope));
+}
+
+export class EnvelopeDecodeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EnvelopeDecodeError";
+  }
+}
+
+const VALID_KINDS = new Set(["text", "announcement", "file-meta", "file-chunk"]);
+
+export function decodeEnvelope(bytes: Uint8Array): MessageEnvelope {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    throw new EnvelopeDecodeError("载荷不是合法 JSON");
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new EnvelopeDecodeError("载荷不是对象");
+  }
+  const kind = (parsed as { kind?: unknown }).kind;
+  if (typeof kind !== "string" || !VALID_KINDS.has(kind)) {
+    // 未知类型可能是对端用了更新版本的客户端——调用方应该忽略这条消息而不是崩溃
+    throw new EnvelopeDecodeError(`未知的消息类型: ${String(kind)}`);
+  }
+  return parsed as MessageEnvelope;
+}
+
+仓库内路径：packages/chat-core/src/disappearing.ts
+
+ts
+Copy
+Download
+/**
+ * 阅后即焚（消息定时消失）的公共逻辑。
+ *
+ * 计时从「本机收到/发出这条消息的时刻」开始，不用 sentAtMs——对方时钟不准
+ * 会导致一收到就删，离线补发的消息也会一到就过期。
+ *
+ * 这个模块只做纯计算，不碰 UI、不碰存储，方便测试和复用。
+ */
+
+/** 可选的消失时长：关、5 分钟、1 小时、1 天、7 天。 */
+export const DISAPPEAR_OPTIONS_MS = [
+  0,
+  5 * 60_000,
+  3_600_000,
+  86_400_000,
+  7 * 86_400_000,
+] as const;
+
+/** 消息里允许携带的最短消失时长：1 分钟。 */
+const MIN_EXPIRES_MS = 60_000;
+/** 消息里允许携带的最长消失时长：7 天。 */
+const MAX_EXPIRES_MS = 7 * 86_400_000;
+
+/**
+ * 把信封里带过来的 expiresInMs 校验成可用的值。
+ * 必须是有限正整数，且在 [60_000, 7 天] 范围内；否则当作没有（不删、不报错）。
+ * 老客户端发的消息没有这个字段，返回 undefined，照常显示。
+ */
+export function sanitizeExpiresInMs(v: unknown): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v)) return undefined;
+  const rounded = Math.round(v);
+  if (rounded < MIN_EXPIRES_MS || rounded > MAX_EXPIRES_MS) return undefined;
+  return rounded;
+}
+
+/**
+ * 本机收到/发出这条消息的时刻 + 时长 = 到期时间。没有时长就不设到期。
+ */
+export function expiresAtFor(
+  receivedAtMs: number,
+  expiresInMs: number | undefined
+): number | undefined {
+  if (expiresInMs === undefined) return undefined;
+  return receivedAtMs + expiresInMs;
+}
+
+/**
+ * 按当前时刻把消息分成「留着」和「已过期」两堆。
+ * 到期时间缺失或不是有限数字的当作不过期（老消息、损坏数据）。
+ */
+export function partitionExpired<T extends { expiresAtMs?: number | undefined }>(
+  items: T[],
+  nowMs: number
+): { keep: T[]; expired: T[] } {
+  const keep: T[] = [];
+  const expired: T[] = [];
+  for (const item of items) {
+    const at = item.expiresAtMs;
+    if (typeof at === "number" && Number.isFinite(at) && at <= nowMs) {
+      expired.push(item);
+    } else {
+      keep.push(item);
+    }
+  }
+  return { keep, expired };
+}
+
+/**
+ * 最早一条的到期时间，给定时器用。没有需要定时的消息时返回 undefined。
+ * 调用方拿它减当前时间就是 setTimeout 的延迟；最少要等 1 秒，
+ * 避免到期时间在过去（时钟回拨等）时立刻疯狂重排。
+ */
+export function nextExpiryMs<T extends { expiresAtMs?: number | undefined }>(
+  items: T[]
+): number | undefined {
+  let earliest: number | undefined;
+  for (const item of items) {
+    const at = item.expiresAtMs;
+    if (typeof at !== "number" || !Number.isFinite(at)) continue;
+    if (earliest === undefined || at < earliest) earliest = at;
+  }
+  return earliest;
+}
+
+仓库内路径：packages/chat-core/src/messageStore.ts
+
+ts
+Copy
+Download
+import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+
+/**
+ * 消息历史的本地持久化。
+ *
+ * 和昵称、服务器地址不同，聊天内容是敏感的——所以走 EncryptedKeyValueStore
+ * （用设备主密钥加密后落盘），不能直接塞 IndexedDB 明文。
+ *
+ * 中继按设计不存任何消息，所以历史只能存在本地：换设备看不到旧消息，
+ * 清除应用数据也会丢。这是盲中继架构的必然结果，不是没做完。
+ */
+
+/** 每个群最多保留多少条。超出后丢最旧的——避免长期使用后本地存储无限膨胀。 */
+export const MAX_STORED_MESSAGES_PER_GROUP = 300;
+
+/** 单条媒体消息超过这个大小就不持久化（只留一条占位记录）。
+ *  几张大图就能把本地存储撑爆，而且加解密大 blob 也慢。 */
+export const MAX_PERSISTED_MEDIA_BYTES = 512 * 1024;
+
+export interface StoredMessage {
+  id: string;
+  isOwn: boolean;
+  /** 发送者显示名（昵称，或设备 ID 短前缀） */
+  senderLabel?: string | undefined;
+  sentAtMs: number;
+  text?: string | undefined;
+  /**
+   * 阅后即焚的到期时刻（毫秒时间戳）。有就说明这条消息会定时消失；
+   * 重启后重新加载时要按当前时间把它过滤掉。老记录没有这个字段，照常显示。
+   */
+  expiresAtMs?: number | undefined;
+  media?:
+    | {
+        mediaKind: "image" | "voice" | "file";
+        fileName: string;
+        mimeType: string;
+        /** base64url；超过 MAX_PERSISTED_MEDIA_BYTES 时为 undefined（内容没留下） */
+        dataB64Url?: string | undefined;
+        sizeBytes: number;
+        /** 语音时长（毫秒）。老记录没有这个字段，读出来照常显示。 */
+        durationMs?: number | undefined;
+      }
+    | undefined;
+}
+
+export function storageKeyForGroupMessages(groupId: string): string {
+  return `messages:${groupId}`;
+}
+
+/** 只保留最近 N 条 */
+export function trimToLimit(messages: StoredMessage[], limit = MAX_STORED_MESSAGES_PER_GROUP): StoredMessage[] {
+  return messages.length <= limit ? messages : messages.slice(messages.length - limit);
+}
+
+export async function loadMessages(store: EncryptedKeyValueStore, groupId: string): Promise<StoredMessage[]> {
+  try {
+    const bytes = await store.get(storageKeyForGroupMessages(groupId));
+    if (!bytes) return [];
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(parsed) ? (parsed as StoredMessage[]) : [];
+  } catch {
+    // 解密失败（换了设备主密钥）或内容损坏——当作没有历史，不要因此让应用起不来。
+    // 用户会看到空的聊天记录，但功能是好的。
+    return [];
+  }
+}
+
+export async function saveMessages(
+  store: EncryptedKeyValueStore,
+  groupId: string,
+  messages: StoredMessage[]
+): Promise<void> {
+  const trimmed = trimToLimit(messages);
+  const bytes = new TextEncoder().encode(JSON.stringify(trimmed));
+  await store.set(storageKeyForGroupMessages(groupId), bytes);
+}
+
+export async function clearMessages(store: EncryptedKeyValueStore, groupId: string): Promise<void> {
+  await store.delete(storageKeyForGroupMessages(groupId));
+}
+
+/** 媒体内容是否值得持久化——太大就只留元信息 */
+export function shouldPersistMediaBytes(sizeBytes: number): boolean {
+  return sizeBytes <= MAX_PERSISTED_MEDIA_BYTES;
+}
+
+仓库内路径：packages/chat-core/src/groupStore.ts
+
+ts
+Copy
+Download
+import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+import { DISAPPEAR_OPTIONS_MS } from "./disappearing";
+
+/**
+ * 已加入的群列表。
+ *
+ * 走加密存储：里面存着每个群的原始密钥材料，拿到它就能解密该群的全部历史消息，
+ * 敏感程度和消息本身一样。
+ */
+
+const GROUPS_KEY = "groups:joined";
+
+export interface JoinedGroup {
+  groupId: string;
+  groupName: string;
+  /** 邀请串里的原始密钥材料，重新连接时用它派生群密钥 */
+  keyMaterialB64Url: string;
+  epoch: number;
+  /**
+   * 管理员公钥，用来验证这个群的公告签名。
+   *
+   * 必须持久化：它来自邀请串，但重启后是从本地恢复群列表的，不再经过邀请串。
+   * 不存的话重连之后这个字段是 undefined，所有公告都验不过、被静默丢弃——
+   * 表现成"别人发的公告我收不到"。
+   */
+  adminPublicKeyRawB64Url?: string | undefined;
+  joinedAtMs: number;
+  /** 最后一次查看这个群的时间，用来算未读数 */
+  lastReadAtMs: number;
+  /**
+   * 本机在这个群里的「消息定时消失」时长（毫秒），0/缺省表示关闭。
+   * 每台设备、每个群独立——只影响自己之后发出的消息；收到的消息按
+   * 消息里自带的 expiresInMs 处理。老记录没有这个字段，按关闭处理。
+   */
+  disappearAfterMs?: number | undefined;
+}
+
+export async function loadJoinedGroups(store: EncryptedKeyValueStore): Promise<JoinedGroup[]> {
+  try {
+    const bytes = await store.get(GROUPS_KEY);
+    if (!bytes) return [];
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(parsed) ? (parsed as JoinedGroup[]) : [];
+  } catch {
+    // 解密失败或数据损坏——当作没加过群。用户可以用邀请码重新加入，
+    // 比让应用起不来强。
+    return [];
+  }
+}
+
+export async function saveJoinedGroups(store: EncryptedKeyValueStore, groups: JoinedGroup[]): Promise<void> {
+  await store.set(GROUPS_KEY, new TextEncoder().encode(JSON.stringify(groups)));
+}
+
+/**
+ * 加入或更新一个群。同一个 groupId 重复加入不会产生两条记录——
+ * 会更新群名和密钥材料（对方可能重新生成了邀请码），但保留原来的加入时间。
+ */
+export function upsertGroup(groups: JoinedGroup[], group: JoinedGroup): JoinedGroup[] {
+  const existing = groups.find((g) => g.groupId === group.groupId);
+  if (!existing) return [...groups, group];
+  return groups.map((g) =>
+    g.groupId === group.groupId
+      ? { ...group, joinedAtMs: existing.joinedAtMs, lastReadAtMs: existing.lastReadAtMs }
+      : g
+  );
+}
+
+export function removeGroup(groups: JoinedGroup[], groupId: string): JoinedGroup[] {
+  return groups.filter((g) => g.groupId !== groupId);
+}
+
+/** 改群名。只改本机显示的名字——中继不知道群叫什么，别人那边不会跟着变。 */
+export function renameGroup(groups: JoinedGroup[], groupId: string, groupName: string): JoinedGroup[] {
+  return groups.map((g) => (g.groupId === groupId ? { ...g, groupName } : g));
+}
+
+export function markGroupRead(groups: JoinedGroup[], groupId: string, atMs = Date.now()): JoinedGroup[] {
+  return groups.map((g) => (g.groupId === groupId ? { ...g, lastReadAtMs: atMs } : g));
+}
+
+/**
+ * 设置某个群的「消息定时消失」时长。
+ * ms 不在 DISAPPEAR_OPTIONS_MS 里就原样返回——调用方传错值不该静默改存储。
+ * 0 表示关闭，把字段清掉（而不是留一个 0）。
+ */
+export function setDisappearAfter(
+  groups: JoinedGroup[],
+  groupId: string,
+  ms: number
+): JoinedGroup[] {
+  if (!(DISAPPEAR_OPTIONS_MS as readonly number[]).includes(ms)) return groups;
+  return groups.map((g) =>
+    g.groupId === groupId
+      ? { ...g, ...(ms > 0 ? { disappearAfterMs: ms } : { disappearAfterMs: undefined }) }
+      : g
+  );
+}
+
+/** 未读数 = 这个群里晚于 lastReadAtMs 且不是自己发的消息条数 */
+export function unreadCount(
+  messages: { sentAtMs: number; isOwn: boolean }[],
+  lastReadAtMs: number
+): number {
+  return messages.filter((m) => !m.isOwn && m.sentAtMs > lastReadAtMs).length;
+}
+
+仓库内路径：packages/chat-core/src/fileTransfer.ts
+
+ts
+Copy
+Download
+import type { FileChunkEnvelope, FileMetaEnvelope } from "./messageEnvelope";
+import { sanitizeExpiresInMs } from "./disappearing";
+
+/**
+ * 文件分片与重组。
+ *
+ * ⚠️ 与原始需求第十节的差距，如实说明：需求要求"每个文件生成独立随机文件密钥"，
+ * 当前实现**没有**做这一层——分片和普通消息一样用群 epoch 密钥加密，只是通过
+ * AAD 绑定了 fileId + chunkIndex + epoch（"分片绑定文件ID、分片序号和群组
+ * epoch"这条是满足的）。独立文件密钥需要接收方也能派生出同一把密钥，而
+ * RelayClient 目前只持有派生后的 epoch 密钥、拿不到原始密钥材料，要补这一层
+ * 得改密钥分发路径。这是明确的已知缺口，不是遗漏。
+ */
+
+/** 64KB 一片。WebSocket 单帧不宜过大，base64 编码后约 87KB，是个稳妥的值。 */
+export const CHUNK_SIZE_BYTES = 64 * 1024;
+
+/** 语音时长上限：一小时。超过这个值的语音基本可以认为是异常数据。 */
+export const MAX_VOICE_DURATION_MS = 3_600_000;
+
+export function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export function base64UrlToBytes(s: string): Uint8Array {
+  const padded = s + "=".repeat((4 - (s.length % 4)) % 4);
+  const binary = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+export function totalChunksFor(totalBytes: number, chunkSize = CHUNK_SIZE_BYTES): number {
+  // 空文件也算一个分片，避免"0 个分片"这种需要特殊处理的边界情况
+  return Math.max(1, Math.ceil(totalBytes / chunkSize));
+}
+
+/** 发送端：有限正数才保留，四舍五入，clamp 到上限。 */
+export function normalizeDurationForSend(v: number | undefined): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return undefined;
+  return Math.min(Math.round(v), MAX_VOICE_DURATION_MS);
+}
+
+/** 接收端：不是有限正数或超过上限就丢弃。 */
+export function normalizeDurationForReceive(v: unknown): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0 || v > MAX_VOICE_DURATION_MS) {
+    return undefined;
+  }
+  return Math.round(v);
+}
+
+export interface BuildFileEnvelopesInput {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  mediaKind: FileMetaEnvelope["mediaKind"];
+  bytes: Uint8Array;
+  senderName?: string;
+  sentAtMs?: number;
+  chunkSize?: number;
+  /** 语音时长（毫秒）。只对 voice 有意义；非法值不会写进 meta。 */
+  durationMs?: number;
+  /** 阅后即焚时长（毫秒）。非法值不会写进 meta；只对 text/file-meta 有意义。 */
+  expiresInMs?: number;
+}
+
+/** 把一个文件拆成 1 个 meta 信封 + N 个分片信封，按顺序发送即可。 */
+export function buildFileEnvelopes(input: BuildFileEnvelopesInput): {
+  meta: FileMetaEnvelope;
+  chunks: FileChunkEnvelope[];
+} {
+  const chunkSize = input.chunkSize ?? CHUNK_SIZE_BYTES;
+  const totalChunks = totalChunksFor(input.bytes.byteLength, chunkSize);
+  const durationMs = normalizeDurationForSend(input.durationMs);
+  const expiresInMs = sanitizeExpiresInMs(input.expiresInMs);
+
+  const meta: FileMetaEnvelope = {
+    kind: "file-meta",
+    fileId: input.fileId,
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+    totalBytes: input.bytes.byteLength,
+    totalChunks,
+    mediaKind: input.mediaKind,
+    sentAtMs: input.sentAtMs ?? Date.now(),
+    ...(input.senderName ? { senderName: input.senderName } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {}),
+    ...(expiresInMs !== undefined ? { expiresInMs } : {}),
+  };
+
+  const chunks: FileChunkEnvelope[] = [];
+  for (let i = 0; i < totalChunks; i++) {
+    const slice = input.bytes.slice(i * chunkSize, (i + 1) * chunkSize);
+    chunks.push({
+      kind: "file-chunk",
+      fileId: input.fileId,
+      chunkIndex: i,
+      dataB64Url: bytesToBase64Url(slice),
+    });
+  }
+  return { meta, chunks };
+}
+
+export interface AssembledFile {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  mediaKind: FileMetaEnvelope["mediaKind"];
+  bytes: Uint8Array;
+  senderName?: string | undefined;
+  /** 语音时长（毫秒）。非法值在接收端丢弃，不会让整条消息失败。 */
+  durationMs?: number | undefined;
+  /** 阅后即焚时长（毫秒）。非法值在接收端丢弃，不会让整条消息失败。 */
+  expiresInMs?: number | undefined;
+}
+
+export interface IncomingFileProgress {
+  fileId: string;
+  fileName: string;
+  mediaKind: FileMetaEnvelope["mediaKind"];
+  receivedChunks: number;
+  totalChunks: number;
+}
+
+/**
+ * 接收端的重组器。分片可能乱序到达（网络本来就不保证顺序），所以按 index
+ * 存进 Map 而不是直接 append，集齐了再按序拼起来。
+ */
+export class FileAssembler {
+  private pending = new Map<string, { meta: FileMetaEnvelope; chunks: Map<number, Uint8Array> }>();
+
+  /** 收到 meta 帧。重复的 meta（重发/重连）不会清空已经收到的分片。 */
+  acceptMeta(meta: FileMetaEnvelope): void {
+    const existing = this.pending.get(meta.fileId);
+    if (existing) {
+      existing.meta = meta;
+      return;
+    }
+    this.pending.set(meta.fileId, { meta, chunks: new Map() });
+  }
+
+  /**
+   * 收到分片。集齐所有分片时返回组装好的文件，否则返回 undefined。
+   * 如果 meta 还没到（分片先到了），也返回 undefined——分片会被丢弃，
+   * 因为没有 meta 就不知道总共该有多少片、文件叫什么。
+   */
+  acceptChunk(chunk: FileChunkEnvelope): AssembledFile | undefined {
+    const entry = this.pending.get(chunk.fileId);
+    if (!entry) return undefined;
+
+    entry.chunks.set(chunk.chunkIndex, base64UrlToBytes(chunk.dataB64Url));
+    if (entry.chunks.size < entry.meta.totalChunks) return undefined;
+
+    const ordered: Uint8Array[] = [];
+    for (let i = 0; i < entry.meta.totalChunks; i++) {
+      const part = entry.chunks.get(i);
+      if (!part) return undefined; // 数量够了但序号有洞——还不能组装
+      ordered.push(part);
+    }
+
+    const totalLength = ordered.reduce((sum, part) => sum + part.byteLength, 0);
+    const bytes = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const part of ordered) {
+      bytes.set(part, offset);
+      offset += part.byteLength;
+    }
+
+    this.pending.delete(chunk.fileId);
+    return {
+      fileId: entry.meta.fileId,
+      fileName: entry.meta.fileName,
+      mimeType: entry.meta.mimeType,
+      mediaKind: entry.meta.mediaKind,
+      bytes,
+      senderName: entry.meta.senderName,
+      durationMs: normalizeDurationForReceive(entry.meta.durationMs),
+      expiresInMs: sanitizeExpiresInMs(entry.meta.expiresInMs),
+    };
+  }
+
+  /** 当前正在接收中的文件进度，供 UI 显示"接收中 3/12" */
+  progress(): IncomingFileProgress[] {
+    return [...this.pending.values()].map((entry) => ({
+      fileId: entry.meta.fileId,
+      fileName: entry.meta.fileName,
+      mediaKind: entry.meta.mediaKind,
+      receivedChunks: entry.chunks.size,
+      totalChunks: entry.meta.totalChunks,
+    }));
+  }
+}
+
+仓库内路径：packages/chat-core/src/index.ts
+
+ts
+Copy
+Download
+export * from "./dedup";
+export * from "./ordering";
+export * from "./offlineOutbox";
+export * from "./groupJoin";
+export * from "./relayClient";
+export * from "./messageEnvelope";
+export * from "./fileTransfer";
+export * from "./messageStore";
+export * from "./groupStore";
+export * from "./messageActions";
+export * from "./announcementCategories";
+export * from "./sendProgress";
+export * from "./keyRotation";
+export * from "./connectionStats";
+export * from "./knownDevices";
+export * from "./mentions";
+export * from "./disappearing";
+
+仓库内路径：packages/chat-core/test/disappearing.test.ts
+
+ts
+Copy
+Download
+import { describe, expect, it } from "vitest";
+import {
+  DISAPPEAR_OPTIONS_MS,
+  sanitizeExpiresInMs,
+  expiresAtFor,
+  partitionExpired,
+  nextExpiryMs,
+} from "../src/disappearing";
+
+describe("sanitizeExpiresInMs", () => {
+  it("accepts the boundary values", () => {
+    expect(sanitizeExpiresInMs(60_000)).toBe(60_000);
+    expect(sanitizeExpiresInMs(7 * 86_400_000)).toBe(7 * 86_400_000);
+  });
+
+  it("rejects below the minimum", () => {
+    expect(sanitizeExpiresInMs(59_999)).toBeUndefined();
+    expect(sanitizeExpiresInMs(0)).toBeUndefined();
+    expect(sanitizeExpiresInMs(-1)).toBeUndefined();
+  });
+
+  it("rejects above the maximum", () => {
+    expect(sanitizeExpiresInMs(7 * 86_400_000 + 1)).toBeUndefined();
+  });
+
+  it("rejects non-finite and non-number", () => {
+    expect(sanitizeExpiresInMs(Number.NaN)).toBeUndefined();
+    expect(sanitizeExpiresInMs(Number.POSITIVE_INFINITY)).toBeUndefined();
+    expect(sanitizeExpiresInMs("300000")).toBeUndefined();
+    expect(sanitizeExpiresInMs(null)).toBeUndefined();
+    expect(sanitizeExpiresInMs(undefined)).toBeUndefined();
+  });
+
+  it("rounds to the nearest integer", () => {
+    expect(sanitizeExpiresInMs(60_000.4)).toBe(60_000);
+    expect(sanitizeExpiresInMs(300_000.6)).toBe(300_001);
+  });
+});
+
+describe("expiresAtFor", () => {
+  it("returns undefined when there is no duration", () => {
+    expect(expiresAtFor(1000, undefined)).toBeUndefined();
+  });
+
+  it("adds the duration to the receive time", () => {
+    expect(expiresAtFor(1000, 5000)).toBe(6000);
+  });
+});
+
+describe("partitionExpired", () => {
+  it("keeps items without an expiry", () => {
+    const items = [{ id: "a" }, { id: "b", expiresAtMs: 5000 }];
+    const { keep, expired } = partitionExpired(items, 1000);
+    expect(keep.map((i) => i.id)).toEqual(["a", "b"]);
+    expect(expired).toEqual([]);
+  });
+
+  it("splits at the current time, counting equality as expired", () => {
+    const items = [
+      { id: "past", expiresAtMs: 500 },
+      { id: "now", expiresAtMs: 1000 },
+      { id: "future", expiresAtMs: 1500 },
+    ];
+    const { keep, expired } = partitionExpired(items, 1000);
+    expect(keep.map((i) => i.id)).toEqual(["future"]);
+    expect(expired.map((i) => i.id)).toEqual(["past", "now"]);
+  });
+
+  it("handles an empty list", () => {
+    expect(partitionExpired([], 1000)).toEqual({ keep: [], expired: [] });
+  });
+});
+
+describe("nextExpiryMs", () => {
+  it("returns undefined for an empty list", () => {
+    expect(nextExpiryMs([])).toBeUndefined();
+  });
+
+  it("returns undefined when nothing has an expiry", () => {
+    expect(nextExpiryMs([{ id: "a" }])).toBeUndefined();
+  });
+
+  it("returns the earliest expiry", () => {
+    expect(
+      nextExpiryMs([{ expiresAtMs: 3000 }, { expiresAtMs: 1000 }, { expiresAtMs: 2000 }])
+    ).toBe(1000);
+  });
+
+  it("ignores non-finite values", () => {
+    expect(nextExpiryMs([{ expiresAtMs: Number.NaN }, { expiresAtMs: 2000 }])).toBe(2000);
+  });
+});
+
+describe("DISAPPEAR_OPTIONS_MS", () => {
+  it("lists the expected options in order", () => {
+    expect([...DISAPPEAR_OPTIONS_MS]).toEqual([
+      0,
+      300_000,
+      3_600_000,
+      86_400_000,
+      604_800_000,
+    ]);
+  });
+});
+
+仓库内路径：packages/chat-core/test/groupStore.test.ts（追加到文件末尾；如果文件里还没导入这些名字，在顶部 import 里补 setDisappearAfter、type JoinedGroup）
+
+ts
+Copy
+Download
+describe("setDisappearAfter", () => {
+  const baseGroup: JoinedGroup = {
+    groupId: "g1",
+    groupName: "群",
+    keyMaterialB64Url: "KEY",
+    epoch: 0,
+    joinedAtMs: 1,
+    lastReadAtMs: 1,
+  };
+
+  it("sets an allowed value", () => {
+    const result = setDisappearAfter([baseGroup], "g1", 5 * 60_000);
+    expect(result[0]?.disappearAfterMs).toBe(5 * 60_000);
+  });
+
+  it("clears the field when set to 0", () => {
+    const withValue: JoinedGroup = { ...baseGroup, disappearAfterMs: 3_600_000 };
+    const result = setDisappearAfter([withValue], "g1", 0);
+    expect(result[0]?.disappearAfterMs).toBeUndefined();
+  });
+
+  it("returns the same array for a value outside the allowed options", () => {
+    const groups = [baseGroup];
+    expect(setDisappearAfter(groups, "g1", 1234)).toBe(groups);
+  });
+
+  it("does not touch other groups", () => {
+    const other: JoinedGroup = { ...baseGroup, groupId: "g2" };
+    const result = setDisappearAfter([baseGroup, other], "g1", 86_400_000);
+    expect(result[0]?.disappearAfterMs).toBe(86_400_000);
+    expect(result[1]?.disappearAfterMs).toBeUndefined();
+  });
+});
+
+仓库内路径：packages/chat-core/test/fileTransfer.test.ts（追加到文件末尾；在顶部 import 里补 bytesToBase64Url，如果还没有）
+
+ts
+Copy
+Download
+describe("disappearing expiresInMs", () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+
+  it("writes a valid expiresInMs into meta and returns it on assembly", () => {
+    const { meta, chunks } = buildFileEnvelopes({
+      fileId: "f1",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      mediaKind: "file",
+      bytes,
+      expiresInMs: 5 * 60_000,
+    });
+    expect(meta.expiresInMs).toBe(5 * 60_000);
+
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    let done;
+    for (const c of chunks) done = assembler.acceptChunk(c);
+    expect(done?.expiresInMs).toBe(5 * 60_000);
+  });
+
+  it("does not write an out-of-range expiresInMs into meta", () => {
+    const { meta } = buildFileEnvelopes({
+      fileId: "f2",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      mediaKind: "file",
+      bytes,
+      expiresInMs: 59_999,
+    });
+    expect(meta.expiresInMs).toBeUndefined();
+  });
+
+  it("drops an invalid expiresInMs on receive but still assembles the file", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "f3",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "file" as const,
+      sentAtMs: 1,
+      expiresInMs: 7 * 86_400_000 + 1,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "f3",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.expiresInMs).toBeUndefined();
+  });
+
+  it("assembles old-format meta without expiresInMs", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "f4",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "file" as const,
+      sentAtMs: 1,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "f4",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.expiresInMs).toBeUndefined();
+  });
+});
+
+chat-core 部分到此。两点如实说明：
+
+sanitizeExpiresInMs 对 60_000.4 是先四舍五入再判边界，所以 59_999.6 会先变成 60_000 被接受。如果你希望「小数一律拒绝」，告诉我，我改成先判 Number.isInteger。
+
+fileTransfer.ts 发送端也对 expiresInMs 做了 sanitizeExpiresInMs（不只是接收端），避免写出非法值；这超出了「写进 meta」的字面要求，但符合「校验：非法当作没有」的总规则。
+
+下一轮（android-client：DisplayMessage、messageMapping、App.tsx 的发送/接收/加载/定时器/离线队列、GroupSettingsScreen、ChatScreen 沙漏、测试）你说继续我就发。
+FULL>>>
+<<<CODE 0
+import type { AnnouncementCategory } from "./announcementCategories";
+
+/**
+ * 消息信封——放在**加密之后的载荷内部**，中继看不到。
+ *
+ * 这是个刻意的设计决定：图片、语音、文件、公告都不给 relay 加新的帧类型，
+ * 而是复用同一个 `forward` 密文帧，把"这是什么类型的消息"放进加密内容里。
+ * 好处是中继依然完全不知道你在传什么（盲中继原则），加新消息类型不需要动
+ * 服务端一行代码；代价是中继无法针对不同类型做优化（比如大文件限流），
+ * 这个取舍在当前"隐私优先"的定位下是划算的。
+ */
+
+export type MessageEnvelope =
+  | TextEnvelope
+  | AnnouncementEnvelope
+  | FileMetaEnvelope
+  | FileChunkEnvelope;
+
+export interface TextEnvelope {
+  kind: "text";
+  /**
+   * 发送方自己维护的递增序号，用于重放检测（见 ordering.ts）。
+   * 在加密载荷里，中继看不到也改不了。老客户端没有这个字段，
+   * 接收方要能容忍缺失——那种消息只能跳过重放检查，不能整条丢掉。
+   */
+  seq?: number;
+  /** 客户端生成的消息 ID，用于去重（见 dedup.ts） */
+  id: string;
+  text: string;
+  sentAtMs: number;
+  /** 发送者昵称。在加密载荷内部，中继看不到。老版本客户端发的消息没有这个字段，
+   *  接收方要能容忍缺失（回退到设备 ID 短前缀）。 */
+  senderName?: string;
+  /** 回复的目标消息。整段在加密载荷里，中继看不到引用了什么。
+   *  存的是快照而不是消息 ID——对方可能已经把原消息删了，
+   *  或者根本没收到过（比如他是后来才加入的）。 */
+  replyTo?: {
+    senderName: string;
+    /** 被引用消息的摘要，最多截断到 60 字 */
+    excerpt: string;
+  };
+  /**
+   * 阅后即焚：这条消息在接收方收到后多少毫秒消失。
+   * 在加密载荷里，中继看不到。老客户端不认识这个字段会忽略它——
+   * 这是已知限制：消息在旧版客户端上不会消失，界面说明里要讲清楚。
+   */
+  expiresInMs?: number;
+}
+
+export interface AnnouncementEnvelope {
+  kind: "announcement";
+  id: string;
+  /**
+   * 栏目。老版本客户端发的公告没有这个字段，接收方要能容忍缺失
+   * （回退到"通知"栏），不能因此丢掉整条公告。
+   */
+  category?: AnnouncementCategory;
+  title: string;
+  body: string;
+  sentAtMs: number;
+  senderName?: string;
+  /**
+   * 关联的音频文件 ID（赞美圣诗用）。音频本身走已有的分片加密传输
+   * （file-meta/file-chunk），这里只带一个引用——公告帧不适合塞几 MB 的内容。
+   * 这个字段也在签名范围内，否则别人可以把音频换掉。
+   */
+  audioFileId?: string;
+  /**
+   * 管理员签名（base64url）。收到方用邀请串里的管理员公钥验证——验不过
+   * 就不当公告，因为发送者没有管理员私钥。没有签名的公告同样不被接受。
+   */
+  adminSignature?: string;
+}
+
+/** 文件传输的第一帧：告诉接收方接下来会有多少个分片、原始文件名是什么。
+ *  文件名在这里（也就是在加密内容里），中继看不到——对应第十节
+ *  "文件名经过加密保护"的要求。 */
+export interface FileMetaEnvelope {
+  kind: "file-meta";
+  senderName?: string;
+  /** 文件 ID，后续分片用它关联回来 */
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  totalBytes: number;
+  totalChunks: number;
+  /** 图片/语音/普通文件——决定 UI 怎么渲染（显示缩略图 / 播放器 / 文件卡片） */
+  mediaKind: "image" | "voice" | "file";
+  sentAtMs: number;
+  /**
+   * 语音消息时长（毫秒）。只对 voice 有意义。
+   * 可选字段：老客户端没有，接收方要能容忍缺失（回退到 audio 元素的 duration）。
+   * WebView 读不到 webm 的时长元数据，所以由发送方在录音结束时算好带过来。
+   */
+  durationMs?: number;
+  /**
+   * 阅后即焚：这条文件在接收方组装完成之后多少毫秒消失。
+   * 在加密载荷里，中继看不到。老客户端会忽略这个字段——已知限制，
+   * 消息在旧版客户端上不会消失。
+   */
+  expiresInMs?: number;
+}
+
+export interface FileChunkEnvelope {
+  kind: "file-chunk";
+  fileId: string;
+  /** 从 0 开始的分片序号 */
+  chunkIndex: number;
+  /** 这一片的内容，base64url */
+  dataB64Url: string;
+}
+
+export function encodeEnvelope(envelope: MessageEnvelope): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify(envelope));
+}
+
+export class EnvelopeDecodeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EnvelopeDecodeError";
+  }
+}
+
+const VALID_KINDS = new Set(["text", "announcement", "file-meta", "file-chunk"]);
+
+export function decodeEnvelope(bytes: Uint8Array): MessageEnvelope {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    throw new EnvelopeDecodeError("载荷不是合法 JSON");
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new EnvelopeDecodeError("载荷不是对象");
+  }
+  const kind = (parsed as { kind?: unknown }).kind;
+  if (typeof kind !== "string" || !VALID_KINDS.has(kind)) {
+    // 未知类型可能是对端用了更新版本的客户端——调用方应该忽略这条消息而不是崩溃
+    throw new EnvelopeDecodeError(`未知的消息类型: ${String(kind)}`);
+  }
+  return parsed as MessageEnvelope;
+}
+CODE>>>
+<<<CODE 1
+/**
+ * 阅后即焚（消息定时消失）的公共逻辑。
+ *
+ * 计时从「本机收到/发出这条消息的时刻」开始，不用 sentAtMs——对方时钟不准
+ * 会导致一收到就删，离线补发的消息也会一到就过期。
+ *
+ * 这个模块只做纯计算，不碰 UI、不碰存储，方便测试和复用。
+ */
+
+/** 可选的消失时长：关、5 分钟、1 小时、1 天、7 天。 */
+export const DISAPPEAR_OPTIONS_MS = [
+  0,
+  5 * 60_000,
+  3_600_000,
+  86_400_000,
+  7 * 86_400_000,
+] as const;
+
+/** 消息里允许携带的最短消失时长：1 分钟。 */
+const MIN_EXPIRES_MS = 60_000;
+/** 消息里允许携带的最长消失时长：7 天。 */
+const MAX_EXPIRES_MS = 7 * 86_400_000;
+
+/**
+ * 把信封里带过来的 expiresInMs 校验成可用的值。
+ * 必须是有限正整数，且在 [60_000, 7 天] 范围内；否则当作没有（不删、不报错）。
+ * 老客户端发的消息没有这个字段，返回 undefined，照常显示。
+ */
+export function sanitizeExpiresInMs(v: unknown): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v)) return undefined;
+  const rounded = Math.round(v);
+  if (rounded < MIN_EXPIRES_MS || rounded > MAX_EXPIRES_MS) return undefined;
+  return rounded;
+}
+
+/**
+ * 本机收到/发出这条消息的时刻 + 时长 = 到期时间。没有时长就不设到期。
+ */
+export function expiresAtFor(
+  receivedAtMs: number,
+  expiresInMs: number | undefined
+): number | undefined {
+  if (expiresInMs === undefined) return undefined;
+  return receivedAtMs + expiresInMs;
+}
+
+/**
+ * 按当前时刻把消息分成「留着」和「已过期」两堆。
+ * 到期时间缺失或不是有限数字的当作不过期（老消息、损坏数据）。
+ */
+export function partitionExpired<T extends { expiresAtMs?: number | undefined }>(
+  items: T[],
+  nowMs: number
+): { keep: T[]; expired: T[] } {
+  const keep: T[] = [];
+  const expired: T[] = [];
+  for (const item of items) {
+    const at = item.expiresAtMs;
+    if (typeof at === "number" && Number.isFinite(at) && at <= nowMs) {
+      expired.push(item);
+    } else {
+      keep.push(item);
+    }
+  }
+  return { keep, expired };
+}
+
+/**
+ * 最早一条的到期时间，给定时器用。没有需要定时的消息时返回 undefined。
+ * 调用方拿它减当前时间就是 setTimeout 的延迟；最少要等 1 秒，
+ * 避免到期时间在过去（时钟回拨等）时立刻疯狂重排。
+ */
+export function nextExpiryMs<T extends { expiresAtMs?: number | undefined }>(
+  items: T[]
+): number | undefined {
+  let earliest: number | undefined;
+  for (const item of items) {
+    const at = item.expiresAtMs;
+    if (typeof at !== "number" || !Number.isFinite(at)) continue;
+    if (earliest === undefined || at < earliest) earliest = at;
+  }
+  return earliest;
+}
+CODE>>>
+<<<CODE 2
+import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+
+/**
+ * 消息历史的本地持久化。
+ *
+ * 和昵称、服务器地址不同，聊天内容是敏感的——所以走 EncryptedKeyValueStore
+ * （用设备主密钥加密后落盘），不能直接塞 IndexedDB 明文。
+ *
+ * 中继按设计不存任何消息，所以历史只能存在本地：换设备看不到旧消息，
+ * 清除应用数据也会丢。这是盲中继架构的必然结果，不是没做完。
+ */
+
+/** 每个群最多保留多少条。超出后丢最旧的——避免长期使用后本地存储无限膨胀。 */
+export const MAX_STORED_MESSAGES_PER_GROUP = 300;
+
+/** 单条媒体消息超过这个大小就不持久化（只留一条占位记录）。
+ *  几张大图就能把本地存储撑爆，而且加解密大 blob 也慢。 */
+export const MAX_PERSISTED_MEDIA_BYTES = 512 * 1024;
+
+export interface StoredMessage {
+  id: string;
+  isOwn: boolean;
+  /** 发送者显示名（昵称，或设备 ID 短前缀） */
+  senderLabel?: string | undefined;
+  sentAtMs: number;
+  text?: string | undefined;
+  /**
+   * 阅后即焚的到期时刻（毫秒时间戳）。有就说明这条消息会定时消失；
+   * 重启后重新加载时要按当前时间把它过滤掉。老记录没有这个字段，照常显示。
+   */
+  expiresAtMs?: number | undefined;
+  media?:
+    | {
+        mediaKind: "image" | "voice" | "file";
+        fileName: string;
+        mimeType: string;
+        /** base64url；超过 MAX_PERSISTED_MEDIA_BYTES 时为 undefined（内容没留下） */
+        dataB64Url?: string | undefined;
+        sizeBytes: number;
+        /** 语音时长（毫秒）。老记录没有这个字段，读出来照常显示。 */
+        durationMs?: number | undefined;
+      }
+    | undefined;
+}
+
+export function storageKeyForGroupMessages(groupId: string): string {
+  return `messages:${groupId}`;
+}
+
+/** 只保留最近 N 条 */
+export function trimToLimit(messages: StoredMessage[], limit = MAX_STORED_MESSAGES_PER_GROUP): StoredMessage[] {
+  return messages.length <= limit ? messages : messages.slice(messages.length - limit);
+}
+
+export async function loadMessages(store: EncryptedKeyValueStore, groupId: string): Promise<StoredMessage[]> {
+  try {
+    const bytes = await store.get(storageKeyForGroupMessages(groupId));
+    if (!bytes) return [];
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(parsed) ? (parsed as StoredMessage[]) : [];
+  } catch {
+    // 解密失败（换了设备主密钥）或内容损坏——当作没有历史，不要因此让应用起不来。
+    // 用户会看到空的聊天记录，但功能是好的。
+    return [];
+  }
+}
+
+export async function saveMessages(
+  store: EncryptedKeyValueStore,
+  groupId: string,
+  messages: StoredMessage[]
+): Promise<void> {
+  const trimmed = trimToLimit(messages);
+  const bytes = new TextEncoder().encode(JSON.stringify(trimmed));
+  await store.set(storageKeyForGroupMessages(groupId), bytes);
+}
+
+export async function clearMessages(store: EncryptedKeyValueStore, groupId: string): Promise<void> {
+  await store.delete(storageKeyForGroupMessages(groupId));
+}
+
+/** 媒体内容是否值得持久化——太大就只留元信息 */
+export function shouldPersistMediaBytes(sizeBytes: number): boolean {
+  return sizeBytes <= MAX_PERSISTED_MEDIA_BYTES;
+}
+CODE>>>
+<<<CODE 3
+import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+import { DISAPPEAR_OPTIONS_MS } from "./disappearing";
+
+/**
+ * 已加入的群列表。
+ *
+ * 走加密存储：里面存着每个群的原始密钥材料，拿到它就能解密该群的全部历史消息，
+ * 敏感程度和消息本身一样。
+ */
+
+const GROUPS_KEY = "groups:joined";
+
+export interface JoinedGroup {
+  groupId: string;
+  groupName: string;
+  /** 邀请串里的原始密钥材料，重新连接时用它派生群密钥 */
+  keyMaterialB64Url: string;
+  epoch: number;
+  /**
+   * 管理员公钥，用来验证这个群的公告签名。
+   *
+   * 必须持久化：它来自邀请串，但重启后是从本地恢复群列表的，不再经过邀请串。
+   * 不存的话重连之后这个字段是 undefined，所有公告都验不过、被静默丢弃——
+   * 表现成"别人发的公告我收不到"。
+   */
+  adminPublicKeyRawB64Url?: string | undefined;
+  joinedAtMs: number;
+  /** 最后一次查看这个群的时间，用来算未读数 */
+  lastReadAtMs: number;
+  /**
+   * 本机在这个群里的「消息定时消失」时长（毫秒），0/缺省表示关闭。
+   * 每台设备、每个群独立——只影响自己之后发出的消息；收到的消息按
+   * 消息里自带的 expiresInMs 处理。老记录没有这个字段，按关闭处理。
+   */
+  disappearAfterMs?: number | undefined;
+}
+
+export async function loadJoinedGroups(store: EncryptedKeyValueStore): Promise<JoinedGroup[]> {
+  try {
+    const bytes = await store.get(GROUPS_KEY);
+    if (!bytes) return [];
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(parsed) ? (parsed as JoinedGroup[]) : [];
+  } catch {
+    // 解密失败或数据损坏——当作没加过群。用户可以用邀请码重新加入，
+    // 比让应用起不来强。
+    return [];
+  }
+}
+
+export async function saveJoinedGroups(store: EncryptedKeyValueStore, groups: JoinedGroup[]): Promise<void> {
+  await store.set(GROUPS_KEY, new TextEncoder().encode(JSON.stringify(groups)));
+}
+
+/**
+ * 加入或更新一个群。同一个 groupId 重复加入不会产生两条记录——
+ * 会更新群名和密钥材料（对方可能重新生成了邀请码），但保留原来的加入时间。
+ */
+export function upsertGroup(groups: JoinedGroup[], group: JoinedGroup): JoinedGroup[] {
+  const existing = groups.find((g) => g.groupId === group.groupId);
+  if (!existing) return [...groups, group];
+  return groups.map((g) =>
+    g.groupId === group.groupId
+      ? { ...group, joinedAtMs: existing.joinedAtMs, lastReadAtMs: existing.lastReadAtMs }
+      : g
+  );
+}
+
+export function removeGroup(groups: JoinedGroup[], groupId: string): JoinedGroup[] {
+  return groups.filter((g) => g.groupId !== groupId);
+}
+
+/** 改群名。只改本机显示的名字——中继不知道群叫什么，别人那边不会跟着变。 */
+export function renameGroup(groups: JoinedGroup[], groupId: string, groupName: string): JoinedGroup[] {
+  return groups.map((g) => (g.groupId === groupId ? { ...g, groupName } : g));
+}
+
+export function markGroupRead(groups: JoinedGroup[], groupId: string, atMs = Date.now()): JoinedGroup[] {
+  return groups.map((g) => (g.groupId === groupId ? { ...g, lastReadAtMs: atMs } : g));
+}
+
+/**
+ * 设置某个群的「消息定时消失」时长。
+ * ms 不在 DISAPPEAR_OPTIONS_MS 里就原样返回——调用方传错值不该静默改存储。
+ * 0 表示关闭，把字段清掉（而不是留一个 0）。
+ */
+export function setDisappearAfter(
+  groups: JoinedGroup[],
+  groupId: string,
+  ms: number
+): JoinedGroup[] {
+  if (!(DISAPPEAR_OPTIONS_MS as readonly number[]).includes(ms)) return groups;
+  return groups.map((g) =>
+    g.groupId === groupId
+      ? { ...g, ...(ms > 0 ? { disappearAfterMs: ms } : { disappearAfterMs: undefined }) }
+      : g
+  );
+}
+
+/** 未读数 = 这个群里晚于 lastReadAtMs 且不是自己发的消息条数 */
+export function unreadCount(
+  messages: { sentAtMs: number; isOwn: boolean }[],
+  lastReadAtMs: number
+): number {
+  return messages.filter((m) => !m.isOwn && m.sentAtMs > lastReadAtMs).length;
+}
+CODE>>>
+<<<CODE 4
+import type { FileChunkEnvelope, FileMetaEnvelope } from "./messageEnvelope";
+import { sanitizeExpiresInMs } from "./disappearing";
+
+/**
+ * 文件分片与重组。
+ *
+ * ⚠️ 与原始需求第十节的差距，如实说明：需求要求"每个文件生成独立随机文件密钥"，
+ * 当前实现**没有**做这一层——分片和普通消息一样用群 epoch 密钥加密，只是通过
+ * AAD 绑定了 fileId + chunkIndex + epoch（"分片绑定文件ID、分片序号和群组
+ * epoch"这条是满足的）。独立文件密钥需要接收方也能派生出同一把密钥，而
+ * RelayClient 目前只持有派生后的 epoch 密钥、拿不到原始密钥材料，要补这一层
+ * 得改密钥分发路径。这是明确的已知缺口，不是遗漏。
+ */
+
+/** 64KB 一片。WebSocket 单帧不宜过大，base64 编码后约 87KB，是个稳妥的值。 */
+export const CHUNK_SIZE_BYTES = 64 * 1024;
+
+/** 语音时长上限：一小时。超过这个值的语音基本可以认为是异常数据。 */
+export const MAX_VOICE_DURATION_MS = 3_600_000;
+
+export function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export function base64UrlToBytes(s: string): Uint8Array {
+  const padded = s + "=".repeat((4 - (s.length % 4)) % 4);
+  const binary = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+export function totalChunksFor(totalBytes: number, chunkSize = CHUNK_SIZE_BYTES): number {
+  // 空文件也算一个分片，避免"0 个分片"这种需要特殊处理的边界情况
+  return Math.max(1, Math.ceil(totalBytes / chunkSize));
+}
+
+/** 发送端：有限正数才保留，四舍五入，clamp 到上限。 */
+export function normalizeDurationForSend(v: number | undefined): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) return undefined;
+  return Math.min(Math.round(v), MAX_VOICE_DURATION_MS);
+}
+
+/** 接收端：不是有限正数或超过上限就丢弃。 */
+export function normalizeDurationForReceive(v: unknown): number | undefined {
+  if (typeof v !== "number" || !Number.isFinite(v) || v <= 0 || v > MAX_VOICE_DURATION_MS) {
+    return undefined;
+  }
+  return Math.round(v);
+}
+
+export interface BuildFileEnvelopesInput {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  mediaKind: FileMetaEnvelope["mediaKind"];
+  bytes: Uint8Array;
+  senderName?: string;
+  sentAtMs?: number;
+  chunkSize?: number;
+  /** 语音时长（毫秒）。只对 voice 有意义；非法值不会写进 meta。 */
+  durationMs?: number;
+  /** 阅后即焚时长（毫秒）。非法值不会写进 meta；只对 text/file-meta 有意义。 */
+  expiresInMs?: number;
+}
+
+/** 把一个文件拆成 1 个 meta 信封 + N 个分片信封，按顺序发送即可。 */
+export function buildFileEnvelopes(input: BuildFileEnvelopesInput): {
+  meta: FileMetaEnvelope;
+  chunks: FileChunkEnvelope[];
+} {
+  const chunkSize = input.chunkSize ?? CHUNK_SIZE_BYTES;
+  const totalChunks = totalChunksFor(input.bytes.byteLength, chunkSize);
+  const durationMs = normalizeDurationForSend(input.durationMs);
+  const expiresInMs = sanitizeExpiresInMs(input.expiresInMs);
+
+  const meta: FileMetaEnvelope = {
+    kind: "file-meta",
+    fileId: input.fileId,
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+    totalBytes: input.bytes.byteLength,
+    totalChunks,
+    mediaKind: input.mediaKind,
+    sentAtMs: input.sentAtMs ?? Date.now(),
+    ...(input.senderName ? { senderName: input.senderName } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {}),
+    ...(expiresInMs !== undefined ? { expiresInMs } : {}),
+  };
+
+  const chunks: FileChunkEnvelope[] = [];
+  for (let i = 0; i < totalChunks; i++) {
+    const slice = input.bytes.slice(i * chunkSize, (i + 1) * chunkSize);
+    chunks.push({
+      kind: "file-chunk",
+      fileId: input.fileId,
+      chunkIndex: i,
+      dataB64Url: bytesToBase64Url(slice),
+    });
+  }
+  return { meta, chunks };
+}
+
+export interface AssembledFile {
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  mediaKind: FileMetaEnvelope["mediaKind"];
+  bytes: Uint8Array;
+  senderName?: string | undefined;
+  /** 语音时长（毫秒）。非法值在接收端丢弃，不会让整条消息失败。 */
+  durationMs?: number | undefined;
+  /** 阅后即焚时长（毫秒）。非法值在接收端丢弃，不会让整条消息失败。 */
+  expiresInMs?: number | undefined;
+}
+
+export interface IncomingFileProgress {
+  fileId: string;
+  fileName: string;
+  mediaKind: FileMetaEnvelope["mediaKind"];
+  receivedChunks: number;
+  totalChunks: number;
+}
+
+/**
+ * 接收端的重组器。分片可能乱序到达（网络本来就不保证顺序），所以按 index
+ * 存进 Map 而不是直接 append，集齐了再按序拼起来。
+ */
+export class FileAssembler {
+  private pending = new Map<string, { meta: FileMetaEnvelope; chunks: Map<number, Uint8Array> }>();
+
+  /** 收到 meta 帧。重复的 meta（重发/重连）不会清空已经收到的分片。 */
+  acceptMeta(meta: FileMetaEnvelope): void {
+    const existing = this.pending.get(meta.fileId);
+    if (existing) {
+      existing.meta = meta;
+      return;
+    }
+    this.pending.set(meta.fileId, { meta, chunks: new Map() });
+  }
+
+  /**
+   * 收到分片。集齐所有分片时返回组装好的文件，否则返回 undefined。
+   * 如果 meta 还没到（分片先到了），也返回 undefined——分片会被丢弃，
+   * 因为没有 meta 就不知道总共该有多少片、文件叫什么。
+   */
+  acceptChunk(chunk: FileChunkEnvelope): AssembledFile | undefined {
+    const entry = this.pending.get(chunk.fileId);
+    if (!entry) return undefined;
+
+    entry.chunks.set(chunk.chunkIndex, base64UrlToBytes(chunk.dataB64Url));
+    if (entry.chunks.size < entry.meta.totalChunks) return undefined;
+
+    const ordered: Uint8Array[] = [];
+    for (let i = 0; i < entry.meta.totalChunks; i++) {
+      const part = entry.chunks.get(i);
+      if (!part) return undefined; // 数量够了但序号有洞——还不能组装
+      ordered.push(part);
+    }
+
+    const totalLength = ordered.reduce((sum, part) => sum + part.byteLength, 0);
+    const bytes = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const part of ordered) {
+      bytes.set(part, offset);
+      offset += part.byteLength;
+    }
+
+    this.pending.delete(chunk.fileId);
+    return {
+      fileId: entry.meta.fileId,
+      fileName: entry.meta.fileName,
+      mimeType: entry.meta.mimeType,
+      mediaKind: entry.meta.mediaKind,
+      bytes,
+      senderName: entry.meta.senderName,
+      durationMs: normalizeDurationForReceive(entry.meta.durationMs),
+      expiresInMs: sanitizeExpiresInMs(entry.meta.expiresInMs),
+    };
+  }
+
+  /** 当前正在接收中的文件进度，供 UI 显示"接收中 3/12" */
+  progress(): IncomingFileProgress[] {
+    return [...this.pending.values()].map((entry) => ({
+      fileId: entry.meta.fileId,
+      fileName: entry.meta.fileName,
+      mediaKind: entry.meta.mediaKind,
+      receivedChunks: entry.chunks.size,
+      totalChunks: entry.meta.totalChunks,
+    }));
+  }
+}
+CODE>>>
+<<<CODE 5
+export * from "./dedup";
+export * from "./ordering";
+export * from "./offlineOutbox";
+export * from "./groupJoin";
+export * from "./relayClient";
+export * from "./messageEnvelope";
+export * from "./fileTransfer";
+export * from "./messageStore";
+export * from "./groupStore";
+export * from "./messageActions";
+export * from "./announcementCategories";
+export * from "./sendProgress";
+export * from "./keyRotation";
+export * from "./connectionStats";
+export * from "./knownDevices";
+export * from "./mentions";
+export * from "./disappearing";
+CODE>>>
+<<<CODE 6
+import { describe, expect, it } from "vitest";
+import {
+  DISAPPEAR_OPTIONS_MS,
+  sanitizeExpiresInMs,
+  expiresAtFor,
+  partitionExpired,
+  nextExpiryMs,
+} from "../src/disappearing";
+
+describe("sanitizeExpiresInMs", () => {
+  it("accepts the boundary values", () => {
+    expect(sanitizeExpiresInMs(60_000)).toBe(60_000);
+    expect(sanitizeExpiresInMs(7 * 86_400_000)).toBe(7 * 86_400_000);
+  });
+
+  it("rejects below the minimum", () => {
+    expect(sanitizeExpiresInMs(59_999)).toBeUndefined();
+    expect(sanitizeExpiresInMs(0)).toBeUndefined();
+    expect(sanitizeExpiresInMs(-1)).toBeUndefined();
+  });
+
+  it("rejects above the maximum", () => {
+    expect(sanitizeExpiresInMs(7 * 86_400_000 + 1)).toBeUndefined();
+  });
+
+  it("rejects non-finite and non-number", () => {
+    expect(sanitizeExpiresInMs(Number.NaN)).toBeUndefined();
+    expect(sanitizeExpiresInMs(Number.POSITIVE_INFINITY)).toBeUndefined();
+    expect(sanitizeExpiresInMs("300000")).toBeUndefined();
+    expect(sanitizeExpiresInMs(null)).toBeUndefined();
+    expect(sanitizeExpiresInMs(undefined)).toBeUndefined();
+  });
+
+  it("rounds to the nearest integer", () => {
+    expect(sanitizeExpiresInMs(60_000.4)).toBe(60_000);
+    expect(sanitizeExpiresInMs(300_000.6)).toBe(300_001);
+  });
+});
+
+describe("expiresAtFor", () => {
+  it("returns undefined when there is no duration", () => {
+    expect(expiresAtFor(1000, undefined)).toBeUndefined();
+  });
+
+  it("adds the duration to the receive time", () => {
+    expect(expiresAtFor(1000, 5000)).toBe(6000);
+  });
+});
+
+describe("partitionExpired", () => {
+  it("keeps items without an expiry", () => {
+    const items = [{ id: "a" }, { id: "b", expiresAtMs: 5000 }];
+    const { keep, expired } = partitionExpired(items, 1000);
+    expect(keep.map((i) => i.id)).toEqual(["a", "b"]);
+    expect(expired).toEqual([]);
+  });
+
+  it("splits at the current time, counting equality as expired", () => {
+    const items = [
+      { id: "past", expiresAtMs: 500 },
+      { id: "now", expiresAtMs: 1000 },
+      { id: "future", expiresAtMs: 1500 },
+    ];
+    const { keep, expired } = partitionExpired(items, 1000);
+    expect(keep.map((i) => i.id)).toEqual(["future"]);
+    expect(expired.map((i) => i.id)).toEqual(["past", "now"]);
+  });
+
+  it("handles an empty list", () => {
+    expect(partitionExpired([], 1000)).toEqual({ keep: [], expired: [] });
+  });
+});
+
+describe("nextExpiryMs", () => {
+  it("returns undefined for an empty list", () => {
+    expect(nextExpiryMs([])).toBeUndefined();
+  });
+
+  it("returns undefined when nothing has an expiry", () => {
+    expect(nextExpiryMs([{ id: "a" }])).toBeUndefined();
+  });
+
+  it("returns the earliest expiry", () => {
+    expect(
+      nextExpiryMs([{ expiresAtMs: 3000 }, { expiresAtMs: 1000 }, { expiresAtMs: 2000 }])
+    ).toBe(1000);
+  });
+
+  it("ignores non-finite values", () => {
+    expect(nextExpiryMs([{ expiresAtMs: Number.NaN }, { expiresAtMs: 2000 }])).toBe(2000);
+  });
+});
+
+describe("DISAPPEAR_OPTIONS_MS", () => {
+  it("lists the expected options in order", () => {
+    expect([...DISAPPEAR_OPTIONS_MS]).toEqual([
+      0,
+      300_000,
+      3_600_000,
+      86_400_000,
+      604_800_000,
+    ]);
+  });
+});
+CODE>>>
+<<<CODE 7
+describe("setDisappearAfter", () => {
+  const baseGroup: JoinedGroup = {
+    groupId: "g1",
+    groupName: "群",
+    keyMaterialB64Url: "KEY",
+    epoch: 0,
+    joinedAtMs: 1,
+    lastReadAtMs: 1,
+  };
+
+  it("sets an allowed value", () => {
+    const result = setDisappearAfter([baseGroup], "g1", 5 * 60_000);
+    expect(result[0]?.disappearAfterMs).toBe(5 * 60_000);
+  });
+
+  it("clears the field when set to 0", () => {
+    const withValue: JoinedGroup = { ...baseGroup, disappearAfterMs: 3_600_000 };
+    const result = setDisappearAfter([withValue], "g1", 0);
+    expect(result[0]?.disappearAfterMs).toBeUndefined();
+  });
+
+  it("returns the same array for a value outside the allowed options", () => {
+    const groups = [baseGroup];
+    expect(setDisappearAfter(groups, "g1", 1234)).toBe(groups);
+  });
+
+  it("does not touch other groups", () => {
+    const other: JoinedGroup = { ...baseGroup, groupId: "g2" };
+    const result = setDisappearAfter([baseGroup, other], "g1", 86_400_000);
+    expect(result[0]?.disappearAfterMs).toBe(86_400_000);
+    expect(result[1]?.disappearAfterMs).toBeUndefined();
+  });
+});
+CODE>>>
+<<<CODE 8
+describe("disappearing expiresInMs", () => {
+  const bytes = new Uint8Array([1, 2, 3]);
+
+  it("writes a valid expiresInMs into meta and returns it on assembly", () => {
+    const { meta, chunks } = buildFileEnvelopes({
+      fileId: "f1",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      mediaKind: "file",
+      bytes,
+      expiresInMs: 5 * 60_000,
+    });
+    expect(meta.expiresInMs).toBe(5 * 60_000);
+
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    let done;
+    for (const c of chunks) done = assembler.acceptChunk(c);
+    expect(done?.expiresInMs).toBe(5 * 60_000);
+  });
+
+  it("does not write an out-of-range expiresInMs into meta", () => {
+    const { meta } = buildFileEnvelopes({
+      fileId: "f2",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      mediaKind: "file",
+      bytes,
+      expiresInMs: 59_999,
+    });
+    expect(meta.expiresInMs).toBeUndefined();
+  });
+
+  it("drops an invalid expiresInMs on receive but still assembles the file", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "f3",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "file" as const,
+      sentAtMs: 1,
+      expiresInMs: 7 * 86_400_000 + 1,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "f3",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.expiresInMs).toBeUndefined();
+  });
+
+  it("assembles old-format meta without expiresInMs", () => {
+    const meta = {
+      kind: "file-meta" as const,
+      fileId: "f4",
+      fileName: "a.bin",
+      mimeType: "application/octet-stream",
+      totalBytes: bytes.byteLength,
+      totalChunks: 1,
+      mediaKind: "file" as const,
+      sentAtMs: 1,
+    };
+    const assembler = new FileAssembler();
+    assembler.acceptMeta(meta);
+    const done = assembler.acceptChunk({
+      kind: "file-chunk",
+      fileId: "f4",
+      chunkIndex: 0,
+      dataB64Url: bytesToBase64Url(bytes),
+    });
+    expect(done).toBeDefined();
+    expect(done?.expiresInMs).toBeUndefined();
+  });
+});
+CODE>>>
