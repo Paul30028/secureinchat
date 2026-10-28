@@ -137,13 +137,9 @@ ${headAlt}  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegi
 ${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
 `;
   const shellArgs = { title, desc, canonical, headExtra, current: '/tools/', main: mainHtml };
-  // Passed only for a translation. If the shell does not know the key it is ignored, so the English
-  // call signature and its output are unchanged.
-  if (zh) shellArgs.lang = chrome.lang;
+  // The shared subpage shell already carries the Chinese header and footer (lang 'zh').
+  if (zh) { shellArgs.lang = 'zh'; shellArgs.htmlLang = chrome.lang; }
   let html = shell(shellArgs);
-  if (zh) {
-    html = html.replace(/<html([^>]*)>/, (m, a) => `<html lang="${chrome.lang}"${a.replace(/\slang="[^"]*"/, '')}>`);
-  }
   html = html.replace(' </body>', `${tailScripts.map((s) => `  ${s}`).join('\n')}\n </body>`);
   // the kit stylesheets load after tool-legacy.css in the shell head order; move tool-legacy last so widgets keep their look
   html = html.replace('  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n', '').replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>\n  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>');
