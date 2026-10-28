@@ -1,0 +1,385 @@
+任务 W3(网站):新工具页「文件元数据清除」(File metadata remover),使用已经评估通过的开源 WASM 库。我负责构建接入(目录、站点地图、CSP、测试),你写页面源文件和页面脚本。
+
+背景(已核实):
+- 库:iAnonymous3000/metadata-remover,MIT,固定在提交 2524864。
+- 我在 GitHub CI 里跑过它自己的 121 个测试,全部通过。
+- 我用自己的 10 个样本文件测过:JPEG、PNG、WebP、HEIC、带位置标签的 MP4、PDF、DOCX(包括内嵌带 GPS 照片的 DOCX)。exiftool、Pillow、pypdf、python-docx、ffprobe 独立核对,清理后都没有残留;文件都能正常打开;1200 万像素的 JPEG 用了 41 毫秒。
+- 构建产物已经在仓库里:public/tools/assets/mr/metadata_remover.js(wasm-pack 的 web 目标,ES 模块)、metadata_remover_bg.wasm、LICENSE.txt、SOURCE.txt。
+
+库的接口(来自它的 Rust 源码,serde 序列化后的字段名如下):
+- `export default function init(module_or_path)`:加载 WASM,传 '/tools/assets/mr/metadata_remover_bg.wasm'(用 `new URL('./mr/metadata_remover_bg.wasm', import.meta.url)` 也行)。
+- `analyze_file(Uint8Array)` → `{ fileType, metadata: { file_type, metadata_found: [{ category, name, value }], total_metadata_bytes } }`;文件损坏或不支持时抛出错误(字符串或 Error)。
+- `process_file(Uint8Array)` → `{ cleaned: Uint8Array, verification: { file_type, metadata_found: [...], total_metadata_bytes } }`。verification 是对清理后文件的再次扫描。
+- `detect_file_type(Uint8Array)` → 字符串:jpeg、png、webp、avif、gif、heic、heif、tiff、svg、mp4、mov、mp3、flac、wav、ogg、pdf、docx、xlsx、pptx、odt、ods、odp、epub、office-legacy、unknown。
+
+硬性规则(违反就退回):
+- 页面严格 CSP:script-src 'self' 'wasm-unsafe-eval';不能有内联脚本、内联事件、内联 style 属性;不加载任何外部资源;不发任何网络请求(WASM 文件是同源静态文件)。
+- 用户内容只能用 textContent 插入,不用 innerHTML。
+- 不存储任何东西(不用 localStorage / IndexedDB / cookie)。
+- 页面脚本 public/tools/assets/mr-app.js 是 ES 模块(`<script type="module" src="/tools/assets/mr-app.js"></script>`,放在 body 末尾)。
+- 文件上限 200 MB,超过就提示,不读取。一次处理一个文件(不做批量,不做 ZIP)。
+- 英文文案,短句,说清边界,不夸大。必须写明:
+  1. 文件不会离开设备;
+  2. 只删除隐藏的元数据,不改变内容本身(文档正文、照片画面里的路牌和人脸都还在);
+  3. 方向标签(Orientation)会保留,照片不会转向;
+  4. HEIC 和 MP4 是原地清零元数据字节,所以文件大小不变,这是正常现象;
+  5. 旧版 Office 格式(.doc、.xls、.ppt)不支持,请先另存为新格式;
+  6. 清理后会再扫描一遍,残留会如实显示;
+  7. 使用的开源库名称、MIT 许可证,链接到 /tools/assets/mr/LICENSE.txt 和库的 GitHub 地址。
+
+一、src/tools/file-metadata-remover.html
+照附件里 photo-metadata-remover.html 的结构写一个完整页面,需要:
+- head:title、description、canonical、og、style.css,外加 JSON-LD(WebApplication + FAQPage,FAQ 与页面上的问答一致);
+- 同样的头部导航、skip 链接、页脚;
+- hero:h1「File metadata remover」、lede、picker(input#file,accept 列出支持的扩展名和 MIME;按钮 #clean,初始 hidden)、hint;
+- 结果区:#summary(role="status")、表格 tbody#rows;
+- prose 说明区(What it removes / What it does not do / How it works,写明上面 7 点);
+- FAQ 区(至少 5 问:Is my file uploaded? / Which formats work? / Why is my HEIC or video the same size after cleaning? / Will the content change? / Which library does this use?);
+- 不放合作伙伴推广区块;
+- body 末尾一个 module 脚本。
+注意我们的构建脚本按行首的 `<section` / `</section>` 切块:不要在 section 里嵌套 section。
+
+二、public/tools/assets/mr-app.js(ES 模块)
+1. 页面加载后不要立刻加载 WASM。用户第一次选择文件时才调用 init(),之后复用;加载失败时提示 "This browser could not load the cleaning engine." 并说明需要较新的浏览器。
+2. 选择文件后:
+   - 检查大小;读成 Uint8Array;
+   - 先 detect_file_type:unknown 时提示不支持并列出支持格式;office-legacy 时给出另存提示;
+   - 再 analyze_file,按 category 分组显示到表格,复用 photo 工具的 row() 写法:每组一行,列出 name: value,值超过 200 个字符就截断并加 "…";没有任何元数据时显示 "None found"。
+   - #summary 写找到多少项,然后显示 #clean 按钮。
+3. 点 #clean:
+   - 调用 process_file;
+   - 用 Blob + URL.createObjectURL + 临时 a[download] 触发下载,文件名为原名去掉扩展名 + "-clean" + 原扩展名;下载后 revokeObjectURL;
+   - 再根据 verification.metadata_found 更新 summary:为空时 "Cleaned. A second scan found no metadata left.";不为空时如实列出残留项,tone 设为 warn。
+4. 所有错误(库抛出的字符串或 Error)都用 textContent 显示在 #summary,data-tone 设为 fail,不抛到控制台以外。
+5. 不使用 Worker(1200 万像素 JPEG 只要 41 毫秒,主线程足够);处理期间按钮 disabled,文字为 "Working…"。
+
+三、测试:tests/mrpage.py(Playwright,照附件 redactor.py 的写法:本地起服务器,用 public/_headers 里 /tools/* 的 CSP)
+- 页面无 CSP 报错、无外部请求;选择文件之前不请求 .wasm(加载是懒的)。
+- 上传带 GPS 的 JPEG(用 Pillow + piexif 在测试里生成,写到临时目录)→ 表格出现 GPS 相关行 → 点清理 → 捕获下载(page.expect_download)→ 用 piexif 读下载的文件,确认没有 GPS → summary 含 "second scan found no metadata"。
+- 上传一个 DOCX(python-docx 生成,author 设为标记字符串)→ 清理 → 下载的 DOCX 解压后任何部分都不含标记字符串。
+- 上传一个 .txt 文件 → summary 提示不支持,#clean 不显示。
+- 390px 宽度下页面没有横向溢出(照 redactor.py 的写法)。
+
+输出格式:每个文件给完整内容,一个文件一个代码块,代码块前一行写仓库内路径。输出太长时先给 html 和 js,我会让你继续给测试。不要写进度百分比。
+
+参考文件(以此为准):
+
+--- src/tools/photo-metadata-remover.html ---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Photo Metadata Remover: See and Remove EXIF and GPS Data Locally</title>
+<meta name="description" content="Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo.">
+<link rel="canonical" href="https://secureinchat.com/tools/photo-metadata-remover/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Photo Metadata Remover: See and Remove EXIF and GPS Data Locally">
+<meta property="og:description" content="Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo.">
+<meta property="og:url" content="https://secureinchat.com/tools/photo-metadata-remover/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Photo metadata remover",
+      "url": "https://secureinchat.com/tools/photo-metadata-remover/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is my photo uploaded?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The file is read and re-encoded inside this page. There is no upload, and the page's code stores nothing. The page loads no analytics."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What metadata do photos contain?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Phone and camera JPEGs usually carry EXIF data: the device make and model, the date and time, often GPS coordinates, and sometimes software, lens or serial number."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Do social networks remove metadata for me?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Some do when you upload, but you cannot tell which, and sending a photo by email, cloud link or some messengers can pass the original file through. Remove it yourself before you share."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does removal work here?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The page decodes the image and draws it onto a blank canvas, then saves that canvas as a new file. Metadata is not part of the pixels, so it is not copied. The page then reads the new JPEG again to check that no EXIF is left."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will image quality change?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A JPEG is re-encoded at high quality, so there can be a small loss. PNG output is lossless. The embedded colour profile is dropped, which can shift colours slightly in some viewers."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which formats work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG, PNG and WebP, if your browser can decode them. HEIC and animated images are not supported. Only JPEG metadata is shown before cleaning, but cleaning removes metadata from all supported formats."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does it remove what is in the picture itself?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. A street sign, a face or a landmark in the photo can still give away where you are. This tool only removes hidden data."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">Photo metadata remover</h1>
+    <p class="lede">See what a photo reveals about where and when it was taken, then save a copy without it. The file never leaves your device.</p>
+    <div class="picker"><input id="file" type="file" accept="image/*" aria-label="Choose a photo"><button id="clean" class="btn" type="button" hidden>Remove metadata and download</button></div>
+    <p class="hint">Choose a JPEG, PNG or WebP. Your original is not changed. The page stores nothing. See also the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Choose a photo to begin.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">Photo metadata by category</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Photo</span><span class="c-desc">Choose a photo to see what it holds.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">What is hiding in your photos</h2>
+    <p>Most phone photos are saved with a block of hidden data called EXIF. It can include the exact coordinates where you stood, the time, and the model of your device. If you post or send the original file, whoever receives it can read that data with free software.</p>
+    <p>This page shows what a JPEG contains, then makes a copy without it. Your original file is never changed. The check and the cleaning both happen in your browser, so the photo does not leave your device.</p>
+    <h2 id="how-h">Before you share a photo</h2>
+    <ul>
+      <li>Remove metadata from the file, as this page does.</li>
+      <li>Look at the picture for details that give away a place: signs, house numbers, views from a window.</li>
+      <li>Turn off location tagging in your camera app if you rarely need it.</li>
+    </ul>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>Is my photo uploaded?</h3>
+    <p>No. The file is read and re-encoded inside this page. There is no upload, and the page's code stores nothing. The page loads no analytics.</p>
+    <h3>What metadata do photos contain?</h3>
+    <p>Phone and camera JPEGs usually carry EXIF data: the device make and model, the date and time, often GPS coordinates, and sometimes software, lens or serial number.</p>
+    <h3>Do social networks remove metadata for me?</h3>
+    <p>Some do when you upload, but you cannot tell which, and sending a photo by email, cloud link or some messengers can pass the original file through. Remove it yourself before you share.</p>
+    <h3>How does removal work here?</h3>
+    <p>The page decodes the image and draws it onto a blank canvas, then saves that canvas as a new file. Metadata is not part of the pixels, so it is not copied. The page then reads the new JPEG again to check that no EXIF is left.</p>
+    <h3>Will image quality change?</h3>
+    <p>A JPEG is re-encoded at high quality, so there can be a small loss. PNG output is lossless. The embedded colour profile is dropped, which can shift colours slightly in some viewers.</p>
+    <h3>Which formats work?</h3>
+    <p>JPEG, PNG and WebP, if your browser can decode them. HEIC and animated images are not supported. Only JPEG metadata is shown before cleaning, but cleaning removes metadata from all supported formats.</p>
+    <h3>Does it remove what is in the picture itself?</h3>
+    <p>No. A street sign, a face or a landmark in the photo can still give away where you are. This tool only removes hidden data.</p>
+  </section>
+  <aside class="wrap prose" id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">Tools from our partner</h2>
+    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a> (affiliate link) is encrypted cloud storage for files you need to keep or share after cleaning them. Or go to <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a> without a commission link.</p>
+  </aside>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/exif.js" defer></script>
+<script src="/tools/assets/exif-app.js" defer></script>
+</body>
+</html>
+
+--- public/tools/assets/exif-app.js ---
+/* Photo metadata remover. Everything runs in this page: the file is read and re-encoded locally and never uploaded. */
+(function () {
+  'use strict';
+  var E = window.EXIFR;
+  var input = document.getElementById('file');
+  var tbody = document.getElementById('rows');
+  var summary = document.getElementById('summary');
+  var clean = document.getElementById('clean');
+  var current = null;
+  var MAX_BYTES = 40 * 1024 * 1024, MAX_PIXELS = 100 * 1000 * 1000;
+
+  function row(name, desc, status, label, lines, why) {
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-status', status);
+    var th = document.createElement('th'); th.scope = 'row'; th.setAttribute('data-label', 'Check');
+    var n = document.createElement('span'); n.className = 'c-name'; n.textContent = name;
+    var d = document.createElement('span'); d.className = 'c-desc'; d.textContent = desc;
+    th.appendChild(n); th.appendChild(d);
+    var td = document.createElement('td'); td.setAttribute('data-label', 'Result');
+    var vals = document.createElement('div'); vals.className = 'vals';
+    lines.forEach(function (l) { var v = document.createElement('div'); v.className = 'val mono'; v.textContent = l; vals.appendChild(v); });
+    td.appendChild(vals);
+    var p = document.createElement('p'); p.className = 'why'; p.textContent = why || ''; td.appendChild(p);
+    var ts = document.createElement('td'); ts.setAttribute('data-label', 'Status');
+    var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = label; ts.appendChild(pill);
+    tr.appendChild(th); tr.appendChild(td); tr.appendChild(ts);
+    return tr;
+  }
+
+  function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+  function show(rows) { tbody.textContent = ''; rows.forEach(function (r) { tbody.appendChild(r); }); }
+
+  function inspect(file) {
+    current = null; clean.hidden = true;
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { summary.textContent = 'Only JPEG, PNG and WebP photos are supported here.'; summary.setAttribute('data-tone', 'fail'); show([]); return; }
+    if (file.size > MAX_BYTES) { summary.textContent = 'That file is over 40 MB. Try a smaller one.'; summary.setAttribute('data-tone', 'fail'); show([]); return; }
+    file.arrayBuffer().then(function (buf) {
+      var r = E.parse(buf);
+      var rows = [row('File', 'What you chose.', 'info', 'Info', [file.name, file.type + ', ' + fmtSize(file.size)])];
+      if (r.kind === 'jpeg') {
+        if (r.hasGPS) {
+          var coords = r.gps ? r.gps.lat.toFixed(5) + ', ' + r.gps.lon.toFixed(5) : 'GPS block present';
+          rows.push(row('Location', 'Where the photo was taken.', 'fail', 'Found', [coords], 'Anyone who gets this file can read these coordinates, usually accurate to a few metres.'));
+        } else {
+          rows.push(row('Location', 'Where the photo was taken.', 'pass', 'None found', ['No GPS data']));
+        }
+        var dev = r.fields.filter(function (f) { return /camera|lens|software|owner/i.test(f[0]); });
+        var dates = r.fields.filter(function (f) { return /date/i.test(f[0]); });
+        rows.push(dev.length ? row('Device', 'Camera, phone, software and owner.', 'warn', 'Found', dev.map(function (f) { return f[0] + ': ' + f[1]; }), 'These details can identify your device or you.')
+                             : row('Device', 'Camera, phone, software and owner.', 'pass', 'None found', ['No device details']));
+        rows.push(dates.length ? row('Dates', 'When the photo was taken or edited.', 'warn', 'Found', dates.map(function (f) { return f[0] + ': ' + f[1]; }), 'Dates show when you were somewhere.')
+                               : row('Dates', 'When the photo was taken or edited.', 'pass', 'None found', ['No dates']));
+        summary.textContent = r.found ? 'This photo carries metadata. Remove it before you share it.' : 'No readable metadata found. Cleaning is still safe.';
+        summary.setAttribute('data-tone', r.found ? 'fail' : 'ok');
+      } else {
+        rows.push(row('Metadata', 'Hidden data inside the file.', 'warn', 'Not read', ['This page reads JPEG metadata only'], 'PNG, WebP and other formats can also hold metadata. Cleaning rewrites the file without it.'));
+        summary.textContent = 'This format is not read here, but cleaning removes its metadata too.';
+        summary.setAttribute('data-tone', 'warn');
+      }
+      show(rows);
+      current = file; clean.hidden = false; clean.disabled = false; clean.textContent = 'Remove metadata and download';
+    }).catch(function () { summary.textContent = 'Could not read that file.'; summary.setAttribute('data-tone', 'fail'); });
+  }
+
+  function outType(t) { return t === 'image/png' ? 'image/png' : t === 'image/webp' ? 'image/webp' : 'image/jpeg'; }
+  function ext(t) { return t === 'image/png' ? 'png' : t === 'image/webp' ? 'webp' : 'jpg'; }
+
+  function cleanFile() {
+    if (!current) return;
+    var file = current;
+    clean.disabled = true; clean.textContent = 'Working...';
+    createImageBitmap(file).then(function (bmp) {
+      if (bmp.width * bmp.height > MAX_PIXELS) { bmp.close(); throw new Error('big'); }
+      var c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+      c.getContext('2d').drawImage(bmp, 0, 0); bmp.close();
+      var type = outType(file.type);
+      return new Promise(function (res, rej) { c.toBlob(function (b) { b ? res(b) : rej(new Error('encode')); }, type, 0.92); }).then(function (blob) {
+        return blob.arrayBuffer().then(function (buf) {
+          var again = E.parse(buf);
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = file.name.replace(/\.[^.]+$/, '') + '-clean.' + ext(type);
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+          var ok = type !== 'image/jpeg' || !again.found;
+          summary.textContent = ok ? 'Done. The cleaned copy was saved to your downloads. Your original is unchanged.' : 'The cleaned copy still shows metadata. Do not share it.';
+          summary.setAttribute('data-tone', ok ? 'ok' : 'fail');
+          clean.disabled = false; clean.textContent = 'Remove metadata and download';
+        });
+      });
+    }).catch(function () {
+      summary.textContent = 'This browser could not decode that image. HEIC and animated files are not supported here.';
+      summary.setAttribute('data-tone', 'fail'); clean.disabled = false; clean.textContent = 'Remove metadata and download';
+    });
+  }
+
+  input.addEventListener('change', function () { inspect(input.files && input.files[0]); });
+  clean.addEventListener('click', cleanFile);
+})();
+
+--- tests/redactor.py ---
+import http.server, threading, socketserver, os, re
+from playwright.sync_api import sync_playwright
+ROOT = os.path.join(os.path.dirname(__file__), '..', 'public')
+csp = re.search(r'/tools/\*\n\s*Content-Security-Policy: (.*)', open(os.path.join(ROOT, '_headers')).read()).group(1)
+class H(http.server.SimpleHTTPRequestHandler):
+    def __init__(s, *a, **k): super().__init__(*a, directory=ROOT, **k)
+    def end_headers(s): s.send_header('Content-Security-Policy', csp); super().end_headers()
+    def log_message(s, *a): pass
+srv = socketserver.TCPServer(('127.0.0.1', 0), H); port = srv.server_address[1]
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+fails = []
+def ok(c, m):
+    print(('ok   ' if c else 'FAIL ') + m)
+    if not c: fails.append(m)
+with sync_playwright() as p:
+    b = p.chromium.launch(); pg = b.new_page(viewport={'width': 1280, 'height': 800}); errs = []; reqs = []
+    pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.on('console', lambda m: errs.append(m.text) if 'Content Security' in m.text else None)
+    pg.on('request', lambda r: reqs.append(r.url) if not r.url.startswith(f'http://127.0.0.1:{port}') else None)
+    pg.goto(f'http://127.0.0.1:{port}/tools/text-redactor/')
+    ok(pg.is_disabled('#rd-copy'), 'copy disabled when empty')
+    pg.fill('#rd-in', 'Contact bob@example.com from 10.0.0.5 (+1 415-555-0132). Again bob@example.com. Card 4111 1111 1111 1111.')
+    out = pg.input_value('#rd-out')
+    ok(out == 'Contact [EMAIL_1] from [IPV4_1] ([PHONE_1]). Again [EMAIL_1]. Card [CARD_1].', 'redacts and reuses placeholders: ' + out)
+    ok(pg.locator('#rows tr').count() == 4, 'one row per category found')
+    ok('replaced' in pg.inner_text('#summary'), 'summary reports count')
+    pg.uncheck('#rule-email')
+    ok('bob@example.com' in pg.input_value('#rd-out'), 'unchecking a rule leaves those items')
+    pg.fill('#rd-in', 'nothing personal here')
+    ok('Nothing matched' in pg.inner_text('#summary'), 'warns that no match is not proof of safety')
+    pg.click('#rd-clear')
+    ok(pg.input_value('#rd-in') == '' and pg.is_disabled('#rd-copy'), 'clear resets')
+    ok(not reqs, 'no external requests')
+    ok(not errs, 'no page or CSP errors ' + str(errs))
+    pg.set_viewport_size({'width': 390, 'height': 800})
+    ok(pg.evaluate('document.documentElement.scrollWidth <= innerWidth'), 'no overflow at 390px')
+    b.close()
+print('REDACTOR PAGE ' + ('FAILED' if fails else 'PASSED'))
+raise SystemExit(1 if fails else 0)
