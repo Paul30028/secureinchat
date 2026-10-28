@@ -70,6 +70,8 @@ def joined(nodes):
 def fail(msg, nodes=None):
     snap("FAIL")
     if nodes is not None:
+        # Also print the visible text, so a failure can be read from the job log without the artifact.
+        print("---- screen text at failure ----\n" + joined(nodes)[:4000] + "\n---- end ----")
         (OUT / "fail-ui.txt").write_text("\n".join(f"{t!r} {d!r} {b} {c}" for t, d, b, c in nodes))
     (OUT / "logcat.txt").write_text(adb("logcat", "-d", check=False))
     raise SystemExit("FAIL: " + msg)
@@ -248,12 +250,26 @@ def main():
     #     one row; tap it, allow doubleclick.net from the expanded row, check a not-yet-cached subdomain
     #     now resolves for real, then remove the rule again.
     nodes = scroll_find(lambda s: re.search(r"— blocked [1-9]", s), "per-app view shows no app with blocked queries")
-    row = next(b for t, _, b, _ in nodes if re.search(r"— blocked [1-9]", t))
-    tap(row)
     # Match the expanded domain row itself ("doubleclick.net (2)"), not the log line, which also
     # contains "doubleclick.net (type 1)".
     dom_row = re.compile(rf"^{re.escape(BLOCKED)} \(\d+\)$", re.M)
-    nodes = scroll_find(lambda s: dom_row.search(s), f"expanded app row does not list {BLOCKED}")
+    # Other apps (Android system services) may have blocked queries too and sort above the shell's
+    # row, so expand the rows one by one until the doubleclick.net row shows up.
+    tapped = set()
+    for _ in range(6):
+        if dom_row.search(joined(nodes)):
+            break
+        rows = [(t, b) for t, _, b, _ in nodes if re.search(r"— blocked [1-9]", t) and t not in tapped]
+        if not rows:
+            break
+        t, b = rows[0]
+        tapped.add(t)
+        print(f"expanding app row: {t}")
+        tap(b)
+        time.sleep(2)
+        nodes = dump()
+    if not dom_row.search(joined(nodes)):
+        nodes = scroll_find(lambda s: dom_row.search(s), f"expanded app rows do not list {BLOCKED}")
     b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
     if not b:
         # The row may sit at the bottom edge with its button cut off; scroll a little and look again.
