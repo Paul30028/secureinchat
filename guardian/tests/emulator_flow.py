@@ -250,8 +250,17 @@ def main():
     nodes = scroll_find(lambda s: re.search(r"— blocked [1-9]", s), "per-app view shows no app with blocked queries")
     row = next(b for t, _, b, _ in nodes if re.search(r"— blocked [1-9]", t))
     tap(row)
-    nodes = scroll_find(lambda s: f"{BLOCKED} (" in s, f"expanded app row does not list {BLOCKED}")
+    # Match the expanded domain row itself ("doubleclick.net (2)"), not the log line, which also
+    # contains "doubleclick.net (type 1)".
+    dom_row = re.compile(rf"^{re.escape(BLOCKED)} \(\d+\)$", re.M)
+    nodes = scroll_find(lambda s: dom_row.search(s), f"expanded app row does not list {BLOCKED}")
     b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
+    if not b:
+        # The row may sit at the bottom edge with its button cut off; scroll a little and look again.
+        sh("input swipe 500 1200 500 900 300", check=False)
+        time.sleep(1)
+        nodes = dump()
+        b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
     if not b:
         fail(f"no Allow button on the {BLOCKED} row", nodes)
     tap(b)
