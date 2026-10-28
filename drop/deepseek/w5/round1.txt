@@ -1,0 +1,207 @@
+<<<FULL
+仓库内路径：src/tools/photo-metadata-remover.html
+在 </section>（关闭 <section class="wrap" id="results" aria-labelledby="results-h"> 的 </section>，即下一行 <section class="wrap prose" aria-labelledby="what-h"> 之前）之后插入：
+
+html
+Copy
+Download
+Run
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. A photo is read in this tab only: choosing one should not add a request here.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+
+仓库内路径：src/tools/photo-metadata-remover.html
+在 <script src="/tools/assets/exif-app.js" defer></script> 这一行之后插入：
+
+html
+Copy
+Download
+Run
+<script src="/tools/assets/net-log.js" defer></script>
+
+仓库内路径：src/tools/password-checker.html
+在 </section>（关闭 <section class="wrap" id="results" aria-labelledby="results-h"> 的 </section>，即下一行 <section class="wrap" aria-labelledby="gen-h"> 之前）之后插入：
+
+html
+Copy
+Download
+Run
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. The strength estimate stays in this tab. When you press Check known breaches, your browser sends only the first five characters of the password's SHA-1 hash to api.pwnedpasswords.com; that request appears below with an external tag, and the path in the Address column contains only those five characters, which you can check yourself.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+
+仓库内路径：src/tools/password-checker.html
+在 <script src="/tools/assets/pw-app.js" defer></script> 这一行之后插入：
+
+html
+Copy
+Download
+Run
+<script src="/tools/assets/net-log.js" defer></script>
+
+仓库内路径：public/tools/assets/exif-app.js
+把这一行：
+
+javascript
+Copy
+Download
+  input.addEventListener('change', function () { inspect(input.files && input.files[0]); });
+
+替换成：
+
+javascript
+Copy
+Download
+  input.addEventListener('change', function () { if (input.files && input.files[0]) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You picked a photo' } })); inspect(input.files && input.files[0]); });
+
+仓库内路径：public/tools/assets/pw-app.js
+把这一行（checkBreach 开头，sha1hex 与 getRange 之前）：
+
+javascript
+Copy
+Download
+    breachBtn.disabled = true; breachBtn.textContent = 'Checking...';
+
+替换成：
+
+javascript
+Copy
+Download
+    document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You checked a password' } })); breachBtn.disabled = true; breachBtn.textContent = 'Checking...';
+
+中文文案（备用，替换英文页面时使用）
+
+面板标题行：Network requests from this page: N → 本页发出的网络请求：N
+
+照片页说明段：This list records what the page loads and sends through fetch, XHR and beacons. A photo is read in this tab only: choosing one should not add a request here. → 本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。照片仅在本标签页内读取：选择一张照片后，这里不应出现新的请求。
+
+密码页说明段：This list records what the page loads and sends through fetch, XHR and beacons. The strength estimate stays in this tab. When you press Check known breaches, your browser sends only the first five characters of the password's SHA-1 hash to api.pwnedpasswords.com; that request appears below with an external tag, and the path in the Address column contains only those five characters, which you can check yourself. → 本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。强度估算始终在本标签页内完成。点击「检查已知泄露」时，浏览器只把密码 SHA-1 哈希的前 5 个十六进制字符发送到 api.pwnedpasswords.com；这条请求会以「外部」标记出现在下方，地址栏路径里只有那 5 个字符，你可以自己核对。
+
+表头：Time → 时间；Type → 类型；Address → 地址；Size → 大小
+
+跨域标记：external → 外部
+
+大小列在 0 字节时同源：cached → 缓存
+
+大小列在 0 字节时跨域：\u2014 → —
+
+无 API 时的回退：Your browser does not expose request timing to pages. → 你的浏览器没有向页面公开请求计时信息。
+
+计数在回退时：not available → 不可用
+
+底部说明：This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the source code on GitHub. → 本列表来自你浏览器的 Resource Timing API，显示本页通过 fetch、XHR 和信标加载或发出的资源。它看不到 WebSocket 或 WebRTC 流量、浏览器扩展，以及浏览器对页面隐藏的请求，所以这是证据，不是证明。更可靠的保证是页面的 Content-Security-Policy，你可以在浏览器的开发者工具（Network 标签，响应头）里读到，以及 GitHub 上的源代码。
+
+分隔行：You picked a photo → 你选择了一张照片；You checked a password → 你检查了一个密码
+
+面板 aria-label：Network requests from this page → 本页发出的网络请求
+
+表格 aria-label：Network requests from this page → 本页发出的网络请求
+FULL>>>
+<<<CODE 0
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. A photo is read in this tab only: choosing one should not add a request here.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+CODE>>>
+<<<CODE 1
+<script src="/tools/assets/net-log.js" defer></script>
+CODE>>>
+<<<CODE 2
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. The strength estimate stays in this tab. When you press Check known breaches, your browser sends only the first five characters of the password's SHA-1 hash to api.pwnedpasswords.com; that request appears below with an external tag, and the path in the Address column contains only those five characters, which you can check yourself.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+CODE>>>
+<<<CODE 3
+<script src="/tools/assets/net-log.js" defer></script>
+CODE>>>
+<<<CODE 4
+  input.addEventListener('change', function () { inspect(input.files && input.files[0]); });
+CODE>>>
+<<<CODE 5
+  input.addEventListener('change', function () { if (input.files && input.files[0]) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You picked a photo' } })); inspect(input.files && input.files[0]); });
+CODE>>>
+<<<CODE 6
+    breachBtn.disabled = true; breachBtn.textContent = 'Checking...';
+CODE>>>
+<<<CODE 7
+    document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You checked a password' } })); breachBtn.disabled = true; breachBtn.textContent = 'Checking...';
+CODE>>>
