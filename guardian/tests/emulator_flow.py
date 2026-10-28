@@ -399,6 +399,7 @@ def main():
     tap(button(dump(), "Block"))
     # The error line sits just below the input row, often under the bottom edge: scroll to it.
     time.sleep(1)
+    hide_keyboard()
     scroll_find(lambda s: "Not a valid domain" in s, "invalid domain did not show 'Not a valid domain'")
     hide_keyboard()
     scroll_top()
