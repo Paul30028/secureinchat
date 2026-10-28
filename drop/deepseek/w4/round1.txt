@@ -1,0 +1,840 @@
+<<<FULL
+仓库内路径：public/tools/assets/net-log.js
+
+javascript
+Copy
+Download
+/* Network request log. Reads browser Resource Timing data and lists it. No network, no storage. */
+(function () {
+  'use strict';
+
+  var root = document.getElementById('netlog');
+  if (!root) return;
+
+  var details = root.querySelector('.netlog-details');
+  var countEl = root.querySelector('.netlog-count');
+  var tbody = root.querySelector('.netlog-rows');
+  var fallback = root.querySelector('.netlog-fallback');
+  if (!details || !countEl || !tbody) return;
+
+  // If the browser does not expose resource timing to pages, show the fallback and stop.
+  if (typeof PerformanceObserver !== 'function' ||
+      typeof window.performance === 'undefined' ||
+      typeof window.performance.getEntriesByType !== 'function') {
+    if (fallback) fallback.hidden = false;
+    details.hidden = true;
+    return;
+  }
+
+  var seen = {};
+  var count = 0;
+  var firstMarkTime = null;
+  var addedMarkers = {};
+
+  function fmtBytes(n) {
+    if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
+    if (n >= 1024) return Math.round(n / 1024) + ' KB';
+    return n + ' B';
+  }
+
+  function isSameOrigin(url) {
+    try { return new URL(url, location.href).origin === location.origin; }
+    catch (e) { return false; }
+  }
+
+  function displayUrl(url) {
+    try {
+      var u = new URL(url, location.href);
+      if (u.origin === location.origin) return u.pathname + u.search;
+      return u.origin + u.pathname + (u.search || '');
+    } catch (e) { return url; }
+  }
+
+  function insertByTime(tr, time) {
+    var children = tbody.children;
+    for (var i = 0; i < children.length; i++) {
+      var rt = parseFloat(children[i].getAttribute('data-time'));
+      if (!isNaN(rt) && rt > time) {
+        tbody.insertBefore(tr, children[i]);
+        return;
+      }
+    }
+    tbody.appendChild(tr);
+  }
+
+  function buildSize(entry) {
+    var td = document.createElement('td');
+    td.setAttribute('data-label', 'Size');
+    if (entry.transferSize > 0) {
+      td.textContent = fmtBytes(entry.transferSize);
+    } else if (isSameOrigin(entry.name)) {
+      td.textContent = 'cached';
+      td.title = '0 bytes transferred: the browser reports this resource came from cache.';
+    } else {
+      td.textContent = '\u2014';
+      td.title = 'Size not reported. The browser did not return a transfer size for this resource: it may have been cached, or the server did not send Timing-Allow-Origin.';
+    }
+    return td;
+  }
+
+  function addEntry(entry) {
+    if (!entry || !entry.name) return;
+    var key = entry.name + '|' + entry.startTime + '|' + (entry.initiatorType || '');
+    if (seen[key]) return;
+    seen[key] = true;
+    count += 1;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-row';
+    tr.setAttribute('data-time', String(entry.startTime));
+    if (firstMarkTime !== null && entry.startTime > firstMarkTime) {
+      tr.classList.add('netlog-after');
+    }
+
+    var tdTime = document.createElement('td');
+    tdTime.setAttribute('data-label', 'Time');
+    tdTime.textContent = (entry.startTime / 1000).toFixed(1) + 's';
+    tdTime.title = 'Time since this page started loading';
+
+    var tdType = document.createElement('td');
+    tdType.setAttribute('data-label', 'Type');
+    tdType.textContent = entry.initiatorType || 'other';
+
+    var tdUrl = document.createElement('td');
+    tdUrl.setAttribute('data-label', 'Address');
+    tdUrl.className = 'netlog-url';
+    var code = document.createElement('code');
+    code.textContent = displayUrl(entry.name);
+    tdUrl.appendChild(code);
+    if (!isSameOrigin(entry.name)) {
+      tdUrl.appendChild(document.createTextNode(' '));
+      var tag = document.createElement('span');
+      tag.className = 'netlog-tag';
+      tag.textContent = 'external';
+      tdUrl.appendChild(tag);
+    }
+
+    tr.appendChild(tdTime);
+    tr.appendChild(tdType);
+    tr.appendChild(tdUrl);
+    tr.appendChild(buildSize(entry));
+    insertByTime(tr, entry.startTime);
+    countEl.textContent = String(count);
+  }
+
+  function addMarker(label) {
+    if (addedMarkers[label]) return;
+    addedMarkers[label] = true;
+
+    var time = (typeof performance.now === 'function') ? performance.now() : 0;
+    if (firstMarkTime === null) firstMarkTime = time;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-marker';
+    tr.setAttribute('data-time', String(time));
+    var th = document.createElement('th');
+    th.scope = 'row';
+    th.colSpan = 4;
+    th.textContent = label;
+    tr.appendChild(th);
+    insertByTime(tr, time);
+  }
+
+  try {
+    var initial = window.performance.getEntriesByType('resource');
+    for (var i = 0; i < initial.length; i++) addEntry(initial[i]);
+  } catch (e) {}
+
+  try {
+    var observer = new PerformanceObserver(function (list) {
+      var entries = list.getEntries();
+      for (var j = 0; j < entries.length; j++) addEntry(entries[j]);
+    });
+    observer.observe({ type: 'resource', buffered: true });
+  } catch (e) {
+    // Live updates unavailable; whatever the initial read produced stays shown.
+  }
+
+  document.addEventListener('netlog:mark', function (e) {
+    var label = e && e.detail && e.detail.label;
+    if (typeof label !== 'string' || !label) return;
+    addMarker(label);
+  });
+
+  countEl.textContent = String(count);
+})();
+
+仓库内路径：src/tools/text-redactor.html
+在 </section>（关闭 <section class="wrap" id="results" aria-labelledby="results-h"> 的 </section>）这一行之后插入：
+
+html
+Copy
+Download
+Run
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. Compare the list before and after you paste text or run the tool.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+
+仓库内路径：src/tools/text-redactor.html
+在 <script src="/tools/assets/redact-app.js" defer></script> 这一行之后插入：
+
+html
+Copy
+Download
+Run
+<script src="/tools/assets/net-log.js" defer></script>
+
+仓库内路径：src/tools/file-metadata-remover.html
+在 </section>（关闭 <section class="wrap" id="results" aria-labelledby="results-h"> 的 </section>）这一行之后插入：
+
+html
+Copy
+Download
+Run
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. Choosing a file for the first time loads the WebAssembly cleaning engine from this same site; that request appears here and is expected.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+
+仓库内路径：src/tools/file-metadata-remover.html
+在 <script type="module" src="/tools/assets/mr-app.js"></script> 这一行之后插入：
+
+html
+Copy
+Download
+Run
+<script src="/tools/assets/net-log.js" defer></script>
+
+仓库内路径：src/nextbatch/tool-widgets.css
+追加到文件末尾（上一批 .legacy-tool .val.mono { … } 之后）：
+
+css
+Copy
+Download
+/* Network request panel (W4).
+   Default-collapsed list of the resources this page loaded. The numbers come from the
+   browser's Resource Timing API; nothing here is a fixed count and nothing here claims
+   "no requests". A marker row separates the page load from the user's first action. */
+.legacy-tool .netlog {
+  margin: 1rem 0 1rem;
+  border: 1px solid var(--widget-line);
+  border-radius: .8rem;
+  background: var(--widget-paper);
+  color: var(--widget-ink);
+}
+.legacy-tool .netlog-details { margin: 0; }
+.legacy-tool .netlog-summary {
+  padding: .85rem 1.1rem;
+  color: var(--widget-ink);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.legacy-tool .netlog-summary::-webkit-details-marker { display: none; }
+.legacy-tool .netlog-summary::marker { content: ""; }
+.legacy-tool .netlog-summary::after {
+  content: "+";
+  float: right;
+  color: var(--widget-brand);
+  font-size: 1.2rem;
+  font-weight: 400;
+  line-height: 1;
+}
+.legacy-tool .netlog-details[open] .netlog-summary::after { content: "\2212"; }
+.legacy-tool .netlog-summary:focus-visible {
+  outline: 3px solid var(--widget-brand);
+  outline-offset: -3px;
+  border-radius: .8rem .8rem 0 0;
+}
+.legacy-tool .netlog-note {
+  margin: 0 1.1rem .8rem;
+  color: var(--widget-muted);
+  font-size: .9rem;
+  line-height: 1.5;
+}
+.legacy-tool .netlog-scroll {
+  max-width: 100%;
+  margin: 0 1.1rem;
+  overflow-x: auto;
+}
+.legacy-tool .netlog-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid var(--widget-line);
+  border-bottom: 1px solid var(--widget-line);
+}
+.legacy-tool .netlog-table thead th {
+  padding: .55rem .5rem;
+  border-bottom: 1px solid var(--widget-line);
+  background: var(--widget-head);
+  color: var(--widget-muted);
+  font-size: .85rem;
+  font-weight: 700;
+  text-align: left;
+}
+.legacy-tool .netlog-table tbody td {
+  padding: .55rem .5rem;
+  border-bottom: 1px solid var(--widget-line);
+  color: var(--widget-ink);
+  font-size: .9rem;
+  line-height: 1.45;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.legacy-tool .netlog-table tbody tr:last-child > * { border-bottom: 0; }
+.legacy-tool .netlog-url code {
+  font: 400 .85rem/1.5 var(--font-mono, ui-monospace, monospace);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.legacy-tool .netlog-tag {
+  display: inline-block;
+  padding: .05rem .45rem;
+  border: 1px solid var(--widget-amber-ink);
+  border-radius: 999px;
+  color: var(--widget-amber-ink);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.legacy-tool .netlog-row.netlog-after td { font-weight: 700; }
+.legacy-tool .netlog-marker th {
+  padding: .65rem .75rem;
+  border-bottom: 1px solid var(--widget-line);
+  background: var(--widget-blue-bg);
+  color: var(--widget-blue-ink);
+  font-size: .9rem;
+  font-weight: 700;
+  text-align: left;
+}
+.legacy-tool .netlog-fallback {
+  margin: .8rem 1.1rem;
+  color: var(--widget-amber-ink);
+  font-size: .95rem;
+  font-weight: 600;
+}
+.legacy-tool .netlog-footer {
+  margin: .9rem 1.1rem 1.1rem;
+  color: var(--widget-muted);
+  font-size: .875rem;
+  line-height: 1.55;
+}
+.legacy-tool .netlog-footer a { color: var(--widget-brand); }
+
+@media (max-width: 720px) {
+  .legacy-tool .netlog-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .legacy-tool .netlog-table,
+  .legacy-tool .netlog-table tbody,
+  .legacy-tool .netlog-table tr,
+  .legacy-tool .netlog-table td,
+  .legacy-tool .netlog-table th { display: block; width: 100%; }
+  .legacy-tool .netlog-table tbody tr {
+    padding: .55rem .8rem;
+    border-bottom: 1px solid var(--widget-line);
+  }
+  .legacy-tool .netlog-table tbody tr:last-child { border-bottom: 0; }
+  .legacy-tool .netlog-table tbody td {
+    padding: .15rem 0;
+    border-bottom: 0;
+  }
+  .legacy-tool .netlog-table tbody td::before {
+    content: attr(data-label) ": ";
+    color: var(--widget-muted);
+    font-weight: 700;
+  }
+  .legacy-tool .netlog-marker th {
+    padding: .55rem .8rem;
+    border-bottom: 0;
+  }
+  .legacy-tool .netlog-marker { border-bottom: 1px solid var(--widget-line); }
+}
+
+仓库内路径：public/tools/assets/mr-app.js
+把这一行：
+
+javascript
+Copy
+Download
+input.addEventListener('change', function () { inspect(input.files && input.files[0]); });
+
+替换成：
+
+javascript
+Copy
+Download
+input.addEventListener('change', function () { if (input.files && input.files[0]) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You picked a file' } })); inspect(input.files && input.files[0]); });
+
+仓库内路径：public/tools/assets/redact-app.js
+把这一行：
+
+javascript
+Copy
+Download
+src.addEventListener('input', run);
+
+替换成：
+
+javascript
+Copy
+Download
+src.addEventListener('input', function () { if (src.value) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You ran the redactor' } })); run(); });
+
+中文文案（备用，替换英文页面时使用；标签与英文一一对应）
+
+面板标题行：Network requests from this page: N → 本页发出的网络请求：N
+
+文本脱敏页的说明段：This list records what the page loads and sends through fetch, XHR and beacons. Compare the list before and after you paste text or run the tool. → 本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。粘贴文本或运行工具前后对比一下即可。
+
+文件清理页的说明段：This list records what the page loads and sends through fetch, XHR and beacons. Choosing a file for the first time loads the WebAssembly cleaning engine from this same site; that request appears here and is expected. → 本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。第一次选择文件时，会从本站加载 WebAssembly 清理引擎，这条请求会出现在这里，属于正常现象。
+
+表头：Time → 时间；Type → 类型；Address → 地址；Size → 大小
+
+时间列的 title：Time since this page started loading → 自本页开始加载以来的时间
+
+类型列的兜底值：other → 其他
+
+跨域标记：external → 外部
+
+大小列在 0 字节时的显示：cached → 缓存；\u2014 → —
+
+大小列在 0 字节时的同源 title：0 bytes transferred: the browser reports this resource came from cache. → 传输 0 字节：浏览器报告该资源来自缓存。
+
+大小列在 0 字节时的跨域 title：Size not reported. The browser did not return a transfer size for this resource: it may have been cached, or the server did not send Timing-Allow-Origin. → 大小未报告。浏览器没有返回该资源的传输大小：可能是缓存命中，或者服务器没有发送 Timing-Allow-Origin。
+
+分隔行文本：You picked a file → 你选择了一个文件；You ran the redactor → 你运行了脱敏工具
+
+无 API 时的回退：Your browser does not expose request timing to pages. → 你的浏览器没有向页面公开请求计时信息。
+
+底部说明：This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the source code on GitHub. → 本列表来自你浏览器的 Resource Timing API，显示本页通过 fetch、XHR 和信标加载或发出的资源。它看不到 WebSocket 或 WebRTC 流量、浏览器扩展，以及浏览器对页面隐藏的请求，所以这是证据，不是证明。更可靠的保证是页面的 Content-Security-Policy，你可以在浏览器的开发者工具（Network 标签，响应头）里读到，以及 GitHub 上的源代码。
+
+表格 aria-label：Network requests from this page → 本页发出的网络请求
+
+面板所在 section 的 aria-label：Network requests from this page → 本页发出的网络请求
+FULL>>>
+<<<CODE 0
+/* Network request log. Reads browser Resource Timing data and lists it. No network, no storage. */
+(function () {
+  'use strict';
+
+  var root = document.getElementById('netlog');
+  if (!root) return;
+
+  var details = root.querySelector('.netlog-details');
+  var countEl = root.querySelector('.netlog-count');
+  var tbody = root.querySelector('.netlog-rows');
+  var fallback = root.querySelector('.netlog-fallback');
+  if (!details || !countEl || !tbody) return;
+
+  // If the browser does not expose resource timing to pages, show the fallback and stop.
+  if (typeof PerformanceObserver !== 'function' ||
+      typeof window.performance === 'undefined' ||
+      typeof window.performance.getEntriesByType !== 'function') {
+    if (fallback) fallback.hidden = false;
+    details.hidden = true;
+    return;
+  }
+
+  var seen = {};
+  var count = 0;
+  var firstMarkTime = null;
+  var addedMarkers = {};
+
+  function fmtBytes(n) {
+    if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
+    if (n >= 1024) return Math.round(n / 1024) + ' KB';
+    return n + ' B';
+  }
+
+  function isSameOrigin(url) {
+    try { return new URL(url, location.href).origin === location.origin; }
+    catch (e) { return false; }
+  }
+
+  function displayUrl(url) {
+    try {
+      var u = new URL(url, location.href);
+      if (u.origin === location.origin) return u.pathname + u.search;
+      return u.origin + u.pathname + (u.search || '');
+    } catch (e) { return url; }
+  }
+
+  function insertByTime(tr, time) {
+    var children = tbody.children;
+    for (var i = 0; i < children.length; i++) {
+      var rt = parseFloat(children[i].getAttribute('data-time'));
+      if (!isNaN(rt) && rt > time) {
+        tbody.insertBefore(tr, children[i]);
+        return;
+      }
+    }
+    tbody.appendChild(tr);
+  }
+
+  function buildSize(entry) {
+    var td = document.createElement('td');
+    td.setAttribute('data-label', 'Size');
+    if (entry.transferSize > 0) {
+      td.textContent = fmtBytes(entry.transferSize);
+    } else if (isSameOrigin(entry.name)) {
+      td.textContent = 'cached';
+      td.title = '0 bytes transferred: the browser reports this resource came from cache.';
+    } else {
+      td.textContent = '\u2014';
+      td.title = 'Size not reported. The browser did not return a transfer size for this resource: it may have been cached, or the server did not send Timing-Allow-Origin.';
+    }
+    return td;
+  }
+
+  function addEntry(entry) {
+    if (!entry || !entry.name) return;
+    var key = entry.name + '|' + entry.startTime + '|' + (entry.initiatorType || '');
+    if (seen[key]) return;
+    seen[key] = true;
+    count += 1;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-row';
+    tr.setAttribute('data-time', String(entry.startTime));
+    if (firstMarkTime !== null && entry.startTime > firstMarkTime) {
+      tr.classList.add('netlog-after');
+    }
+
+    var tdTime = document.createElement('td');
+    tdTime.setAttribute('data-label', 'Time');
+    tdTime.textContent = (entry.startTime / 1000).toFixed(1) + 's';
+    tdTime.title = 'Time since this page started loading';
+
+    var tdType = document.createElement('td');
+    tdType.setAttribute('data-label', 'Type');
+    tdType.textContent = entry.initiatorType || 'other';
+
+    var tdUrl = document.createElement('td');
+    tdUrl.setAttribute('data-label', 'Address');
+    tdUrl.className = 'netlog-url';
+    var code = document.createElement('code');
+    code.textContent = displayUrl(entry.name);
+    tdUrl.appendChild(code);
+    if (!isSameOrigin(entry.name)) {
+      tdUrl.appendChild(document.createTextNode(' '));
+      var tag = document.createElement('span');
+      tag.className = 'netlog-tag';
+      tag.textContent = 'external';
+      tdUrl.appendChild(tag);
+    }
+
+    tr.appendChild(tdTime);
+    tr.appendChild(tdType);
+    tr.appendChild(tdUrl);
+    tr.appendChild(buildSize(entry));
+    insertByTime(tr, entry.startTime);
+    countEl.textContent = String(count);
+  }
+
+  function addMarker(label) {
+    if (addedMarkers[label]) return;
+    addedMarkers[label] = true;
+
+    var time = (typeof performance.now === 'function') ? performance.now() : 0;
+    if (firstMarkTime === null) firstMarkTime = time;
+
+    var tr = document.createElement('tr');
+    tr.className = 'netlog-marker';
+    tr.setAttribute('data-time', String(time));
+    var th = document.createElement('th');
+    th.scope = 'row';
+    th.colSpan = 4;
+    th.textContent = label;
+    tr.appendChild(th);
+    insertByTime(tr, time);
+  }
+
+  try {
+    var initial = window.performance.getEntriesByType('resource');
+    for (var i = 0; i < initial.length; i++) addEntry(initial[i]);
+  } catch (e) {}
+
+  try {
+    var observer = new PerformanceObserver(function (list) {
+      var entries = list.getEntries();
+      for (var j = 0; j < entries.length; j++) addEntry(entries[j]);
+    });
+    observer.observe({ type: 'resource', buffered: true });
+  } catch (e) {
+    // Live updates unavailable; whatever the initial read produced stays shown.
+  }
+
+  document.addEventListener('netlog:mark', function (e) {
+    var label = e && e.detail && e.detail.label;
+    if (typeof label !== 'string' || !label) return;
+    addMarker(label);
+  });
+
+  countEl.textContent = String(count);
+})();
+CODE>>>
+<<<CODE 1
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. Compare the list before and after you paste text or run the tool.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+CODE>>>
+<<<CODE 2
+<script src="/tools/assets/net-log.js" defer></script>
+CODE>>>
+<<<CODE 3
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. Choosing a file for the first time loads the WebAssembly cleaning engine from this same site; that request appears here and is expected.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+CODE>>>
+<<<CODE 4
+<script src="/tools/assets/net-log.js" defer></script>
+CODE>>>
+<<<CODE 5
+/* Network request panel (W4).
+   Default-collapsed list of the resources this page loaded. The numbers come from the
+   browser's Resource Timing API; nothing here is a fixed count and nothing here claims
+   "no requests". A marker row separates the page load from the user's first action. */
+.legacy-tool .netlog {
+  margin: 1rem 0 1rem;
+  border: 1px solid var(--widget-line);
+  border-radius: .8rem;
+  background: var(--widget-paper);
+  color: var(--widget-ink);
+}
+.legacy-tool .netlog-details { margin: 0; }
+.legacy-tool .netlog-summary {
+  padding: .85rem 1.1rem;
+  color: var(--widget-ink);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.legacy-tool .netlog-summary::-webkit-details-marker { display: none; }
+.legacy-tool .netlog-summary::marker { content: ""; }
+.legacy-tool .netlog-summary::after {
+  content: "+";
+  float: right;
+  color: var(--widget-brand);
+  font-size: 1.2rem;
+  font-weight: 400;
+  line-height: 1;
+}
+.legacy-tool .netlog-details[open] .netlog-summary::after { content: "\2212"; }
+.legacy-tool .netlog-summary:focus-visible {
+  outline: 3px solid var(--widget-brand);
+  outline-offset: -3px;
+  border-radius: .8rem .8rem 0 0;
+}
+.legacy-tool .netlog-note {
+  margin: 0 1.1rem .8rem;
+  color: var(--widget-muted);
+  font-size: .9rem;
+  line-height: 1.5;
+}
+.legacy-tool .netlog-scroll {
+  max-width: 100%;
+  margin: 0 1.1rem;
+  overflow-x: auto;
+}
+.legacy-tool .netlog-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid var(--widget-line);
+  border-bottom: 1px solid var(--widget-line);
+}
+.legacy-tool .netlog-table thead th {
+  padding: .55rem .5rem;
+  border-bottom: 1px solid var(--widget-line);
+  background: var(--widget-head);
+  color: var(--widget-muted);
+  font-size: .85rem;
+  font-weight: 700;
+  text-align: left;
+}
+.legacy-tool .netlog-table tbody td {
+  padding: .55rem .5rem;
+  border-bottom: 1px solid var(--widget-line);
+  color: var(--widget-ink);
+  font-size: .9rem;
+  line-height: 1.45;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.legacy-tool .netlog-table tbody tr:last-child > * { border-bottom: 0; }
+.legacy-tool .netlog-url code {
+  font: 400 .85rem/1.5 var(--font-mono, ui-monospace, monospace);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.legacy-tool .netlog-tag {
+  display: inline-block;
+  padding: .05rem .45rem;
+  border: 1px solid var(--widget-amber-ink);
+  border-radius: 999px;
+  color: var(--widget-amber-ink);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.legacy-tool .netlog-row.netlog-after td { font-weight: 700; }
+.legacy-tool .netlog-marker th {
+  padding: .65rem .75rem;
+  border-bottom: 1px solid var(--widget-line);
+  background: var(--widget-blue-bg);
+  color: var(--widget-blue-ink);
+  font-size: .9rem;
+  font-weight: 700;
+  text-align: left;
+}
+.legacy-tool .netlog-fallback {
+  margin: .8rem 1.1rem;
+  color: var(--widget-amber-ink);
+  font-size: .95rem;
+  font-weight: 600;
+}
+.legacy-tool .netlog-footer {
+  margin: .9rem 1.1rem 1.1rem;
+  color: var(--widget-muted);
+  font-size: .875rem;
+  line-height: 1.55;
+}
+.legacy-tool .netlog-footer a { color: var(--widget-brand); }
+
+@media (max-width: 720px) {
+  .legacy-tool .netlog-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .legacy-tool .netlog-table,
+  .legacy-tool .netlog-table tbody,
+  .legacy-tool .netlog-table tr,
+  .legacy-tool .netlog-table td,
+  .legacy-tool .netlog-table th { display: block; width: 100%; }
+  .legacy-tool .netlog-table tbody tr {
+    padding: .55rem .8rem;
+    border-bottom: 1px solid var(--widget-line);
+  }
+  .legacy-tool .netlog-table tbody tr:last-child { border-bottom: 0; }
+  .legacy-tool .netlog-table tbody td {
+    padding: .15rem 0;
+    border-bottom: 0;
+  }
+  .legacy-tool .netlog-table tbody td::before {
+    content: attr(data-label) ": ";
+    color: var(--widget-muted);
+    font-weight: 700;
+  }
+  .legacy-tool .netlog-marker th {
+    padding: .55rem .8rem;
+    border-bottom: 0;
+  }
+  .legacy-tool .netlog-marker { border-bottom: 1px solid var(--widget-line); }
+}
+CODE>>>
+<<<CODE 6
+input.addEventListener('change', function () { inspect(input.files && input.files[0]); });
+CODE>>>
+<<<CODE 7
+input.addEventListener('change', function () { if (input.files && input.files[0]) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You picked a file' } })); inspect(input.files && input.files[0]); });
+CODE>>>
+<<<CODE 8
+src.addEventListener('input', run);
+CODE>>>
+<<<CODE 9
+src.addEventListener('input', function () { if (src.value) document.dispatchEvent(new CustomEvent('netlog:mark', { detail: { label: 'You ran the redactor' } })); run(); });
+CODE>>>
