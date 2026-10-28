@@ -1,0 +1,40 @@
+任务 G9(Guardian):系统「始终开启的 VPN」(Always-on VPN)支持。
+
+背景:G8 你的代码已应用(提交 01858da,CI 在跑)。我只改了一处:UserRulesStore.addTo 让同一个域名最多只在一个名单里——加进放行就从拦截里删,反之亦然(见文末代码)。其余以你上一轮输出的文件为准。
+
+需求:用户可以在系统设置里把 Guardian 设为「始终开启的 VPN」,手机重启或进程被杀后由系统自动拉起。Guardian 要(1)在系统拉起时正确启动,(2)在界面上告诉用户当前是否已设为始终开启,并给一个按钮直达系统 VPN 设置。
+
+硬性规则同前:SPDX 头、不加依赖、不加权限、不加 RECEIVE_BOOT_COMPLETED(始终开启由系统负责,不需要开机广播)、SharedPreferences 只在 UserRulesStore.kt、txt(en, zh)、setIfChanged 不能回退、不做假功能(拿不到的状态就不显示)。
+
+一、GuardianVpnService
+1. 系统拉起时 intent 的 action 是 "android.net.VpnService"(或 intent 为 null,START_STICKY 重启)。确认这两种情况都走现有 else 分支正常启动;如果此时 VpnService.prepare(this) != null(用户撤销了授权),不要 establish,直接 stopSelf 并返回 START_NOT_STICKY。写注释说明。
+2. 在 companion 里加 `@Volatile var alwaysOn: Boolean? = null` 和 `@Volatile var lockdown: Boolean? = null`:服务运行时在 API 29+ 用 isAlwaysOn() / isLockdownEnabled() 填写(建立 VPN 后填一次,之后每次 UI 刷新可以读);API 28 及以下保持 null。停止时置 null。
+
+二、MainActivity
+3. 在状态区下方加一行「Always-on: On / Off」(中文「始终开启:已开启 / 未开启」),lockdown 为 true 时追加「, blocks connections without VPN」(「,未连 VPN 时断网」)。alwaysOn 为 null(未运行或 API<29)时这一行设为空字符串、不显示占位文字。
+4. 一个按钮「Always-on VPN settings / 始终开启设置」:startActivity(Intent(Settings.ACTION_VPN_SETTINGS)),用 try/catch 包住 ActivityNotFoundException,失败时在按钮下方显示一行「Open Settings > Network > VPN / 请打开 设置 > 网络 > VPN」。按钮下方固定显示一行小字说明:
+   EN: "In system settings, tap the gear next to Guardian and turn on Always-on VPN. Android then restarts Guardian after a reboot."
+   ZH: "在系统设置里点 Guardian 旁边的齿轮,打开「始终开启的 VPN」。之后手机重启时 Android 会自动启动 Guardian。"
+5. 不改通知、磁贴和名单部分。
+
+三、模拟器测试(请给出你建议的 adb 步骤,我来写进 tests/emulator_flow.py)
+6. 我计划:运行中界面应显示 "Always-on: Off";点按钮后前台 Activity 应属于 com.android.settings(用 dumpsys activity activities 的 mResumedActivity / topResumedActivity 判断),然后按返回回到 Guardian。
+   问题:在 API 29/34 模拟器上,有没有不需要 root 就能用 adb 把本应用设为 always-on 的方式(例如 `settings put secure always_on_vpn_app`,或 `cmd connectivity` 的某个子命令)?如果你不确定,就直说不确定,不要编命令。
+
+输出:GuardianVpnService.kt、MainActivity.kt 完整文件,外加第 6 点的建议。不写进度百分比。
+
+UserRulesStore.addTo(当前版本):
+
+    private fun addTo(ctx: Context, key: String, domain: String): Boolean {
+        val n = Blocklist.normalizeOrNull(domain) ?: return false
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val cur = HashSet(prefs.getStringSet(key, emptySet()) ?: emptySet())
+        // A domain lives in at most one of the two lists: the newest choice replaces the old one,
+        // so "Blocked by you" never shows a domain that is silently allowed (allow wins in Blocklist).
+        val otherKey = if (key == KEY_ALLOWED) KEY_BLOCKED else KEY_ALLOWED
+        val other = HashSet(prefs.getStringSet(otherKey, emptySet()) ?: emptySet())
+        val otherChanged = other.remove(n)
+        if (!cur.add(n) && !otherChanged) return true
+        prefs.edit().putStringSet(key, cur).putStringSet(otherKey, other).apply()
+        return true
+    }
