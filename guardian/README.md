@@ -31,6 +31,7 @@ Licensed GPL-3.0-or-later.
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.DnsIpv6TestKt
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.PauseTestKt
     java -cp /tmp/g.jar org.secureinchat.guardian.dns.UserRulesTestKt
+    java -cp /tmp/g.jar org.secureinchat.guardian.dns.RulesTextTestKt
     kotlinc core/src/main/kotlin tests/oracle/Cli.kt -include-runtime -d /tmp/cli.jar
     pip install dnspython && python3 tests/dns_oracle.py /tmp/cli.jar && python3 tests/dns_oracle6.py /tmp/cli.jar
 
