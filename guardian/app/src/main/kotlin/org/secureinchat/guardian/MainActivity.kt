@@ -678,7 +678,9 @@ class MainActivity : Activity() {
     // read from UserRulesStore each refresh and rendered only when the serialized set changes.
     private fun renderBlockedList() {
         val blocked = UserRulesStore.blocked(this).sorted()
-        val sig = blocked.joinToString(",")
+        // "#" prefix: an empty list must differ from the "" that taps write to force a rebuild,
+        // or removing the last entry would leave its row on screen.
+        val sig = "#" + blocked.joinToString(",")
         if (sig == blockedSignature) return
         blockedSignature = sig
         blockedListContainer.removeAllViews()
@@ -722,7 +724,9 @@ class MainActivity : Activity() {
 
     private fun renderAllowedList() {
         val allowed = UserRulesStore.allowed(this).sorted()
-        val sig = allowed.joinToString(",")
+        // "#" prefix: an empty list must differ from the "" that taps write to force a rebuild,
+        // or removing the last entry would leave its row on screen.
+        val sig = "#" + allowed.joinToString(",")
         if (sig == allowedSignature) return
         allowedSignature = sig
         allowedListContainer.removeAllViews()
