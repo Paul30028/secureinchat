@@ -349,9 +349,12 @@ def main():
     time.sleep(1)
     sh("input text not_a_domain")
     tap(button(dump(), "Block"))
-    wait_ui(lambda s: "Not a valid domain" in s, "invalid domain did not show 'Not a valid domain'")
-    nodes = dump()
+    # The error line sits just below the input row, often under the bottom edge: scroll to it.
+    time.sleep(1)
+    nodes = scroll_find(lambda s: "Not a valid domain" in s, "invalid domain did not show 'Not a valid domain'")
     field = next((b for t, d, b, c in nodes if d == "Domain to block" and b), None)
+    if not field:
+        fail("'Domain to block' field scrolled out of view", nodes)
     tap(field)
     for _ in range(14):
         sh("input keyevent 67", check=False)  # backspace
