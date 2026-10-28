@@ -306,6 +306,32 @@ def main():
     nodes = dump()
     print("ok: 'Blocked most often', Allow and Remove work")
 
+    # 4c. Pause 5 minutes (G6): a blocked name resolves for real while paused, and is blocked again after Resume.
+    nodes = dump()
+    b = button(nodes, "Pause 5 min")
+    if not b:
+        fail("no 'Pause 5 min' button while running", nodes)
+    tap(b)
+    nodes = wait_ui(lambda s: "Status: Paused until" in s, "status did not change to 'Paused until'")
+    probe3 = "stats.g." + BLOCKED
+    addr, out = resolve(probe3)
+    print(f"guardian paused: {probe3} -> {addr}")
+    if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
+        fail(f"{probe3} should resolve for real while paused, got {addr}: {out}")
+    wait_ui(lambda s: f"PAUSE {probe3}" in s, f"log does not show PAUSE {probe3}")
+    nodes = dump()
+    b = button(nodes, "Resume")
+    if not b:
+        fail("no Resume button while paused", nodes)
+    tap(b)
+    nodes = wait_ui(lambda s: "Status: Running" in s, "status did not return to Running after Resume")
+    probe4 = "ad." + BLOCKED
+    addr, out = resolve(probe4)
+    print(f"guardian resumed: {probe4} -> {addr}")
+    if addr not in ("0.0.0.0", "127.0.0.1"):
+        fail(f"{probe4} should be blocked again after Resume, got {addr}: {out}")
+    print("ok: pause and resume work")
+
     # 5. Stop from the app
     b = button(nodes, "Stop")
     if not b:

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!--
+  Guardian stores no query history on disk: the only thing in SharedPreferences is the user's
+  allow-list ("user_rules"), which is device-local policy and should not leave the phone. That
+  said, allowBackup is already false in the manifest, so cloud-backup and device-transfer are
+  already disabled at the OS level. This file exists so that targeting API 31+ does not trip the
+  DataExtractionRules lint warning; it excludes every domain from both cloud-backup and
+  device-transfer, making the intent explicit and robust if allowBackup is ever toggled on later.
+
+  Domains listed here cover both credential-protected (normal) and device-protected storage.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+        <exclude domain="device_root" path="." />
+        <exclude domain="device_file" path="." />
+        <exclude domain="device_database" path="." />
+        <exclude domain="device_sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>

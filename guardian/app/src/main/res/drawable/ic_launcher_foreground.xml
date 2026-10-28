@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!--
+  Shield + check, derived from the website favicon (favicon.svg). The source shield/check paths
+  are authored in a 24x24 coordinate space; here they are placed inside the 108dp adaptive-icon
+  canvas (safe zone is the central 66dp, i.e. 21..87). Scale 2.5 with a 24/24 translate puts the
+  24x24 shield roughly in 29..79 / 26..84, comfortably inside the safe zone.
+
+  The stroke widths are scaled by 2.5, so the 2dp source stroke becomes 5dp; the icon renders at
+  ~48dp in the launcher, i.e. ~2.2dp visual stroke, matching the favicon proportions.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="24"
+        android:translateY="24"
+        android:scaleX="2.5"
+        android:scaleY="2.5">
+        <path
+            android:pathData="M20,13c0,5 -3.5,7.5 -7.66,8.95a1,1 0,0 1,-0.67,-0.01C7.5,20.5 4,18 4,13V6a1,1 0,0 1,1,-1c2,0 4.5,-1.2 6.24,-2.72a1.17,1.17 0,0 1,1.52,0C14.51,3.81 17,5 19,5a1,1 0,0 1,1,1z"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="#00000000" />
+        <path
+            android:pathData="M9,12 l2,2 l4,-4"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="#00000000" />
+    </group>
+</vector>

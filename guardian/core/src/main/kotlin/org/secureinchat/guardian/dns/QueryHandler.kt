@@ -31,7 +31,8 @@ data class LogEntry(
     val name: String,
     val qtype: Int,
     val blocked: Boolean,
-    val uid: Int = -1
+    val uid: Int = -1,
+    val paused: Boolean = false
 )
 
 sealed interface Action {
@@ -49,11 +50,30 @@ class QueryHandler(
     val stats = Stats()
     val tally = AppTally()
 
+    // Pause is set from the service thread and read from every forwarding thread; @Volatile keeps the
+    // read/write visible without a lock. The absolute timestamp makes "until" survive clock reads
+    // (the field is not a countdown).
+    @Volatile var pausedUntilMs: Long = 0
+
     private val logCapacity = 200
     private val logEntries = arrayOfNulls<LogEntry>(logCapacity)
     private var logWritePos = 0
     private var logCount = 0
     private val logLock = Any()
+
+    fun pause(durationMs: Long) {
+        if (durationMs <= 0L) {
+            resume()
+            return
+        }
+        pausedUntilMs = clock() + durationMs
+    }
+
+    fun resume() {
+        pausedUntilMs = 0L
+    }
+
+    fun isPaused(): Boolean = clock() < pausedUntilMs
 
     fun handle(packet: ByteArray, length: Int): Action {
         stats.queries.incrementAndGet()
@@ -63,17 +83,28 @@ class QueryHandler(
             return Action.Drop
         }
         val uid = try { uidOf(q) } catch (_: Throwable) { -1 }
-        val blocked = blocklist.isBlocked(q.qname)
-        tally.record(uid, q.qname, blocked)
-        if (blocked) {
+        val hitBlocklist = blocklist.isBlocked(q.qname)
+        val paused = isPaused()
+        if (paused) {
+            // Paused: every well-formed query is forwarded. A query that would have been blocked is
+            // left out of the tally entirely (its "blocked" bookkeeping would otherwise keep rising
+            // while blocking is suspended); ordinary allowed queries still count toward queries.
+            if (!hitBlocklist) tally.record(uid, q.qname, false)
+            stats.forwarded.incrementAndGet()
+            val payload = DnsWire.extractQueryPayload(packet, q)
+            appendLog(q.qname, q.qtype, blocked = false, uid = uid, paused = true)
+            return Action.Forward(q, payload)
+        }
+        tally.record(uid, q.qname, hitBlocklist)
+        if (hitBlocklist) {
             stats.blocked.incrementAndGet()
             val resp = DnsPacket.buildBlockedResponse(q, mode)
-            appendLog(q.qname, q.qtype, true, uid)
+            appendLog(q.qname, q.qtype, blocked = true, uid = uid, paused = false)
             return Action.Respond(resp, q.qname)
         }
         stats.forwarded.incrementAndGet()
         val payload = DnsWire.extractQueryPayload(packet, q)
-        appendLog(q.qname, q.qtype, false, uid)
+        appendLog(q.qname, q.qtype, blocked = false, uid = uid, paused = false)
         return Action.Forward(q, payload)
     }
 
@@ -113,8 +144,8 @@ class QueryHandler(
         tally.clear()
     }
 
-    private fun appendLog(name: String, qtype: Int, blocked: Boolean, uid: Int) {
-        val entry = LogEntry(clock(), name, qtype, blocked, uid)
+    private fun appendLog(name: String, qtype: Int, blocked: Boolean, uid: Int, paused: Boolean) {
+        val entry = LogEntry(clock(), name, qtype, blocked, uid, paused)
         synchronized(logLock) {
             logEntries[logWritePos] = entry
             logWritePos = (logWritePos + 1) % logCapacity

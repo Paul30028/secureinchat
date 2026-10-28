@@ -28,11 +28,16 @@ class GuardianTileService : TileService() {
         val tile = qsTile ?: return
         val running = GuardianVpnService.isRunning
         val loading = GuardianVpnService.isLoading
+        // Paused is a sub-state of "running": the VPN session stays up and the tile remains ACTIVE,
+        // only the label changes. activeHandler is set while running, so this read is a plain null
+        // check; isPaused() is clock-based and safe to call from the main thread.
+        val paused = running && (GuardianVpnService.activeHandler?.isPaused() ?: false)
         tile.state = if (running) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
         tile.label = "Guardian"
         if (Build.VERSION.SDK_INT >= 29) {
             tile.subtitle = when {
                 loading -> txt("Starting…", "正在启动…")
+                paused -> txt("Paused", "已暂停")
                 running -> txt("On", "已开启")
                 else -> txt("Off", "已关闭")
             }

@@ -10,9 +10,14 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelFileDescriptor
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import org.secureinchat.guardian.dns.Action
@@ -32,12 +37,48 @@ class GuardianVpnService : VpnService() {
     private var handler: QueryHandler? = null
     private var upstream: Upstream? = null
 
+    // Pause expires on its own (QueryHandler.isPaused() returns false once the absolute timestamp
+    // passes), so the notification needs a one-shot timer that rewrites it back to "DNS filtering
+    // active" when the pause ends. Posted on the main looper; cancelled on resume or stop.
+    private val mainHandler = Handler(Looper.getMainLooper())
+    @Volatile private var notifRefresh: Runnable? = null
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
                 stopVpnInternal()
                 stopSelf()
                 return START_NOT_STICKY
+            }
+            ACTION_PAUSE -> {
+                val h = handler
+                if (h != null) {
+                    h.pause(PAUSE_DURATION_MS)
+                    updateNotification()
+                    scheduleNotifRefresh(PAUSE_DURATION_MS)
+                    try {
+                        android.service.quicksettings.TileService.requestListeningState(
+                            applicationContext,
+                            android.content.ComponentName(applicationContext, GuardianTileService::class.java)
+                        )
+                    } catch (_: Throwable) {}
+                }
+                return START_STICKY
+            }
+            ACTION_RESUME -> {
+                val h = handler
+                if (h != null) {
+                    h.resume()
+                    updateNotification()
+                    cancelNotifRefresh()
+                    try {
+                        android.service.quicksettings.TileService.requestListeningState(
+                            applicationContext,
+                            android.content.ComponentName(applicationContext, GuardianTileService::class.java)
+                        )
+                    } catch (_: Throwable) {}
+                }
+                return START_STICKY
             }
             else -> {
                 if (!running && !isLoading) {
@@ -155,7 +196,7 @@ class GuardianVpnService : VpnService() {
         super.onDestroy()
     }
 
-    private fun startForegroundSafe() {
+    private fun buildNotification(): Notification {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (nm.getNotificationChannel(CHANNEL_ID) == null) {
             nm.createNotificationChannel(
@@ -163,17 +204,56 @@ class GuardianVpnService : VpnService() {
             )
         }
         val stopIntent = Intent(this, GuardianVpnService::class.java).setAction(ACTION_STOP)
-        val pi = PendingIntent.getService(
+        val stopPi = PendingIntent.getService(
             this, 1, stopIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notif: Notification = Notification.Builder(this, CHANNEL_ID)
+        val builder = Notification.Builder(this, CHANNEL_ID)
             .setContentTitle("Guardian")
-            .setContentText("DNS filtering active")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
-            .addAction(0, "Stop", pi)
             .setOngoing(true)
-            .build()
+        val h = handler
+        if (h != null && h.isPaused()) {
+            val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val until = fmt.format(Date(h.pausedUntilMs))
+            builder.setContentText("Paused until $until")
+            val resumeIntent = Intent(this, GuardianVpnService::class.java).setAction(ACTION_RESUME)
+            val resumePi = PendingIntent.getService(
+                this, 2, resumeIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(0, "Resume", resumePi)
+        } else {
+            builder.setContentText("DNS filtering active")
+        }
+        builder.addAction(0, "Stop", stopPi)
+        return builder.build()
+    }
+
+    private fun updateNotification() {
+        try {
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(NOTIF_ID, buildNotification())
+        } catch (_: Throwable) {}
+    }
+
+    private fun scheduleNotifRefresh(delayMs: Long) {
+        cancelNotifRefresh()
+        val r = Runnable {
+            notifRefresh = null
+            updateNotification()
+        }
+        notifRefresh = r
+        mainHandler.postDelayed(r, delayMs)
+    }
+
+    private fun cancelNotifRefresh() {
+        notifRefresh?.let { mainHandler.removeCallbacks(it) }
+        notifRefresh = null
+    }
+
+    private fun startForegroundSafe() {
+        val notif = buildNotification()
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
         } else if (Build.VERSION.SDK_INT >= 29) {
@@ -225,6 +305,7 @@ class GuardianVpnService : VpnService() {
     }
 
     private fun stopVpnInternal() {
+        cancelNotifRefresh()
         startGeneration++
         running = false
         isRunning = false
@@ -256,6 +337,9 @@ class GuardianVpnService : VpnService() {
     companion object {
         const val ACTION_START = "org.secureinchat.guardian.action.START"
         const val ACTION_STOP = "org.secureinchat.guardian.action.STOP"
+        const val ACTION_PAUSE = "org.secureinchat.guardian.action.PAUSE"
+        const val ACTION_RESUME = "org.secureinchat.guardian.action.RESUME"
+        const val PAUSE_DURATION_MS = 5 * 60 * 1000L
         private const val CHANNEL_ID = "guardian_vpn"
         private const val NOTIF_ID = 1
         private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")

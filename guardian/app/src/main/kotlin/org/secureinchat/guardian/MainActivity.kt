@@ -39,6 +39,7 @@ class MainActivity : Activity() {
     private lateinit var logView: TextView
     private lateinit var hintView: TextView
     private lateinit var toggleBtn: Button
+    private lateinit var pauseBtn: Button
     private lateinit var appListContainer: LinearLayout
     private lateinit var allowedListContainer: LinearLayout
 
@@ -119,6 +120,15 @@ class MainActivity : Activity() {
         toggleBtn = Button(this).apply { setOnClickListener { onToggleClicked() } }
         root.addView(toggleBtn)
 
+        // Only shown when the VPN is actually running; MainActivity is where users go to pause for a
+        // few minutes without stopping the whole session. The notification and the tile also expose
+        // the Resume side of the state.
+        pauseBtn = Button(this).apply {
+            visibility = View.GONE
+            setOnClickListener { onPauseResumeClicked() }
+        }
+        root.addView(pauseBtn)
+
         statsView = TextView(this).apply {
             textSize = 14f
             typeface = Typeface.MONOSPACE
@@ -195,6 +205,15 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun onPauseResumeClicked() {
+        val h = GuardianVpnService.activeHandler ?: return
+        val action = if (h.isPaused()) GuardianVpnService.ACTION_RESUME else GuardianVpnService.ACTION_PAUSE
+        val i = Intent(this, GuardianVpnService::class.java).setAction(action)
+        startService(i)
+        // The service handles the action asynchronously; refresh soon so the button/status catch up.
+        uiHandler.postDelayed({ refreshUi() }, 200)
+    }
+
     @Deprecated("Deprecated in Activity, unavoidable without AndroidX")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
@@ -212,15 +231,33 @@ class MainActivity : Activity() {
     private fun refreshUi() {
         val loading = GuardianVpnService.isLoading
         val running = GuardianVpnService.isRunning
+        val h = GuardianVpnService.activeHandler
+        val paused = running && h != null && h.isPaused()
+
         setIfChanged(statusView, when {
             loading -> txt("Loading list…", "正在加载名单…")
+            paused -> {
+                val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+                val until = fmt.format(Date(h!!.pausedUntilMs))
+                txt("Status: Paused until $until", "状态：已暂停至 $until")
+            }
             running -> txt("Status: Running", "状态：运行中")
             else -> txt("Status: Stopped", "状态：已停止")
         })
+
         toggleBtn.isEnabled = !loading
         setIfChanged(toggleBtn, if (running) txt("Stop", "停止") else txt("Start", "启动"))
 
-        val h = GuardianVpnService.activeHandler
+        if (running && !loading) {
+            if (pauseBtn.visibility != View.VISIBLE) pauseBtn.visibility = View.VISIBLE
+            setIfChanged(
+                pauseBtn,
+                if (paused) txt("Resume", "恢复") else txt("Pause 5 min", "暂停 5 分钟")
+            )
+        } else if (pauseBtn.visibility != View.GONE) {
+            pauseBtn.visibility = View.GONE
+        }
+
         if (h == null) {
             setIfChanged(statsView, "")
             setIfChanged(rulesView, "")
@@ -259,16 +296,25 @@ class MainActivity : Activity() {
     private fun renderLog(entries: List<LogEntry>) {
         val sb = SpannableStringBuilder()
         val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        // Last 10 only: a glance at what is happening; the per-app view below is what people act on.
+        // Last 10 only: a glance at what is happening; the per-domain view below is what people act on.
         for (e in entries.take(10)) {
             val start = sb.length
-            val tag = if (e.blocked) txt("BLOCK", "拦截") else txt("ALLOW", "放行")
+            val tag = when {
+                e.blocked -> txt("BLOCK", "拦截")
+                e.paused -> txt("PAUSE", "暂停")
+                else -> txt("ALLOW", "放行")
+            }
             sb.append(fmt.format(Date(e.timeMs)))
                 .append(' ').append(tag).append(' ')
                 .append(e.name).append(" (type ").append(e.qtype.toString()).append(")\n")
             if (e.blocked) {
                 sb.setSpan(
                     ForegroundColorSpan(0xFFFF4444.toInt()),
+                    start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            } else if (e.paused) {
+                sb.setSpan(
+                    ForegroundColorSpan(0xFFFFA500.toInt()),
                     start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
                 )
             }
