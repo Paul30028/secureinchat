@@ -130,6 +130,23 @@ for _f in _glob.glob(os.path.join(ROOT, '**', '*.html'), recursive=True):
         if not (os.path.isfile(_p) or os.path.isfile(os.path.join(_p, 'index.html'))): _bad.add(f'{_h} (in {os.path.relpath(_f, ROOT)})')
 check(not _bad, f'internal links resolve: {sorted(_bad)[:8]}')
 
+# W13: Chinese pages link to the Chinese tools index and to a tool's Chinese page whenever one exists.
+# Only the language switch (lang/hreflang="en") may point at the English version.
+_zh_tools = {os.path.basename(os.path.dirname(p)) for p in _glob.glob(os.path.join(ROOT, 'zh', 'tools', '*', 'index.html'))}
+_zh_bad = []
+for _f in _glob.glob(os.path.join(ROOT, 'zh', '**', '*.html'), recursive=True):
+    for _a in _re.findall(r'<a\b[^>]*>', open(_f, encoding='utf-8').read()):
+        if _re.search(r'\b(?:lang|hreflang)="en"', _a): continue
+        _m = _re.search(r'href="/tools/([a-z0-9-]*)/?"', _a)
+        if _m and (_m.group(1) == '' or _m.group(1) in _zh_tools): _zh_bad.append(f'{os.path.relpath(_f, ROOT)}: /tools/{_m.group(1)}')
+check(len(_zh_tools) >= 7 and not _zh_bad, f'zh pages use Chinese tool pages ({len(_zh_tools)} zh tools): {_zh_bad[:8]}')
+_zc = open(os.path.join(ROOT, 'zh', 'checkup', 'index.html'), encoding='utf-8').read()
+_zc_cards = _re.findall(r'class="button button--primary checkup-card-action" href="([^"]+)"', _zc)
+check(_zc_cards == ['/zh/tools/link-checker/', '/zh/tools/phone-checkup/', '/zh/tools/account-checkup/'], f'/zh/checkup/ cards link Chinese tools {_zc_cards}')
+_zh_home = open(os.path.join(ROOT, 'zh', 'index.html'), encoding='utf-8').read()
+check(_re.findall(r'class="tool-action" href="([^"]+)"', _zh_home) == ['/zh/tools/account-checkup/', '/zh/tools/photo-metadata-remover/', '/zh/tools/text-redactor/', '/zh/tools/link-checker/'], '/zh/ tool cards link Chinese tools')
+check('11 个工具' not in _zh_home, '/zh/ no stale tool count')
+
 # Heading order (WCAG 1.3.1): no built page may skip a level going down (h1 -> h3 breaks screen-reader outlines).
 _skips = []
 for _f in _glob.glob(os.path.join(ROOT, '**', '*.html'), recursive=True):
