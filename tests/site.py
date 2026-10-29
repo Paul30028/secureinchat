@@ -146,6 +146,10 @@ check(_zc_cards == ['/zh/tools/link-checker/', '/zh/tools/phone-checkup/', '/zh/
 _zh_home = open(os.path.join(ROOT, 'zh', 'index.html'), encoding='utf-8').read()
 check(_re.findall(r'class="tool-action" href="([^"]+)"', _zh_home) == ['/zh/tools/account-checkup/', '/zh/tools/photo-metadata-remover/', '/zh/tools/text-redactor/', '/zh/tools/link-checker/'], '/zh/ tool cards link Chinese tools')
 check('11 个工具' not in _zh_home, '/zh/ no stale tool count')
+_en_home = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
+_en_index_n = open(os.path.join(ROOT, 'tools', 'index.html'), encoding='utf-8').read().count('class="tool-catalogue-item"')
+_en_counts = [int(x) for x in _re.findall(r'View all (\d+) tools', _en_home)]
+check(_en_index_n >= 10 and all(n == _en_index_n for n in _en_counts), f'/ "View all N tools" matches /tools/ index ({_en_counts} vs {_en_index_n})')
 
 # Heading order (WCAG 1.3.1): no built page may skip a level going down (h1 -> h3 breaks screen-reader outlines).
 _skips = []
