@@ -92,6 +92,8 @@ with sync_playwright() as p:
         ok(pg.locator('#summary').inner_text().strip() == '这是一个脚本链接（javascript:），不是网页。不要打开它。', tag + 'script link error')
         pg.fill('#lk-in', 'ftp://example.com/file'); pg.wait_for_timeout(100)
         ok(pg.locator('#summary').inner_text().strip().startswith('这是一个 ftp 链接，不是网页。'), tag + 'scheme error')
+        pg.fill('#lk-in', 'mailto:paypal@evil.example'); pg.wait_for_timeout(100)
+        ok(pg.locator('#summary').inner_text().strip().startswith('这是一个 mailto 链接，不是网页。'), tag + 'mailto scheme error (W14)')
         pg.fill('#lk-in', 'https://www.wikipedia.org/'); pg.wait_for_timeout(100)
         ok(pg.locator('#summary').inner_text().strip().startswith('没有发现危险迹象。这不能证明链接安全'), tag + 'clean summary')
         ok(pg.get_attribute('#summary', 'data-tone') == 'ok', tag + 'tone ok')
