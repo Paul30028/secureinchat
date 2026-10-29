@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>链接检查器：在本机去掉追踪参数、识别钓鱼迹象</title>
+<meta name="description" content="粘贴一个链接，去掉追踪参数，并查看钓鱼链接的迹象：冒充的网站名、藏起来的目标网址、出现在别人网站上的品牌名。在浏览器里运行，链接不会被打开或发送。">
+<link rel="canonical" href="https://secureinchat.com/zh/tools/link-checker/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="链接检查器：在本机去掉追踪参数、识别钓鱼迹象">
+<meta property="og:description" content="粘贴一个链接，去掉追踪参数，并查看钓鱼链接的迹象：冒充的网站名、藏起来的目标网址、出现在别人网站上的品牌名。在浏览器里运行，链接不会被打开或发送。">
+<meta property="og:url" content="https://secureinchat.com/zh/tools/link-checker/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "链接检查器",
+      "url": "https://secureinchat.com/zh/tools/link-checker/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "需要 JavaScript。",
+      "description": "粘贴一个链接，去掉追踪参数，并查看钓鱼链接的迹象：冒充的网站名、藏起来的目标网址、出现在别人网站上的品牌名。在浏览器里运行，链接不会被打开或发送。",
+      "inLanguage": "zh-CN",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-29"
+    },
+    {
+      "@type": "FAQPage",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "链接会被打开或发送到别处吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。检查在这个页面里进行。链接不会被打开、抓取，也不会发给我们或任何信誉查询服务，什么都不保存。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "“没有发现危险迹象”就说明链接安全吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不是。这些是针对常见套路的本地检查。一个用普通名字新建的钓鱼网站也能通过。请核对网站名是否正是你预期的那个；拿不准时，不要点链接，而是从你自己的书签或应用打开那项服务。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "去掉追踪参数会让链接失效吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "通常不会。工具只去掉已知用于追踪的参数，比如 utm_source 或 fbclid。如果网页打不开了，就用原来的链接。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么不拿链接去钓鱼网站数据库里查？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "数据库查询会把你的链接发给第三方，而链接里可能带有个人令牌。以后我们可能把它做成一个需要你手动打开的选项，并在页面上写明是哪家服务。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">链接检查器</h1>
+    <p class="lede">在点开消息或邮件里的链接之前：先去掉追踪参数，再看看有没有钓鱼的迹象。链接不会被打开，也不会被发送到任何地方。</p>
+    <div class="rd-grid">
+      <div><label for="lk-in">要检查的链接</label><textarea id="lk-in" class="rd-text lk-text" spellcheck="false" autocomplete="off" placeholder="粘贴一个链接，例如 https://example.com/offer?utm_source=email"></textarea></div>
+      <div><label for="lk-out">干净链接（已去掉追踪参数）</label><textarea id="lk-out" class="rd-text lk-text" readonly spellcheck="false"></textarea></div>
+    </div>
+    <p class="lk-site">这个链接实际打开的网站：<strong id="lk-site">—</strong></p>
+    <div class="rd-actions"><button id="lk-copy" class="btn" type="button" disabled>复制干净链接</button><button id="lk-clear" class="btn btn--quiet" type="button">清除</button></div>
+    <p class="hint">只在你的浏览器里检查。没有危险迹象不等于安全：请核对上面的网站名是否正是你预期的那个。参见<a href="/principles/">每个工具发送什么</a>（英文）。</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">结果</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">粘贴一个链接来检查。</p>
+    </div>
+    <table class="results">
+      <caption class="sr">链接里发现的危险迹象</caption>
+      <thead><tr><th scope="col">检查项</th><th scope="col">结果</th><th scope="col">状态</th></tr></thead>
+      <tbody id="rows">
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">检查什么</h2>
+    <p>utm_source、fbclid、gclid 这类追踪参数；@ 前面用来遮住真实网站的文字；直接用 IP 地址的链接；冒充熟悉名字的其他文字字符（会显示解码后的样子）；未加密的 http；不常见的端口；藏住目标网址的短链接；出现在别人网站上的知名品牌名；一长串子域名；以及藏在链接里的第二个网址。</p>
+    <h2>不做什么</h2>
+    <p>它不打开链接，不拿链接去钓鱼数据库里查，也不检查网页内容。一个名字看起来很普通的新骗局网站不会显示任何危险迹象。品牌检查只覆盖一份常被冒充的公司短名单，而且只匹配完整的词。最稳妥的习惯不变：凡是涉及登录或付款的，都从你自己的书签或应用打开那项服务，而不是点链接。</p>
+    <h2>你的链接如何处理</h2>
+    <p>链接只在这个页面里处理。不会发给我们或任何人，页面也不加载统计脚本。相关工具：<a href="/zh/tools/text-redactor/">分享前给文字脱敏</a>、<a href="/zh/tools/account-checkup/">账号安全自查</a>。</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">常见问题</h2>
+    <h3>链接会被打开或发送到别处吗？</h3>
+    <p>不会。检查在这个页面里进行。链接不会被打开、抓取，也不会发给我们或任何信誉查询服务，什么都不保存。</p>
+    <h3>“没有发现危险迹象”就说明链接安全吗？</h3>
+    <p>不是。这些是针对常见套路的本地检查。一个用普通名字新建的钓鱼网站也能通过。请核对网站名是否正是你预期的那个；拿不准时，不要点链接，而是从你自己的书签或应用打开那项服务。</p>
+    <h3>去掉追踪参数会让链接失效吗？</h3>
+    <p>通常不会。工具只去掉已知用于追踪的参数，比如 utm_source 或 fbclid。如果网页打不开了，就用原来的链接。</p>
+    <h3>为什么不拿链接去钓鱼网站数据库里查？</h3>
+    <p>数据库查询会把你的链接发给第三方，而链接里可能带有个人令牌。以后我们可能把它做成一个需要你手动打开的选项，并在页面上写明是哪家服务。</p>
+  </section>
+</main>
+<script src="/tools/assets/link.js" defer></script>
+<script src="/tools/assets/link-app.js" defer></script>
+</body>
+</html>

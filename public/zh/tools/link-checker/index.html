@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>链接检查器：在本机去掉追踪参数、识别钓鱼迹象</title>
+  <meta content="粘贴一个链接，去掉追踪参数，并查看钓鱼链接的迹象：冒充的网站名、藏起来的目标网址、出现在别人网站上的品牌名。在浏览器里运行，链接不会被打开或发送。" name="description"/>
+  <link href="https://secureinchat.com/zh/tools/link-checker/" rel="canonical"/>
+  <link href="https://secureinchat.com/tools/link-checker/" hreflang="en" rel="alternate"/>
+  <link href="https://secureinchat.com/zh/tools/link-checker/" hreflang="zh-CN" rel="alternate"/>
+  <link href="https://secureinchat.com/tools/link-checker/" hreflang="x-default" rel="alternate"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "链接检查器",
+      "url": "https://secureinchat.com/zh/tools/link-checker/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "需要 JavaScript。",
+      "description": "粘贴一个链接，去掉追踪参数，并查看钓鱼链接的迹象：冒充的网站名、藏起来的目标网址、出现在别人网站上的品牌名。在浏览器里运行，链接不会被打开或发送。",
+      "inLanguage": "zh-CN",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-29"
+    },
+    {
+      "@type": "FAQPage",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "链接会被打开或发送到别处吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。检查在这个页面里进行。链接不会被打开、抓取，也不会发给我们或任何信誉查询服务，什么都不保存。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "“没有发现危险迹象”就说明链接安全吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不是。这些是针对常见套路的本地检查。一个用普通名字新建的钓鱼网站也能通过。请核对网站名是否正是你预期的那个；拿不准时，不要点链接，而是从你自己的书签或应用打开那项服务。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "去掉追踪参数会让链接失效吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "通常不会。工具只去掉已知用于追踪的参数，比如 utm_source 或 fbclid。如果网页打不开了，就用原来的链接。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么不拿链接去钓鱼网站数据库里查？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "数据库查询会把你的链接发给第三方，而链接里可能带有个人令牌。以后我们可能把它做成一个需要你手动打开的选项，并在页面上写明是哪家服务。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat 首页" class="brand" href="/zh/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       更实用的工具，更私密的互联网
+      </span>
+     </span>
+    </a>
+    <nav aria-label="主导航" class="desktop-navigation">
+     <a href="/zh/tools/">
+      隐私工具
+     </a>
+     <a href="/blog/">
+      使用指南
+     </a>
+     <a href="/zh/checkup/">
+      隐私体检
+     </a>
+     <a href="/messaging/">
+      加密通信
+     </a>
+     <a href="/mission/">
+      我们的使命
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/tools/" lang="en">
+      EN
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/zh/checkup/">
+      开始体检
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="打开导航菜单">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="移动端导航">
+      <a href="/zh/tools/">
+       隐私工具
+      </a>
+      <a href="/blog/">
+       使用指南
+      </a>
+      <a href="/zh/checkup/">
+       隐私体检
+      </a>
+      <a href="/messaging/">
+       加密通信
+      </a>
+      <a href="/mission/">
+       我们的使命
+      </a>
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑" class="breadcrumbs">
+      <a href="/zh/">首页</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/zh/tools/">工具</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">链接检查器</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <span class="tool-detail-emblem"><svg aria-hidden="true" class="tool-detail-emblem-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M13 19 9.5 22.5a6 6 0 0 1-8.5-8.5l5.5-5.5a6 6 0 0 1 8.5 0M19 13l3.5-3.5a6 6 0 0 1 8.5 8.5l-5.5 5.5a6 6 0 0 1-8.5 0M11 21l10-10">
+           </path>
+          </svg></span>
+      <div>
+       <h1 id="h1">链接检查器</h1>
+       <p class="page-lead">在点开消息或邮件里的链接之前：先去掉追踪参数，再看看有没有钓鱼的迹象。链接不会被打开，也不会被发送到任何地方。</p>
+       <ul class="state-list"><li><span class="state-label">本地处理</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+      <section class="tool-workspace" aria-label="链接检查器">
+       <div class="legacy-tool">
+
+    <div class="rd-grid">
+      <div><label for="lk-in">要检查的链接</label><textarea id="lk-in" class="rd-text lk-text" spellcheck="false" autocomplete="off" placeholder="粘贴一个链接，例如 https://example.com/offer?utm_source=email"></textarea></div>
+      <div><label for="lk-out">干净链接（已去掉追踪参数）</label><textarea id="lk-out" class="rd-text lk-text" readonly spellcheck="false"></textarea></div>
+    </div>
+    <p class="lk-site">这个链接实际打开的网站：<strong id="lk-site">—</strong></p>
+    <div class="rd-actions"><button id="lk-copy" class="btn" type="button" disabled>复制干净链接</button><button id="lk-clear" class="btn btn--quiet" type="button">清除</button></div>
+    <p class="hint">只在你的浏览器里检查。没有危险迹象不等于安全：请核对上面的网站名是否正是你预期的那个。参见<a href="/principles/">每个工具发送什么</a>（英文）。</p>
+
+       </div>
+       <div class="legacy-tool"><section id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">结果</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">粘贴一个链接来检查。</p>
+    </div>
+    <table class="results">
+      <caption class="sr">链接里发现的危险迹象</caption>
+      <thead><tr><th scope="col">检查项</th><th scope="col">结果</th><th scope="col">状态</th></tr></thead>
+      <tbody id="rows">
+      </tbody>
+    </table>
+</section></div>
+      </section>
+      <div class="info-content tool-prose">
+<section aria-labelledby="what-h">
+    <h2 id="what-h">检查什么</h2>
+    <p>utm_source、fbclid、gclid 这类追踪参数；@ 前面用来遮住真实网站的文字；直接用 IP 地址的链接；冒充熟悉名字的其他文字字符（会显示解码后的样子）；未加密的 http；不常见的端口；藏住目标网址的短链接；出现在别人网站上的知名品牌名；一长串子域名；以及藏在链接里的第二个网址。</p>
+    <h2>不做什么</h2>
+    <p>它不打开链接，不拿链接去钓鱼数据库里查，也不检查网页内容。一个名字看起来很普通的新骗局网站不会显示任何危险迹象。品牌检查只覆盖一份常被冒充的公司短名单，而且只匹配完整的词。最稳妥的习惯不变：凡是涉及登录或付款的，都从你自己的书签或应用打开那项服务，而不是点链接。</p>
+    <h2>你的链接如何处理</h2>
+    <p>链接只在这个页面里处理。不会发给我们或任何人，页面也不加载统计脚本。相关工具：<a href="/zh/tools/text-redactor/">分享前给文字脱敏</a>、<a href="/zh/tools/account-checkup/">账号安全自查</a>。</p>
+</section>
+<section aria-labelledby="faq-h">
+    <h2 id="faq-h">常见问题</h2>
+    <h3>链接会被打开或发送到别处吗？</h3>
+    <p>不会。检查在这个页面里进行。链接不会被打开、抓取，也不会发给我们或任何信誉查询服务，什么都不保存。</p>
+    <h3>“没有发现危险迹象”就说明链接安全吗？</h3>
+    <p>不是。这些是针对常见套路的本地检查。一个用普通名字新建的钓鱼网站也能通过。请核对网站名是否正是你预期的那个；拿不准时，不要点链接，而是从你自己的书签或应用打开那项服务。</p>
+    <h3>去掉追踪参数会让链接失效吗？</h3>
+    <p>通常不会。工具只去掉已知用于追踪的参数，比如 utm_source 或 fbclid。如果网页打不开了，就用原来的链接。</p>
+    <h3>为什么不拿链接去钓鱼网站数据库里查？</h3>
+    <p>数据库查询会把你的链接发给第三方，而链接里可能带有个人令牌。以后我们可能把它做成一个需要你手动打开的选项，并在页面上写明是哪家服务。</p>
+</section>
+      </div>
+     </div>
+     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>你的数据如何处理</h2>
+       <div class="data-handling">
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>留在你的设备上</strong><p>你粘贴的链接，它不会被打开</p></div></div>
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>发送给他人</strong><p>无</p></div></div>
+       </div>
+       <p class="state-list"><span class="state-label">本地处理</span></p>
+       <a class="text-link" href="/principles/">查看每个工具的数据流 <span aria-hidden="true">→</span></a>
+      </section>
+      <figure class="editorial-figure"><img alt="一个网址被拆成网站名、路径和可能用于追踪的查询参数" height="340" src="/assets/illustrations/url-anatomy.svg" width="760"/></figure>
+      <section class="content-panel content-panel--soft">
+       <h2>需要别的检查？</h2>
+       <p>按用途和数据需要比较这些工具。</p>
+       <a class="text-link" href="/zh/tools/">浏览所有工具 <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat 首页" class="brand brand--footer" href="/zh/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        更实用的工具，更私密的互联网
+       </span>
+      </span>
+     </a>
+     <nav aria-label="页脚导航" class="footer-links">
+      <a href="/mission/">
+       使命
+      </a>
+      <a href="/principles/">
+       原则
+      </a>
+      <a href="/privacy/">
+       隐私
+      </a>
+      <a href="/principles/#labels">
+       状态标签
+      </a>
+      <a href="/sponsor/">
+       赞助与联盟披露
+      </a>
+      <a href="/contact/">
+       联系
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat。保留所有权利。
+     </p>
+     <p>
+      重视隐私，明确说明局限。
+     </p>
+    </div>
+   </div>
+  </footer>
+  <script src="/tools/assets/link.js" defer></script>
+  <script src="/tools/assets/link-app.js" defer></script>
+ </body>
+</html>

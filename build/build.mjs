@@ -760,7 +760,7 @@ write('blog/index.html', blogIndex());
 // Chinese tools index: ChatGPT's tools-index.zh template. Translated tools link to their Chinese pages;
 // the rest still link to the English page and say so on the button.
 {
-  const ZH_TOOLS = { '/tools/phone-checkup/': '/zh/tools/phone-checkup/', '/tools/photo-metadata-remover/': '/zh/tools/photo-metadata-remover/', '/tools/text-redactor/': '/zh/tools/text-redactor/', '/tools/file-metadata-remover/': '/zh/tools/file-metadata-remover/', '/tools/password-checker/': '/zh/tools/password-checker/', '/tools/account-checkup/': '/zh/tools/account-checkup/' };
+  const ZH_TOOLS = { '/tools/phone-checkup/': '/zh/tools/phone-checkup/', '/tools/photo-metadata-remover/': '/zh/tools/photo-metadata-remover/', '/tools/text-redactor/': '/zh/tools/text-redactor/', '/tools/file-metadata-remover/': '/zh/tools/file-metadata-remover/', '/tools/password-checker/': '/zh/tools/password-checker/', '/tools/account-checkup/': '/zh/tools/account-checkup/', '/tools/link-checker/': '/zh/tools/link-checker/' };
   const title = '隐私工具 | SecureInChat'; const desc = '免费的隐私工具：每项检查做什么、哪些数据留在浏览器里、什么时候会用到外部服务，都写清楚。';
   let m = kitMain('tools-index.zh.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/');
   m = m.replace(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g, (a) => {
@@ -795,7 +795,7 @@ write('blog/index.html', blogIndex());
   for (const [slug, name, label, figure] of TOOLS) {
     const src = fs.readFileSync(path.join(ROOT, 'src/tools', `${slug}.html`), 'utf8');
     if (!FLOW[slug]) throw new Error('no data-flow row for ' + slug);
-    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, ...(['photo-metadata-remover', 'text-redactor', 'file-metadata-remover', 'password-checker', 'account-checkup'].includes(slug) ? { alt: { en: `/tools/${slug}/`, 'zh-CN': `/zh/tools/${slug}/` } } : {}) }));
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, ...(['photo-metadata-remover', 'text-redactor', 'file-metadata-remover', 'password-checker', 'account-checkup', 'link-checker'].includes(slug) ? { alt: { en: `/tools/${slug}/`, 'zh-CN': `/zh/tools/${slug}/` } } : {}) }));
   }
 }
 
@@ -930,6 +930,32 @@ write('blog/index.html', blogIndex());
 }
 
 
+// Chinese link checker (W12). Same markup ids and scripts as the English page; link-app.js swaps the shared
+// link.js labels, statuses and summaries for Chinese when the document language is zh. No partner block,
+// no VPN or IP-test links.
+{
+  let icon = '';
+  for (const a of KIT_T('tools-index.en.html').match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'link-checker') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) icon = svg[0];
+    break;
+  }
+  write('zh/tools/link-checker/index.html', toolPage({
+    slug: 'link-checker',
+    src: fs.readFileSync(path.join(ROOT, 'src/tools/zh/link-checker.html'), 'utf8'),
+    icon,
+    label: ['本地处理', 'state-label'],
+    flow: { stays: '你粘贴的链接，它不会被打开', sent: '无' },
+    figure: { ...FIG.url, alt: '一个网址被拆成网站名、路径和可能用于追踪的查询参数' },
+    crumbName: '链接检查器',
+    lang: 'zh-CN',
+    alt: { en: '/tools/link-checker/', 'zh-CN': '/zh/tools/link-checker/' },
+  }));
+}
+
+
 write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#23483E"/><g transform="translate(6 6) scale(.833)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g></svg>
 `);
 
@@ -982,7 +1008,7 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -1025,6 +1051,10 @@ ${common}
 ${common}
 
 /zh/tools/account-checkup/
+  Content-Security-Policy: ${TOOLS_CSP}
+${common}
+
+/zh/tools/link-checker/
   Content-Security-Policy: ${TOOLS_CSP}
 ${common}
 
