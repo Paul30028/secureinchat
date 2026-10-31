@@ -1,5 +1,7 @@
 # 邀群密聊 Next（secureinchat）
 
+[English](README.en.md)
+
 邀请制、端到端加密群聊的独立重建。参考（只读、不修改）：
 [Paul30028/secure-invite-chat](https://github.com/Paul30028/secure-invite-chat)。
 
