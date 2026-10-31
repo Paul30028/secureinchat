@@ -15,3 +15,4 @@ export * from "./connectionStats";
 export * from "./knownDevices";
 export * from "./mentions";
 export * from "./disappearing";
+export * from "./backup";
