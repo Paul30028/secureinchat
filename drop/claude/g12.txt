@@ -1,0 +1,1592 @@
+任务 G12(Guardian):拦截次数历史——今天和最近 7 天,只存每天的次数。
+
+背景:G11(显示拦截命中的规则)已合并,CI 全绿(API 29/34 模拟器)。feature/guardian 现在包含 G1–G11。你上次给的 MatchTest 和锚点片段都一次通过。
+
+需求:现在「Blocked: N」只是这次运行的计数,VPN 一停就清零。用户想知道「今天拦了多少、这周拦了多少」。
+
+隐私规则(最重要):
+- 只存「日期 → 拦截次数」这一个数字,**不存域名、不存时间点、不存应用**。最多保留 7 天,更早的自动删掉。
+- 新文件 app/.../StatsStore.kt 负责读写(SharedPreferences,文件名 "stats");tests/policy_check.py 目前只允许 UserRulesStore.kt 碰 SharedPreferences,请同时给出 policy_check.py 的修改:把 StatsStore.kt 也加入例外,并加一条检查——StatsStore.kt 里不得出现 "domain"、"qname"、"uid" 这几个词(防止以后有人往里存域名)。
+- data_extraction_rules.xml 已经排除全部备份,不用改。
+
+一、core(纯 Kotlin,可测试)
+1. 新文件 core/.../dns/DailyCounts.kt:
+   - 纯函数,不碰 Android:`fun add(counts: Map<String, Int>, day: String, n: Int, keepDays: Int = 7, today: String = day): Map<String, Int>`,day 格式 "yyyy-MM-dd";返回新 map:加上 n,并删掉早于 today 往前 keepDays-1 天的条目;n<=0 时原样返回;累加溢出时封顶 Int.MAX_VALUE。
+   - `fun total(counts: Map<String, Int>, today: String, days: Int): Long`:今天及往前 days-1 天的总和。
+   - `fun encode(counts): String` / `fun decode(s: String): Map<String, Int>`:简单文本格式 "2026-10-31=12;2026-10-30=5",decode 对坏数据宽容(坏条目跳过,不抛)。
+   - 日期计算用 java.time.LocalDate(core 是 JVM,可用)。
+2. 测试 core/src/test/kotlin/.../DailyCountsTest.kt(main 打印 "DailyCountsTest: N passed"):累加、跨天、超过 7 天被删、n<=0、溢出封顶、total 的边界、encode/decode 往返和坏数据。
+
+二、app
+3. StatsStore.kt:`fun record(ctx, n: Int)`(用设备本地日期)、`fun today(ctx): Long`、`fun last7(ctx): Long`、`fun clear(ctx)`。
+4. 写入时机:不要每次 DNS 查询都写盘。在 GuardianVpnService 里每 60 秒(以及停止 VPN 时)把这段时间新增的拦截数一次性 record。用 QueryHandler 现有的计数做差值,不要改 QueryHandler 的公开行为。暂停期间(G6)没有拦截,自然不计。
+5. MainActivity 的状态区加一行:「Blocked today: N · last 7 days: M」/「今天拦截 N 次 · 最近 7 天 M 次」。未运行时也显示(数据来自存储)。在「Export rules / Import rules」那一行下面加一个「Clear block history / 清除拦截记录」按钮,点了直接清除(不用确认框),这一行数字变成 0。
+6. 不改通知、磁贴、导入导出格式。
+
+三、模拟器测试(你给出建议,我来写进 tests/emulator_flow.py):拦截几次后等 61 秒或停止 VPN,确认「Blocked today」大于 0;点清除后为 0。
+
+规则同前:SPDX 头、不加依赖、不加权限、txt(en, zh)、保留现有注释、长文件(GuardianVpnService.kt、MainActivity.kt)只给「锚点(原文逐字,唯一)→ 替换」片段、不写进度百分比。先给 core 和测试,再给 app。
+
+当前源码(以此为准):
+
+=== guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/QueryHandler.kt ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian.dns
+
+import java.util.concurrent.atomic.AtomicLong
+
+class Stats {
+    val queries = AtomicLong()
+    val blocked = AtomicLong()
+    val forwarded = AtomicLong()
+    val answered = AtomicLong()
+    val failed = AtomicLong()
+    val malformed = AtomicLong()
+
+    fun snapshot(): StatsSnapshot = StatsSnapshot(
+        queries.get(), blocked.get(), forwarded.get(),
+        answered.get(), failed.get(), malformed.get()
+    )
+}
+
+data class StatsSnapshot(
+    val queries: Long,
+    val blocked: Long,
+    val forwarded: Long,
+    val answered: Long,
+    val failed: Long,
+    val malformed: Long
+)
+
+data class LogEntry(
+    val timeMs: Long,
+    val name: String,
+    val qtype: Int,
+    val blocked: Boolean,
+    val uid: Int = -1,
+    val paused: Boolean = false
+)
+
+sealed interface Action {
+    data class Respond(val packet: ByteArray, val name: String) : Action
+    class Forward(val query: DnsQuery, val payload: ByteArray) : Action
+    object Drop : Action
+}
+
+class QueryHandler(
+    @Volatile var blocklist: Blocklist,
+    val mode: BlockMode = BlockMode.NULL_IP,
+    private val uidOf: (DnsQuery) -> Int = { -1 },
+    private val clock: () -> Long = System::currentTimeMillis
+) {
+    val stats = Stats()
+    val tally = AppTally()
+
+    // Pause is set from the service thread and read from every forwarding thread; @Volatile keeps the
+    // read/write visible without a lock. The absolute timestamp makes "until" survive clock reads
+    // (the field is not a countdown).
+    @Volatile var pausedUntilMs: Long = 0
+
+    private val logCapacity = 200
+    private val logEntries = arrayOfNulls<LogEntry>(logCapacity)
+    private var logWritePos = 0
+    private var logCount = 0
+    private val logLock = Any()
+
+    fun pause(durationMs: Long) {
+        if (durationMs <= 0L) {
+            resume()
+            return
+        }
+        pausedUntilMs = clock() + durationMs
+    }
+
+    fun resume() {
+        pausedUntilMs = 0L
+    }
+
+    fun isPaused(): Boolean = clock() < pausedUntilMs
+
+    fun handle(packet: ByteArray, length: Int): Action {
+        stats.queries.incrementAndGet()
+        val q = DnsPacket.parseQuery(packet, length)
+        if (q == null) {
+            stats.malformed.incrementAndGet()
+            return Action.Drop
+        }
+        val uid = try { uidOf(q) } catch (_: Throwable) { -1 }
+        val hitBlocklist = blocklist.isBlocked(q.qname)
+        val paused = isPaused()
+        if (paused) {
+            // Paused: every well-formed query is forwarded. A query that would have been blocked is
+            // left out of the tally entirely (its "blocked" bookkeeping would otherwise keep rising
+            // while blocking is suspended); ordinary allowed queries still count toward queries.
+            if (!hitBlocklist) tally.record(uid, q.qname, false)
+            stats.forwarded.incrementAndGet()
+            val payload = DnsWire.extractQueryPayload(packet, q)
+            appendLog(q.qname, q.qtype, blocked = false, uid = uid, paused = true)
+            return Action.Forward(q, payload)
+        }
+        tally.record(uid, q.qname, hitBlocklist)
+        if (hitBlocklist) {
+            stats.blocked.incrementAndGet()
+            val resp = DnsPacket.buildBlockedResponse(q, mode)
+            appendLog(q.qname, q.qtype, blocked = true, uid = uid, paused = false)
+            return Action.Respond(resp, q.qname)
+        }
+        stats.forwarded.incrementAndGet()
+        val payload = DnsWire.extractQueryPayload(packet, q)
+        appendLog(q.qname, q.qtype, blocked = false, uid = uid, paused = false)
+        return Action.Forward(q, payload)
+    }
+
+    fun onUpstreamAnswer(q: DnsQuery, answer: ByteArray, len: Int): ByteArray? {
+        val resp = DnsPacket.buildResponseFromUpstream(q, answer, len)
+        if (resp != null) {
+            stats.answered.incrementAndGet()
+        } else {
+            stats.failed.incrementAndGet()
+        }
+        return resp
+    }
+
+    fun onUpstreamFailed(q: DnsQuery) {
+        stats.failed.incrementAndGet()
+    }
+
+    fun snapshot(): StatsSnapshot = stats.snapshot()
+
+    fun recent(): List<LogEntry> {
+        synchronized(logLock) {
+            val result = ArrayList<LogEntry>(logCount)
+            for (i in 1..logCount) {
+                val idx = (logWritePos - i + logCapacity) % logCapacity
+                result.add(logEntries[idx]!!)
+            }
+            return result
+        }
+    }
+
+    fun clearLog() {
+        synchronized(logLock) {
+            for (i in logEntries.indices) logEntries[i] = null
+            logWritePos = 0
+            logCount = 0
+        }
+        tally.clear()
+    }
+
+    private fun appendLog(name: String, qtype: Int, blocked: Boolean, uid: Int, paused: Boolean) {
+        val entry = LogEntry(clock(), name, qtype, blocked, uid, paused)
+        synchronized(logLock) {
+            logEntries[logWritePos] = entry
+            logWritePos = (logWritePos + 1) % logCapacity
+            if (logCount < logCapacity) logCount++
+        }
+    }
+}
+
+=== guardian/tests/policy_check.py ===
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Guardian policy checks: no dependencies, no public DNS fallback, no telemetry, expected permissions only.
+# Usage: python3 tests/policy_check.py [path/to/app-debug.apk]
+import os, re, sys, subprocess, glob
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+fail = []
+src = {p: open(p, encoding='utf-8').read() for p in glob.glob(os.path.join(ROOT, '**', '*.kt'), recursive=True) if '/build/' not in p}
+gradle = open(os.path.join(ROOT, 'app', 'build.gradle.kts'), encoding='utf-8').read() if os.path.exists(os.path.join(ROOT, 'app', 'build.gradle.kts')) else ''
+if re.search(r'^\s*(implementation|api|kapt|ksp)\s*\(', gradle, re.M): fail.append('app has library dependencies')
+for p, s in src.items():
+    rel = os.path.relpath(p, ROOT)
+    if '/test/' in rel or rel.startswith('tests/'): continue
+    for bad in ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1', '9.9.9.9', '208.67.222.222', 'dns.google', 'cloudflare-dns']:
+        if bad in s: fail.append(f'{rel}: public resolver {bad}')
+    for bad in ['FileOutputStream(File(', 'openFileOutput', 'SharedPreferences', 'getSharedPreferences', 'HttpURLConnection', 'URL(']:
+        # The user's allowlist is the one thing kept on disk, and only UserRulesStore.kt may touch storage.
+        if bad in ('SharedPreferences', 'getSharedPreferences') and rel.endswith('/UserRulesStore.kt'): continue
+        if bad in s: fail.append(f'{rel}: {bad} (no disk logs, no HTTP)')
+    if not s.startswith('// SPDX-License-Identifier: GPL-3.0-or-later'): fail.append(f'{rel}: missing SPDX header')
+man = os.path.join(ROOT, 'app', 'src', 'main', 'AndroidManifest.xml')
+if os.path.exists(man):
+    m = open(man, encoding='utf-8').read()
+    perms = set(re.findall(r'uses-permission[^>]*android:name="([^"]+)"', m))
+    allowed = {'android.permission.INTERNET', 'android.permission.ACCESS_NETWORK_STATE', 'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED', 'android.permission.POST_NOTIFICATIONS'}
+    if perms - allowed: fail.append(f'unexpected permissions: {sorted(perms - allowed)}')
+    if 'android.permission.BIND_VPN_SERVICE' not in m: fail.append('VPN service not protected by BIND_VPN_SERVICE')
+if len(sys.argv) > 1:
+    aapt = sorted(glob.glob(os.path.join(os.environ.get('ANDROID_HOME', ''), 'build-tools', '*', 'aapt')))
+    if aapt:
+        out = subprocess.run([aapt[-1], 'dump', 'permissions', sys.argv[1]], capture_output=True, text=True).stdout
+        print(out)
+for f in fail: print('FAIL', f)
+print('policy:', 'FAIL' if fail else 'ok')
+sys.exit(1 if fail else 0)
+
+=== guardian/app/src/main/kotlin/org/secureinchat/guardian/UserRulesStore.kt ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian
+
+import android.content.Context
+import org.secureinchat.guardian.dns.Blocklist
+
+object UserRulesStore {
+    private const val PREFS = "user_rules"
+    private const val KEY_ALLOWED = "allowed"
+    private const val KEY_BLOCKED = "blocked"
+
+    fun allowed(ctx: Context): Set<String> = readSet(ctx, KEY_ALLOWED)
+
+    fun blocked(ctx: Context): Set<String> = readSet(ctx, KEY_BLOCKED)
+
+    fun add(ctx: Context, domain: String): Boolean = addTo(ctx, KEY_ALLOWED, domain)
+
+    fun remove(ctx: Context, domain: String) = removeFrom(ctx, KEY_ALLOWED, domain)
+
+    fun addBlocked(ctx: Context, domain: String): Boolean = addTo(ctx, KEY_BLOCKED, domain)
+
+    fun removeBlocked(ctx: Context, domain: String) = removeFrom(ctx, KEY_BLOCKED, domain)
+
+    /**
+     * Replace both lists in one atomic write. Entries are normalized; a domain that appears in both
+     * input sets ends up only in "allowed", matching the store's invariant that a domain lives in at
+     * most one list and that allow wins in Blocklist.
+     */
+    fun replaceAll(ctx: Context, blocked: Set<String>, allowed: Set<String>) {
+        val nextAllowed = HashSet<String>(allowed.size)
+        for (s in allowed) {
+            val n = Blocklist.normalizeOrNull(s) ?: continue
+            nextAllowed.add(n)
+        }
+        val nextBlocked = HashSet<String>(blocked.size)
+        for (s in blocked) {
+            val n = Blocklist.normalizeOrNull(s) ?: continue
+            if (nextAllowed.contains(n)) continue
+            nextBlocked.add(n)
+        }
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putStringSet(KEY_ALLOWED, nextAllowed)
+            .putStringSet(KEY_BLOCKED, nextBlocked)
+            .apply()
+    }
+
+    /**
+     * Merge imported rules into the existing lists. Each imported entry replaces the previous choice
+     * for that domain, like add()/addBlocked(): an imported allow removes it from the block list and
+     * an imported block removes it from the allow list. RulesText.parse never returns a domain in
+     * both sets, so the order of the two loops does not matter.
+     */
+    fun mergeIn(ctx: Context, blocked: Set<String>, allowed: Set<String>) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val curAllowed = HashSet(prefs.getStringSet(KEY_ALLOWED, emptySet()) ?: emptySet())
+        val curBlocked = HashSet(prefs.getStringSet(KEY_BLOCKED, emptySet()) ?: emptySet())
+        for (s in allowed) {
+            val n = Blocklist.normalizeOrNull(s) ?: continue
+            curBlocked.remove(n)
+            curAllowed.add(n)
+        }
+        for (s in blocked) {
+            val n = Blocklist.normalizeOrNull(s) ?: continue
+            curAllowed.remove(n)
+            curBlocked.add(n)
+        }
+        prefs.edit()
+            .putStringSet(KEY_ALLOWED, curAllowed)
+            .putStringSet(KEY_BLOCKED, curBlocked)
+            .apply()
+    }
+
+    private fun readSet(ctx: Context, key: String): Set<String> {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val raw = prefs.getStringSet(key, emptySet()) ?: emptySet()
+        return HashSet(raw)
+    }
+
+    private fun addTo(ctx: Context, key: String, domain: String): Boolean {
+        val n = Blocklist.normalizeOrNull(domain) ?: return false
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val cur = HashSet(prefs.getStringSet(key, emptySet()) ?: emptySet())
+        // A domain lives in at most one of the two lists: the newest choice replaces the old one,
+        // so "Blocked by you" never shows a domain that is silently allowed (allow wins in Blocklist).
+        val otherKey = if (key == KEY_ALLOWED) KEY_BLOCKED else KEY_ALLOWED
+        val other = HashSet(prefs.getStringSet(otherKey, emptySet()) ?: emptySet())
+        val otherChanged = other.remove(n)
+        if (!cur.add(n) && !otherChanged) return true
+        prefs.edit().putStringSet(key, cur).putStringSet(otherKey, other).apply()
+        return true
+    }
+
+    private fun removeFrom(ctx: Context, key: String, domain: String) {
+        val n = Blocklist.normalizeOrNull(domain) ?: domain.trim().lowercase().trimEnd('.')
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val cur = HashSet(prefs.getStringSet(key, emptySet()) ?: emptySet())
+        if (cur.remove(n)) prefs.edit().putStringSet(key, cur).apply()
+    }
+}
+
+=== guardian/app/src/main/kotlin/org/secureinchat/guardian/GuardianVpnService.kt ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.net.VpnService
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.os.ParcelFileDescriptor
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import org.secureinchat.guardian.dns.Action
+import org.secureinchat.guardian.dns.Blocklist
+import org.secureinchat.guardian.dns.BlockMode
+import org.secureinchat.guardian.dns.QueryHandler
+
+class GuardianVpnService : VpnService() {
+
+    private var tun: ParcelFileDescriptor? = null
+    private var tunIn: FileInputStream? = null
+    private var tunOut: FileOutputStream? = null
+    private val writeLock = Any()
+    private var readThread: Thread? = null
+    private var pool: ExecutorService? = null
+    @Volatile private var running = false
+    private var handler: QueryHandler? = null
+    private var upstream: Upstream? = null
+
+    // Pause expires on its own (QueryHandler.isPaused() returns false once the absolute timestamp
+    // passes), so the notification needs a one-shot timer that rewrites it back to "DNS filtering
+    // active" when the pause ends. Posted on the main looper; cancelled on resume or stop.
+    private val mainHandler = Handler(Looper.getMainLooper())
+    @Volatile private var notifRefresh: Runnable? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_STOP -> {
+                stopVpnInternal()
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            ACTION_PAUSE -> {
+                val h = handler
+                if (h != null) {
+                    h.pause(PAUSE_DURATION_MS)
+                    updateNotification()
+                    scheduleNotifRefresh(PAUSE_DURATION_MS)
+                    try {
+                        android.service.quicksettings.TileService.requestListeningState(
+                            applicationContext,
+                            android.content.ComponentName(applicationContext, GuardianTileService::class.java)
+                        )
+                    } catch (_: Throwable) {}
+                }
+                return START_STICKY
+            }
+            ACTION_RESUME -> {
+                val h = handler
+                if (h != null) {
+                    h.resume()
+                    updateNotification()
+                    cancelNotifRefresh()
+                    try {
+                        android.service.quicksettings.TileService.requestListeningState(
+                            applicationContext,
+                            android.content.ComponentName(applicationContext, GuardianTileService::class.java)
+                        )
+                    } catch (_: Throwable) {}
+                }
+                return START_STICKY
+            }
+            else -> {
+                // Besides our own Start, two ways to get here: the system starts us for Always-on
+                // VPN (action "android.net.VpnService"), or START_STICKY restarts us with a null
+                // intent. Consent may have been revoked since; without it establish() would fail,
+                // so stop and do not ask to be restarted.
+                if (VpnService.prepare(this) != null) {
+                    stopVpnInternal()
+                    stopSelf()
+                    return START_NOT_STICKY
+                }
+                if (!running && !isLoading) {
+                    // startForeground can be refused (e.g. systemExempted on API 34+ when this app
+                    // is no longer the configured VPN after a sticky restart). Stop rather than run unpromoted.
+                    val promoted = try { startForegroundSafe(); true } catch (_: RuntimeException) { false }
+                    if (!promoted) {
+                        stopSelf()
+                        return START_NOT_STICKY
+                    }
+                    isLoading = true
+                    val gen = ++startGeneration
+                    Thread { startVpnBackground(gen) }.apply { name = "guardian-start" }.start()
+                }
+            }
+        }
+        return START_STICKY
+    }
+
+    // Bumped by every start and stop. A start thread that finds a newer generation after loading the
+    // list gives up, so Stop pressed while the list is loading cannot be overtaken by a late establish().
+    @Volatile private var startGeneration = 0
+
+    private fun startVpnBackground(gen: Int) {
+        try {
+            val blocklist = loadBlocklist()
+            val effective = applyUserRulesTo(blocklist, applicationContext)
+            // No uid lookup: on Android 10+ every query reaching the VPN is sent by the system DNS
+            // service, so getConnectionOwnerUid names that service, not the app (seen in the emulator flow).
+            val h = QueryHandler(effective, BlockMode.NULL_IP)
+            if (gen != startGeneration) return
+
+            val builder = Builder()
+            builder.setSession("Guardian")
+            // IPv4 DNS hijack target. Only DNS-server traffic is routed into the VPN; everything else
+            // stays on the underlying network.
+            builder.addAddress("10.111.222.1", 32)
+            builder.addDnsServer("10.111.222.2")
+            builder.addRoute("10.111.222.2", 32)
+            // IPv6 DNS hijack target, a unique local address (fc00::/7, not routable on the internet). Some networks only
+            // hand out IPv6 DNS servers; without this, those queries bypass Guardian. If the platform
+            // refuses the IPv6 address (old build, unusual ROM), fall back to IPv4-only rather than
+            // failing the whole session.
+            var ipv6Configured = false
+            try {
+                builder.addAddress("fd00:6a72:6764::1", 128)
+                ipv6Configured = true
+            } catch (_: Throwable) {
+                ipv6Configured = false
+            }
+            if (ipv6Configured) {
+                try {
+                    builder.addDnsServer("fd00:6a72:6764::2")
+                    builder.addRoute("fd00:6a72:6764::2", 128)
+                } catch (_: Throwable) {
+                    // Address already added; a partially configured IPv6 side is harmless: no route
+                    // is installed, so no IPv6 DNS traffic will enter the VPN from this side.
+                }
+            }
+            builder.setMtu(1500)
+            builder.setBlocking(true)
+
+            val pfd = try { builder.establish() } catch (_: Throwable) { null }
+            if (gen != startGeneration) {
+                try { pfd?.close() } catch (_: Throwable) {}
+                return
+            }
+            if (pfd == null) {
+                isLoading = false
+                stopSelf()
+                return
+            }
+            tun = pfd
+            tunIn = FileInputStream(pfd.fileDescriptor)
+            tunOut = FileOutputStream(pfd.fileDescriptor)
+
+            val up = Upstream(applicationContext) { sock -> protect(sock) }
+            up.start()
+            upstream = up
+
+            handler = h
+            activeHandler = h
+            pool = Executors.newFixedThreadPool(8)
+            running = true
+            isRunning = true
+            isLoading = false
+            instance = this
+            readAlwaysOn()
+            // Let the Quick Settings tile refresh from "Starting…" to "On" without waiting for a tap.
+            // Fully qualified to avoid touching this file's imports.
+            try {
+                android.service.quicksettings.TileService.requestListeningState(
+                    applicationContext,
+                    android.content.ComponentName(applicationContext, GuardianTileService::class.java)
+                )
+            } catch (_: Throwable) {}
+
+            val t = Thread { readLoop(pfd) }
+            t.name = "guardian-tun-read"
+            readThread = t
+            t.start()
+        } catch (_: Throwable) {
+            isLoading = false
+            stopSelf()
+        }
+    }
+
+    // API 29 added isAlwaysOn/isLockdownEnabled. Before that, or on failure, both stay null and the
+    // UI hides the row instead of guessing.
+    private fun readAlwaysOn() {
+        if (Build.VERSION.SDK_INT >= 29) {
+            try {
+                alwaysOn = isAlwaysOn
+                lockdown = isLockdownEnabled
+                return
+            } catch (_: Throwable) {}
+        }
+        alwaysOn = null
+        lockdown = null
+    }
+
+    override fun onRevoke() {
+        stopVpnInternal()
+        stopSelf()
+        super.onRevoke()
+    }
+
+    override fun onDestroy() {
+        stopVpnInternal()
+        super.onDestroy()
+    }
+
+    private fun buildNotification(): Notification {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (nm.getNotificationChannel(CHANNEL_ID) == null) {
+            nm.createNotificationChannel(
+                NotificationChannel(CHANNEL_ID, "Guardian VPN", NotificationManager.IMPORTANCE_LOW)
+            )
+        }
+        val stopIntent = Intent(this, GuardianVpnService::class.java).setAction(ACTION_STOP)
+        val stopPi = PendingIntent.getService(
+            this, 1, stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val builder = Notification.Builder(this, CHANNEL_ID)
+            .setContentTitle("Guardian")
+            .setSmallIcon(android.R.drawable.ic_lock_lock)
+            .setOngoing(true)
+        val h = handler
+        if (h != null && h.isPaused()) {
+            val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val until = fmt.format(Date(h.pausedUntilMs))
+            builder.setContentText("Paused until $until")
+            val resumeIntent = Intent(this, GuardianVpnService::class.java).setAction(ACTION_RESUME)
+            val resumePi = PendingIntent.getService(
+                this, 2, resumeIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(0, "Resume", resumePi)
+        } else {
+            builder.setContentText("DNS filtering active")
+        }
+        builder.addAction(0, "Stop", stopPi)
+        return builder.build()
+    }
+
+    private fun updateNotification() {
+        try {
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.notify(NOTIF_ID, buildNotification())
+        } catch (_: Throwable) {}
+    }
+
+    private fun scheduleNotifRefresh(delayMs: Long) {
+        cancelNotifRefresh()
+        val r = Runnable {
+            notifRefresh = null
+            updateNotification()
+        }
+        notifRefresh = r
+        mainHandler.postDelayed(r, delayMs)
+    }
+
+    private fun cancelNotifRefresh() {
+        notifRefresh?.let { mainHandler.removeCallbacks(it) }
+        notifRefresh = null
+    }
+
+    private fun startForegroundSafe() {
+        val notif = buildNotification()
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_SYSTEM_EXEMPTED)
+        } else if (Build.VERSION.SDK_INT >= 29) {
+            startForeground(NOTIF_ID, notif, 0)
+        } else {
+            startForeground(NOTIF_ID, notif)
+        }
+    }
+
+    private fun readLoop(pfd: ParcelFileDescriptor) {
+        val buf = ByteArray(32767)
+        val input = tunIn ?: return
+        while (running) {
+            val n = try { input.read(buf) } catch (_: Throwable) { if (!running) break else continue }
+            if (n <= 0) continue
+            val copy = buf.copyOf(n)
+            val exec = pool ?: break
+            try { exec.execute { processPacket(copy) } } catch (_: Throwable) {}
+        }
+    }
+
+    private fun processPacket(packet: ByteArray) {
+        val h = handler ?: return
+        when (val act = h.handle(packet, packet.size)) {
+            is Action.Respond -> writeTun(act.packet)
+            is Action.Forward -> {
+                val exec = pool ?: return
+                try {
+                    exec.execute {
+                        val ans = upstream?.sendQuery(act.payload)
+                        if (ans == null) {
+                            h.onUpstreamFailed(act.query)
+                        } else {
+                            val resp = h.onUpstreamAnswer(act.query, ans, ans.size)
+                            if (resp != null) writeTun(resp)
+                        }
+                    }
+                } catch (_: Throwable) {}
+            }
+            Action.Drop -> {}
+        }
+    }
+
+    private fun writeTun(packet: ByteArray) {
+        val out = tunOut ?: return
+        synchronized(writeLock) {
+            try { out.write(packet) } catch (_: Throwable) {}
+        }
+    }
+
+    private fun stopVpnInternal() {
+        cancelNotifRefresh()
+        startGeneration++
+        running = false
+        isRunning = false
+        isLoading = false
+        instance = null
+        alwaysOn = null
+        lockdown = null
+        try { tun?.close() } catch (_: Throwable) {}
+        try { tunIn?.close() } catch (_: Throwable) {}
+        try { tunOut?.close() } catch (_: Throwable) {}
+        tun = null; tunIn = null; tunOut = null
+        try { readThread?.join(1000) } catch (_: Throwable) {}
+        readThread = null
+        try { pool?.shutdownNow() } catch (_: Throwable) {}
+        pool = null
+        try { upstream?.stop() } catch (_: Throwable) {}
+        upstream = null
+        handler = null
+        activeHandler = null
+
+        // Let the Quick Settings tile flip back to "Off" without waiting for a tap.
+        try {
+            android.service.quicksettings.TileService.requestListeningState(
+                applicationContext,
+                android.content.ComponentName(applicationContext, GuardianTileService::class.java)
+            )
+        } catch (_: Throwable) {}
+    }
+
+    private fun loadBlocklist(): Blocklist = loadBlocklistStatic(applicationContext)
+
+    companion object {
+        const val ACTION_START = "org.secureinchat.guardian.action.START"
+        const val ACTION_STOP = "org.secureinchat.guardian.action.STOP"
+        const val ACTION_PAUSE = "org.secureinchat.guardian.action.PAUSE"
+        const val ACTION_RESUME = "org.secureinchat.guardian.action.RESUME"
+        const val PAUSE_DURATION_MS = 5 * 60 * 1000L
+        private const val CHANNEL_ID = "guardian_vpn"
+        private const val NOTIF_ID = 1
+        private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")
+        private val rulesLock = Any()
+
+        @Volatile var isRunning: Boolean = false
+            private set
+
+        @Volatile var isLoading: Boolean = false
+            private set
+
+        @Volatile var activeHandler: QueryHandler? = null
+            private set
+
+        // null = unknown (not running, or API < 29). The UI hides the row on null.
+        @Volatile var alwaysOn: Boolean? = null
+            private set
+        @Volatile var lockdown: Boolean? = null
+            private set
+        @Volatile private var instance: GuardianVpnService? = null
+
+        /** Re-reads the Always-on state, e.g. when the user comes back from system settings. */
+        fun refreshAlwaysOn() {
+            instance?.readAlwaysOn()
+        }
+
+        // The bundled lists never change while the app runs, so parse them once per process.
+        @Volatile private var baseCache: Blocklist? = null
+
+        private fun loadBlocklistStatic(ctx: Context): Blocklist {
+            baseCache?.let { return it }
+            return try {
+                val text = LIST_ASSETS.joinToString("\n") { name ->
+                    ctx.assets.open(name).use { it.bufferedReader().readText() }
+                }
+                Blocklist.parse(text).also { baseCache = it }
+            } catch (_: Throwable) {
+                Blocklist.parse("")
+            }
+        }
+
+        // Bundled list + user blocks + user allows. Precedence inside Blocklist is
+        // "user allow > user block > builtin allow > builtin block", so the order of the two calls
+        // below only matters for building the object, not for matching.
+        private fun applyUserRulesTo(base: Blocklist, ctx: Context): Blocklist {
+            var eff = base
+            val userBlocked = UserRulesStore.blocked(ctx)
+            if (userBlocked.isNotEmpty()) eff = eff.plusBlocked(userBlocked)
+            val userAllowed = UserRulesStore.allowed(ctx)
+            if (userAllowed.isNotEmpty()) eff = eff.plusAllowed(userAllowed)
+            return eff
+        }
+
+        fun applyUserRules(ctx: Context) {
+            val h = activeHandler ?: return
+            Thread {
+                synchronized(rulesLock) {
+                    try {
+                        val base = loadBlocklistStatic(ctx)
+                        h.blocklist = applyUserRulesTo(base, ctx)
+                    } catch (_: Throwable) {}
+                }
+            }.apply { name = "guardian-rules" }.start()
+        }
+    }
+}
+
+=== guardian/app/src/main/kotlin/org/secureinchat/guardian/MainActivity.kt ===
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian
+
+import android.app.Activity
+import android.app.AlertDialog
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Typeface
+import android.net.ConnectivityManager
+import android.net.LinkProperties
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.net.Uri
+import android.net.VpnService
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
+import android.text.InputType
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
+import org.secureinchat.guardian.dns.Blocklist
+import org.secureinchat.guardian.dns.LogEntry
+import org.secureinchat.guardian.dns.QueryHandler
+import org.secureinchat.guardian.dns.RulesText
+
+class MainActivity : Activity() {
+
+    private lateinit var statusView: TextView
+    private lateinit var alwaysOnView: TextView
+    private lateinit var alwaysOnError: TextView
+    private lateinit var statsView: TextView
+    private lateinit var rulesView: TextView
+    private lateinit var logView: TextView
+    private lateinit var hintView: TextView
+    private lateinit var toggleBtn: Button
+    private lateinit var pauseBtn: Button
+    private lateinit var appListContainer: LinearLayout
+    private lateinit var blockedListContainer: LinearLayout
+    private lateinit var allowedListContainer: LinearLayout
+
+    // The "Block by you" input is only rebuilt when the activity is created, so its text and error
+    // state survive the 1 Hz refresh; refreshUi() never touches these views.
+    private lateinit var addBlockedInput: EditText
+    private lateinit var addBlockedBtn: Button
+    private lateinit var addBlockedError: TextView
+    // Only shown when an export/import fails or the document picker cannot be opened; cleared on
+    // the next successful action. A TextView rather than a Toast so it does not disappear before
+    // the user can read it (and so the emulator flow can find it).
+    private lateinit var rulesIoError: TextView
+
+    private var appListSignature: String = ""
+    private var blockedSignature: String = ""
+    private var allowedSignature: String = ""
+    private var appListBuiltAt = 0L
+
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private val refreshTick = object : Runnable {
+        override fun run() {
+            refreshUi()
+            uiHandler.postDelayed(this, 1000)
+        }
+    }
+
+    private val pdnsOn = ConcurrentHashMap.newKeySet<Network>()
+    private var cm: ConnectivityManager? = null
+    private val pdnsCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onLinkPropertiesChanged(network: Network, lp: LinkProperties) {
+            if (Build.VERSION.SDK_INT >= 28 && lp.isPrivateDnsActive) pdnsOn.add(network)
+            else pdnsOn.remove(network)
+        }
+        override fun onLost(network: Network) { pdnsOn.remove(network) }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        buildUi()
+        requestNotificationPermissionIfNeeded()
+        registerPdnsCallback()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The user may have just changed Always-on in system settings.
+        GuardianVpnService.refreshAlwaysOn()
+        uiHandler.post(refreshTick)
+    }
+    override fun onPause() { super.onPause(); uiHandler.removeCallbacks(refreshTick) }
+
+    override fun onDestroy() {
+        try { cm?.unregisterNetworkCallback(pdnsCallback) } catch (_: Throwable) {}
+        super.onDestroy()
+    }
+
+    private fun registerPdnsCallback() {
+        try {
+            val c = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            cm = c
+            val req = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                .build()
+            c.registerNetworkCallback(req, pdnsCallback)
+        } catch (_: Throwable) {}
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), REQ_NOTIF)
+            }
+        }
+    }
+
+    private fun buildUi() {
+        val density = resources.displayMetrics.density
+        val pad = (16 * density).toInt()
+        val small = (8 * density).toInt()
+
+        val root = LinearLayout(this)
+        root.orientation = LinearLayout.VERTICAL
+        root.setPadding(pad, pad, pad, pad)
+
+        root.addView(TextView(this).apply {
+            text = "Guardian"
+            textSize = 22f
+        })
+
+        statusView = TextView(this).apply { textSize = 16f }
+        root.addView(statusView)
+
+        // Always-on row: shown only when the service can answer (running, API 29+); no placeholder.
+        alwaysOnView = TextView(this).apply {
+            textSize = 13f
+            visibility = View.GONE
+        }
+        root.addView(alwaysOnView)
+
+        toggleBtn = Button(this).apply { setOnClickListener { onToggleClicked() } }
+        root.addView(toggleBtn)
+
+        // Only shown when the VPN is actually running; MainActivity is where users go to pause for a
+        // few minutes without stopping the whole session. The notification and the tile also expose
+        // the Resume side of the state.
+        pauseBtn = Button(this).apply {
+            visibility = View.GONE
+            setOnClickListener { onPauseResumeClicked() }
+        }
+        root.addView(pauseBtn)
+
+        statsView = TextView(this).apply {
+            textSize = 14f
+            typeface = Typeface.MONOSPACE
+            setPadding(0, pad / 2, 0, 0)
+        }
+        root.addView(statsView)
+
+        rulesView = TextView(this).apply {
+            textSize = 13f
+            setPadding(0, pad / 4, 0, 0)
+        }
+        root.addView(rulesView)
+
+        hintView = TextView(this).apply {
+            textSize = 13f
+            setTextColor(0xFFFF8800.toInt())
+            visibility = View.GONE
+            setPadding(0, pad / 2, 0, 0)
+        }
+        root.addView(hintView)
+
+        val privacy = TextView(this).apply {
+            textSize = 12f
+            text = txt(
+                "Only DNS queries go through Guardian. Allowed queries are sent to your current network's DNS servers. No logs are saved.",
+                "只有 DNS 查询经过 Guardian。放行的查询发给你当前网络的 DNS 服务器。记录不保存。"
+            )
+            setPadding(0, pad / 2, 0, 0)
+        }
+        root.addView(privacy)
+
+        logView = TextView(this).apply {
+            textSize = 12f
+            typeface = Typeface.MONOSPACE
+            setPadding(0, pad, 0, 0)
+        }
+        root.addView(logView)
+
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("Blocked most often", "拦截最多的域名")
+            setPadding(0, pad, 0, pad / 4)
+        })
+        appListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(appListContainer)
+
+        // --- Blocked by you ---------------------------------------------------
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("Blocked by you", "你拦截的")
+            setPadding(0, pad, 0, pad / 4)
+        })
+
+        val addRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        addBlockedInput = EditText(this).apply {
+            hint = "example.com"
+            // contentDescription is what `adb shell input text` and most UI tools pick up; the
+            // emulator script types into the focused EditText, but having this makes the field
+            // discoverable for "input text" without needing the specific view id.
+            contentDescription = "Domain to block"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            maxLines = 1
+            isSingleLine = true
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    submitBlockedDomain()
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+        addBlockedBtn = Button(this).apply {
+            text = txt("Block", "拦截")
+            textSize = 12f
+            setOnClickListener { submitBlockedDomain() }
+        }
+        addRow.addView(addBlockedInput)
+        addRow.addView(addBlockedBtn)
+        root.addView(addRow)
+
+        addBlockedError = TextView(this).apply {
+            textSize = 12f
+            setTextColor(0xFFFF4444.toInt())
+            visibility = View.GONE
+            text = txt("Not a valid domain", "不是有效的域名")
+            setPadding(0, pad / 4, 0, 0)
+        }
+        root.addView(addBlockedError)
+
+        blockedListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(blockedListContainer)
+
+        // --- Allowed by you ---------------------------------------------------
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("Allowed by you", "你放行的")
+            setPadding(0, pad, 0, pad / 4)
+        })
+        allowedListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(allowedListContainer)
+
+        // --- Export / import (G10) -------------------------------------------
+        // Two side-by-side buttons; a full-width row each would push the Always-on controls further
+        // down for no benefit. Both pick a file through the Storage Access Framework, so no storage
+        // permission is needed and nothing is written into the app's private directory.
+        val ioRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, pad / 2, 0, 0)
+        }
+        ioRow.addView(Button(this).apply {
+            text = txt("Export rules", "导出规则")
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnClickListener { onExportClicked() }
+        })
+        ioRow.addView(Button(this).apply {
+            text = txt("Import rules", "导入规则")
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setOnClickListener { onImportClicked() }
+        })
+        root.addView(ioRow)
+
+        rulesIoError = TextView(this).apply {
+            textSize = 12f
+            setTextColor(0xFFFF4444.toInt())
+            visibility = View.GONE
+            setPadding(0, pad / 4, 0, 0)
+        }
+        root.addView(rulesIoError)
+
+        // A little slack at the bottom so the last row is not glued to the scroll edge.
+        // --- Always-on VPN (G9) ---------------------------------------------
+        // At the bottom so the controls people use daily keep their place.
+        root.addView(Button(this).apply {
+            text = txt("Always-on VPN settings", "始终开启设置")
+            textSize = 13f
+            setOnClickListener { openVpnSettings() }
+        })
+        root.addView(TextView(this).apply {
+            textSize = 12f
+            text = txt(
+                "In system settings, tap the gear next to Guardian and turn on Always-on VPN. Android then restarts Guardian after a reboot.",
+                "在系统设置里点 Guardian 旁边的齿轮,打开「始终开启的 VPN」。之后手机重启时 Android 会自动启动 Guardian。"
+            )
+        })
+        alwaysOnError = TextView(this).apply {
+            textSize = 12f
+            visibility = View.GONE
+            text = txt("Open Settings > Network > VPN", "请打开 设置 > 网络 > VPN")
+        }
+        root.addView(alwaysOnError)
+
+        root.addView(View(this).apply { minimumHeight = small })
+
+        setContentView(ScrollView(this).apply { addView(root) })
+    }
+
+    private fun submitBlockedDomain() {
+        val raw = addBlockedInput.text?.toString().orEmpty()
+        val ok = UserRulesStore.addBlocked(this, raw)
+        if (!ok) {
+            addBlockedError.visibility = View.VISIBLE
+            return
+        }
+        addBlockedInput.setText("")
+        addBlockedError.visibility = View.GONE
+        GuardianVpnService.applyUserRules(applicationContext)
+        // Clear signatures so the list is rebuilt on the next refresh even if it is inside the
+        // 5 s throttle window used for the "blocked most often" list.
+        blockedSignature = ""
+        allowedSignature = ""
+        appListSignature = ""
+        uiHandler.post { refreshUi() }
+    }
+
+    private fun openVpnSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_VPN_SETTINGS))
+            alwaysOnError.visibility = View.GONE
+        } catch (_: ActivityNotFoundException) {
+            alwaysOnError.visibility = View.VISIBLE
+        }
+    }
+
+    // ACTION_CREATE_DOCUMENT opens the system picker in "save as" mode. The app never touches the
+    // file path itself; it only receives a content Uri back and streams into it.
+    private fun onExportClicked() {
+        try {
+            val i = Intent(Intent.ACTION_CREATE_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("text/plain")
+                .putExtra(Intent.EXTRA_TITLE, "guardian-rules.txt")
+            startActivityForResult(i, REQ_EXPORT)
+            rulesIoError.visibility = View.GONE
+        } catch (_: ActivityNotFoundException) {
+            rulesIoError.visibility = View.VISIBLE
+            rulesIoError.text = txt("Could not open the file picker", "无法打开文件选择器")
+        }
+    }
+
+    // ACTION_OPEN_DOCUMENT, same picker but in "open" mode. Some file managers report .txt as
+    // application/octet-stream, so the accepted types are widened rather than trusting the name.
+    private fun onImportClicked() {
+        try {
+            val i = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("text/plain")
+                .putExtra(
+                    Intent.EXTRA_MIME_TYPES,
+                    arrayOf("text/plain", "text/*", "application/octet-stream")
+                )
+            startActivityForResult(i, REQ_IMPORT)
+            rulesIoError.visibility = View.GONE
+        } catch (_: ActivityNotFoundException) {
+            rulesIoError.visibility = View.VISIBLE
+            rulesIoError.text = txt("Could not open the file picker", "无法打开文件选择器")
+        }
+    }
+
+    private fun handleExportResult(uri: Uri?) {
+        if (uri == null) return
+        try {
+            val text = RulesText.format(
+                UserRulesStore.blocked(this),
+                UserRulesStore.allowed(this)
+            )
+            // "wt" truncates, so re-exporting over an existing file does not leave trailing bytes.
+            contentResolver.openOutputStream(uri, "wt").use { out ->
+                if (out == null) throw IllegalStateException("no output stream")
+                out.write(text.toByteArray(Charsets.UTF_8))
+            }
+            rulesIoError.visibility = View.GONE
+        } catch (_: Throwable) {
+            rulesIoError.visibility = View.VISIBLE
+            rulesIoError.text = txt("Could not write the file", "无法写入文件")
+        }
+    }
+
+    private fun handleImportResult(uri: Uri?) {
+        if (uri == null) return
+        // Read at most MAX_BYTES so a wrong pick (a video, an APK) cannot tie up the main thread.
+        val text: String? = try {
+            contentResolver.openInputStream(uri)?.use { input ->
+                val buf = ByteArray(RulesText.MAX_BYTES)
+                var total = 0
+                while (total < buf.size) {
+                    val n = input.read(buf, total, buf.size - total)
+                    if (n <= 0) break
+                    total += n
+                }
+                String(buf, 0, total, Charsets.UTF_8)
+            }
+        } catch (_: Throwable) {
+            null
+        }
+        if (text == null) {
+            rulesIoError.visibility = View.VISIBLE
+            rulesIoError.text = txt("Could not read the file", "无法读取文件")
+            return
+        }
+        val parsed = RulesText.parse(text)
+        val summary = txt(
+            "${parsed.blocked.size} to block, ${parsed.allowed.size} to allow, ${parsed.skipped} lines skipped",
+            "拦截 ${parsed.blocked.size} 条,放行 ${parsed.allowed.size} 条,跳过 ${parsed.skipped} 行"
+        )
+        // Three-way choice. Merge keeps the existing rules and lets imported entries replace the
+        // current choice for a domain; Replace discards the current lists entirely.
+        AlertDialog.Builder(this)
+            .setTitle(txt("Import rules", "导入规则"))
+            .setMessage(summary)
+            .setPositiveButton(txt("Merge", "合并")) { _, _ -> applyImport(parsed, merge = true) }
+            .setNeutralButton(txt("Replace", "替换")) { _, _ -> applyImport(parsed, merge = false) }
+            .setNegativeButton(txt("Cancel", "取消"), null)
+            .show()
+    }
+
+    private fun applyImport(parsed: RulesText.ParseResult, merge: Boolean) {
+        if (merge) {
+            UserRulesStore.mergeIn(this, parsed.blocked, parsed.allowed)
+        } else {
+            UserRulesStore.replaceAll(this, parsed.blocked, parsed.allowed)
+        }
+        GuardianVpnService.applyUserRules(applicationContext)
+        // Clear signatures so both lists rebuild on the next refresh even inside the throttle window.
+        blockedSignature = ""
+        allowedSignature = ""
+        appListSignature = ""
+        rulesIoError.visibility = View.GONE
+        uiHandler.post { refreshUi() }
+    }
+
+    private fun renderAlwaysOnRow() {
+        val on = GuardianVpnService.alwaysOn
+        if (on == null) {
+            if (alwaysOnView.visibility != View.GONE) alwaysOnView.visibility = View.GONE
+            setIfChanged(alwaysOnView, "")
+            return
+        }
+        if (alwaysOnView.visibility != View.VISIBLE) alwaysOnView.visibility = View.VISIBLE
+        var text = if (on) txt("Always-on: On", "始终开启:已开启") else txt("Always-on: Off", "始终开启:未开启")
+        if (GuardianVpnService.lockdown == true) text += txt(", blocks connections without VPN", ",未连 VPN 时断网")
+        setIfChanged(alwaysOnView, text)
+    }
+
+    private fun onToggleClicked() {
+        if (GuardianVpnService.isLoading) return
+        if (GuardianVpnService.isRunning) {
+            // Plain startService: the stop path never calls startForeground, and a
+            // startForegroundService() call that is not followed by startForeground() within a
+            // few seconds crashes with ForegroundServiceDidNotStartInTimeException.
+            val i = Intent(this, GuardianVpnService::class.java).setAction(GuardianVpnService.ACTION_STOP)
+            startService(i)
+        } else {
+            val prep = VpnService.prepare(this)
+            if (prep != null) {
+                @Suppress("DEPRECATION")
+                startActivityForResult(prep, REQ_VPN_PREPARE)
+            } else {
+                startVpnService()
+            }
+        }
+    }
+
+    private fun onPauseResumeClicked() {
+        val h = GuardianVpnService.activeHandler ?: return
+        val action = if (h.isPaused()) GuardianVpnService.ACTION_RESUME else GuardianVpnService.ACTION_PAUSE
+        val i = Intent(this, GuardianVpnService::class.java).setAction(action)
+        startService(i)
+        // The service handles the action asynchronously; refresh soon so the button/status catch up.
+        uiHandler.postDelayed({ refreshUi() }, 200)
+    }
+
+    @Deprecated("Deprecated in Activity, unavoidable without AndroidX")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        // Picker cancels and a denied VPN consent both arrive with RESULT_CANCELED; nothing to do.
+        if (resultCode != RESULT_OK) return
+        when (requestCode) {
+            REQ_VPN_PREPARE -> startVpnService()
+            REQ_EXPORT -> handleExportResult(data?.data)
+            REQ_IMPORT -> handleImportResult(data?.data)
+        }
+    }
+
+    private fun startVpnService() {
+        val i = Intent(this, GuardianVpnService::class.java).setAction(GuardianVpnService.ACTION_START)
+        startForegroundService(i)
+    }
+
+    private fun refreshUi() {
+        val loading = GuardianVpnService.isLoading
+        val running = GuardianVpnService.isRunning
+        val h = GuardianVpnService.activeHandler
+        val paused = running && h != null && h.isPaused()
+
+        setIfChanged(statusView, when {
+            loading -> txt("Loading list…", "正在加载名单…")
+            paused -> {
+                val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+                val until = fmt.format(Date(h!!.pausedUntilMs))
+                txt("Status: Paused until $until", "状态：已暂停至 $until")
+            }
+            running -> txt("Status: Running", "状态：运行中")
+            else -> txt("Status: Stopped", "状态：已停止")
+        })
+
+        renderAlwaysOnRow()
+
+        toggleBtn.isEnabled = !loading
+        setIfChanged(toggleBtn, if (running) txt("Stop", "停止") else txt("Start", "启动"))
+
+        if (running && !loading) {
+            if (pauseBtn.visibility != View.VISIBLE) pauseBtn.visibility = View.VISIBLE
+            setIfChanged(
+                pauseBtn,
+                if (paused) txt("Resume", "恢复") else txt("Pause 5 min", "暂停 5 分钟")
+            )
+        } else if (pauseBtn.visibility != View.GONE) {
+            pauseBtn.visibility = View.GONE
+        }
+
+        if (h == null) {
+            setIfChanged(statsView, "")
+            setIfChanged(rulesView, "")
+            setIfChanged(logView, "")
+            renderAppList(null)
+            renderBlockedList()
+            renderAllowedList()
+        } else {
+            val s = h.snapshot()
+            setIfChanged(statsView, txt(
+                "Queries: ${s.queries}  Blocked: ${s.blocked}  Forwarded: ${s.forwarded}\n" +
+                "Answered: ${s.answered}  Failed: ${s.failed}  Malformed: ${s.malformed}",
+                "查询: ${s.queries}  拦截: ${s.blocked}  转发: ${s.forwarded}\n" +
+                "应答: ${s.answered}  失败: ${s.failed}  畸形: ${s.malformed}"
+            ))
+            val userAllowed = UserRulesStore.allowed(this).size
+            val userBlocked = UserRulesStore.blocked(this).size
+            // The substring "N allowed by you" is matched by the emulator flow; keep it verbatim.
+            setIfChanged(rulesView, txt(
+                "Rules: ${h.blocklist.blockedCount} blocked, $userAllowed allowed by you, $userBlocked blocked by you",
+                "规则:拦截 ${h.blocklist.blockedCount},你放行 $userAllowed,你拦截 $userBlocked"
+            ))
+            renderLog(h.recent())
+            renderAppList(h)
+            renderBlockedList()
+            renderAllowedList()
+        }
+
+        if (pdnsOn.isNotEmpty()) {
+            if (hintView.visibility != View.VISIBLE) hintView.visibility = View.VISIBLE
+            setIfChanged(hintView, txt(
+                "Private DNS is enabled. Some queries may bypass Guardian.",
+                "私人 DNS 开启时部分查询可能不经过 Guardian"
+            ))
+        } else if (hintView.visibility != View.GONE) {
+            hintView.visibility = View.GONE
+        }
+    }
+
+    private fun renderLog(entries: List<LogEntry>) {
+        val sb = SpannableStringBuilder()
+        val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        // Last 10 only: a glance at what is happening; the per-domain view below is what people act on.
+        for (e in entries.take(10)) {
+            val start = sb.length
+            val tag = when {
+                e.blocked -> txt("BLOCK", "拦截")
+                e.paused -> txt("PAUSE", "暂停")
+                else -> txt("ALLOW", "放行")
+            }
+            sb.append(fmt.format(Date(e.timeMs)))
+                .append(' ').append(tag).append(' ')
+                .append(e.name).append(" (type ").append(e.qtype.toString()).append(")\n")
+            if (e.blocked) {
+                sb.setSpan(
+                    ForegroundColorSpan(0xFFFF4444.toInt()),
+                    start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            } else if (e.paused) {
+                sb.setSpan(
+                    ForegroundColorSpan(0xFFFFA500.toInt()),
+                    start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+        setIfChanged(logView, sb)
+    }
+
+    // "Blocked most often": the domains blocked in this session, each with an Allow button for false
+    // positives. Not per app: on Android 10+ apps resolve names through the system DNS service, so every
+    // query reaching the VPN comes from that service's uid (1051 on the emulator), not from the app.
+    private fun renderAppList(h: QueryHandler?) {
+        val top = h?.tally?.snapshot(1)?.firstOrNull()?.topBlocked ?: emptyList()
+        // G11: the rule behind each row, worked out now from the live rules (the log does not store
+        // it). It is part of the signature so a rule change (Allow, Block, import) rebuilds the rows
+        // once the background rules thread has swapped the list, not only when counts change.
+        val bl = h?.blocklist
+        val rules = top.map { bl?.match(it.first) }
+        val sig = top.joinToString(";") { "${it.first}:${it.second}" } + "|" +
+            rules.joinToString(";") { m -> if (m == null) "-" else "${m.rule}:${m.source}" }
+        if (sig == appListSignature) return
+        // Counts change with every DNS query. Rebuild the list at most every 5 s unless a tap reset the
+        // signature, so background traffic does not re-lay out the screen every second.
+        val now = android.os.SystemClock.uptimeMillis()
+        if (appListSignature.isNotEmpty() && now - appListBuiltAt < 5000) return
+        appListBuiltAt = now
+        appListSignature = sig
+        appListContainer.removeAllViews()
+        if (h == null) return
+        val density = resources.displayMetrics.density
+        val vpad = (4 * density).toInt()
+        if (top.isEmpty()) {
+            appListContainer.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt("(nothing blocked yet)", "(还没有拦截)")
+                setPadding(0, vpad, 0, vpad)
+            })
+            return
+        }
+        val secondary = secondaryTextColors()
+        for ((i, d) in top.withIndex()) {
+            val domRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, vpad, 0, vpad)
+            }
+            // Domain on the first line, the rule that blocked it in small grey text below.
+            val texts = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val dom = TextView(this).apply {
+                textSize = 13f
+                text = "${d.first} (${d.second})"
+            }
+            texts.addView(dom)
+            texts.addView(TextView(this).apply {
+                textSize = 11f
+                if (secondary != null) setTextColor(secondary)
+                text = ruleLine(rules[i])
+            })
+            val allowBtn = Button(this).apply {
+                text = txt("Allow", "放行")
+                textSize = 12f
+                setOnClickListener {
+                    UserRulesStore.add(this@MainActivity, d.first)
+                    GuardianVpnService.applyUserRules(applicationContext)
+                    appListSignature = ""
+                    blockedSignature = ""
+                    allowedSignature = ""
+                    uiHandler.post { refreshUi() }
+                }
+            }
+            domRow.addView(texts)
+            domRow.addView(allowBtn)
+            appListContainer.addView(domRow)
+        }
+    }
+
+    /**
+     * Text for the rule line under a "Blocked most often" row. The list counts past blocks, so the
+     * current rules may no longer block the name (the user allowed it, or removed their own block);
+     * say so rather than showing a rule that no longer applies.
+     */
+    private fun ruleLine(m: Blocklist.Match?): String = if (m == null) {
+        txt("No longer blocked", "现在不再拦截")
+    } else when (m.source) {
+        Blocklist.RuleSource.BUILTIN_BLOCK -> txt("Rule: ${m.rule} (built-in list)", "规则:${m.rule}(内置名单)")
+        Blocklist.RuleSource.USER_BLOCK -> txt("Rule: ${m.rule} (blocked by you)", "规则:${m.rule}(你拦截的)")
+        Blocklist.RuleSource.USER_ALLOW -> txt("Now allowed by you: ${m.rule}", "现已被你放行:${m.rule}")
+        Blocklist.RuleSource.BUILTIN_ALLOW -> txt("Now allowed by the built-in list: ${m.rule}", "现已被内置名单放行:${m.rule}")
+    }
+
+    /** The theme's secondary text colour, or null to keep the default colour. */
+    private fun secondaryTextColors(): android.content.res.ColorStateList? {
+        val a = obtainStyledAttributes(intArrayOf(android.R.attr.textColorSecondary))
+        try {
+            return a.getColorStateList(0)
+        } finally {
+            a.recycle()
+        }
+    }
+
+    // "Blocked by you": the user's own block list. Mirror of the allow list below it; both are
+    // read from UserRulesStore each refresh and rendered only when the serialized set changes.
+    private fun renderBlockedList() {
+        val blocked = UserRulesStore.blocked(this).sorted()
+        // "#" prefix: an empty list must differ from the "" that taps write to force a rebuild,
+        // or removing the last entry would leave its row on screen.
+        val sig = "#" + blocked.joinToString(",")
+        if (sig == blockedSignature) return
+        blockedSignature = sig
+        blockedListContainer.removeAllViews()
+        val density = resources.displayMetrics.density
+        val vpad = (4 * density).toInt()
+        if (blocked.isEmpty()) {
+            blockedListContainer.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt("(none)", "(无)")
+                setPadding(0, vpad, 0, vpad)
+            })
+            return
+        }
+        for (d in blocked) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, vpad, 0, vpad)
+            }
+            val dom = TextView(this).apply {
+                textSize = 13f
+                text = d
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val removeBtn = Button(this).apply {
+                text = txt("Remove", "移除")
+                textSize = 12f
+                setOnClickListener {
+                    UserRulesStore.removeBlocked(this@MainActivity, d)
+                    GuardianVpnService.applyUserRules(applicationContext)
+                    appListSignature = ""
+                    blockedSignature = ""
+                    allowedSignature = ""
+                    uiHandler.post { refreshUi() }
+                }
+            }
+            row.addView(dom)
+            row.addView(removeBtn)
+            blockedListContainer.addView(row)
+        }
+    }
+
+    private fun renderAllowedList() {
+        val allowed = UserRulesStore.allowed(this).sorted()
+        // "#" prefix: an empty list must differ from the "" that taps write to force a rebuild,
+        // or removing the last entry would leave its row on screen.
+        val sig = "#" + allowed.joinToString(",")
+        if (sig == allowedSignature) return
+        allowedSignature = sig
+        allowedListContainer.removeAllViews()
+        val density = resources.displayMetrics.density
+        val vpad = (4 * density).toInt()
+        if (allowed.isEmpty()) {
+            allowedListContainer.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt("(none)", "(无)")
+                setPadding(0, vpad, 0, vpad)
+            })
+            return
+        }
+        for (d in allowed) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, vpad, 0, vpad)
+            }
+            val dom = TextView(this).apply {
+                textSize = 13f
+                text = d
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val removeBtn = Button(this).apply {
+                text = txt("Remove", "移除")
+                textSize = 12f
+                setOnClickListener {
+                    UserRulesStore.remove(this@MainActivity, d)
+                    GuardianVpnService.applyUserRules(applicationContext)
+                    appListSignature = ""
+                    blockedSignature = ""
+                    allowedSignature = ""
+                    uiHandler.post { refreshUi() }
+                }
+            }
+            row.addView(dom)
+            row.addView(removeBtn)
+            allowedListContainer.addView(row)
+        }
+    }
+
+    // The screen refreshes every second; setting identical text still re-lays out the view, which keeps
+    // the window from ever being idle (wasted work, and UI tests cannot read the screen).
+    private fun setIfChanged(view: TextView, value: CharSequence) {
+        if (view.text.toString() != value.toString()) view.text = value
+    }
+
+    private fun txt(en: String, zh: String): String =
+        if (Locale.getDefault().language == "zh") zh else en
+
+    companion object {
+        private const val REQ_VPN_PREPARE = 100
+        private const val REQ_NOTIF = 101
+        private const val REQ_EXPORT = 102
+        private const val REQ_IMPORT = 103
+    }
+}
