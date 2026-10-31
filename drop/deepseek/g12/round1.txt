@@ -1,0 +1,547 @@
+<<<FULL
+guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/DailyCounts.kt
+
+kotlin
+Copy
+Download
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian.dns
+
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
+
+/**
+ * Per-day block counters. The only thing stored per day is a number: no domains, no timestamps
+ * inside the day, no app ids. Callers pass already-pruned maps around, so the whole module is a
+ * set of pure functions and can be tested on the JVM.
+ *
+ * Day keys are "yyyy-MM-dd", which sorts lexicographically in the same order as the dates.
+ */
+object DailyCounts {
+
+    const val DEFAULT_KEEP_DAYS = 7
+
+    /**
+     * Adds [n] to [day] and drops every entry older than [today] minus ([keepDays] - 1).
+     *
+     * [n] <= 0 returns [counts] unchanged (no pruning either): there is nothing to record and the
+     * caller is not expected to use a zero add as a maintenance pass.
+     *
+     * Counters saturate at [Int.MAX_VALUE] instead of wrapping, so a long-running session cannot
+     * turn a huge count into a small one.
+     *
+     * Malformed keys already in [counts] are dropped, so a corrupt pref from an older build does
+     * not survive forever. A malformed [day] or [today] returns [counts] unchanged: there is no
+     * sensible cutoff without a parseable "today".
+     */
+    fun add(
+        counts: Map<String, Int>,
+        day: String,
+        n: Int,
+        keepDays: Int = DEFAULT_KEEP_DAYS,
+        today: String = day
+    ): Map<String, Int> {
+        if (n <= 0) return counts
+        val todayDate = parseOrNull(today) ?: return counts
+        if (parseOrNull(day) == null) return counts
+        val keep = if (keepDays < 1) 1 else keepDays
+        val cutoff = todayDate.minusDays((keep - 1).toLong())
+
+        val result = HashMap<String, Int>(counts.size + 1)
+        for ((k, v) in counts) {
+            val kd = parseOrNull(k) ?: continue
+            if (kd.isBefore(cutoff)) continue
+            result[k] = v
+        }
+        val current = result[day] ?: 0
+        val summed = current.toLong() + n.toLong()
+        result[day] = if (summed > Int.MAX_VALUE.toLong()) Int.MAX_VALUE else summed.toInt()
+        // Pruning already dropped old keys above, but a caller can pass a day older than the cutoff;
+        // adding it back and re-pruning keeps the invariant "only the last keepDays survive".
+        val dayDate = parseOrNull(day)!!
+        if (dayDate.isBefore(cutoff)) result.remove(day)
+        return result
+    }
+
+    /**
+     * Sum of the counts for [today] and the [days] - 1 days before it. [days] <= 0 yields 0.
+     * Malformed keys and malformed [today] are ignored rather than thrown.
+     */
+    fun total(counts: Map<String, Int>, today: String, days: Int): Long {
+        if (days <= 0) return 0L
+        val todayDate = parseOrNull(today) ?: return 0L
+        val from = todayDate.minusDays((days - 1).toLong())
+        var sum = 0L
+        for ((k, v) in counts) {
+            val kd = parseOrNull(k) ?: continue
+            if (kd.isBefore(from)) continue
+            if (kd.isAfter(todayDate)) continue
+            sum += v.toLong()
+        }
+        return sum
+    }
+
+    /**
+     * "2026-10-31=12;2026-10-30=5", sorted by date so a re-encode of an unchanged map is identical.
+     * Keys that do not parse as a date, or values that are not non-negative ints, are skipped.
+     */
+    fun encode(counts: Map<String, Int>): String {
+        if (counts.isEmpty()) return ""
+        val keys = ArrayList<String>(counts.size)
+        for (k in counts.keys) if (parseOrNull(k) != null) keys.add(k)
+        keys.sort()
+        val sb = StringBuilder(keys.size * 16)
+        for (i in keys.indices) {
+            if (i > 0) sb.append(';')
+            sb.append(keys[i]).append('=').append(counts[keys[i]])
+        }
+        return sb.toString()
+    }
+
+    /**
+     * Inverse of [encode]. Tolerates whitespace, empty entries, missing '=', non-numeric or negative
+     * values, and non-date keys; each bad entry is dropped and the rest is kept.
+     */
+    fun decode(s: String): Map<String, Int> {
+        if (s.isEmpty()) return emptyMap()
+        val result = HashMap<String, Int>()
+        for (raw in s.split(';')) {
+            val piece = raw.trim()
+            if (piece.isEmpty()) continue
+            val eq = piece.indexOf('=')
+            if (eq <= 0 || eq == piece.length - 1) continue
+            val key = piece.substring(0, eq).trim()
+            val valStr = piece.substring(eq + 1).trim()
+            if (parseOrNull(key) == null) continue
+            val v = valStr.toIntOrNull() ?: continue
+            if (v < 0) continue
+            result[key] = v
+        }
+        return result
+    }
+
+    private fun parseOrNull(s: String): LocalDate? = try {
+        // LocalDate.parse with ISO_LOCAL_DATE accepts yyyy-MM-dd and rejects everything else,
+        // including strings with a time part, which is what we want for these keys.
+        LocalDate.parse(s)
+    } catch (_: DateTimeParseException) {
+        null
+    } catch (_: Throwable) {
+        null
+    }
+}
+
+guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/DailyCountsTest.kt
+
+kotlin
+Copy
+Download
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian.dns
+
+private var dn = 0
+private fun dt(name: String, block: () -> Unit) {
+    try { block(); dn++ } catch (e: Throwable) {
+        println("FAIL $name: ${e.message}")
+        throw e
+    }
+}
+private fun deq(a: Any?, b: Any?) { check(a == b) { "expected $a, got $b" } }
+
+fun main() {
+
+    dt("accumulates into an existing day") {
+        var c: Map<String, Int> = emptyMap()
+        c = DailyCounts.add(c, "2026-01-02", 3, 7, "2026-01-02")
+        c = DailyCounts.add(c, "2026-01-02", 5, 7, "2026-01-02")
+        deq(c["2026-01-02"], 8)
+        deq(c.size, 1)
+    }
+
+    dt("keeps previous days inside the window") {
+        var c: Map<String, Int> = emptyMap()
+        c = DailyCounts.add(c, "2026-01-01", 4, 7, "2026-01-01")
+        c = DailyCounts.add(c, "2026-01-02", 6, 7, "2026-01-02")
+        deq(c["2026-01-01"], 4)
+        deq(c["2026-01-02"], 6)
+        deq(c.size, 2)
+    }
+
+    dt("entries older than keepDays are dropped") {
+        var c: Map<String, Int> = hashMapOf(
+            "2025-12-24" to 1,
+            "2025-12-25" to 1,
+            "2025-12-26" to 1,
+            "2025-12-27" to 1,   // cutoff for today=2026-01-02, keep=7 is 2025-12-27
+            "2025-12-30" to 2,
+            "2026-01-01" to 3
+        )
+        c = DailyCounts.add(c, "2026-01-02", 1, 7, "2026-01-02")
+        // 2025-12-24..26 pruned; 12-27..01-02 kept (7 days).
+        deq(c.keys.sorted(), listOf(
+            "2025-12-27", "2025-12-30", "2026-01-01", "2026-01-02"
+        ))
+    }
+
+    dt("n <= 0 returns the map unchanged") {
+        val c = hashMapOf("2026-01-02" to 5)
+        deq(DailyCounts.add(c, "2026-01-02", 0, 7, "2026-01-02"), c)
+        deq(DailyCounts.add(c, "2026-01-02", -3, 7, "2026-01-02"), c)
+    }
+
+    dt("counter saturates at Int.MAX_VALUE") {
+        val c = hashMapOf("2026-01-02" to Int.MAX_VALUE - 5)
+        val r = DailyCounts.add(c, "2026-01-02", 10, 7, "2026-01-02")
+        deq(r["2026-01-02"], Int.MAX_VALUE)
+    }
+
+    dt("add with a malformed today is a no-op") {
+        val c = hashMapOf("2026-01-02" to 5)
+        deq(DailyCounts.add(c, "2026-01-02", 10, 7, "not-a-date"), c)
+    }
+
+    dt("malformed keys are pruned on the next add") {
+        var c: Map<String, Int> = hashMapOf("garbage" to 9, "2026-01-02" to 1)
+        c = DailyCounts.add(c, "2026-01-02", 1, 7, "2026-01-02")
+        deq(c.keys, setOf("2026-01-02"))
+        deq(c["2026-01-02"], 2)
+    }
+
+    dt("total sums the last N days inclusive") {
+        val c = hashMapOf(
+            "2025-12-26" to 100,   // outside
+            "2025-12-27" to 1,     // 7 days back from 2026-01-02
+            "2025-12-28" to 2,
+            "2025-12-29" to 4,
+            "2025-12-30" to 8,
+            "2025-12-31" to 16,
+            "2026-01-01" to 32,
+            "2026-01-02" to 64
+        )
+        deq(DailyCounts.total(c, "2026-01-02", 7), 127L)
+        deq(DailyCounts.total(c, "2026-01-02", 1), 64L)
+        deq(DailyCounts.total(c, "2026-01-02", 0), 0L)
+        deq(DailyCounts.total(c, "2026-01-02", -1), 0L)
+        deq(DailyCounts.total(c, "2026-01-03", 7), 127L)   // today's future day has no entry
+    }
+
+    dt("total ignores malformed keys and dates") {
+        val c = hashMapOf(
+            "garbage" to 999,
+            "2026-13-01" to 999,
+            "2026-01-02" to 3
+        )
+        deq(DailyCounts.total(c, "2026-01-02", 1), 3L)
+        deq(DailyCounts.total(c, "bad", 7), 0L)
+    }
+
+    dt("encode/decode round trip") {
+        val c = hashMapOf(
+            "2026-01-02" to 3,
+            "2025-12-30" to 10,
+            "2026-01-01" to 0
+        )
+        val s = DailyCounts.encode(c)
+        // Sorted by date, so the string is deterministic.
+        deq(s, "2025-12-30=10;2026-01-01=0;2026-01-02=3")
+        deq(DailyCounts.decode(s), c)
+    }
+
+    dt("decode tolerates bad entries") {
+        val s = "2026-01-02=3;; 2026-01-01 = 5 ;garbage;2026-01-03=abc;2026-01-04=-1;bad=1"
+        val d = DailyCounts.decode(s)
+        deq(d["2026-01-02"], 3)
+        deq(d["2026-01-01"], 5)
+        check(!d.containsKey("2026-01-03")) { "non-numeric value kept" }
+        check(!d.containsKey("2026-01-04")) { "negative value kept" }
+        check(!d.containsKey("bad")) { "non-date key kept" }
+    }
+
+    dt("encode/decode of empty") {
+        deq(DailyCounts.encode(emptyMap()), "")
+        deq(DailyCounts.decode(""), emptyMap<String, Int>())
+    }
+
+    dt("integrated: add, encode, decode, total") {
+        var c: Map<String, Int> = emptyMap()
+        c = DailyCounts.add(c, "2026-01-02", 3, 7, "2026-01-02")
+        c = DailyCounts.add(c, "2026-01-02", 4, 7, "2026-01-02")
+        c = DailyCounts.add(c, "2026-01-03", 5, 7, "2026-01-03")
+        val round = DailyCounts.decode(DailyCounts.encode(c))
+        deq(round, c)
+        deq(DailyCounts.total(round, "2026-01-03", 2), 12L)
+        deq(DailyCounts.total(round, "2026-01-03", 7), 12L)
+    }
+
+    println("DailyCountsTest: $dn passed")
+}
+FULL>>>
+<<<CODE 0
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian.dns
+
+import java.time.LocalDate
+import java.time.format.DateTimeParseException
+
+/**
+ * Per-day block counters. The only thing stored per day is a number: no domains, no timestamps
+ * inside the day, no app ids. Callers pass already-pruned maps around, so the whole module is a
+ * set of pure functions and can be tested on the JVM.
+ *
+ * Day keys are "yyyy-MM-dd", which sorts lexicographically in the same order as the dates.
+ */
+object DailyCounts {
+
+    const val DEFAULT_KEEP_DAYS = 7
+
+    /**
+     * Adds [n] to [day] and drops every entry older than [today] minus ([keepDays] - 1).
+     *
+     * [n] <= 0 returns [counts] unchanged (no pruning either): there is nothing to record and the
+     * caller is not expected to use a zero add as a maintenance pass.
+     *
+     * Counters saturate at [Int.MAX_VALUE] instead of wrapping, so a long-running session cannot
+     * turn a huge count into a small one.
+     *
+     * Malformed keys already in [counts] are dropped, so a corrupt pref from an older build does
+     * not survive forever. A malformed [day] or [today] returns [counts] unchanged: there is no
+     * sensible cutoff without a parseable "today".
+     */
+    fun add(
+        counts: Map<String, Int>,
+        day: String,
+        n: Int,
+        keepDays: Int = DEFAULT_KEEP_DAYS,
+        today: String = day
+    ): Map<String, Int> {
+        if (n <= 0) return counts
+        val todayDate = parseOrNull(today) ?: return counts
+        if (parseOrNull(day) == null) return counts
+        val keep = if (keepDays < 1) 1 else keepDays
+        val cutoff = todayDate.minusDays((keep - 1).toLong())
+
+        val result = HashMap<String, Int>(counts.size + 1)
+        for ((k, v) in counts) {
+            val kd = parseOrNull(k) ?: continue
+            if (kd.isBefore(cutoff)) continue
+            result[k] = v
+        }
+        val current = result[day] ?: 0
+        val summed = current.toLong() + n.toLong()
+        result[day] = if (summed > Int.MAX_VALUE.toLong()) Int.MAX_VALUE else summed.toInt()
+        // Pruning already dropped old keys above, but a caller can pass a day older than the cutoff;
+        // adding it back and re-pruning keeps the invariant "only the last keepDays survive".
+        val dayDate = parseOrNull(day)!!
+        if (dayDate.isBefore(cutoff)) result.remove(day)
+        return result
+    }
+
+    /**
+     * Sum of the counts for [today] and the [days] - 1 days before it. [days] <= 0 yields 0.
+     * Malformed keys and malformed [today] are ignored rather than thrown.
+     */
+    fun total(counts: Map<String, Int>, today: String, days: Int): Long {
+        if (days <= 0) return 0L
+        val todayDate = parseOrNull(today) ?: return 0L
+        val from = todayDate.minusDays((days - 1).toLong())
+        var sum = 0L
+        for ((k, v) in counts) {
+            val kd = parseOrNull(k) ?: continue
+            if (kd.isBefore(from)) continue
+            if (kd.isAfter(todayDate)) continue
+            sum += v.toLong()
+        }
+        return sum
+    }
+
+    /**
+     * "2026-10-31=12;2026-10-30=5", sorted by date so a re-encode of an unchanged map is identical.
+     * Keys that do not parse as a date, or values that are not non-negative ints, are skipped.
+     */
+    fun encode(counts: Map<String, Int>): String {
+        if (counts.isEmpty()) return ""
+        val keys = ArrayList<String>(counts.size)
+        for (k in counts.keys) if (parseOrNull(k) != null) keys.add(k)
+        keys.sort()
+        val sb = StringBuilder(keys.size * 16)
+        for (i in keys.indices) {
+            if (i > 0) sb.append(';')
+            sb.append(keys[i]).append('=').append(counts[keys[i]])
+        }
+        return sb.toString()
+    }
+
+    /**
+     * Inverse of [encode]. Tolerates whitespace, empty entries, missing '=', non-numeric or negative
+     * values, and non-date keys; each bad entry is dropped and the rest is kept.
+     */
+    fun decode(s: String): Map<String, Int> {
+        if (s.isEmpty()) return emptyMap()
+        val result = HashMap<String, Int>()
+        for (raw in s.split(';')) {
+            val piece = raw.trim()
+            if (piece.isEmpty()) continue
+            val eq = piece.indexOf('=')
+            if (eq <= 0 || eq == piece.length - 1) continue
+            val key = piece.substring(0, eq).trim()
+            val valStr = piece.substring(eq + 1).trim()
+            if (parseOrNull(key) == null) continue
+            val v = valStr.toIntOrNull() ?: continue
+            if (v < 0) continue
+            result[key] = v
+        }
+        return result
+    }
+
+    private fun parseOrNull(s: String): LocalDate? = try {
+        // LocalDate.parse with ISO_LOCAL_DATE accepts yyyy-MM-dd and rejects everything else,
+        // including strings with a time part, which is what we want for these keys.
+        LocalDate.parse(s)
+    } catch (_: DateTimeParseException) {
+        null
+    } catch (_: Throwable) {
+        null
+    }
+}
+CODE>>>
+<<<CODE 1
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian.dns
+
+private var dn = 0
+private fun dt(name: String, block: () -> Unit) {
+    try { block(); dn++ } catch (e: Throwable) {
+        println("FAIL $name: ${e.message}")
+        throw e
+    }
+}
+private fun deq(a: Any?, b: Any?) { check(a == b) { "expected $a, got $b" } }
+
+fun main() {
+
+    dt("accumulates into an existing day") {
+        var c: Map<String, Int> = emptyMap()
+        c = DailyCounts.add(c, "2026-01-02", 3, 7, "2026-01-02")
+        c = DailyCounts.add(c, "2026-01-02", 5, 7, "2026-01-02")
+        deq(c["2026-01-02"], 8)
+        deq(c.size, 1)
+    }
+
+    dt("keeps previous days inside the window") {
+        var c: Map<String, Int> = emptyMap()
+        c = DailyCounts.add(c, "2026-01-01", 4, 7, "2026-01-01")
+        c = DailyCounts.add(c, "2026-01-02", 6, 7, "2026-01-02")
+        deq(c["2026-01-01"], 4)
+        deq(c["2026-01-02"], 6)
+        deq(c.size, 2)
+    }
+
+    dt("entries older than keepDays are dropped") {
+        var c: Map<String, Int> = hashMapOf(
+            "2025-12-24" to 1,
+            "2025-12-25" to 1,
+            "2025-12-26" to 1,
+            "2025-12-27" to 1,   // cutoff for today=2026-01-02, keep=7 is 2025-12-27
+            "2025-12-30" to 2,
+            "2026-01-01" to 3
+        )
+        c = DailyCounts.add(c, "2026-01-02", 1, 7, "2026-01-02")
+        // 2025-12-24..26 pruned; 12-27..01-02 kept (7 days).
+        deq(c.keys.sorted(), listOf(
+            "2025-12-27", "2025-12-30", "2026-01-01", "2026-01-02"
+        ))
+    }
+
+    dt("n <= 0 returns the map unchanged") {
+        val c = hashMapOf("2026-01-02" to 5)
+        deq(DailyCounts.add(c, "2026-01-02", 0, 7, "2026-01-02"), c)
+        deq(DailyCounts.add(c, "2026-01-02", -3, 7, "2026-01-02"), c)
+    }
+
+    dt("counter saturates at Int.MAX_VALUE") {
+        val c = hashMapOf("2026-01-02" to Int.MAX_VALUE - 5)
+        val r = DailyCounts.add(c, "2026-01-02", 10, 7, "2026-01-02")
+        deq(r["2026-01-02"], Int.MAX_VALUE)
+    }
+
+    dt("add with a malformed today is a no-op") {
+        val c = hashMapOf("2026-01-02" to 5)
+        deq(DailyCounts.add(c, "2026-01-02", 10, 7, "not-a-date"), c)
+    }
+
+    dt("malformed keys are pruned on the next add") {
+        var c: Map<String, Int> = hashMapOf("garbage" to 9, "2026-01-02" to 1)
+        c = DailyCounts.add(c, "2026-01-02", 1, 7, "2026-01-02")
+        deq(c.keys, setOf("2026-01-02"))
+        deq(c["2026-01-02"], 2)
+    }
+
+    dt("total sums the last N days inclusive") {
+        val c = hashMapOf(
+            "2025-12-26" to 100,   // outside
+            "2025-12-27" to 1,     // 7 days back from 2026-01-02
+            "2025-12-28" to 2,
+            "2025-12-29" to 4,
+            "2025-12-30" to 8,
+            "2025-12-31" to 16,
+            "2026-01-01" to 32,
+            "2026-01-02" to 64
+        )
+        deq(DailyCounts.total(c, "2026-01-02", 7), 127L)
+        deq(DailyCounts.total(c, "2026-01-02", 1), 64L)
+        deq(DailyCounts.total(c, "2026-01-02", 0), 0L)
+        deq(DailyCounts.total(c, "2026-01-02", -1), 0L)
+        deq(DailyCounts.total(c, "2026-01-03", 7), 127L)   // today's future day has no entry
+    }
+
+    dt("total ignores malformed keys and dates") {
+        val c = hashMapOf(
+            "garbage" to 999,
+            "2026-13-01" to 999,
+            "2026-01-02" to 3
+        )
+        deq(DailyCounts.total(c, "2026-01-02", 1), 3L)
+        deq(DailyCounts.total(c, "bad", 7), 0L)
+    }
+
+    dt("encode/decode round trip") {
+        val c = hashMapOf(
+            "2026-01-02" to 3,
+            "2025-12-30" to 10,
+            "2026-01-01" to 0
+        )
+        val s = DailyCounts.encode(c)
+        // Sorted by date, so the string is deterministic.
+        deq(s, "2025-12-30=10;2026-01-01=0;2026-01-02=3")
+        deq(DailyCounts.decode(s), c)
+    }
+
+    dt("decode tolerates bad entries") {
+        val s = "2026-01-02=3;; 2026-01-01 = 5 ;garbage;2026-01-03=abc;2026-01-04=-1;bad=1"
+        val d = DailyCounts.decode(s)
+        deq(d["2026-01-02"], 3)
+        deq(d["2026-01-01"], 5)
+        check(!d.containsKey("2026-01-03")) { "non-numeric value kept" }
+        check(!d.containsKey("2026-01-04")) { "negative value kept" }
+        check(!d.containsKey("bad")) { "non-date key kept" }
+    }
+
+    dt("encode/decode of empty") {
+        deq(DailyCounts.encode(emptyMap()), "")
+        deq(DailyCounts.decode(""), emptyMap<String, Int>())
+    }
+
+    dt("integrated: add, encode, decode, total") {
+        var c: Map<String, Int> = emptyMap()
+        c = DailyCounts.add(c, "2026-01-02", 3, 7, "2026-01-02")
+        c = DailyCounts.add(c, "2026-01-02", 4, 7, "2026-01-02")
+        c = DailyCounts.add(c, "2026-01-03", 5, 7, "2026-01-03")
+        val round = DailyCounts.decode(DailyCounts.encode(c))
+        deq(round, c)
+        deq(DailyCounts.total(round, "2026-01-03", 2), 12L)
+        deq(DailyCounts.total(round, "2026-01-03", 7), 12L)
+    }
+
+    println("DailyCountsTest: $dn passed")
+}
+CODE>>>
