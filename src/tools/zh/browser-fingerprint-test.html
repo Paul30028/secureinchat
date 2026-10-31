@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>浏览器特征检查：你的浏览器向追踪器暴露了什么</title>
+<meta name="description" content="免费的浏览器特征检查。看看你的浏览器向追踪器暴露了哪些信息：画布、显卡、语言、屏幕、全局隐私控制。在本机运行，不发送任何内容。">
+<link rel="canonical" href="https://secureinchat.com/zh/tools/browser-fingerprint-test/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="浏览器特征检查：你的浏览器向追踪器暴露了什么">
+<meta property="og:description" content="免费的浏览器特征检查。看看你的浏览器向追踪器暴露了哪些信息：画布、显卡、语言、屏幕、全局隐私控制。在本机运行，不发送任何内容。">
+<meta property="og:url" content="https://secureinchat.com/zh/tools/browser-fingerprint-test/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "浏览器特征检查",
+      "url": "https://secureinchat.com/zh/tools/browser-fingerprint-test/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "需要 JavaScript。",
+      "description": "免费的浏览器特征检查。看看你的浏览器向追踪器暴露了哪些信息：画布、显卡、语言、屏幕、全局隐私控制。在本机运行，不发送任何内容。",
+      "inLanguage": "zh-CN",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "什么是浏览器指纹？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "网站会从你的浏览器读很多小细节，比如屏幕大小、字体、图形输出和语言，再把这些组合成一个值，不用 Cookie 就能认出你。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "这个测试能告诉我自己有多独特吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不能。真正判断独特性需要大量其他浏览器的样本，本页没有这样的数据。它展示的是你的浏览器暴露了什么，以及哪些防护已经生效。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "画布结果每次不同是什么意思？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "本页把同一张图画两遍。如果结果不一样，说明你的浏览器或扩展在有意加噪，这会让画布无法再作为稳定的标识。Brave 和某些 Firefox 设置会这么做。测试能看出差异，但无法确认具体手段。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "画布哈希稳定是不好的吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "在大多数浏览器里这是正常的。它之所以值得注意，是因为追踪器会把它和其他信号合起来用。在同一台设备上换几个浏览器比对哈希值，就能看出有多少是你这台设备特有的。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "什么是全局隐私控制？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "一种浏览器信号，请求网站不要出售或分享你的数据。有些司法辖区要求网站把它当成退出请求。它不会向网站隐藏任何东西。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "不跟踪有用吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "很少有用。大多数网站会忽略它；而且因为打开的人很少，打开它反而可能成为一个额外的、让你更容易被区分出来的细节。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "怎样减少被指纹识别？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "使用会随机化或阻止高价值信号的浏览器，保持更新，避免不常用的扩展和设置，也不要把窗口调整到少见的尺寸。任何改动之后，重新运行一次这个测试。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "本页会保存我的数据吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。所有计算都在你的浏览器里完成，不发送任何内容。页面不设置 Cookie，也不加载统计脚本。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">跳到结果</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/zh/">SecureInChat</a>
+    <nav aria-label="主导航"><a href="/zh/">首页</a><a href="/tools/" aria-current="page">工具</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">浏览器特征检查</h1>
+    <p class="lede">看看你的浏览器向每一个访问的网站说了什么，以及你的防护有没有把它们藏起来。</p>
+    <div class="controls"><button id="run" class="btn" type="button">运行测试</button></div>
+    <p class="hint">测试在本页运行，不发送任何内容。</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">结果</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">运行测试，看看你的结果。</p>
+    </div>
+    <table class="results">
+      <caption class="sr">浏览器特征检查结果</caption>
+      <thead><tr><th scope="col">检查</th><th scope="col">结果</th><th scope="col">状态</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="检查"><span class="c-name">浏览器</span><span class="c-desc">运行测试，看看它暴露了什么。</span></th>
+          <td data-label="结果"><div class="vals"><div class="val mono">尚未运行</div></div></td>
+          <td data-label="状态"><span class="pill">未运行</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap netlog-section" aria-label="本页发出的网络请求">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">本页发出的网络请求：<span class="netlog-count">0</span></summary>
+        <p class="netlog-note">本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。运行测试前后对比一下即可。</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="本页发出的网络请求">
+            <thead>
+              <tr>
+                <th scope="col">时间</th>
+                <th scope="col">类型</th>
+                <th scope="col">地址</th>
+                <th scope="col">大小</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>你的浏览器没有向页面公开请求计时信息。</p>
+        <p class="netlog-footer">本列表来自你浏览器的 Resource Timing API，显示本页通过 fetch、XHR 和信标加载或发出的资源。它看不到 WebSocket 或 WebRTC 流量、浏览器扩展，以及浏览器对页面隐藏的请求，所以这是证据，不是证明。更可靠的保证是页面的 Content-Security-Policy，你可以在浏览器的开发者工具（Network 标签，响应头）里读到，以及 <a href="https://github.com/Paul30028/secureinchat" rel="noopener">GitHub 上的源代码</a>。</p>
+      </details>
+    </div>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">这个测试会读取什么</h2>
+    <p>任何你访问的页面都能不问就读取下面这些信号。这个测试把它们读出来，并告诉你哪些会帮助追踪器认出你，以及你的浏览器已经启用了哪些防护。</p>
+    <ul>
+      <li><strong>画布：</strong>把同一张图画两遍。稳定的结果本身就是一种信号。每次都不同说明你的浏览器或扩展在有意加噪。</li>
+      <li><strong>显卡：</strong>WebGL 能报告的 GPU 名称。有些浏览器会把它藏起来。</li>
+      <li><strong>全局隐私控制和不跟踪：</strong>你的浏览器是否发送退出信号。</li>
+      <li><strong>浏览器和设备：</strong>浏览器标识、语言、时区、屏幕和硬件信息。</li>
+    </ul>
+    <h2 id="limits-h">这个测试无法告诉你什么</h2>
+    <p>它不测试字体、音频处理或每一个 API，也无法说明你的特征组合有多罕见。请把结果当作一份「浏览器暴露了什么」的清单，并在更换浏览器、设置或扩展之后再运行一次。如果你更关心一条链接是否可疑，可以试试<a href="/zh/tools/link-checker/">链接检查器</a>。</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">常见问题</h2>
+    <h3>什么是浏览器指纹？</h3>
+    <p>网站会从你的浏览器读很多小细节，比如屏幕大小、字体、图形输出和语言，再把这些组合成一个值，不用 Cookie 就能认出你。</p>
+    <h3>这个测试能告诉我自己有多独特吗？</h3>
+    <p>不能。真正判断独特性需要大量其他浏览器的样本，本页没有这样的数据。它展示的是你的浏览器暴露了什么，以及哪些防护已经生效。</p>
+    <h3>画布结果每次不同是什么意思？</h3>
+    <p>本页把同一张图画两遍。如果结果不一样，说明你的浏览器或扩展在有意加噪，这会让画布无法再作为稳定的标识。Brave 和某些 Firefox 设置会这么做。测试能看出差异，但无法确认具体手段。</p>
+    <h3>画布哈希稳定是不好的吗？</h3>
+    <p>在大多数浏览器里这是正常的。它之所以值得注意，是因为追踪器会把它和其他信号合起来用。在同一台设备上换几个浏览器比对哈希值，就能看出有多少是你这台设备特有的。</p>
+    <h3>什么是全局隐私控制？</h3>
+    <p>一种浏览器信号，请求网站不要出售或分享你的数据。有些司法辖区要求网站把它当成退出请求。它不会向网站隐藏任何东西。</p>
+    <h3>不跟踪有用吗？</h3>
+    <p>很少有用。大多数网站会忽略它；而且因为打开的人很少，打开它反而可能成为一个额外的、让你更容易被区分出来的细节。</p>
+    <h3>怎样减少被指纹识别？</h3>
+    <p>使用会随机化或阻止高价值信号的浏览器，保持更新，避免不常用的扩展和设置，也不要把窗口调整到少见的尺寸。任何改动之后，重新运行一次这个测试。</p>
+    <h3>本页会保存我的数据吗？</h3>
+    <p>不会。所有计算都在你的浏览器里完成，不发送任何内容。页面不设置 Cookie，也不加载统计脚本。</p>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat。看清你交出了什么，再把它关掉。</p>
+    <nav aria-label="页脚"><a href="/mission/">使命</a><a href="/principles/">原则</a><a href="/privacy/">隐私</a><a href="/principles/#labels">状态标签</a><a href="/sponsor/">赞助与推广披露</a><a href="/contact/">联系</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/fpcore.js" defer></script>
+<script src="/tools/assets/fp.js" defer></script>
+<script src="/tools/assets/net-log.js" defer></script>
+</body>
+</html>
