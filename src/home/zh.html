@@ -60,220 +60,185 @@
     </div>
   </header>
 
-  <main id="main">
-    <section class="hero-section" aria-labelledby="hero-title">
-      <figure class="hero-background">
-        <img src="/assets/img/secureinchat-hero.png" width="2560" height="1100" alt="金色晨光中的山间湖泊、笔记本电脑和手机，示意隐私工具及安全通信" fetchpriority="high" decoding="async">
-      </figure>
+  <main id="main" class="v4-main">
 
-      <div class="hero-annotation">
-        <p>保护隐私，让重要的对话只属于你。</p>
-        <div class="hero-badges">
-          <div class="hero-badge">
-            <span class="hero-badge-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect x="7" y="14" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 14V10a5 5 0 0 1 10 0v4M16 19v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <section class="v4-hero" aria-labelledby="hero-title">
+      <div class="v4-container">
+        <p class="v4-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 20 6v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6Z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>在你的设备上完成</span>
+        </p>
+        <h1 id="hero-title" class="v4-hero-title"><span class="v4-hero-line">看看你正在<span class="v4-highlight">泄露</span>什么。</span><span class="v4-hero-line">然后把它关掉。</span></h1>
+        <p class="v4-hero-lead">看清浏览器暴露的信息，保护敏感内容，减少不必要的追踪。</p>
+        <div class="v4-hero-actions">
+          <a class="v4-button v4-button--primary" href="/zh/checkup/">
+            开始隐私体检
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="v4-button v4-button--secondary" href="/zh/tools/">浏览全部工具</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="v4-steps" aria-labelledby="steps-title">
+      <div class="v4-container">
+        <h2 id="steps-title" class="v4-sr-only">四步隐私闭环</h2>
+        <ol class="v4-steps-list">
+          <li class="v4-step v4-step--detect">
+            <span class="v4-step-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12 19 5"/></svg>
             </span>
-            <span>端到端加密</span>
-          </div>
-          <div class="hero-badge">
-            <span class="hero-badge-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="25" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 10 9 21M18 10l5 11M10 24h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span class="v4-step-kicker">第 1 步 / 检测</span>
+            <h3 class="v4-step-title">看清暴露面</h3>
+            <p class="v4-step-text">浏览器隐私报告、浏览器特征检查。</p>
+          </li>
+          <li class="v4-step v4-step--protect">
+            <span class="v4-step-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 6v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6Z"/><rect x="9" y="11" width="6" height="5" rx="1"/><path d="M10 11V9.5a2 2 0 0 1 4 0V11"/></svg>
             </span>
-            <span>盲中继</span>
-          </div>
-          <div class="hero-badge">
-            <span class="hero-badge-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="21" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m17 14-10 10v4h4v-4h4v-4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            <span class="v4-step-kicker">第 2 步 / 防护</span>
+            <h3 class="v4-step-title">收紧入口</h3>
+            <p class="v4-step-text">账号安全自查、手机号隐私自查、密码检查。</p>
+          </li>
+          <li class="v4-step v4-step--clean">
+            <span class="v4-step-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20 3 15a2 2 0 0 1 0-3L11 4a2 2 0 0 1 3 0l5 5a2 2 0 0 1 0 3l-7 8Z"/><path d="M11 8 16 13"/></svg>
             </span>
-            <span>本地密钥</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="container hero-layout">
-        <div class="hero-copy">
-          <h1 id="hero-title">看看你正在泄露什么。然后把它关掉。</h1>
-          <p class="hero-description">了解浏览器会暴露哪些信息，保护敏感内容，学习如何减少不必要的追踪。</p>
-          <div class="hero-actions">
-            <a class="button button--primary" href="/tools/privacy-report/">运行隐私报告 <span aria-hidden="true">→</span></a>
-            <a class="button button--secondary" href="/zh/tools/">浏览隐私工具</a>
-          </div>
-          <p class="availability-note">
-            <span class="status-dot" aria-hidden="true"></span>
-            <span>隐私工具已开放使用</span>
-            <span class="availability-separator" aria-hidden="true">·</span>
-            <a href="/messaging/">聊天客户端正在开发中</a>
-          </p>
-        </div>
+            <span class="v4-step-kicker">第 3 步 / 净化</span>
+            <h3 class="v4-step-title">清理文件与文本</h3>
+            <p class="v4-step-text">照片、文件元数据清理，文本脱敏。</p>
+          </li>
+          <li class="v4-step v4-step--verify">
+            <span class="v4-step-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
+            </span>
+            <span class="v4-step-kicker">第 4 步 / 核对</span>
+            <h3 class="v4-step-title">检查链接和结果</h3>
+            <p class="v4-step-text">链接检查器；清理后工具会再扫一遍。</p>
+          </li>
+        </ol>
       </div>
     </section>
 
-    <section class="section tools-section" id="privacy-tools">
-      <div class="container">
-        <div class="section-heading section-heading--split">
-          <div>
-            <h2>实用的隐私工具</h2>
-            <p>从一个小步骤开始。这些浏览器工具无需安装独立软件。</p>
-          </div>
-          <a class="text-link" href="/zh/tools/">查看全部隐私工具 <span aria-hidden="true">→</span></a>
-        </div>
+    <section class="v4-tools" aria-labelledby="tools-title">
+      <div class="v4-container">
+        <header class="v4-section-head">
+          <h2 id="tools-title">先从本地工具开始</h2>
+          <p>这五件在浏览器里跑，什么都不发送。账号安全自查在本机列清单，也不发送。</p>
+        </header>
+        <div class="v4-card-grid">
 
-
-        <aside class="checkup-home-entry" aria-labelledby="home-checkup-title">
-          <span class="checkup-home-entry-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 3 27 7v8c0 7-4 11-11 14C9 26 5 22 5 15V7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m10 16 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <div><h3 id="home-checkup-title">不知道从哪里开始？做一次隐私体检。</h3><p>从网址、手机号或账号安全自查开始，了解哪些步骤在本地完成、哪些检查需要联网。</p></div>
-          <a class="button button--primary" href="/zh/checkup/">开始隐私体检 <span aria-hidden="true">→</span></a>
-        </aside>
-
-        <div class="tool-layout">
-          <article class="tool-card">
-            <div class="tool-card-heading">
-              <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M8 33c0-7 4-11 12-11s12 4 12 11Z" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/></svg></span>
-              <div class="tool-title-group"><h3>账号安全自查</h3><span class="fact-tag">本地处理</span></div>
+          <article class="v4-card">
+            <div class="v4-card-top">
+              <span class="v4-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m4 18 5-5 3 3 3-3 5 5"/></svg>
+              </span>
+              <span class="v4-card-tag v4-card-tag--local">本地处理</span>
             </div>
-            <p>检查常见的账号安全风险，获取实际可行的改进建议。</p>
-            <div class="tool-meta"><span class="meta-tag">登录安全</span><span class="meta-tag">账号恢复</span></div>
-            <a class="tool-action" href="/zh/tools/account-checkup/">立即检查 <span aria-hidden="true">→</span></a>
-          </article>
-
-          <article class="tool-card">
-            <div class="tool-card-heading">
-              <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="30" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.3"/><circle cx="14" cy="14" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="m8 29 9-9 5 5 4-4 6 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              <div class="tool-title-group"><h3>照片元数据清理</h3><span class="fact-tag">本地处理</span></div>
-            </div>
-            <p>查看并移除照片中受支持的元数据。</p>
-            <div class="tool-meta"><span class="meta-tag">EXIF 信息</span><span class="meta-tag">位置数据</span></div>
-            <a class="tool-action" href="/zh/tools/photo-metadata-remover/">清理照片 <span aria-hidden="true">→</span></a>
-          </article>
-
-          <article class="tool-card">
-            <div class="tool-card-heading">
-              <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M9 5H25L32 12V35H9Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M25 5V12H32M14 19H27M14 24H27M14 29H23" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
-              <div class="tool-title-group"><h3>文本脱敏</h3><span class="fact-tag">本地处理</span></div>
-            </div>
-            <p>分享文本或提交给 AI 之前，移除敏感信息。</p>
-            <div class="tool-meta"><span class="meta-tag">个人信息</span><span class="meta-tag">文档内容</span></div>
-            <a class="tool-action" href="/zh/tools/text-redactor/">脱敏文本 <span aria-hidden="true">→</span></a>
-          </article>
-
-          <article class="tool-card">
-            <div class="tool-card-heading">
-              <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M16 24 12 28a6 6 0 0 1-8-9l7-7a6 6 0 0 1 9 1M24 16l4-4a6 6 0 0 1 8 9l-7 7a6 6 0 0 1-9-1M14 26l12-12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>
-              <div class="tool-title-group"><h3>可疑链接检查</h3><span class="fact-tag">本地处理</span></div>
-            </div>
-            <p>打开链接之前，检查可疑网址与跟踪参数。</p>
-            <div class="tool-meta"><span class="meta-tag">跟踪参数</span><span class="meta-tag">可疑网址</span></div>
-            <a class="tool-action" href="/zh/tools/link-checker/">立即检查 <span aria-hidden="true">→</span></a>
-          </article>
-        </div>
-        <p class="tools-disclosure">浏览器隐私报告包含 12 项检查，部分连接检查会使用外部查询服务。请在<a href="/principles/">隐私原则</a>中查看相关数据流说明。</p>
-      </div>
-    </section>
-
-    <section class="section guides-section" id="guides">
-      <div class="container">
-        <div class="section-heading section-heading--split">
-          <div>
-            <h2>了解风险，找到适合自己的做法</h2>
-            <p>按照真实的隐私问题分类，而不只是罗列技术术语。</p>
-          </div>
-          <a class="text-link" href="/blog/">浏览全部指南 <span aria-hidden="true">→</span></a>
-        </div>
-
-        <div class="guides-layout">
-          <div class="guide-categories">
-            <a class="guide-category" href="/blog/">
-              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M5 17a7 7 0 0 1 7-7 7 7 0 0 1 13-2 6 6 0 0 1 1 12M8 23h16M12 19v8M20 19v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <h3>断网通信与中继</h3><span class="guide-count">2 篇指南 <span aria-hidden="true">→</span></span>
+            <h3>照片元数据清理</h3>
+            <p>移除照片里的 GPS、设备和时间信息。</p>
+            <a class="v4-card-link" href="/zh/tools/photo-metadata-remover/">
+              打开
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </a>
-            <a class="guide-category" href="/blog/">
-              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 4v24M16 10C10 3 5 8 7 13c-5 5 0 11 7 8M16 10c6-7 11-2 9 3 5 5 0 11-7 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 14h3M19 14h3M10 19h3M19 19h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
-              <h3>AI 与隐私</h3><span class="guide-count">6 篇指南 <span aria-hidden="true">→</span></span>
-            </a>
-            <a class="guide-category" href="/blog/">
-              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="10" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 27c0-6 4-9 10-9s10 3 10 9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
-              <h3>账号与手机</h3><span class="guide-count">5 篇指南 <span aria-hidden="true">→</span></span>
-            </a>
-            <a class="guide-category" href="/blog/">
-              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><ellipse cx="16" cy="7" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7v18c0 2 4 4 10 4s10-2 10-4V7M6 13c0 2 4 4 10 4s10-2 10-4M6 19c0 2 4 4 10 4s10-2 10-4" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
-              <h3>数据与追踪</h3><span class="guide-count">3 篇指南 <span aria-hidden="true">→</span></span>
-            </a>
-          </div>
-
-          <article class="featured-guide">
-            <img src="/assets/img/secureinchat-guide-lake.png" width="1400" height="800" alt="金色晨光中的山间湖泊与森林" loading="lazy" decoding="async">
-            <div class="featured-guide-content">
-              <p class="featured-guide-label">精选指南</p>
-              <h3>数据经纪商知道你多少信息？</h3>
-              <p>了解个人信息如何被收集、关联和交易。</p>
-              <a class="button button--light" href="/blog/what-data-brokers-know-about-you/">阅读指南 <span aria-hidden="true">→</span></a>
-            </div>
           </article>
+
+          <article class="v4-card">
+            <div class="v4-card-top">
+              <span class="v4-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/></svg>
+              </span>
+              <span class="v4-card-tag v4-card-tag--local">本地处理</span>
+            </div>
+            <h3>文件元数据清理</h3>
+            <p>清理作者、修订记录和隐藏属性。</p>
+            <a class="v4-card-link" href="/zh/tools/file-metadata-remover/">
+              打开
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </article>
+
+          <article class="v4-card">
+            <div class="v4-card-top">
+              <span class="v4-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M4 12h7M4 17h9"/><path d="m15 10 4 4M19 10l-4 4"/></svg>
+              </span>
+              <span class="v4-card-tag v4-card-tag--local">本地处理</span>
+            </div>
+            <h3>文本脱敏</h3>
+            <p>分享前替换邮箱、手机号、身份证号和你指定的词。</p>
+            <a class="v4-card-link" href="/zh/tools/text-redactor/">
+              打开
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </article>
+
+          <article class="v4-card">
+            <div class="v4-card-top">
+              <span class="v4-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 13.5a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1.5 1.5"/><path d="M13.5 10.5a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1.5-1.5"/></svg>
+              </span>
+              <span class="v4-card-tag v4-card-tag--local">本地处理</span>
+            </div>
+            <h3>链接检查器</h3>
+            <p>打开前看清跟踪参数和可疑域名。</p>
+            <a class="v4-card-link" href="/zh/tools/link-checker/">
+              打开
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </article>
+
+          <article class="v4-card">
+            <div class="v4-card-top">
+              <span class="v4-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10a5 5 0 0 1 10 0v3"/><path d="M9.5 12a2.5 2.5 0 0 1 5 0v3a2.5 2.5 0 0 1-5 0Z"/><path d="M12 8v5"/></svg>
+              </span>
+              <span class="v4-card-tag v4-card-tag--local">本地处理</span>
+            </div>
+            <h3>浏览器特征检查</h3>
+            <p>查看浏览器暴露了哪些设备特征。</p>
+            <a class="v4-card-link" href="/tools/browser-fingerprint-test/">
+              打开
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </article>
+
+          <article class="v4-card">
+            <div class="v4-card-top">
+              <span class="v4-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.5"/><path d="M4 20c0-3.3 2.7-6 6-6 1.2 0 2.3.3 3.2.9"/><path d="m15 12 2 2 3-3"/></svg>
+              </span>
+              <span class="v4-card-tag v4-card-tag--local">本地清单</span>
+            </div>
+            <h3>账号安全自查</h3>
+            <p>按清单检查登录、恢复和二次验证。</p>
+            <a class="v4-card-link" href="/zh/tools/account-checkup/">
+              打开
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </article>
+
         </div>
       </div>
     </section>
 
-    <section class="architecture-section" id="architecture">
-      <div class="container architecture-layout">
-        <div class="architecture-copy">
-          <h2>看清你的数据去了哪里。</h2>
-          <p>在工具支持的情况下，优先在本地处理数据。部分检查需要外部查询服务；聊天客户端的中继属于独立的通信路径。</p>
-          <a class="button button--outline-light" href="/messaging/">了解我们的架构 <span aria-hidden="true">→</span></a>
-        </div>
-
-        <div class="data-flow" aria-label="通信中继与部分隐私工具的独立数据路径">
-          <div class="flow-step">
-            <svg viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="7" width="40" height="27" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 41H32M24 34V41" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            <h3>你的设备</h3><p>本地处理</p>
-          </div>
-          <svg class="flow-arrow" viewBox="0 0 40 20" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M2 10H35M28 3L35 10 28 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div class="flow-step">
-            <svg viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="m24 5 19 10-19 10L5 15Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m5 23 19 10 19-10M5 31l19 10 19-10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-            <h3>通信中继</h3><p>转发加密数据</p>
-          </div>
-          <svg class="flow-arrow" viewBox="0 0 40 20" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M2 10H35M28 3L35 10 28 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <div class="flow-step">
-            <svg viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="19" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="24" cy="24" rx="9" ry="19" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 17H42M6 31H42" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
-            <h3>外部查询服务</h3><p>仅部分工具需要</p>
-          </div>
-        </div>
-
-        <div class="architecture-note">
-          <span class="architecture-note-symbol" aria-hidden="true">✓</span>
-          <p>图中展示的是不同类型的数据路径，并非每次请求都会依次经过所有节点。部分工具会直接查询 ipify、ipwho.is 或 Pwned Passwords。各工具的数据流与局限请查看<a href="/principles/">隐私原则</a>。</p>
-        </div>
+    <section class="v4-note">
+      <div class="v4-container">
+        <p class="v4-note-inner">工具不是万能的：本地处理只清理浏览器能读到的数据；「有限联网」会发送 SHA-1 哈希前 5 位；「需要联网」会把 IP 或网址交给第三方查询服务。<a href="/principles/">查看标签含义与数据流</a></p>
       </div>
     </section>
 
-    <section class="section messaging-section" id="messaging">
-      <div class="container messaging-layout">
-        <div class="messaging-image">
-          <img src="/assets/img/secureinchat-messaging.png" width="1000" height="800" alt="SecureInChat 手机客户端概念示意图；客户端仍在开发中，尚未发布" loading="lazy" decoding="async">
-        </div>
-
-        <div class="messaging-copy">
-          <p class="eyebrow-text">独立开发中的产品</p>
-          <h2>私密通信，需要认真打磨。</h2>
-          <p>聊天客户端与现有隐私工具分开开发，目前没有公布正式发布日期。</p>
-          <div class="roadmap" aria-label="开发进度">
-            <div class="roadmap-item roadmap-item--done"><span class="roadmap-indicator" aria-hidden="true">✓</span><h3>架构设计</h3><p>已完成</p></div>
-            <div class="roadmap-item roadmap-item--done"><span class="roadmap-indicator" aria-hidden="true">✓</span><h3>中继测试</h3><p>可在线检测</p></div>
-            <div class="roadmap-item roadmap-item--progress"><span class="roadmap-indicator" aria-hidden="true">•</span><h3>客户端开发</h3><p>进行中</p></div>
-            <div class="roadmap-item roadmap-item--pending"><span class="roadmap-indicator" aria-hidden="true">—</span><h3>正式发布</h3><p>日期未定</p></div>
-          </div>
-        </div>
-
-        <aside class="next-steps" aria-labelledby="next-steps-title">
-          <h3 id="next-steps-title">你现在可以做什么？</h3>
-          <ul>
-            <li><span class="check-mark" aria-hidden="true">✓</span><span>使用现有的隐私工具 <a href="/zh/tools/">/zh/tools/</a></span></li>
-            <li><span class="check-mark" aria-hidden="true">✓</span><span>阅读使用指南 <a href="/blog/">/blog/</a></span></li>
-            <li><span class="check-mark" aria-hidden="true">✓</span><span>测试在线中继 <a href="/messaging/">/messaging/</a></span></li>
-          </ul>
-          <a class="button button--primary" href="/messaging/">查看开发进度 <span aria-hidden="true">→</span></a>
-        </aside>
+    <section class="v4-messaging" aria-labelledby="messaging-title">
+      <div class="v4-container">
+        <h2 id="messaging-title">加密通信仍在开发中。</h2>
+        <p>聊天客户端与隐私工具分开开发，目前没有公布发布日期。</p>
+        <a class="v4-button v4-button--secondary" href="/messaging/">
+          了解加密通信
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
       </div>
     </section>
+
   </main>
 
   <footer class="site-footer">

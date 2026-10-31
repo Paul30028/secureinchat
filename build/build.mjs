@@ -598,7 +598,13 @@ const SPONSOR = `    <h1>How SecureInChat is funded</h1>
 `;
 
 // ---------------------------------------------------------------------------------------------
+// Design v4 (DeepSeek layouts #6/#7, chosen by Paul 2026-10-31): one stylesheet loaded last on every
+// HTML page re-skins the whole site without rewriting each page's markup.
+const V4_LINK = '<link href="/assets/css/v4.css" rel="stylesheet"/>';
 function write(rel, content) {
+  if (rel.endsWith('.html') && typeof content === 'string' && content.includes('</head>') && !content.includes(V4_LINK)) {
+    content = content.replace('</head>', `  ${V4_LINK}\n </head>`);
+  }
   const f = path.join(PUB, rel);
   fs.mkdirSync(path.dirname(f), { recursive: true });
   fs.writeFileSync(f, content);
@@ -654,6 +660,7 @@ write('zh/checkup/index.html', gptPage('src/checkup/checkup-zh.html', '/zh/check
 write('tools/phone-checkup/index.html', gptPage('src/checkup/phone-en.html', '/tools/phone-checkup/', 'en_US', 'Phone Number Privacy Checkup', 'A six-item checklist to protect your phone number from SIM swaps and exposure. You never enter your number; nothing is saved or sent.', null, PHONE_ALT));
 write('zh/tools/phone-checkup/index.html', gptPage('src/checkup/phone-zh.html', '/zh/tools/phone-checkup/', 'zh_CN', '手机号隐私自查', '六项自查，保护手机号免受换卡诈骗和泄露。无需输入号码，不保存、不发送。', null, PHONE_ALT));
 write('assets/css/subpages.css', fs.readFileSync(path.join(ROOT, 'src/subpages/subpages.css')));
+write('assets/css/v4.css', fs.readFileSync(path.join(ROOT, 'src/design-v4/v4.css')));
 for (const f of fs.readdirSync(path.join(ROOT, 'src/subpages/illustrations'))) write(`assets/illustrations/${f}`, fs.readFileSync(path.join(ROOT, 'src/subpages/illustrations', f)));
 write('assets/css/checkup.css', fs.readFileSync(path.join(ROOT, 'src/checkup/checkup.css')));
 write('assets/js/phone-checkup.js', fs.readFileSync(path.join(ROOT, 'src/checkup/phone-checkup.js')));
