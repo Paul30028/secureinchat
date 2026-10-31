@@ -1,0 +1,626 @@
+任务 W16(网站):中文版「浏览器特征检查」页面 /zh/tools/browser-fingerprint-test/。
+
+背景:你上次做的 W6(中文照片清理页)之后,中文工具页已经做到 7 个:手机号自查、照片元数据清理、文件元数据清理、文本脱敏、密码检查、账号安全自查、链接检查器(W8–W13,我和轮班按你 W6 的模式完成)。W14 修了链接检查器把 mailto: 误报成危险的问题,W15 把英文首页的工具数改成 12。所有测试都通过。中文工具索引里还剩 3 个指向英文页:隐私报告、网站健康检查(都要联网,暂不做)和本次的浏览器特征检查(纯本地,可以做)。
+
+要求(和前几个中文页完全同一套做法):
+1. public/tools/assets/fp.js:界面文字按 document.documentElement.lang 选中文或英文(和 exif-app.js、link-app.js 的做法一样)。fpcore.js 不改:采集哪些特征、怎么算结果都由它决定。英文页输出必须逐字不变。
+2. src/tools/zh/browser-fingerprint-test.html:按英文页逐句翻译,结构和元素 id 不变,不加新事实,不加外部链接,不放合作伙伴/联盟区块,不链 IP 泄露测试和 VPN(中文页的铁规则)。「相关工具」改链已有的中文页。带上网络请求面板(和其他中文页一样)。
+3. build/build.mjs:仿照 link-checker 的中文页那段(下面附了)生成 zh/tools/browser-fingerprint-test/index.html:侧栏标签「本地处理」,数据流「留在本机:所有读取到的特征 / 发送给他人:无」,中英文 hreflang 互链(英文页的 alt 列表里加上这个 slug),_headers 加该路径的工具页 CSP,sitemap 加条目,ZH_TOOLS 表加一项让 /zh/tools/ 索引改链中文页。给「锚点(原文逐字,唯一)→ 替换」片段。
+4. 测试 tests/zhfp.py(参照下面附的 tests/zhlink.py 的写法):中文界面文字、每个特征都有中文名称、检查过程中零网络请求、无外链、无 CSP/控制台报错、390 宽无横向滚动、英文页文字不变。
+5. 不写进度百分比;不确定的地方直说。
+
+输出:fp.js(完整)、src/tools/zh/browser-fingerprint-test.html(完整)、build.mjs 的锚点片段、tests/zhfp.py(完整)。
+
+下面是相关源码(以此为准)。
+
+=== public/tools/assets/fp.js ===
+/* Browser fingerprint test: renders the checks from fpcore.js. Nothing is sent anywhere or stored. */
+(function () {
+  'use strict';
+  var btn = document.getElementById('run');
+  var tbody = document.getElementById('rows');
+  var summary = document.getElementById('summary');
+
+  function row(c) {
+    var tr = document.createElement('tr');
+    tr.setAttribute('data-status', c.status);
+    var th = document.createElement('th'); th.scope = 'row'; th.setAttribute('data-label', 'Check');
+    var n = document.createElement('span'); n.className = 'c-name'; n.textContent = c.name;
+    var d = document.createElement('span'); d.className = 'c-desc'; d.textContent = c.desc;
+    th.appendChild(n); th.appendChild(d);
+    var td = document.createElement('td'); td.setAttribute('data-label', 'Result');
+    var vals = document.createElement('div'); vals.className = 'vals';
+    c.lines.forEach(function (l) { var v = document.createElement('div'); v.className = 'val mono'; v.textContent = l; vals.appendChild(v); });
+    td.appendChild(vals);
+    var p = document.createElement('p'); p.className = 'why'; p.textContent = c.why; td.appendChild(p);
+    var ts = document.createElement('td'); ts.setAttribute('data-label', 'Status');
+    var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = c.label; ts.appendChild(pill);
+    tr.appendChild(th); tr.appendChild(td); tr.appendChild(ts);
+    return tr;
+  }
+
+  function run() {
+    btn.disabled = true; btn.textContent = 'Testing...';
+    window.FPC.collect().then(function (checks) {
+      tbody.textContent = '';
+      var warn = 0;
+      checks.forEach(function (c) { if (c.status === 'warn') warn++; tbody.appendChild(row(c)); });
+      summary.textContent = warn ? warn + ' of ' + checks.length + ' checks give sites something to recognise you by.' : 'Nothing here makes you easier to recognise than usual.';
+      summary.setAttribute('data-tone', warn ? 'warn' : 'ok');
+    }).catch(function () {
+      summary.textContent = 'The test could not finish.'; summary.setAttribute('data-tone', 'fail');
+    }).then(function () { btn.disabled = false; btn.textContent = 'Run again'; });
+  }
+  btn.addEventListener('click', run);
+})();
+
+=== public/tools/assets/fpcore.js ===
+/* Browser signal checks shared by the fingerprint test and the privacy report.
+   Reads what this browser exposes to any page. Nothing is sent anywhere or stored. */
+(function (root) {
+  'use strict';
+
+  function check(id, name, desc, status, label, lines, why) {
+    return { id: id, name: name, desc: desc, status: status, label: label, lines: lines, why: why || '' };
+  }
+
+  function sha(str) {
+    if (!root.crypto || !crypto.subtle) return Promise.resolve(String(str.length));
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function (b) {
+      return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('').slice(0, 12);
+    });
+  }
+
+  function drawCanvas() {
+    var c = document.createElement('canvas'); c.width = 240; c.height = 60;
+    var x = c.getContext('2d'); if (!x) return null;
+    x.textBaseline = 'top'; x.font = '16px Arial'; x.fillStyle = '#f60'; x.fillRect(110, 5, 70, 30);
+    x.fillStyle = '#069'; x.fillText('Cwm fjordbank glyphs vext quiz', 4, 8);
+    x.fillStyle = 'rgba(102,204,0,0.6)'; x.font = '18px Times'; x.fillText('Cwm fjordbank glyphs vext quiz', 6, 30);
+    x.globalCompositeOperation = 'multiply'; x.fillStyle = 'rgb(255,0,255)'; x.beginPath(); x.arc(50, 25, 20, 0, Math.PI * 2, true); x.fill();
+    return c.toDataURL();
+  }
+
+  function blankCanvas() { var c = document.createElement('canvas'); c.width = 240; c.height = 60; try { return c.toDataURL(); } catch (e) { return null; } }
+
+  var CANVAS = ['Canvas', 'How your browser draws text and shapes.'];
+
+  function canvas() {
+    var a, b, blank;
+    try { a = drawCanvas(); b = drawCanvas(); blank = blankCanvas(); } catch (e) { a = null; }
+    if (!a || a === blank) return Promise.resolve(check('canvas', CANVAS[0], CANVAS[1], 'ok', 'Blocked', ['Canvas returned no image'], 'The browser or an extension blocked canvas reading, so this signal is hidden.'));
+    if (a !== b) return Promise.resolve(check('canvas', CANVAS[0], CANVAS[1], 'ok', 'Varies', ['Two identical drawings gave different results'], 'Your browser or an extension appears to add noise to canvas output. That would stop canvas from being a stable identifier. This test sees the difference but cannot confirm how it works.'));
+    return sha(a).then(function (h) {
+      return check('canvas', CANVAS[0], CANVAS[1], 'warn', 'Stable', ['Hash ' + h + ' (same on every draw)'], 'Sites can combine this with other signals to tell you apart. Compare the hash in another browser: different values mean it identifies your setup.');
+    });
+  }
+
+  function webgl() {
+    var r = null;
+    try {
+      var gl = document.createElement('canvas').getContext('webgl') || document.createElement('canvas').getContext('experimental-webgl');
+      if (gl) {
+        var ext = gl.getExtension('WEBGL_debug_renderer_info');
+        if (ext) r = [gl.getParameter(ext.UNMASKED_VENDOR_WEBGL), gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)];
+      }
+    } catch (e) { r = null; }
+    if (!r) return check('webgl', 'Graphics card', 'GPU name that WebGL can report.', 'ok', 'Hidden', ['No GPU name exposed'], 'Your browser does not tell pages which GPU you have.');
+    return check('webgl', 'Graphics card', 'GPU name that WebGL can report.', 'warn', 'Exposed', [String(r[0]), String(r[1])], 'The exact GPU model is a strong signal when combined with others.');
+  }
+
+  function signals() {
+    var n = navigator, s = root.screen || {};
+    var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { /* ignore */ }
+    var lines = [
+      'User agent: ' + n.userAgent,
+      'Platform: ' + (n.platform || 'unknown'),
+      'Languages: ' + ((n.languages && n.languages.join(', ')) || n.language || 'unknown'),
+      'Time zone: ' + (tz || 'unknown'),
+      'Screen: ' + s.width + 'x' + s.height + ', ' + s.colorDepth + '-bit, ratio ' + root.devicePixelRatio,
+      'CPU threads: ' + (n.hardwareConcurrency || 'hidden'),
+      'Device memory: ' + (n.deviceMemory ? n.deviceMemory + ' GB' : 'hidden'),
+      'Touch points: ' + (n.maxTouchPoints || 0)
+    ];
+    return check('signals', 'Browser and device', 'Details every page can read without asking.', 'info', 'Visible', lines, 'None of these identifies you alone. Together they narrow you down, and values that are rare for your browser narrow you down most.');
+  }
+
+  function gpc() {
+    var D = 'A signal that tells sites not to sell or share your data.';
+    if (navigator.globalPrivacyControl === true) return check('gpc', 'Global Privacy Control', D, 'ok', 'Sent', ['Your browser sends GPC'], 'Sites in places where GPC is legally recognised must treat it as an opt-out request.');
+    return check('gpc', 'Global Privacy Control', D, 'warn', 'Not sent', ['Your browser does not send GPC'], 'Firefox, Brave and DuckDuckGo browsers can send it. Some browsers need an extension.');
+  }
+
+  function dnt() {
+    var on = navigator.doNotTrack === '1' || root.doNotTrack === '1';
+    return check('dnt', 'Do Not Track', 'An older opt-out header.', 'info', on ? 'On' : 'Off', [on ? 'DNT is set to 1' : 'DNT is not set'], 'Most sites ignore it. Turning it on can even make you easier to tell apart, because few people do.');
+  }
+
+  function cookies() {
+    var on = navigator.cookieEnabled;
+    return check('cookies', 'Cookies', 'Whether this browser accepts them.', 'info', on ? 'Enabled' : 'Disabled', [on ? 'Cookies are enabled' : 'Cookies are disabled'], 'This page sets none.');
+  }
+
+  /* Resolves to the six checks in display order. */
+  function collect() {
+    return canvas().then(function (cv) { return [cv, webgl(), gpc(), dnt(), cookies(), signals()]; });
+  }
+
+  root.FPC = { collect: collect };
+})(window);
+
+=== src/tools/browser-fingerprint-test.html ===
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Browser Fingerprint Test: What Your Browser Reveals to Trackers</title>
+<meta name="description" content="Free browser fingerprint test. See what your browser exposes to trackers: canvas, graphics card, language, screen, Global Privacy Control. Runs locally, sends nothing.">
+<link rel="canonical" href="https://secureinchat.com/tools/browser-fingerprint-test/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Browser Fingerprint Test: What Your Browser Reveals to Trackers">
+<meta property="og:description" content="Free browser fingerprint test. See what your browser exposes to trackers: canvas, graphics card, language, screen, Global Privacy Control. Runs locally, sends nothing.">
+<meta property="og:url" content="https://secureinchat.com/tools/browser-fingerprint-test/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Browser fingerprint test",
+      "url": "https://secureinchat.com/tools/browser-fingerprint-test/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript.",
+      "description": "Free browser fingerprint test. See what your browser exposes to trackers: canvas, graphics card, language, screen, Global Privacy Control. Runs locally, sends nothing.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is browser fingerprinting?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sites read many small details from your browser, such as screen size, fonts, graphics output and language, and combine them into a value that recognises you without cookies."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this test tell me how unique I am?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. A real uniqueness score needs a large dataset of other browsers, which this page does not have. It shows what your browser exposes and which defences are active."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What does a varying canvas result mean?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The page draws the same image twice. If the results differ, your browser or an extension appears to add noise on purpose, which would break the use of canvas as a stable identifier. Brave and some Firefox settings do this. The test sees the difference but cannot confirm the method."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is a stable canvas hash bad?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It is normal in most browsers. It matters because trackers combine it with other signals. Compare the hash across browsers on one device to see how much of it is yours alone."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is Global Privacy Control?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A browser signal that asks sites not to sell or share your data. Some jurisdictions require sites to treat it as an opt-out. It does not hide anything from the site itself."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Do Not Track help?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Rarely. Most sites ignore it, and because few people turn it on, setting it can be one more detail that tells you apart."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How can I reduce fingerprinting?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Use a browser that randomizes or blocks the high-value signals, keep it updated, avoid unusual extensions and settings, and do not resize the window to odd values. Run the test again after any change."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does this page store my data?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Everything is computed in your browser and nothing is sent. The page sets no cookies and loads no analytics."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">Browser fingerprint test</h1>
+    <p class="lede">See what your browser tells every site you visit, and whether your defences hide it.</p>
+    <div class="controls"><button id="run" class="btn" type="button">Run test</button></div>
+    <p class="hint">The test runs in this page and sends nothing. For addresses and VPN leaks, use the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Run the test to see your result.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">Browser fingerprint results</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">Browser</span><span class="c-desc">Run the test to see what it exposes.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">What this test reads</h2>
+    <p>Any page you visit can read the signals below without asking. This test reads them and tells you which ones help a tracker recognise you, and which defences your browser already applies.</p>
+    <ul>
+      <li><strong>Canvas:</strong> draws an image twice. A stable result is a signal. A different result each time suggests your browser or an extension adds noise on purpose.</li>
+      <li><strong>Graphics card:</strong> the GPU name WebGL can report. Some browsers hide it.</li>
+      <li><strong>Global Privacy Control and Do Not Track:</strong> whether your browser sends opt-out signals.</li>
+      <li><strong>Browser and device:</strong> user agent, languages, time zone, screen and hardware details.</li>
+    </ul>
+    <h2 id="limits-h">What this test cannot tell you</h2>
+    <p>It does not test fonts, audio processing or every API, and it cannot say how rare your combination is. Treat the result as a list of what your browser exposes, and re-run it after you change browser, settings or extensions. For your network address, run the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>What is browser fingerprinting?</h3>
+    <p>Sites read many small details from your browser, such as screen size, fonts, graphics output and language, and combine them into a value that recognises you without cookies.</p>
+    <h3>Does this test tell me how unique I am?</h3>
+    <p>No. A real uniqueness score needs a large dataset of other browsers, which this page does not have. It shows what your browser exposes and which defences are active.</p>
+    <h3>What does a varying canvas result mean?</h3>
+    <p>The page draws the same image twice. If the results differ, your browser or an extension appears to add noise on purpose, which would break the use of canvas as a stable identifier. Brave and some Firefox settings do this. The test sees the difference but cannot confirm the method.</p>
+    <h3>Is a stable canvas hash bad?</h3>
+    <p>It is normal in most browsers. It matters because trackers combine it with other signals. Compare the hash across browsers on one device to see how much of it is yours alone.</p>
+    <h3>What is Global Privacy Control?</h3>
+    <p>A browser signal that asks sites not to sell or share your data. Some jurisdictions require sites to treat it as an opt-out. It does not hide anything from the site itself.</p>
+    <h3>Does Do Not Track help?</h3>
+    <p>Rarely. Most sites ignore it, and because few people turn it on, setting it can be one more detail that tells you apart.</p>
+    <h3>How can I reduce fingerprinting?</h3>
+    <p>Use a browser that randomizes or blocks the high-value signals, keep it updated, avoid unusual extensions and settings, and do not resize the window to odd values. Run the test again after any change.</p>
+    <h3>Does this page store my data?</h3>
+    <p>No. Everything is computed in your browser and nothing is sent. The page sets no cookies and loads no analytics.</p>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/fpcore.js" defer></script>
+<script src="/tools/assets/fp.js" defer></script>
+</body>
+</html>
+
+=== public/tools/assets/link-app.js(语言切换的参考写法) ===
+/* Link checker page. Everything runs in this page; the link is never opened, sent or stored. */
+(function () {
+  'use strict';
+  var L = window.LK;
+  var input = document.getElementById('lk-in');
+  var out = document.getElementById('lk-out');
+  var tbody = document.getElementById('rows');
+  var summary = document.getElementById('summary');
+  var site = document.getElementById('lk-site');
+  var copyBtn = document.getElementById('lk-copy');
+  var clearBtn = document.getElementById('lk-clear');
+  // Interface strings follow the document language (as account-app.js, pw-app.js): the English page keeps the
+  // strings below and link.js LABELS unchanged; the Chinese page (lang="zh-CN") gets Chinese ones. link.js is
+  // shared and unchanged; the checks and their levels come from it, only the words are swapped here.
+  var ZH = /^zh/i.test(document.documentElement.lang || '');
+  var STATUS = ZH ? { fail: '危险迹象', warn: '需要核对', info: '提示' } : { fail: 'Warning sign', warn: 'Check this', info: 'Note' };
+  var COL = ZH ? ['检查项', '结果', '状态'] : ['Check', 'Result', 'Status'];
+  var COPY = ZH ? ['复制干净链接', '已复制'] : ['Copy clean link', 'Copied'];
+  var ZH_LABELS = {
+    tracking: ['追踪参数', '它们告诉发送者或广告网络你点了这个链接。去掉它们不会改变链接打开的地方。'],
+    userinfo: ['网址里 @ 前面有文字', '浏览器会忽略 @ 前面的所有内容。像 paypal.com@example.net 这样的链接，实际打开的是 example.net。这是一种老套路。'],
+    ip: ['用 IP 地址代替网站名', '正规服务很少发送直接指向 IP 地址的链接。'],
+    punycode: ['网站名里有其他文字的字符', '其他字母表里的字母可以冒充熟悉的名字。请和真实网址逐个字符对照。'],
+    http: ['未加密（http）', '你在这个网页上发送的内容可能在传输途中被读取或修改。'],
+    port: ['不常见的端口', '普通网站使用默认端口。公开网站很少在网址里写明端口。'],
+    shortener: ['短链接', '真实的目标网址被隐藏了。请向发送者要完整链接，或者只在你信任对方时才打开。'],
+    brand: ['知名品牌名出现在别人的网站上', '链接里出现了一家知名公司的名字，但实际打开的是别人的网站。'],
+    subdomains: ['子域名很多', '一长串名字可能把真正的网站名挤出手机屏幕。'],
+    redirect: ['藏着第二个目标网址', '链接里带着另一个网址，可能会把你转到那里。'],
+    long: ['链接很长', '很长的链接可能藏住真正的网站名。单凭这一点不算危险迹象。'],
+  };
+  function label(id) { return ZH ? ZH_LABELS[id] : L.LABELS[id]; }
+  // link.js writes three details as English sentences; the Chinese page rewrites only those three.
+  function detail(f) {
+    if (!ZH) return f.detail;
+    var m;
+    if (f.id === 'brand' && (m = /^(.*) appears, but the site is (.*)$/.exec(f.detail))) return '出现了 ' + m[1] + '，但打开的网站是 ' + m[2];
+    if (f.id === 'subdomains' && (m = /^(\d+) parts: (.*)$/.exec(f.detail))) return m[1] + ' 段：' + m[2];
+    if (f.id === 'long' && (m = /^(\d+) characters$/.exec(f.detail))) return m[1] + ' 个字符';
+    return f.detail;
+  }
+  function errorText(r) {
+    if (ZH) return { empty: '粘贴一个链接来检查。', invalid: '这看起来不像网址。', script: '这是一个脚本链接（' + r.scheme + ':），不是网页。不要打开它。', scheme: '这是一个 ' + r.scheme + ' 链接，不是网页。下面的检查只适用于 http 和 https 链接。' }[r.error];
+    return { empty: 'Paste a link to check it.', invalid: 'This does not look like a web address.', script: 'This is a script link (' + r.scheme + ':), not a web page. Do not open it.', scheme: 'This is a ' + r.scheme + ' link, not a web page. The checks below only cover http and https links.' }[r.error];
+  }
+  function summaryText(fails, warns, tracking) {
+    var parts = [];
+    if (ZH) {
+      if (fails) parts.push(fails + ' 个危险迹象');
+      if (warns) parts.push(warns + ' 处需要核对');
+      if (tracking) parts.push('已去掉 ' + tracking + ' 个追踪参数');
+      return parts.length ? parts.join('，') + '。' : '';
+    }
+    if (fails) parts.push(fails + ' warning sign' + (fails > 1 ? 's' : ''));
+    if (warns) parts.push(warns + ' thing' + (warns > 1 ? 's' : '') + ' to check');
+    if (tracking) parts.push(tracking + ' tracking parameter' + (tracking > 1 ? 's' : '') + ' removed');
+    return parts.length ? parts.join(', ') + '.' : '';
+  }
+  var NONE = ZH ? '没有发现危险迹象。这不能证明链接安全；请核对网站名是否正是你预期的那个。' : 'No warning signs found. That is not proof the link is safe; check that the site name is the one you expect.';
+
+  function row(f) {
+    var lab = label(f.id);
+    var tr = document.createElement('tr'); tr.setAttribute('data-status', f.level);
+    var th = document.createElement('th'); th.scope = 'row'; th.setAttribute('data-label', COL[0]);
+    var n = document.createElement('span'); n.className = 'c-name'; n.textContent = lab[0]; th.appendChild(n);
+    var td = document.createElement('td'); td.setAttribute('data-label', COL[1]);
+    var v = document.createElement('div'); v.className = 'val mono'; v.textContent = detail(f); td.appendChild(v);
+    var m = document.createElement('p'); m.className = 'why'; m.textContent = lab[1]; td.appendChild(m);
+    var ts = document.createElement('td'); ts.setAttribute('data-label', COL[2]);
+    var p = document.createElement('span'); p.className = 'pill'; p.textContent = STATUS[f.level]; ts.appendChild(p);
+    tr.appendChild(th); tr.appendChild(td); tr.appendChild(ts);
+    return tr;
+  }
+
+  function run() {
+    var r = L.check(input.value);
+    tbody.textContent = '';
+    out.value = r.clean || '';
+    copyBtn.disabled = !r.clean;
+    site.textContent = r.site ? r.unicodeHost + (r.unicodeHost !== r.host ? '  (' + r.host + ')' : '') : '—';
+    if (r.error) {
+      var msg = errorText(r);
+      summary.textContent = msg; summary.setAttribute('data-tone', r.error === 'empty' ? 'idle' : (r.error === 'script' ? 'fail' : 'warn'));
+      return;
+    }
+    r.findings.forEach(function (f) { tbody.appendChild(row(f)); });
+    var fails = r.findings.filter(function (f) { return f.level === 'fail'; }).length;
+    var warns = r.findings.filter(function (f) { return f.level === 'warn' && f.id !== 'tracking'; }).length;
+    var tracking = r.removed.length;
+    var text = summaryText(fails, warns, tracking);
+    if (!text) { summary.textContent = NONE; summary.setAttribute('data-tone', 'ok'); }
+    else { summary.textContent = text; summary.setAttribute('data-tone', fails ? 'fail' : 'warn'); }
+  }
+
+  input.addEventListener('input', run);
+  clearBtn.addEventListener('click', function () { input.value = ''; run(); input.focus(); });
+  copyBtn.addEventListener('click', function () {
+    var done = function () { copyBtn.textContent = COPY[1]; setTimeout(function () { copyBtn.textContent = COPY[0]; }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(out.value).then(done, function () { out.select(); });
+    else out.select();
+  });
+  run();
+  window.LINK_CHECKER = { run: run, detail: detail, label: label };
+})();
+
+=== build/build.mjs 中 link-checker 中文页一段和 ZH_TOOLS、英文 alt 列表 ===
+// Chinese tools index: ChatGPT's tools-index.zh template. Translated tools link to their Chinese pages;
+// the rest still link to the English page and say so on the button.
+{
+  const ZH_TOOLS = { '/tools/phone-checkup/': '/zh/tools/phone-checkup/', '/tools/photo-metadata-remover/': '/zh/tools/photo-metadata-remover/', '/tools/text-redactor/': '/zh/tools/text-redactor/', '/tools/file-metadata-remover/': '/zh/tools/file-metadata-remover/', '/tools/password-checker/': '/zh/tools/password-checker/', '/tools/account-checkup/': '/zh/tools/account-checkup/', '/tools/link-checker/': '/zh/tools/link-checker/' };
+  const title = '隐私工具 | SecureInChat'; const desc = '免费的隐私工具：每项检查做什么、哪些数据留在浏览器里、什么时候会用到外部服务，都写清楚。';
+  let m = kitMain('tools-index.zh.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/');
+  m = m.replace(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g, (a) => {
+    const src = fs.readFileSync(path.join(ROOT, 'src/tools', `${slug}.html`), 'utf8');
+    if (!FLOW[slug]) throw new Error('no data-flow row for ' + slug);
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, ...(['photo-metadata-remover', 'text-redactor', 'file-metadata-remover', 'password-checker', 'account-checkup', 'link-checker'].includes(slug) ? { alt: { en: `/tools/${slug}/`, 'zh-CN': `/zh/tools/${slug}/` } } : {}) }));
+  }
+// no VPN or IP-test links.
+{
+  let icon = '';
+  for (const a of KIT_T('tools-index.en.html').match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'link-checker') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) icon = svg[0];
+    break;
+  }
+  write('zh/tools/link-checker/index.html', toolPage({
+    slug: 'link-checker',
+    src: fs.readFileSync(path.join(ROOT, 'src/tools/zh/link-checker.html'), 'utf8'),
+    icon,
+    label: ['本地处理', 'state-label'],
+    flow: { stays: '你粘贴的链接，它不会被打开', sent: '无' },
+    figure: { ...FIG.url, alt: '一个网址被拆成网站名、路径和可能用于追踪的查询参数' },
+    crumbName: '链接检查器',
+    lang: 'zh-CN',
+    alt: { en: '/tools/link-checker/', 'zh-CN': '/zh/tools/link-checker/' },
+  }));
+}
+
+
+write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#23483E"/><g transform="translate(6 6) scale(.833)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g></svg>
+`);
+
+// fonts + script
+const fonts = [
+];
+for (const [src, dst] of [['atkinson-hyperlegible-next-latin-400-normal', 'atkinson-next-400'], ['atkinson-hyperlegible-next-latin-600-normal', 'atkinson-next-600'], ['atkinson-hyperlegible-next-latin-800-normal', 'atkinson-next-800'], ['atkinson-hyperlegible-mono-latin-400-normal', 'atkinson-mono-400']]) {
+
+=== tests/zhlink.py ===
+# W12: Chinese link checker (/zh/tools/link-checker/), served with the CSP from _headers for that path.
+# Checks that every link.js label has Chinese wording, findings / statuses / summaries / errors in Chinese,
+# the three English detail sentences rewritten, clean link identical to link.js, no requests at all while
+# checking, no affiliate / VPN / IP-test links, mobile table labels, and that the English page is unchanged.
+import http.server, threading, socketserver, os, re, sys, json, subprocess
+from playwright.sync_api import sync_playwright
+
+ROOT = os.path.join(os.path.dirname(__file__), '..', 'public')
+OUT = sys.argv[1] if len(sys.argv) > 1 else '/tmp/zhlink'
+os.makedirs(OUT, exist_ok=True)
+hdr = open(os.path.join(ROOT, '_headers')).read()
+csp_zh = re.search(r'/zh/tools/link-checker/\n\s*Content-Security-Policy: (.*)', hdr).group(1)
+csp_tools = re.search(r'/tools/\*\n\s*Content-Security-Policy: (.*)', hdr).group(1)
+fails = []
+def ok(c, m):
+    print(('ok   ' if c else 'FAIL ') + m)
+    if not c: fails.append(m)
+ok(csp_zh == csp_tools, 'zh page uses the tools CSP')
+
+LK = os.path.abspath(os.path.join(ROOT, 'tools/assets/link.js'))
+ids = json.loads(subprocess.check_output(['node', '-e', "console.log(JSON.stringify(Object.keys(require(process.argv[1]).LABELS)))", LK]))
+app = open(os.path.join(ROOT, 'tools/assets/link-app.js'), encoding='utf-8').read()
+ok(len(ids) == 11, f'link.js has 11 labels {ids}')
+ok(all(re.search(r'\b' + i + r": \['[^']*[一-鿿][^']*', '[^']*[一-鿿]", app) for i in ids), 'every link.js label has Chinese name and explanation')
+
+class H(http.server.SimpleHTTPRequestHandler):
+    def __init__(s, *a, **k): super().__init__(*a, directory=ROOT, **k)
+    def end_headers(s): s.send_header('Content-Security-Policy', csp_zh); super().end_headers()
+    def log_message(s, *a): pass
+srv = socketserver.TCPServer(('127.0.0.1', 0), H); port = srv.server_address[1]
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+base = f'http://127.0.0.1:{port}'
+
+PHISH = 'https://paypal.com@secure-paypal.example.net/login?utm_source=sms&fbclid=x&id=7'
+HAN = re.compile(r'[一-鿿]')
+
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    for width in (1280, 390):
+        tag = f'[{width}] '
+        ctx = b.new_context(viewport={'width': width, 'height': 900})
+        pg = ctx.new_page()
+        errs, reqs = [], []
+        pg.on('console', lambda m: m.type == 'error' and errs.append(m.text))
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.on('request', lambda r: reqs.append(r.url))
+        pg.goto(base + '/zh/tools/link-checker/'); pg.wait_for_load_state('networkidle')
+        if width == 1280:
+            ok(pg.evaluate('document.documentElement.lang') == 'zh-CN', 'lang is zh-CN')
+            ok(pg.locator('h1').inner_text().strip() == '链接检查器', 'h1')
+            ok(pg.locator('link[rel="alternate"][hreflang="en"]').get_attribute('href').endswith('/tools/link-checker/'), 'hreflang en')
+            ok(pg.locator('link[rel="canonical"]').get_attribute('href') == 'https://secureinchat.com/zh/tools/link-checker/', 'canonical')
+            crumbs = pg.locator('nav.breadcrumbs a')
+            ok(crumbs.nth(0).get_attribute('href') == '/zh/' and crumbs.nth(0).inner_text() == '首页', 'breadcrumb home -> /zh/')
+            side = pg.locator('.tool-sidebar').inner_text()
+            ok(all(k in side for k in ['你的数据如何处理', '本地处理', '无']), 'sidebar data flow in Chinese')
+            links = pg.eval_on_selector_all('a[href]', 'as => as.map(a => a.getAttribute("href"))')
+            ok(not [h for h in links if 'nordvpn' in h or 'nordpass' in h or 'ip-leak' in h or 'vpn' in h.lower()], 'no affiliate, VPN or IP-test links (rule)')
+            ok(pg.locator('#partner-slot').count() == 0, 'no partner block')
+            ok(pg.locator('a[href="/zh/tools/text-redactor/"]').count() >= 1, 'links the Chinese text redactor')
+            outside = [h for h in links if h.startswith('http') and 'secureinchat.com' not in h]
+            ok(not outside, f'no outside links {outside}')
+            ld = pg.eval_on_selector_all('script[type="application/ld+json"]', 'els => els.map(e => e.textContent).join("\\n")')
+            ok('"inLanguage": "zh-CN"' in ld and '链接检查器' in ld, 'JSON-LD in Chinese')
+            json.loads(re.search(r'<script type="application/ld\+json">([\s\S]*?)</script>', open(os.path.join(ROOT, 'zh/tools/link-checker/index.html'), encoding='utf-8').read()).group(1))
+            ok(True, 'JSON-LD parses')
+        ok(pg.locator('#summary').inner_text().strip() == '粘贴一个链接来检查。', tag + 'idle summary in Chinese')
+        ok(pg.is_disabled('#lk-copy') and pg.inner_text('#lk-copy') == '复制干净链接', tag + 'copy button disabled, Chinese')
+        pg.fill('#lk-in', PHISH); pg.wait_for_timeout(150)
+        expect = json.loads(subprocess.check_output(['node', '-e', "console.log(JSON.stringify(require(process.argv[1]).check(process.argv[2])))", LK, PHISH]))
+        ok(pg.input_value('#lk-out') == expect['clean'] == 'https://secure-paypal.example.net/login?id=7', tag + 'clean link same as link.js')
+        names = pg.locator('#rows .c-name').all_inner_texts()
+        ok(names == ['追踪参数', '网址里 @ 前面有文字', '知名品牌名出现在别人的网站上'], tag + f'finding names in Chinese, link.js order {names}')
+        why = pg.locator('#rows .why').all_inner_texts()
+        ok(len(why) == 3 and all(HAN.search(w) for w in why), tag + 'explanations in Chinese')
+        vals = pg.locator('#rows .val').all_inner_texts()
+        ok(vals[2] == '出现了 paypal，但打开的网站是 example.net', tag + f'brand detail rewritten: {vals[2]}')
+        ok(vals[0] == 'utm_source, fbclid' and vals[1] == 'paypal.com@secure-paypal.example.net', tag + 'raw details unchanged')
+        pills = pg.locator('#rows .pill').all_inner_texts()
+        ok(pills == ['需要核对', '危险迹象', '危险迹象'], tag + f'statuses in Chinese {pills}')
+        ok(pg.locator('#summary').inner_text().strip() == '2 个危险迹象，已去掉 2 个追踪参数。', tag + 'summary: ' + pg.locator('#summary').inner_text())
+        ok(pg.get_attribute('#summary', 'data-tone') == 'fail', tag + 'tone fail')
+        ok(pg.inner_text('#lk-site').startswith('secure-paypal.example.net'), tag + 'site shown')
+        dl = pg.eval_on_selector_all('#rows th, #rows td', 'els => els.map(e => e.dataset.label)')
+        ok(set(dl) == {'检查项', '结果', '状态'}, tag + f'mobile table labels in Chinese {set(dl)}')
+        # The other two English detail sentences in link.js.
+        pg.fill('#lk-in', 'http://a.b.c.d.example.com/' + 'x' * 220); pg.wait_for_timeout(100)
+        vals = pg.locator('#rows .val').all_inner_texts()
+        ok('6 段：a.b.c.d.example.com' in vals and any(re.fullmatch(r'\d+ 个字符', v) for v in vals), tag + f'subdomain and length details rewritten')
+        ok(pg.locator('#summary').inner_text().strip() == '2 处需要核对。', tag + 'warn-only summary: ' + pg.locator('#summary').inner_text())
+        pg.fill('#lk-in', 'javascript:alert(1)'); pg.wait_for_timeout(100)
+        ok(pg.locator('#summary').inner_text().strip() == '这是一个脚本链接（javascript:），不是网页。不要打开它。', tag + 'script link error')
+        pg.fill('#lk-in', 'ftp://example.com/file'); pg.wait_for_timeout(100)
+        ok(pg.locator('#summary').inner_text().strip().startswith('这是一个 ftp 链接，不是网页。'), tag + 'scheme error')
+        pg.fill('#lk-in', 'mailto:paypal@evil.example'); pg.wait_for_timeout(100)
+        ok(pg.locator('#summary').inner_text().strip().startswith('这是一个 mailto 链接，不是网页。'), tag + 'mailto scheme error (W14)')
+        pg.fill('#lk-in', 'https://www.wikipedia.org/'); pg.wait_for_timeout(100)
+        ok(pg.locator('#summary').inner_text().strip().startswith('没有发现危险迹象。这不能证明链接安全'), tag + 'clean summary')
+        ok(pg.get_attribute('#summary', 'data-tone') == 'ok', tag + 'tone ok')
+        all_text = pg.evaluate('''() => { const s = window.LINK_CHECKER; return Object.keys(LK.LABELS).map(id => s.label(id).join(' ')).join(' '); }''')
+        ok(not re.search(r'\b[A-Za-z]{3,} [a-z]{3,}\b', all_text.replace('paypal.com@example.net', '').replace('example.net', '')), tag + 'no English sentences in labels')
+        pg.click('#lk-clear')
+        ok(pg.input_value('#lk-in') == '' and pg.input_value('#lk-out') == '' and pg.locator('#rows tr').count() == 0, tag + 'clear empties everything')
+        pg.fill('#lk-in', PHISH); pg.reload(); pg.wait_for_load_state('networkidle')
+        ok(pg.locator('#rows tr').count() == 0, tag + 'reload keeps nothing')
+        ok(pg.evaluate('document.documentElement.scrollWidth <= innerWidth'), tag + 'no horizontal scroll')
+        ext = [u for u in reqs if not (u.startswith(base) or u.startswith('data:'))]
+        ok(not ext, tag + f'no outside requests {ext}')
+        ok(not errs, tag + f'no console or CSP errors {errs}')
+        pg.fill('#lk-in', PHISH); pg.wait_for_timeout(100)
+        pg.screenshot(path=os.path.join(OUT, f'zhlink-{width}.png'), full_page=True)
+        ctx.close()
+
+    # Requests strictly while typing: none at all.
+    pg = b.new_page(); pg.goto(base + '/zh/tools/link-checker/'); pg.wait_for_load_state('networkidle')
+    r2 = []; pg.on('request', lambda r: r2.append(r.url))
+    pg.fill('#lk-in', PHISH); pg.wait_for_timeout(300); pg.click('#lk-clear')
+    ok(not r2, f'zero requests while checking {r2}')
+    pg.close()
+
+    # English page: same script, old strings.
+    pg = b.new_page()
+    pg.goto(base + '/tools/link-checker/'); pg.wait_for_load_state('networkidle')
+    ok('zh-CN' in pg.eval_on_selector_all('link[rel=alternate][hreflang]', 'els => els.map(e => e.hreflang)'), 'English page links its Chinese version')
+    ok(pg.locator('#summary').inner_text().strip() == 'Paste a link to check it.', 'English idle summary unchanged')
+    pg.fill('#lk-in', PHISH); pg.wait_for_timeout(150)
+    ok(pg.locator('#summary').inner_text().strip() == '2 warning signs, 2 tracking parameters removed.', 'English summary unchanged: ' + pg.locator('#summary').inner_text())
+    ok(pg.locator('#rows .c-name').all_inner_texts() == ['Tracking parameters', 'Text before an @ in the address', 'Brand name on a different site'], 'English names unchanged')
+    ok(pg.locator('#rows .val').all_inner_texts()[2] == 'paypal appears, but the site is example.net', 'English brand detail unchanged')
+    ok(pg.locator('#rows .pill').all_inner_texts() == ['Check this', 'Warning sign', 'Warning sign'], 'English statuses unchanged')
+    ok(set(pg.eval_on_selector_all('#rows th, #rows td', 'els => els.map(e => e.dataset.label)')) == {'Check', 'Result', 'Status'}, 'English table labels unchanged')
+    b.close()
+
+idx = open(os.path.join(ROOT, 'zh/tools/index.html'), encoding='utf-8').read()
+ok('href="/zh/tools/link-checker/"' in idx and 'href="/tools/link-checker/"' not in idx, '/zh/tools/ links the Chinese page')
+acct = open(os.path.join(ROOT, 'zh/tools/account-checkup/index.html'), encoding='utf-8').read()
+ok('href="/zh/tools/link-checker/"' in acct, 'Chinese account checkup links the Chinese link checker')
+ok('/zh/tools/link-checker/</loc>' in open(os.path.join(ROOT, 'sitemap.xml')).read(), 'in sitemap')
+srv.shutdown()
+print('FAILED: %d' % len(fails) if fails else 'all passed')
+raise SystemExit(1 if fails else 0)
