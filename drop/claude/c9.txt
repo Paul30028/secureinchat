@@ -1,0 +1,2470 @@
+任务 C9(聊天应用):加密备份到文件,以及从文件恢复(换手机、重装时不丢群和聊天记录)。
+
+背景:C7(阅后即焚)已合并,CI 和 APK 构建都是绿的。C8(以后每次保存都会丢掉之前的图片和语音内容)是我自己修的:新增 mediaPersistence.ts,用 PersistedMediaCache 按消息 id 把已存的媒体 base64 补回去,并用 SerialSaver 让同一个群的保存按顺序完成。feature/chat = 5c6e666 包含 batch1–3、C7、C8。
+
+为什么做:中继不存消息(盲中继),历史只在本机;换手机或清数据就全没了,群也要重新要邀请码。
+
+范围(我已定):
+- 备份包含:已加入的群(JoinedGroup 全部字段,含 keyMaterialB64Url 和 disappearAfterMs)、每个群的消息历史(StoredMessage,含已持久化的媒体 base64)、昵称。
+- **不包含**:设备身份密钥(在系统 Keystore 里,不可导出,恢复后新设备会重新注册)、管理员私钥(已有「管理员恢复码」这条路,备份里放私钥会扩大泄露面——请在界面说明里讲清楚)、已过期的阅后即焚消息(备份时先 partitionExpired 过滤掉;仍在倒计时的消息**也不备份**,因为对方期望它会消失)。
+- 加密:WebCrypto,PBKDF2-SHA256 从用户输入的备份密码派生 256 位 AES-GCM 密钥,迭代次数 600000,16 字节随机盐,12 字节随机 IV;文件格式 JSON:{"format":"sic-backup","v":1,"kdf":{"name":"PBKDF2","hash":"SHA-256","iter":600000,"salt":b64url},"iv":b64url,"ct":b64url},明文是 UTF-8 JSON。密码至少 10 个字符,界面要求输两遍。不加依赖(crypto-core 里已有 aead.ts、keyDerivation.ts,能复用就复用,但不要把 HKDF 用在密码上)。
+- 解密失败(密码错或文件被改)统一提示「密码不对,或文件已损坏」,不区分原因。
+- 恢复:合并到本机现有数据——群按 groupId upsert(用 groupStore.upsertGroup);消息按 id 去重合并后按 sentAtMs 排序,再 trimToLimit。恢复后自动重连恢复的群。
+
+需要你给:
+一、chat-core(纯函数,可测试)
+1. packages/chat-core/src/backup.ts:`buildBackupPayload(groups, messagesByGroup, nickname, nowMs)`(含过滤到期/计时中消息)、`encryptBackup(payload, password): Promise<string>`、`decryptBackup(text, password): Promise<BackupPayload>`(错误统一抛 BackupError)、`mergeRestore(existingGroups, existingMessagesByGroup, payload)`。
+2. 测试 packages/chat-core/test/backup.test.ts:往返一致;错密码失败;改一个字节失败;计时中和已过期的消息不进备份;合并去重和排序;超过 300 条被截断;格式字段不对时报错。PBKDF2 迭代在测试里允许用参数调小(函数加一个可选 iterations 参数,默认 600000),否则测试太慢。
+
+二、android-client
+3. 「我的」页面里加「备份与恢复」入口 → 新屏 BackupScreen.tsx:
+   - 导出:输两遍密码 → 生成文件 → 用浏览器下载(a[download],文件名 secureinchat-backup-YYYYMMDD.json)。说明文字:「备份里有你的群和聊天记录,用你设的密码加密。忘记密码就无法恢复。设备密钥和管理员私钥不在备份里——管理员请另外保存好管理员恢复码。正在倒计时的阅后即焚消息不会被备份。」
+   - 恢复:选文件(input type=file accept=".json,application/json")→ 输密码 → 显示「将恢复 N 个群、M 条消息」→ 确认后合并写入并重连。
+   - 错误用页面内文字显示,不弹 alert。
+4. App.tsx 的接入用「锚点(原文逐字,唯一)→ 替换」片段;其他文件给完整内容。读写存储用现有的 loadJoinedGroups/saveJoinedGroups/loadMessages/saveMessages(恢复后让 C8 的 PersistedMediaCache 能拿到恢复的媒体:说明你怎么做)。
+5. 测试:BackupScreen 组件测试(两次密码不一致、太短、错密码提示文字、成功后显示数量)。
+
+规则同前:TypeScript 严格模式(exactOptionalPropertyTypes)、不加依赖、中文界面和注释、保留原注释、不写进度百分比、不确定的地方直说。先给 chat-core 和测试。
+
+下面是相关源码(以此为准)。
+
+=== packages/chat-core/src/groupStore.ts ===
+import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+import { DISAPPEAR_OPTIONS_MS } from "./disappearing";
+
+/**
+ * 已加入的群列表。
+ *
+ * 走加密存储：里面存着每个群的原始密钥材料，拿到它就能解密该群的全部历史消息，
+ * 敏感程度和消息本身一样。
+ */
+
+const GROUPS_KEY = "groups:joined";
+
+export interface JoinedGroup {
+  groupId: string;
+  groupName: string;
+  /** 邀请串里的原始密钥材料，重新连接时用它派生群密钥 */
+  keyMaterialB64Url: string;
+  epoch: number;
+  /**
+   * 管理员公钥，用来验证这个群的公告签名。
+   *
+   * 必须持久化：它来自邀请串，但重启后是从本地恢复群列表的，不再经过邀请串。
+   * 不存的话重连之后这个字段是 undefined，所有公告都验不过、被静默丢弃——
+   * 表现成"别人发的公告我收不到"。
+   */
+  adminPublicKeyRawB64Url?: string | undefined;
+  joinedAtMs: number;
+  /** 最后一次查看这个群的时间，用来算未读数 */
+  lastReadAtMs: number;
+  /**
+   * 本机在这个群里的「消息定时消失」时长（毫秒），0/缺省表示关闭。
+   * 每台设备、每个群独立——只影响自己之后发出的消息；收到的消息按
+   * 消息里自带的 expiresInMs 处理。老记录没有这个字段，按关闭处理。
+   */
+  disappearAfterMs?: number | undefined;
+}
+
+export async function loadJoinedGroups(store: EncryptedKeyValueStore): Promise<JoinedGroup[]> {
+  try {
+    const bytes = await store.get(GROUPS_KEY);
+    if (!bytes) return [];
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(parsed) ? (parsed as JoinedGroup[]) : [];
+  } catch {
+    // 解密失败或数据损坏——当作没加过群。用户可以用邀请码重新加入，
+    // 比让应用起不来强。
+    return [];
+  }
+}
+
+export async function saveJoinedGroups(store: EncryptedKeyValueStore, groups: JoinedGroup[]): Promise<void> {
+  await store.set(GROUPS_KEY, new TextEncoder().encode(JSON.stringify(groups)));
+}
+
+/**
+ * 加入或更新一个群。同一个 groupId 重复加入不会产生两条记录——
+ * 会更新群名和密钥材料（对方可能重新生成了邀请码），但保留原来的加入时间。
+ */
+export function upsertGroup(groups: JoinedGroup[], group: JoinedGroup): JoinedGroup[] {
+  const existing = groups.find((g) => g.groupId === group.groupId);
+  if (!existing) return [...groups, group];
+  return groups.map((g) =>
+    g.groupId === group.groupId
+      ? { ...group, joinedAtMs: existing.joinedAtMs, lastReadAtMs: existing.lastReadAtMs }
+      : g
+  );
+}
+
+export function removeGroup(groups: JoinedGroup[], groupId: string): JoinedGroup[] {
+  return groups.filter((g) => g.groupId !== groupId);
+}
+
+/** 改群名。只改本机显示的名字——中继不知道群叫什么，别人那边不会跟着变。 */
+export function renameGroup(groups: JoinedGroup[], groupId: string, groupName: string): JoinedGroup[] {
+  return groups.map((g) => (g.groupId === groupId ? { ...g, groupName } : g));
+}
+
+export function markGroupRead(groups: JoinedGroup[], groupId: string, atMs = Date.now()): JoinedGroup[] {
+  return groups.map((g) => (g.groupId === groupId ? { ...g, lastReadAtMs: atMs } : g));
+}
+
+/**
+ * 设置某个群的「消息定时消失」时长。
+ * ms 不在 DISAPPEAR_OPTIONS_MS 里就原样返回——调用方传错值不该静默改存储。
+ * 0 表示关闭，把字段清掉（而不是留一个 0）。
+ */
+export function setDisappearAfter(
+  groups: JoinedGroup[],
+  groupId: string,
+  ms: number
+): JoinedGroup[] {
+  if (!(DISAPPEAR_OPTIONS_MS as readonly number[]).includes(ms)) return groups;
+  return groups.map((g) =>
+    g.groupId === groupId
+      ? { ...g, ...(ms > 0 ? { disappearAfterMs: ms } : { disappearAfterMs: undefined }) }
+      : g
+  );
+}
+
+/** 未读数 = 这个群里晚于 lastReadAtMs 且不是自己发的消息条数 */
+export function unreadCount(
+  messages: { sentAtMs: number; isOwn: boolean }[],
+  lastReadAtMs: number
+): number {
+  return messages.filter((m) => !m.isOwn && m.sentAtMs > lastReadAtMs).length;
+}
+
+=== packages/chat-core/src/messageStore.ts ===
+import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+
+/**
+ * 消息历史的本地持久化。
+ *
+ * 和昵称、服务器地址不同，聊天内容是敏感的——所以走 EncryptedKeyValueStore
+ * （用设备主密钥加密后落盘），不能直接塞 IndexedDB 明文。
+ *
+ * 中继按设计不存任何消息，所以历史只能存在本地：换设备看不到旧消息，
+ * 清除应用数据也会丢。这是盲中继架构的必然结果，不是没做完。
+ */
+
+/** 每个群最多保留多少条。超出后丢最旧的——避免长期使用后本地存储无限膨胀。 */
+export const MAX_STORED_MESSAGES_PER_GROUP = 300;
+
+/** 单条媒体消息超过这个大小就不持久化（只留一条占位记录）。
+ *  几张大图就能把本地存储撑爆，而且加解密大 blob 也慢。 */
+export const MAX_PERSISTED_MEDIA_BYTES = 512 * 1024;
+
+export interface StoredMessage {
+  id: string;
+  isOwn: boolean;
+  /** 发送者显示名（昵称，或设备 ID 短前缀） */
+  senderLabel?: string | undefined;
+  sentAtMs: number;
+  text?: string | undefined;
+  /**
+   * 阅后即焚的到期时刻（毫秒时间戳）。有就说明这条消息会定时消失；
+   * 重启后重新加载时要按当前时间把它过滤掉。老记录没有这个字段，照常显示。
+   */
+  expiresAtMs?: number | undefined;
+  /** 本地系统提示（如「你开启了定时消失」），只在本机显示，从不发送。老记录没有这个字段。 */
+  system?: boolean | undefined;
+  media?:
+    | {
+        mediaKind: "image" | "voice" | "file";
+        fileName: string;
+        mimeType: string;
+        /** base64url；超过 MAX_PERSISTED_MEDIA_BYTES 时为 undefined（内容没留下） */
+        dataB64Url?: string | undefined;
+        sizeBytes: number;
+        /** 语音时长（毫秒）。老记录没有这个字段，读出来照常显示。 */
+        durationMs?: number | undefined;
+      }
+    | undefined;
+}
+
+export function storageKeyForGroupMessages(groupId: string): string {
+  return `messages:${groupId}`;
+}
+
+/** 只保留最近 N 条 */
+export function trimToLimit(messages: StoredMessage[], limit = MAX_STORED_MESSAGES_PER_GROUP): StoredMessage[] {
+  return messages.length <= limit ? messages : messages.slice(messages.length - limit);
+}
+
+export async function loadMessages(store: EncryptedKeyValueStore, groupId: string): Promise<StoredMessage[]> {
+  try {
+    const bytes = await store.get(storageKeyForGroupMessages(groupId));
+    if (!bytes) return [];
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(parsed) ? (parsed as StoredMessage[]) : [];
+  } catch {
+    // 解密失败（换了设备主密钥）或内容损坏——当作没有历史，不要因此让应用起不来。
+    // 用户会看到空的聊天记录，但功能是好的。
+    return [];
+  }
+}
+
+export async function saveMessages(
+  store: EncryptedKeyValueStore,
+  groupId: string,
+  messages: StoredMessage[]
+): Promise<void> {
+  const trimmed = trimToLimit(messages);
+  const bytes = new TextEncoder().encode(JSON.stringify(trimmed));
+  await store.set(storageKeyForGroupMessages(groupId), bytes);
+}
+
+export async function clearMessages(store: EncryptedKeyValueStore, groupId: string): Promise<void> {
+  await store.delete(storageKeyForGroupMessages(groupId));
+}
+
+/** 媒体内容是否值得持久化——太大就只留元信息 */
+export function shouldPersistMediaBytes(sizeBytes: number): boolean {
+  return sizeBytes <= MAX_PERSISTED_MEDIA_BYTES;
+}
+
+=== packages/chat-core/src/disappearing.ts ===
+/**
+ * 阅后即焚（消息定时消失）的公共逻辑。
+ *
+ * 计时从「本机收到/发出这条消息的时刻」开始，不用 sentAtMs——对方时钟不准
+ * 会导致一收到就删，离线补发的消息也会一到就过期。
+ *
+ * 这个模块只做纯计算，不碰 UI、不碰存储，方便测试和复用。
+ */
+
+/** 可选的消失时长：关、5 分钟、1 小时、1 天、7 天。 */
+export const DISAPPEAR_OPTIONS_MS = [
+  0,
+  5 * 60_000,
+  3_600_000,
+  86_400_000,
+  7 * 86_400_000,
+] as const;
+
+/** 消息里允许携带的最短消失时长：1 分钟。 */
+const MIN_EXPIRES_MS = 60_000;
+/** 消息里允许携带的最长消失时长：7 天。 */
+const MAX_EXPIRES_MS = 7 * 86_400_000;
+
+/**
+ * 把信封里带过来的 expiresInMs 校验成可用的值。
+ * 必须是有限正整数，且在 [60_000, 7 天] 范围内；否则当作没有（不删、不报错）。
+ * 老客户端发的消息没有这个字段，返回 undefined，照常显示。
+ */
+export function sanitizeExpiresInMs(v: unknown): number | undefined {
+  // 只收整数：小数说明对端写错了，当作没有，而不是替它四舍五入。
+  if (typeof v !== "number" || !Number.isInteger(v)) return undefined;
+  if (v < MIN_EXPIRES_MS || v > MAX_EXPIRES_MS) return undefined;
+  return v;
+}
+
+/**
+ * 本机收到/发出这条消息的时刻 + 时长 = 到期时间。没有时长就不设到期。
+ */
+export function expiresAtFor(
+  receivedAtMs: number,
+  expiresInMs: number | undefined
+): number | undefined {
+  if (expiresInMs === undefined) return undefined;
+  return receivedAtMs + expiresInMs;
+}
+
+/**
+ * 按当前时刻把消息分成「留着」和「已过期」两堆。
+ * 到期时间缺失或不是有限数字的当作不过期（老消息、损坏数据）。
+ */
+export function partitionExpired<T extends { expiresAtMs?: number | undefined }>(
+  items: T[],
+  nowMs: number
+): { keep: T[]; expired: T[] } {
+  const keep: T[] = [];
+  const expired: T[] = [];
+  for (const item of items) {
+    const at = item.expiresAtMs;
+    if (typeof at === "number" && Number.isFinite(at) && at <= nowMs) {
+      expired.push(item);
+    } else {
+      keep.push(item);
+    }
+  }
+  return { keep, expired };
+}
+
+/**
+ * 最早一条的到期时间，给定时器用。没有需要定时的消息时返回 undefined。
+ * 调用方拿它减当前时间就是 setTimeout 的延迟；最少要等 1 秒，
+ * 避免到期时间在过去（时钟回拨等）时立刻疯狂重排。
+ */
+export function nextExpiryMs<T extends { expiresAtMs?: number | undefined }>(
+  items: T[]
+): number | undefined {
+  let earliest: number | undefined;
+  for (const item of items) {
+    const at = item.expiresAtMs;
+    if (typeof at !== "number" || !Number.isFinite(at)) continue;
+    if (earliest === undefined || at < earliest) earliest = at;
+  }
+  return earliest;
+}
+
+=== packages/crypto-core/src/aead.ts ===
+/**
+ * AES-256-GCM 封装。业务代码（chat-core / secure-storage）只能通过这里的
+ * encryptAead / decryptAead 接触密文，不允许自己拼 IV 或直接调用 crypto.subtle。
+ *
+ * 关联附加数据（AAD）用来绑定"这段密文属于哪个上下文"——例如文件分片必须绑定
+ * fileId + chunkIndex + groupEpoch（见十、文件传输 的要求），消息必须绑定
+ * senderId + sequenceNo + epoch，防止密文被挪用到别的上下文重放。
+ */
+
+const AEAD_ALGO = "AES-GCM";
+const KEY_LENGTH_BITS = 256;
+const IV_LENGTH_BYTES = 12; // 96-bit nonce，AES-GCM 推荐长度
+
+export interface AeadCiphertext {
+  /** 12 字节随机 nonce，每次加密必须重新生成，绝不复用 */
+  iv: Uint8Array;
+  ciphertext: Uint8Array;
+}
+
+function getSubtle(): SubtleCrypto {
+  const c = (globalThis.crypto ?? undefined) as Crypto | undefined;
+  if (!c?.subtle) {
+    throw new Error("Web Crypto (crypto.subtle) 在当前运行时不可用");
+  }
+  return c.subtle;
+}
+
+function getRandomBytes(length: number): Uint8Array {
+  const c = globalThis.crypto;
+  if (!c?.getRandomValues) {
+    throw new Error("crypto.getRandomValues 在当前运行时不可用");
+  }
+  return c.getRandomValues(new Uint8Array(length));
+}
+
+/** 生成一把随机的 AES-256-GCM 密钥（用于每个文件独立密钥等场景） */
+export async function generateAeadKey(): Promise<CryptoKey> {
+  const subtle = getSubtle();
+  return subtle.generateKey({ name: AEAD_ALGO, length: KEY_LENGTH_BITS }, true, ["encrypt", "decrypt"]);
+}
+
+export async function importAeadKeyRaw(rawKey: Uint8Array): Promise<CryptoKey> {
+  if (rawKey.byteLength !== KEY_LENGTH_BITS / 8) {
+    throw new Error(`AES-256-GCM 密钥必须是 ${KEY_LENGTH_BITS / 8} 字节，实际为 ${rawKey.byteLength}`);
+  }
+  const subtle = getSubtle();
+  return subtle.importKey("raw", rawKey as BufferSource, { name: AEAD_ALGO }, true, ["encrypt", "decrypt"]);
+}
+
+export async function exportAeadKeyRaw(key: CryptoKey): Promise<Uint8Array> {
+  const subtle = getSubtle();
+  const raw = await subtle.exportKey("raw", key);
+  return new Uint8Array(raw);
+}
+
+export async function encryptAead(
+  key: CryptoKey,
+  plaintext: Uint8Array,
+  aad: Uint8Array
+): Promise<AeadCiphertext> {
+  const subtle = getSubtle();
+  const iv = getRandomBytes(IV_LENGTH_BYTES);
+  const ctBuffer = await subtle.encrypt(
+    { name: AEAD_ALGO, iv: iv as BufferSource, additionalData: aad as BufferSource },
+    key,
+    plaintext as BufferSource
+  );
+  return { iv, ciphertext: new Uint8Array(ctBuffer) };
+}
+
+export async function decryptAead(
+  key: CryptoKey,
+  input: AeadCiphertext,
+  aad: Uint8Array
+): Promise<Uint8Array> {
+  const subtle = getSubtle();
+  try {
+    const ptBuffer = await subtle.decrypt(
+      { name: AEAD_ALGO, iv: input.iv as BufferSource, additionalData: aad as BufferSource },
+      key,
+      input.ciphertext as BufferSource
+    );
+    return new Uint8Array(ptBuffer);
+  } catch {
+    // 不区分"密钥错误" vs "被篡改" vs "AAD 不匹配"，避免向调用方泄露可用于
+    // 侧信道分析的细节；上层只需要知道"这条密文不可信"。
+    throw new Error("AEAD 解密失败：密文、密钥或关联数据不匹配（可能被篡改或用错上下文）");
+  }
+}
+
+=== packages/crypto-core/src/keyDerivation.ts ===
+/**
+ * 从邀请串携带的原始群密钥材料，派生出某个 epoch 下实际使用的 AES-256-GCM 密钥。
+ *
+ * 用 HKDF 而不是旧仓库的 PBKDF2：邀请串里的密钥材料本身已经是高熵随机字节
+ * （不是用户输入的口令），HKDF 更适合"从已有高熵密钥材料派生多个子密钥"，
+ * 而且天然支持用 info 参数把 epoch 绑进派生结果——epoch 轮换直接体现为
+ * "同一份群密钥材料在不同 epoch 下派生出不同的实际密钥"，不需要重新分发邀请串。
+ *
+ * PBKDF2 仍保留给"需要从用户设置的应用锁密码派生本地存储保护密钥"的场景
+ * （见 secure-storage 包），两者用途不同，不要混用。
+ */
+
+async function importHkdfIkm(rawMaterial: Uint8Array): Promise<CryptoKey> {
+  const subtle = globalThis.crypto.subtle;
+  return subtle.importKey("raw", rawMaterial as BufferSource, "HKDF", false, ["deriveKey", "deriveBits"]);
+}
+
+export interface DeriveGroupKeyInput {
+  /** 邀请串携带的原始群密钥材料（不是密码，是随机字节） */
+  rawKeyMaterial: Uint8Array;
+  /** 群组 id，作为 salt 的一部分，防止不同群复用派生结果 */
+  groupId: string;
+  /** 当前 epoch（每次成员移除后递增），绑定进 info，天然做到"轮换即换密钥" */
+  epoch: number;
+}
+
+/** 派生出某个 epoch 下的群消息加密密钥（AES-256-GCM） */
+export async function deriveGroupEpochKey(input: DeriveGroupKeyInput): Promise<CryptoKey> {
+  const subtle = globalThis.crypto.subtle;
+  const ikm = await importHkdfIkm(input.rawKeyMaterial);
+  const salt = new TextEncoder().encode(`secureinchat:group-salt:${input.groupId}`);
+  const info = new TextEncoder().encode(`secureinchat:epoch:${input.epoch}`);
+  return subtle.deriveKey(
+    { name: "HKDF", hash: "SHA-256", salt, info },
+    ikm,
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
+
+/**
+ * 派生出某个文件的独立文件密钥（见十、文件传输：每个文件生成独立随机文件密钥）。
+ * 与群消息密钥用不同的 info 前缀，避免同一份 group key material 在不同用途间被复用。
+ */
+export async function deriveFileKey(input: {
+  rawKeyMaterial: Uint8Array;
+  groupId: string;
+  epoch: number;
+  fileId: string;
+}): Promise<CryptoKey> {
+  const subtle = globalThis.crypto.subtle;
+  const ikm = await importHkdfIkm(input.rawKeyMaterial);
+  const salt = new TextEncoder().encode(`secureinchat:file-salt:${input.groupId}:${input.epoch}`);
+  const info = new TextEncoder().encode(`secureinchat:file:${input.fileId}`);
+  return subtle.deriveKey(
+    { name: "HKDF", hash: "SHA-256", salt, info },
+    ikm,
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
+
+=== packages/chat-core/src/index.ts ===
+export * from "./dedup";
+export * from "./ordering";
+export * from "./offlineOutbox";
+export * from "./groupJoin";
+export * from "./relayClient";
+export * from "./messageEnvelope";
+export * from "./fileTransfer";
+export * from "./messageStore";
+export * from "./groupStore";
+export * from "./messageActions";
+export * from "./announcementCategories";
+export * from "./sendProgress";
+export * from "./keyRotation";
+export * from "./connectionStats";
+export * from "./knownDevices";
+export * from "./mentions";
+export * from "./disappearing";
+
+=== apps/android-client/src/mediaPersistence.ts ===
+import {
+  bytesToBase64Url,
+  MAX_STORED_MESSAGES_PER_GROUP,
+  shouldPersistMediaBytes,
+  type StoredMessage,
+} from "@secureinchat/chat-core";
+import type { DisplayMessage } from "./screens/ChatScreen";
+import { toStored } from "./messageMapping";
+
+/**
+ * 媒体内容的落盘缓存（C8）。
+ *
+ * 问题：消息历史每次都整体落盘，而界面里的消息只有 objectUrl、没有原始字节，
+ * 所以只有「刚收到/刚发出」的那一条能把媒体内容写进去；下一次任何保存
+ * （再来一条消息、删除、到期）都会把之前存过的图片/语音内容写成 undefined。
+ *
+ * 方案：每个群在内存里记住「已经落盘过的媒体 base64」（id → base64url），
+ * 每次组装落盘列表时按 id 补回去。
+ *
+ * 取舍（相对于「保存前先从存储读出旧列表再合并」）：
+ * - 读改写每次都要解密、解析整份历史（最多 300 条 × 512 KB），收一条消息就做一遍太慢；
+ *   而且两次保存并发时，后一次读到的可能是前一次写完之前的旧数据，照样会丢。
+ * - 缓存不用读存储，也就没有这个竞态；代价是内存：最坏每群约
+ *   300 × 512 KB × 4/3 ≈ 200 MB 的字符串。实际受 MAX_PERSISTED_MEDIA_BYTES 和条数上限约束，
+ *   而且界面里这些媒体本来就以 Blob 形式在内存里，量级相同。
+ * - 缓存只保留「当前列表里还在、且落盘后还会留下」的 id：删除、到期、被条数上限挤掉的
+ *   消息，内容同时从缓存和存储里消失（阅后即焚依赖这一点）。
+ *
+ * 没有改加密存储和 messageStore 的接口。
+ */
+export class PersistedMediaCache {
+  private readonly byGroup = new Map<string, Map<string, string>>();
+
+  /** 从加载出的历史里记住已落盘的媒体内容（重启后第一次保存不能把它们丢掉）。 */
+  seed(groupId: string, stored: readonly StoredMessage[]): void {
+    const map = new Map<string, string>();
+    for (const m of stored) {
+      if (m.media?.dataB64Url) map.set(m.id, m.media.dataB64Url);
+    }
+    this.byGroup.set(groupId, map);
+  }
+
+  /** 离开群时整组丢掉。 */
+  forget(groupId: string): void {
+    this.byGroup.delete(groupId);
+  }
+
+  /** 测试用：某个群当前缓存了多少条媒体内容。 */
+  sizeOf(groupId: string): number {
+    return this.byGroup.get(groupId)?.size ?? 0;
+  }
+
+  /**
+   * 把界面里的消息列表组装成要落盘的列表。
+   *
+   * @param newBytes 本次新到的媒体原始字节（id → bytes），通常只有一条。
+   * @returns 已按条数上限截断的列表（和 saveMessages 内部的截断结果一致）。
+   */
+  buildStored(
+    groupId: string,
+    messages: readonly DisplayMessage[],
+    newBytes?: ReadonlyMap<string, Uint8Array>
+  ): StoredMessage[] {
+    const old = this.byGroup.get(groupId) ?? new Map<string, string>();
+    // 先截断再组装：被条数上限挤掉的消息不必再编码，它们的内容也要从缓存里放掉
+    const limit = MAX_STORED_MESSAGES_PER_GROUP;
+    const kept = messages.length <= limit ? messages : messages.slice(messages.length - limit);
+    const next = new Map<string, string>();
+    const out: StoredMessage[] = [];
+    for (const m of kept) {
+      const stored = toStored(m);
+      if (stored.media) {
+        const bytes = newBytes?.get(m.id);
+        let b64: string | undefined;
+        if (bytes && shouldPersistMediaBytes(m.media?.sizeBytes ?? bytes.length)) {
+          b64 = bytesToBase64Url(bytes);
+        } else {
+          b64 = old.get(m.id);
+        }
+        if (b64 !== undefined) {
+          next.set(m.id, b64);
+          out.push({ ...stored, media: { ...stored.media, dataB64Url: b64 } });
+          continue;
+        }
+      }
+      out.push(stored);
+    }
+    this.byGroup.set(groupId, next);
+    return out;
+  }
+}
+
+/**
+ * 每个群的写入排队：保证落盘按调用顺序完成。
+ *
+ * saveMessages 是异步的（加密 + IndexedDB），连续两次不 await 的保存可能乱序完成，
+ * 旧列表覆盖新列表——刚删掉的媒体就会「复活」在存储里。排队后最后一次调用一定最后写。
+ */
+export class SerialSaver {
+  private readonly tails = new Map<string, Promise<void>>();
+
+  enqueue(groupId: string, write: () => Promise<void>): Promise<void> {
+    const prev = this.tails.get(groupId) ?? Promise.resolve();
+    // 前一次失败不影响后一次：后一次写的是完整列表，会覆盖
+    const run = prev.then(write, write);
+    const tail = run.catch(() => undefined);
+    this.tails.set(groupId, tail);
+    void tail.then(() => {
+      if (this.tails.get(groupId) === tail) this.tails.delete(groupId);
+    });
+    return run;
+  }
+}
+
+=== apps/android-client/src/profile.ts ===
+import { IndexedDbStorageBackend } from "@secureinchat/secure-storage";
+
+/**
+ * 个人资料（昵称）。
+ *
+ * 需求第七节：首次个人设置只能出现一次，以后加入其他群聊不得重复要求设置。
+ * 所以昵称存在设备本地、和群无关——换群不用重设。
+ *
+ * 昵称不是秘密（群里所有人都会看到），所以直接存 IndexedDB，不走加密存储。
+ */
+
+const NICKNAME_KEY = "profile:nickname";
+
+const backend = new IndexedDbStorageBackend();
+
+export const NICKNAME_MAX_LENGTH = 20;
+
+/** 第一人称称呼：自己看着没问题，别人看到的却是"我发的消息" */
+const FIRST_PERSON_NAMES = new Set(["我", "本人", "自己", "me", "Me", "ME", "myself"]);
+
+export type NicknameValidation = { ok: true } | { ok: false; reason: string };
+
+export function validateNickname(raw: string): NicknameValidation {
+  const trimmed = raw.trim();
+  if (!trimmed) return { ok: false, reason: "昵称不能为空" };
+  if (trimmed.length > NICKNAME_MAX_LENGTH) {
+    return { ok: false, reason: `昵称最多 ${NICKNAME_MAX_LENGTH} 个字` };
+  }
+  // "我""本人"这类第一人称在别人手机上会显示成消息的发送人，
+  // 结果每个人看到的都是"我"，反而分不清是谁。
+  if (FIRST_PERSON_NAMES.has(trimmed)) {
+    return { ok: false, reason: "换一个别人能认出你的名字——群里其他人看到的就是这个" };
+  }
+  return { ok: true };
+}
+
+export async function loadNickname(): Promise<string | undefined> {
+  try {
+    const bytes = await backend.get(NICKNAME_KEY);
+    return bytes ? new TextDecoder().decode(bytes) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function saveNickname(nickname: string): Promise<void> {
+  await backend.set(NICKNAME_KEY, new TextEncoder().encode(nickname.trim()));
+}
+
+export async function clearNickname(): Promise<void> {
+  await backend.delete(NICKNAME_KEY);
+}
+
+/**
+ * 显示用的名字：优先昵称，没有就退回设备 ID 的短前缀。
+ * 直接把完整 deviceId（device-<uuid>）显示在聊天气泡上太长也不可读。
+ */
+export function displayNameFor(nickname: string | undefined, deviceId: string): string {
+  if (nickname?.trim()) return nickname.trim();
+  const short = deviceId.replace(/^device-/, "").slice(0, 6);
+  return `用户${short}`;
+}
+
+=== apps/android-client/src/App.tsx ===
+import { useEffect, useRef, useState } from "react";
+import { InviteParseError, parseInviteAuto, type ParsedInvite } from "@secureinchat/protocol";
+import {
+  joinGroupFromInvite,
+  MissingGroupIdError,
+  RelayClient,
+  FileAssembler,
+  buildFileEnvelopes,
+  rotateGroupKey,
+  buildInviteForGroup,
+  loadKnownDevices,
+  removeGroup,
+  renameGroup,
+  clearMessages,
+  saveKnownDevices,
+  markDeviceSeen,
+  forgetAllDevices,
+  type KnownDevice,
+  sendFileEnvelopes,
+  addLatencySample,
+  recordDisconnect,
+  recordReconnect,
+  EMPTY_LATENCY_STATS,
+  type LatencyStats,
+  type DisconnectRecord,
+  describeSendProgress,
+  loadMessages,
+  saveMessages,
+  loadJoinedGroups,
+  saveJoinedGroups,
+  upsertGroup,
+  copyToClipboard,
+  buildReplyExcerpt,
+  sanitizeExpiresInMs,
+  expiresAtFor,
+  partitionExpired,
+  nextExpiryMs,
+  setDisappearAfter,
+  type ConnectionStatus,
+  type AnnouncementCategory,
+} from "@secureinchat/chat-core";
+import type { InviteInfo } from "@secureinchat/ui";
+import { JoinGroupScreen } from "./screens/JoinGroupScreen";
+import { InviteScreen } from "./screens/InviteScreen";
+import { CreateGroupScreen } from "./screens/CreateGroupScreen";
+import { MessageListScreen } from "./screens/MessageListScreen";
+import { ChatScreen, type DisplayMessage } from "./screens/ChatScreen";
+import { TodayScreen, type TodayContent } from "./screens/TodayScreen";
+import { AdminPublishScreen } from "./screens/AdminPublishScreen";
+import { QrScanScreen } from "./screens/QrScanScreen";
+import { AdminRecoveryScreen } from "./screens/AdminRecoveryScreen";
+import { LockScreen } from "./screens/LockScreen";
+import { ConnectionDiagnosticsScreen } from "./screens/ConnectionDiagnosticsScreen";
+import { ConnectedDevicesScreen } from "./screens/ConnectedDevicesScreen";
+import { ConferenceScreen } from "./screens/ConferenceScreen";
+import { EditProfileScreen } from "./screens/EditProfileScreen";
+import { GroupSettingsScreen, disappearLabel } from "./screens/GroupSettingsScreen";
+import { GroupInviteScreen } from "./screens/GroupInviteScreen";
+import { isLockEnabled, disableLock } from "./appLock";
+import { checkCryptoStorage, type CapabilityResult } from "./capabilityCheck";
+import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
+import { saveAdminKey, loadAdminKey } from "./adminKeys";
+import { CallScreen } from "./screens/CallScreen";
+import {
+  CallSession,
+  createConference,
+  addParticipant,
+  updateParticipant,
+  removeParticipant,
+  setSelfMuted,
+  shouldInitiateTo,
+  isEmpty as conferenceIsEmpty,
+  type CallKind,
+  type CallStateInfo,
+  type ConferenceState,
+} from "@secureinchat/webrtc";
+import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
+import { randomUUID, signAnnouncement, verifyAnnouncement } from "@secureinchat/crypto-core";
+import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
+import { ServerSettingsScreen } from "./screens/ServerSettingsScreen";
+import { MessageSearchScreen } from "./screens/MessageSearchScreen";
+import { loadSavedRelayUrl } from "./relayUrlSetting";
+import { ProfileSetupScreen } from "./screens/ProfileSetupScreen";
+import { loadNickname, saveNickname, displayNameFor } from "./profile";
+import { fromStored } from "./messageMapping";
+import { PersistedMediaCache, SerialSaver } from "./mediaPersistence";
+import {
+  patchSession,
+  sortSessions,
+  unreadFor,
+  previewFor,
+  type GroupSession,
+  type GroupSessions,
+} from "./groupSession";
+import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
+import { isScreenSecurityEnabled, setScreenSecurityEnabled, applyScreenSecurity, screenSecuritySupported } from "./screenSecurity";
+import {
+  biometricAvailable,
+  authenticateBiometric,
+  isBiometricUnlockEnabled,
+  setBiometricUnlockEnabled,
+} from "./biometricUnlock";
+
+interface ActiveCall {
+  session: CallSession;
+  kind: CallKind;
+  info: CallStateInfo;
+  peerDeviceId: string;
+  localStream?: MediaStream;
+  remoteStream?: MediaStream;
+}
+
+type Screen =
+  | { name: "join" }
+  | { name: "createGroup" }
+  | { name: "serverSettings" }
+  | { name: "adminPublish" }
+  | { name: "scanQr" }
+  | { name: "adminRecovery" }
+  | { name: "diagnostics" }
+  | { name: "devices" }
+  | { name: "editProfile" }
+  | { name: "groupSettings"; groupId: string; from: "chat" | "list" }
+  | { name: "groupInvite"; groupId: string; from: "chat" | "list" }
+  | {
+      name: "invite";
+      invite: InviteInfo;
+      parsed?: ParsedInvite | undefined;
+      isConfirming: boolean;
+      errorMessage?: string | undefined;
+    }
+  // "messages" 和 "chat" 合成一个状态，view 只决定渲染哪个屏幕——消息数组
+  // 活在这一个对象里，在两个视图之间切换不会因为组件卸载而丢失历史。
+  | {
+      name: "connected";
+      /** 当前打开的群；null 表示在群列表页 */
+      activeGroupId: string | null;
+      view: "list" | "chat" | "search";
+      deviceId: string;
+      call?: ActiveCall | undefined;
+    };
+
+/**
+ * protocol 包解析出的 InviteParseError.reason 和 ui 包 InviteInfoCard 期待的
+ * reason 不是同一套枚举——前者是"哪里解析失败"（bad-prefix/invalid-json 等，
+ * 面向协议实现者），后者是"给用户看的失效原因"（面向最终用户）。这里做一次
+ * 明确的映射，不要把协议层的内部错误码直接展示给用户。
+ */
+/** 把过期时间戳转成"有效期剩 X 天 Y 小时"这种人话 */
+function mediaLabel(kind: "image" | "voice" | "file"): string {
+  if (kind === "image") return "图片";
+  if (kind === "voice") return "语音";
+  return "文件";
+}
+
+function formatExpiry(expiresAtMs: number): string {
+  const remainMs = expiresAtMs - Date.now();
+  if (remainMs <= 0) return "已过期";
+  const hours = Math.floor(remainMs / 3_600_000);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `有效期剩 ${days} 天 ${hours % 24} 小时`;
+  if (hours > 0) return `有效期剩 ${hours} 小时`;
+  return `有效期剩 ${Math.max(1, Math.floor(remainMs / 60_000))} 分钟`;
+}
+
+function mapParseErrorReason(reason: InviteParseError["reason"]): "expired" | "exhausted" | "malformed" {
+  if (reason === "expired") return "expired";
+  if (reason === "exhausted") return "exhausted";
+  return "malformed";
+}
+
+let nextMessageId = 0;
+
+export function App() {
+  const [screen, setScreen] = useState<Screen>({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+  // 应用内配置的中继地址优先于构建时注入的默认值——换服务器不用重新打包
+  const [relayUrl, setRelayUrl] = useState<string>(RELAY_URL);
+  // 会话不放在 screen 里——导航到别的页面（比如去加入另一个群）不该断开
+  // 已经连上的群。之前放在 screen 里时，回启动页会把所有连接一起丢掉。
+  const [sessions, setSessions] = useState<GroupSessions>({});
+  // setSessions 是异步的，而"这是不是第一个群"要在下一次 connect 前就准确——
+  // 用 ref 镜像一份当前值供同步判断
+  const sessionsRef = useRef<GroupSessions>({});
+  // 启动时的自动重连期间为 true，用来区分"用户主动加入"和"后台恢复"
+  const isAutoReconnectRef = useRef(false);
+  // 从聊天页返回时要落在消息 tab，而不是默认的公告 tab
+  const cameFromChatRef = useRef(false);
+  const myDeviceIdRef = useRef("");
+  /** 每个群一条写入链，避免设备名单的读改写互相覆盖 */
+  const deviceWriteChainRef = useRef<Map<string, Promise<void>>>(new Map());
+  // 公告音频的分片和公告本身谁先到都有可能，两边各记一份等对上
+  const pendingAudioRef = useRef<Map<string, AnnouncementCategory>>(new Map());
+  const arrivedAudioRef = useRef<Map<string, string>>(new Map());
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // 截屏保护：启动时读本机偏好并应用到窗口。
+  // 默认关闭——邀请卡片就是为了截图转发；开启后本应用界面无法截屏。
+  const [screenSecurityEnabled, setScreenSecurityEnabledState] = useState(false);
+
+  useEffect(() => {
+    if (!screenSecuritySupported()) return;
+    void (async () => {
+      const enabled = await isScreenSecurityEnabled();
+      setScreenSecurityEnabledState(enabled);
+      await applyScreenSecurity(enabled);
+    })();
+  }, []);
+
+  const handleToggleScreenSecurity = () => {
+    const next = !screenSecurityEnabled;
+    setScreenSecurityEnabledState(next);
+    void (async () => {
+      await setScreenSecurityEnabled(next);
+      await applyScreenSecurity(next);
+    })();
+  };
+  /** null = 还没查完是否启用了应用锁 */
+  const [locked, setLocked] = useState<boolean | null>(null);
+  /** 应用锁是否已启用——解锁后 locked 变 false，但应用锁本身仍启用着 */
+  const [lockEnabled, setLockEnabledState] = useState(false);
+  const [capability, setCapability] = useState<CapabilityResult | null>(null);
+
+  useEffect(() => {
+    void checkCryptoStorage().then(setCapability);
+  }, []);
+  const [showLockSetup, setShowLockSetup] = useState(false);
+
+  useEffect(() => {
+    void isLockEnabled().then((enabled) => {
+      setLocked(enabled);
+      setLockEnabledState(enabled);
+    });
+  }, []);
+
+  // 指纹/面部解锁：只有原生平台且系统可用时才读偏好。
+  // 不可用时 MessageListScreen 不显示这一行（不做假功能）。
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const available = await biometricAvailable();
+      setBiometricSupported(available);
+      if (!available) {
+        setBiometricEnabled(false);
+        return;
+      }
+      setBiometricEnabled(await isBiometricUnlockEnabled());
+    })();
+  }, []);
+
+  const handleToggleBiometric = () => {
+    if (!lockEnabled) {
+      setShowLockSetup(true);
+      return;
+    }
+    if (biometricEnabled) {
+      setBiometricEnabled(false);
+      void setBiometricUnlockEnabled(false);
+      return;
+    }
+    void (async () => {
+      // 开启前先验证一次，避免用户开了却从没验证过
+      const ok = await authenticateBiometric();
+      if (!ok) return;
+      setBiometricEnabled(true);
+      await setBiometricUnlockEnabled(true);
+    })();
+  };
+  /** 发布圣诗音频时的进度文案 */
+  const [publishProgress, setPublishProgress] = useState<string | null>(null);
+  /** 当前会议。null = 不在会议中 */
+  const [conference, setConference] = useState<ConferenceState | null>(null);
+  const [conferenceElapsed, setConferenceElapsed] = useState(0);
+  /** 会议里每个参与者一条 CallSession */
+  const conferenceSessionsRef = useRef<Map<string, CallSession>>(new Map());
+
+  useEffect(() => {
+    if (!conference) {
+      setConferenceElapsed(0);
+      return;
+    }
+    const timer = setInterval(() => setConferenceElapsed((s) => s + 1), 1000);
+    return () => clearInterval(timer);
+  }, [conference !== null]);
+  // 连接质量统计。跨群共用一份——它们走的是同一条网络、同一台中继，
+  // 分群统计只会把样本切碎，看不出趋势。
+  const [latency, setLatency] = useState<LatencyStats>(EMPTY_LATENCY_STATS);
+  const [disconnects, setDisconnects] = useState<DisconnectRecord[]>([]);
+
+  useEffect(() => {
+    void isAdminUnlocked().then(setIsAdmin);
+  }, []);
+
+  /** 界面上是否显示发布入口：既要解锁过，也要真的持有某个群的管理员私钥 */
+  const [holdsAdminKey, setHoldsAdminKey] = useState(false);
+  useEffect(() => {
+    const groupIds = Object.keys(sessions);
+    if (groupIds.length === 0) {
+      setHoldsAdminKey(false);
+      return;
+    }
+    void Promise.all(groupIds.map((id) => loadAdminKey(id))).then((keys) =>
+      setHoldsAdminKey(keys.some(Boolean))
+    );
+  }, [sessions]);
+
+  // 群设置页是否显示「邀请新成员」——只看这个群的管理员私钥，不用全局的
+  // holdsAdminKey。那个是"有没有任意群的管理员权限"，拿到另一个群的管理员
+  // 私钥也能通过，会让非管理员看到不该看到的入口。
+  const [groupSettingsAdminAvailable, setGroupSettingsAdminAvailable] = useState(false);
+  const [groupInviteState, setGroupInviteState] = useState<
+    | { status: "loading" }
+    | { status: "ready"; groupName: string; inviteCode: string }
+    | { status: "error"; message: string }
+  >({ status: "loading" });
+
+  const settingsGroupId =
+    screen.name === "groupSettings" || screen.name === "groupInvite" ? screen.groupId : null;
+  const inviteGroupId = screen.name === "groupInvite" ? screen.groupId : null;
+
+  useEffect(() => {
+    if (!settingsGroupId) {
+      setGroupSettingsAdminAvailable(false);
+      return;
+    }
+    let cancelled = false;
+    void loadAdminKey(settingsGroupId).then((key) => {
+      if (!cancelled) setGroupSettingsAdminAvailable(Boolean(key));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [settingsGroupId]);
+
+  // 重新生成邀请卡片：打开时读一次 JoinedGroup 里的密钥材料和 epoch，
+  // 现算邀请串；找不到这个群就报错，不显示空卡片。
+  useEffect(() => {
+    if (!inviteGroupId) return;
+    let cancelled = false;
+    setGroupInviteState({ status: "loading" });
+    void (async () => {
+      try {
+        const store = await getDeviceStore();
+        const groups = await loadJoinedGroups(store);
+        const group = groups.find((g) => g.groupId === inviteGroupId);
+        if (!group) {
+          if (!cancelled) {
+            setGroupInviteState({
+              status: "error",
+              message: "找不到这个群的密钥材料，无法生成邀请卡片。请重新加入这个群。",
+            });
+          }
+          return;
+        }
+        const inviteCode = buildInviteForGroup({
+          groupId: group.groupId,
+          groupName: group.groupName,
+          keyMaterialB64Url: group.keyMaterialB64Url,
+          epoch: group.epoch,
+          adminPublicKeyRawB64Url: group.adminPublicKeyRawB64Url,
+        });
+        if (!cancelled) {
+          setGroupInviteState({ status: "ready", groupName: group.groupName, inviteCode });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setGroupInviteState({
+            status: "error",
+            message: err instanceof Error ? err.message : "生成邀请卡片失败，请重试",
+          });
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteGroupId]);
+  /** 正在回复的消息（每个群独立） */
+  const [replyTarget, setReplyTarget] = useState<DisplayMessage | null>(null);
+  const [nickname, setNickname] = useState<string | undefined>(undefined);
+  // 设置完昵称后要重新执行用户原本的动作，但那个回调是设置之前创建的闭包，
+  // 里面读到的还是旧的 nickname（undefined），会被再拦一次。用 ref 读当前值。
+  const nicknameRef = useRef<string | undefined>(undefined);
+  // 当前会话的落盘函数——连接建立时才知道 groupId 和 store，所以放 ref 里
+  const persistRef = useRef<((messages: DisplayMessage[], mediaBytesById?: Map<string, Uint8Array>) => void) | null>(
+    null
+  );
+  // 已经落盘过的媒体内容（每群 id → base64）。每次整体落盘都按 id 补回，
+  // 否则下一次保存会把之前存过的图片/语音内容丢掉（C8）。
+  const mediaCacheRef = useRef(new PersistedMediaCache());
+  // 每个群的写入排队，保证后调用的保存后完成（不会被旧列表覆盖）。
+  const saverRef = useRef(new SerialSaver());
+
+  /**
+   * 落盘某个群的消息列表：同步组装（保持缓存和调用顺序一致），再排队写入。
+   * newBytes 是这次新到的媒体原始字节（通常只有一条）。
+   */
+  function saveGroupMessages(
+    store: Awaited<ReturnType<typeof getDeviceStore>>,
+    groupId: string,
+    messages: readonly DisplayMessage[],
+    newBytes?: ReadonlyMap<string, Uint8Array>
+  ): Promise<void> {
+    const list = mediaCacheRef.current.buildStored(groupId, messages, newBytes);
+    return saverRef.current.enqueue(groupId, () => saveMessages(store, groupId, list));
+  }
+  // 昵称是异步从 IndexedDB 读的。读完之前不能判断"有没有设过"——否则老用户
+  // 会被再弹一次设置页，违反"首次设置只出现一次"。
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  // 首次设置昵称时，用户原本想做的事（加群/建群）先存这里，设置完再继续
+  const pendingAfterProfileRef = useRef<(() => void) | null>(null);
+  const [needsProfile, setNeedsProfile] = useState(false);
+
+  // 每个群本地的「消息定时消失」时长（毫秒），0 表示关闭。
+  // 只影响自己之后发出的消息；收到的消息按消息里带的 expiresInMs 处理。
+  // 单独放一份镜像，是因为 GroupSettingsScreen 要立即显示新值，
+  // 而 JoinedGroup 是异步读写加密存储的。
+  const [disappearAfterByGroup, setDisappearAfterByGroup] = useState<Record<string, number>>({});
+
+  // 每个群一个到期定时器。用 nextExpiryMs 算出下一条何时到期，
+  // 到点再重排——不轮询。
+  const expiryTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  /** 清掉某个群的到期定时器（离开群、卸载时用）。 */
+  function clearExpiryTimer(groupId: string) {
+    const timer = expiryTimersRef.current.get(groupId);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      expiryTimersRef.current.delete(groupId);
+    }
+  }
+
+  /** 按这个群当前最早的一条到期时间重排定时器。 */
+  function scheduleExpiryFor(groupId: string) {
+    clearExpiryTimer(groupId);
+    const session = sessionsRef.current[groupId];
+    if (!session) return;
+    const next = nextExpiryMs(session.messages);
+    if (next === undefined) return;
+    // 最少 1 秒：到期时间已经在过去（时钟回拨等）时不要立刻疯狂重排
+    const delay = Math.max(1000, next - Date.now());
+    const timer = setTimeout(() => {
+      void expireMessagesFor(groupId);
+    }, delay);
+    expiryTimersRef.current.set(groupId, timer);
+  }
+
+  /**
+   * 把已经过期的消息从这个群里删掉、释放 objectUrl、落盘，然后为下一条重排。
+   * 界面和加密存储里都要删——这是「阅后即焚」的实际执行点。
+   */
+  async function expireMessagesFor(groupId: string) {
+    clearExpiryTimer(groupId);
+    const session = sessionsRef.current[groupId];
+    if (!session) return;
+    const { keep, expired } = partitionExpired(session.messages, Date.now());
+    if (expired.length === 0) {
+      scheduleExpiryFor(groupId);
+      return;
+    }
+    for (const m of expired) {
+      if (m.media?.objectUrl) URL.revokeObjectURL(m.media.objectUrl);
+    }
+    setSessions((prev) => {
+      const next = patchSession(prev, groupId, { messages: keep });
+      sessionsRef.current = next;
+      return next;
+    });
+    try {
+      const store = await getDeviceStore();
+      await saveGroupMessages(store, groupId, keep);
+    } catch {
+      // 落盘失败不影响界面上的删除；下次写入会覆盖
+    }
+    scheduleExpiryFor(groupId);
+  }
+
+  // 消息列表一变就按最新状态重排各群的到期定时器。直接在 setSessions 之后调用
+  // scheduleExpiryFor 不够：更新函数要等下一次渲染才执行，那时 sessionsRef 还是旧的，
+  // 新消息的到期时间就被漏掉了。
+  useEffect(() => {
+    sessionsRef.current = sessions;
+    for (const groupId of Object.keys(sessions)) scheduleExpiryFor(groupId);
+  }, [sessions]);
+
+  // 组件卸载时把所有定时器清掉，避免在已卸载的组件上 setState
+  useEffect(() => {
+    return () => {
+      for (const timer of expiryTimersRef.current.values()) clearTimeout(timer);
+      expiryTimersRef.current.clear();
+    };
+  }, []);
+
+  /**
+   * 修改某个群的「消息定时消失」。
+   * 保存到 JoinedGroup（本机、本群），并插一条本地系统提示——不发送给别人。
+   */
+  async function handleSetDisappearAfter(groupId: string, ms: number) {
+    const store = await getDeviceStore();
+    const groups = setDisappearAfter(await loadJoinedGroups(store), groupId, ms);
+    await saveJoinedGroups(store, groups);
+    setDisappearAfterByGroup((prev) => ({ ...prev, [groupId]: ms }));
+    const session = sessionsRef.current[groupId];
+    if (!session) return;
+    await appendOwnMessage(groupId, {
+      id: `sys-${nextMessageId++}`,
+      isOwn: true,
+      system: true,
+      sentAtMs: Date.now(),
+      text: ms > 0 ? `你开启了定时消失：${disappearLabel(ms)}` : "你关闭了定时消失",
+    });
+  }
+
+  useEffect(() => {
+    void loadSavedRelayUrl().then((saved) => {
+      if (saved) setRelayUrl(saved);
+    });
+    void loadNickname()
+      .then((saved) => {
+        nicknameRef.current = saved;
+        setNickname(saved);
+      })
+      .finally(() => setProfileLoaded(true));
+
+    // 启动时重连所有已加入的群。全部连上而不是只连一个——否则你在 A 群
+    // 时 B 群来了消息不会知道。某个群连不上不影响其他群。
+    void (async () => {
+      const store = await getDeviceStore();
+      const groups = await loadJoinedGroups(store);
+      // 把各群的「消息定时消失」读进来，群设置页要立即显示当前值
+      setDisappearAfterByGroup(
+        Object.fromEntries(groups.map((g) => [g.groupId, g.disappearAfterMs ?? 0]))
+      );
+      isAutoReconnectRef.current = true;
+      for (const g of groups) {
+        try {
+          await connectToGroup(
+            {
+              version: "SIC2",
+              isCompatMode: false,
+              serverJoinCode: "",
+              groupId: g.groupId,
+              keyMaterialB64Url: g.keyMaterialB64Url,
+              epoch: g.epoch,
+              ...(g.adminPublicKeyRawB64Url
+                ? { adminPublicKeyRawB64Url: g.adminPublicKeyRawB64Url }
+                : {}),
+            },
+            g.groupName
+          );
+        } catch {
+          // 这个群连不上就跳过，继续连下一个
+        }
+      }
+      isAutoReconnectRef.current = false;
+    })();
+  }, []);
+  // 信令回调是在 connectToGroup 里一次性注册的闭包，拿不到最新的 screen——
+  // 用 ref 让它们能读到当前通话状态，避免闭包捕获旧值这个经典坑。
+  const currentCallRef = useRef<ActiveCall | undefined>(undefined);
+  const callFactoryRef = useRef<((callId: string, peer: string, kind: CallKind) => CallSession) | null>(null);
+  currentCallRef.current = screen.name === "connected" ? screen.call : undefined;
+
+  /**
+   * 派生群密钥、连上 relay——加入邀请码流程和创建群聊流程最终都要做同一件事，
+   * 抽成一个函数，不要在两个地方各写一份容易走歪的版本。订阅 onMessage 也在
+   * 这里做一次，不放在 ChatScreen 里——ChatScreen 会被卸载/重新挂载（切到消息
+   * 列表再切回来），但这个订阅只应该建立一次，跟连接本身的生命周期绑定。
+   */
+  /**
+   * @param keepScreen 轮换密钥时用——重连不该把管理员从发布页拽走，
+   *   否则他看不到刚生成的新邀请码。
+   */
+  async function connectToGroup(parsed: ParsedInvite, groupName: string, keepScreen = false): Promise<void> {
+    const store = await getDeviceStore();
+    const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
+    const identity = await getDeviceIdentity();
+    myDeviceIdRef.current = identity.deviceId;
+
+    const client = new RelayClient(relayUrl, {
+      deviceId: identity.deviceId,
+      groupId,
+      keystore: identity.keystore,
+      keystoreAlias: identity.keystoreAlias,
+      groupKey: epochKey,
+      epoch,
+    });
+    try {
+      await client.connect("register");
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("already registered")) {
+        await client.connect("authenticate");
+      } else {
+        throw err;
+      }
+    }
+
+    const assembler = new FileAssembler();
+
+    // 每次消息列表变化就整体落盘。条数有上限（见 messageStore），所以这个
+    // 写入量是有界的；比起为每条消息单独维护增量写，整体写简单且不会写歪。
+    // 每个群各自落盘到自己的 key。闭包捕获了 groupId，所以每条连接的
+    // 回调都会写到正确的群，不会串。
+    const persist = (messages: DisplayMessage[], mediaBytesById?: Map<string, Uint8Array>) => {
+      void saveGroupMessages(store, groupId, messages, mediaBytesById);
+    };
+
+    /** 更新这个群的会话状态——不影响其他群 */
+    const patch = (p: Partial<GroupSession>) => {
+      setSessions((prev) => {
+        const next = patchSession(prev, groupId, p);
+        sessionsRef.current = next;
+        return next;
+      });
+    };
+
+    /** 往这个群追加消息并落盘 */
+    const appendMessage = (message: DisplayMessage, mediaBytes?: Uint8Array) => {
+      setSessions((prev) => {
+        const session = prev[groupId];
+        if (!session) return prev;
+        const messages = [...session.messages, message];
+        persist(messages, mediaBytes ? new Map([[message.id, mediaBytes]]) : undefined);
+        const next = patchSession(prev, groupId, { messages });
+        sessionsRef.current = next;
+        return next;
+      });
+      // 新消息可能带到期时间，重排这个群的定时器
+      scheduleExpiryFor(groupId);
+    };
+
+    // 重启后重新加载历史：已经过期的消息不该再出现，立即从存储里删掉。
+    const storedHistory = await loadMessages(store, groupId);
+    const { keep: keptStored, expired: expiredStored } = partitionExpired(storedHistory, Date.now());
+    // 记住已经落盘的媒体内容，之后的整体保存才不会把它们写丢（C8）
+    mediaCacheRef.current.seed(groupId, keptStored);
+    if (expiredStored.length > 0) {
+      void saverRef.current.enqueue(groupId, () => saveMessages(store, groupId, keptStored));
+    }
+    const history = keptStored.map(fromStored);
+    const knownDevices = await loadKnownDevices(store, groupId);
+
+    client.onMessage((msg) => {
+      const env = msg.envelope;
+
+      if (env.kind === "text") {
+        // 发消息的人带了昵称，正好补进设备名单
+        void recordSightings(groupId, [{ deviceId: msg.fromDeviceId, displayName: env.senderName }]);
+
+        const textReceivedAtMs = Date.now();
+        const textExpiresAtMs = expiresAtFor(
+          textReceivedAtMs,
+          sanitizeExpiresInMs(env.expiresInMs)
+        );
+        appendMessage({
+          id: `recv-${nextMessageId++}`,
+          text: env.text,
+          isOwn: false,
+          fromDeviceId: displayNameFor(env.senderName, msg.fromDeviceId),
+          // 用发送方带过来的时间，不是本机收到的时间——离线补发的消息
+          // 应该显示当初发出的时刻
+          sentAtMs: env.sentAtMs,
+          ...(env.replyTo ? { replyTo: env.replyTo } : {}),
+          ...(textExpiresAtMs !== undefined ? { expiresAtMs: textExpiresAtMs } : {}),
+        });
+        return;
+      }
+
+      if (env.kind === "announcement") {
+        const category: AnnouncementCategory = env.category ?? "notice";
+
+        // 验签：没有管理员公钥、没有签名、或者验不过，都不当公告。
+        // 这是"管理员"真正生效的地方——本地解锁界面骗不过别人的客户端。
+        void (async () => {
+          const adminPublicKey = parsed.adminPublicKeyRawB64Url;
+          if (!adminPublicKey || !env.adminSignature) return;
+          const ok = await verifyAnnouncement(adminPublicKey, env.adminSignature, {
+            groupId,
+            category,
+            title: env.title,
+            body: env.body,
+            sentAtMs: env.sentAtMs,
+            audioFileId: env.audioFileId,
+          });
+          if (!ok) return;
+
+          // 音频可能还在传输中（分片先到或后到都有可能）——先记下引用，
+          // 等文件组装完再补上播放地址
+          if (env.audioFileId) pendingAudioRef.current.set(env.audioFileId, category);
+          const readyUrl = env.audioFileId ? arrivedAudioRef.current.get(env.audioFileId) : undefined;
+
+          setSessions((prev) => {
+            const s = prev[groupId];
+            if (!s) return prev;
+            return patchSession(prev, groupId, {
+              today: {
+                ...s.today,
+                [category]: {
+                  title: env.title,
+                  body: env.body,
+                  audioUrl: readyUrl,
+                  audioPending: env.audioFileId && !readyUrl ? "音频接收中..." : undefined,
+                },
+              },
+            });
+          });
+        })();
+        return;
+      }
+
+      if (env.kind === "file-meta") {
+        assembler.acceptMeta(env);
+        patch({ incomingProgress: assembler.progress() });
+        return;
+      }
+
+      // file-chunk：集齐了就组装成一条媒体消息
+      const done = assembler.acceptChunk(env);
+      if (!done) {
+        patch({ incomingProgress: assembler.progress() });
+        return;
+      }
+      const objectUrl = URL.createObjectURL(new Blob([done.bytes as BlobPart], { type: done.mimeType }));
+      patch({ incomingProgress: assembler.progress() });
+
+      // 公告配的音频不进聊天记录——它属于「今日」的栏目
+      arrivedAudioRef.current.set(done.fileId, objectUrl);
+      const pendingCategory = pendingAudioRef.current.get(done.fileId);
+      if (pendingCategory) {
+        pendingAudioRef.current.delete(done.fileId);
+        setSessions((prev) => {
+          const s = prev[groupId];
+          if (!s) return prev;
+          const existing = s.today[pendingCategory];
+          if (!existing) return prev;
+          return patchSession(prev, groupId, {
+            today: {
+              ...s.today,
+              [pendingCategory]: { ...existing, audioUrl: objectUrl, audioPending: undefined },
+            },
+          });
+        });
+        return;
+      }
+      const fileReceivedAtMs = Date.now();
+      const fileExpiresAtMs = expiresAtFor(
+        fileReceivedAtMs,
+        sanitizeExpiresInMs(done.expiresInMs)
+      );
+      appendMessage(
+        {
+          id: `recv-${nextMessageId++}`,
+          isOwn: false,
+          fromDeviceId: displayNameFor(done.senderName, msg.fromDeviceId),
+          sentAtMs: Date.now(),
+          media: {
+            mediaKind: done.mediaKind,
+            fileName: done.fileName,
+            mimeType: done.mimeType,
+            objectUrl,
+            sizeBytes: done.bytes.byteLength,
+            ...(done.durationMs !== undefined ? { durationMs: done.durationMs } : {}),
+          },
+          ...(fileExpiresAtMs !== undefined ? { expiresAtMs: fileExpiresAtMs } : {}),
+        },
+        done.bytes
+      );
+    });
+
+    // 通话工厂。之前只声明了 callFactoryRef 却从来没赋值过，
+    // 所以 handleStartCall 每次都在第一行静默返回——按钮点了什么都不发生。
+    callFactoryRef.current = (callId, peerDeviceId, kind) =>
+      new CallSession({
+        callId,
+        peerDeviceId,
+        kind,
+        iceServers: ICE_CONFIG.iceServers,
+        iceTransportPolicy: ICE_CONFIG.iceTransportPolicy,
+        // RelayClient 本身就有同名的 sendSignaling，直接当传输层用
+        transport: client,
+        onStateChange: (info) =>
+          setScreen((prev) =>
+            prev.name === "connected" && prev.call
+              ? { ...prev, call: { ...prev.call, info } }
+              : prev
+          ),
+        onLocalStream: (stream) =>
+          setScreen((prev) =>
+            prev.name === "connected" && prev.call
+              ? { ...prev, call: { ...prev.call, localStream: stream } }
+              : prev
+          ),
+        onRemoteStream: (stream) =>
+          setScreen((prev) =>
+            prev.name === "connected" && prev.call
+              ? { ...prev, call: { ...prev.call, remoteStream: stream } }
+              : prev
+          ),
+      });
+
+    // 收到对方的信令。之前完全没订阅，所以别人打过来这边毫无反应——
+    // 通话是"两边都没接上"，不只是发不出去。
+    client.onSignaling((signal) => {
+      const currentCall = currentCallRef.current;
+
+      if (signal.type === "call_invite") {
+        // 已经在通话中就直接拒掉，不要把现有通话顶掉
+        if (currentCall) {
+          void client.sendSignaling("call_reject", signal.fromDeviceId, signal.callId, {
+            reason: "busy",
+          });
+          return;
+        }
+        const factory = callFactoryRef.current;
+        if (!factory) return;
+        const kind = (signal.payload["kind"] as CallKind | undefined) ?? "voice";
+        const session = factory(signal.callId, signal.fromDeviceId, kind);
+        setScreen((prev) =>
+          prev.name === "connected"
+            ? { ...prev, call: { session, kind, info: { state: "idle" }, peerDeviceId: signal.fromDeviceId } }
+            : prev
+        );
+        void session.receiveInvite(String(signal.payload["sdp"] ?? ""));
+        return;
+      }
+
+      if (!currentCall) return;
+
+      // 其余信令按类型分派给当前通话
+      if (signal.type === "call_answer") {
+        void currentCall.session.receiveAnswer(String(signal.payload["sdp"] ?? ""));
+      } else if (signal.type === "ice_candidate") {
+        void currentCall.session.receiveIceCandidate(
+          signal.payload["candidate"] as RTCIceCandidateInit
+        );
+      } else if (signal.type === "call_reject" || signal.type === "call_cancel" || signal.type === "call_hangup") {
+        void currentCall.session.hangup();
+      }
+    });
+
+    client.onConference((frame) => {
+      if (frame.type === "conference_end") {
+        setConference((prev) => (prev ? removeParticipant(prev, frame.fromDeviceId) : prev));
+        conferenceSessionsRef.current.get(frame.fromDeviceId)?.hangup();
+        conferenceSessionsRef.current.delete(frame.fromDeviceId);
+        return;
+      }
+
+      // conference_invite：别人发起了会议，或者已在会议中的人告诉我他也在
+      setConference((prev) => {
+        const base = prev ?? createConference(frame.conferenceId);
+        const known = sessionsRef.current[groupId]?.knownDevices ?? [];
+        const displayName = known.find((d) => d.deviceId === frame.fromDeviceId)?.displayName;
+        const result = addParticipant(base, frame.fromDeviceId, displayName);
+        if (!result.ok) {
+          // 满了：告诉对方一声，别让他一直等
+          client.sendConferenceFrame("conference_end", frame.conferenceId);
+          return prev;
+        }
+        return result.state;
+      });
+
+      // 已经在同一个会议里就去建连接
+      connectToConferencePeer(frame.fromDeviceId, frame.conferenceId);
+    });
+
+    client.onPeersChange((onlinePeers) => {
+      patch({ onlinePeers });
+      // 在线状态是唯一能"看见还没说过话的成员"的途径
+      void recordSightings(groupId, onlinePeers.map((id) => ({ deviceId: id })));
+    });
+    client.onStatusChange((connectionStatus) => {
+      patch({ connectionStatus });
+      if (connectionStatus === "reconnecting") {
+        setDisconnects((prev) => recordDisconnect(prev, Date.now()));
+      } else if (connectionStatus === "connected") {
+        setDisconnects((prev) => recordReconnect(prev, Date.now()));
+      }
+    });
+    client.onLatency((rttMs) => setLatency((prev) => addLatencySample(prev, rttMs)));
+    client.onQueueChange((pendingCount) => patch({ pendingCount }));
+
+    const session: GroupSession = {
+      groupId,
+      groupName,
+      client,
+      messages: history,
+      connectionStatus: client.connectionStatus,
+      pendingCount: client.pendingMessageCount,
+      onlinePeers: client.onlinePeers,
+      adminPublicKey: parsed.adminPublicKeyRawB64Url,
+      epoch,
+      today: {},
+      knownDevices,
+      lastReadAtMs: Date.now(),
+    };
+
+    // 记住这个群，下次启动自动重连
+    const groups = upsertGroup(await loadJoinedGroups(store), {
+      groupId,
+      groupName,
+      keyMaterialB64Url: parsed.keyMaterialB64Url,
+      epoch,
+      ...(parsed.adminPublicKeyRawB64Url
+        ? { adminPublicKeyRawB64Url: parsed.adminPublicKeyRawB64Url }
+        : {}),
+      joinedAtMs: Date.now(),
+      lastReadAtMs: Date.now(),
+    });
+    await saveJoinedGroups(store, groups);
+
+    // 是不是第一个群，要在调用 setSessions 之前判断——不能把 setScreen 放进
+    // updater 里，React 会重复调用 updater，在里面做副作用不可靠。
+    const isFirstGroup = Object.keys(sessionsRef.current).length === 0;
+    // 启动时自动重连不该抢走界面——只有用户主动加入才跳进聊天
+    const shouldOpenChat = isFirstGroup && !isAutoReconnectRef.current;
+    sessionsRef.current = { ...sessionsRef.current, [groupId]: session };
+    setSessions(sessionsRef.current);
+    // 历史里可能还有即将到期的消息，连上后马上排一次
+    scheduleExpiryFor(groupId);
+
+    if (keepScreen) {
+      // 保持当前界面不动
+    } else if (shouldOpenChat) {
+      // 唯一一个群时直接进聊天——小团体绝大多数只有一个群，先显示一个只有
+      // 一行的列表再让用户点一下，那一下是白点的。从聊天页"返回"仍能看到列表，
+      // 所以加入别的群的入口没有丢。
+      setScreen({ name: "connected", activeGroupId: groupId, view: "chat", deviceId: identity.deviceId });
+    } else {
+      setScreen((s) =>
+        s.name === "connected" ? s : { name: "connected", activeGroupId: null, view: "list", deviceId: identity.deviceId }
+      );
+    }
+  }
+
+  /** 还没设昵称就先去设置，设完自动继续原来的动作——不打断用户的意图 */
+  function requireProfile(next: () => void): boolean {
+    if (nicknameRef.current) return false;
+    pendingAfterProfileRef.current = next;
+    setNeedsProfile(true);
+    return true;
+  }
+
+  async function handleProfileDone(name: string) {
+    await saveNickname(name);
+    nicknameRef.current = name;
+    setNickname(name);
+    setNeedsProfile(false);
+    const next = pendingAfterProfileRef.current;
+    pendingAfterProfileRef.current = null;
+    next?.();
+  }
+
+  function handleSubmitInviteCode(raw: string) {
+    if (requireProfile(() => handleSubmitInviteCode(raw))) return;
+    try {
+      const parsed = parseInviteAuto(raw);
+      // 解析成功只证明"邀请串格式和有效期本身没问题"，群名、邀请人这些元数据
+      // 不在邀请串里，真实产品里要另外问服务器要——这里先用占位内容展示，
+      // 明确不是真实数据。真正要用于密钥派生的 parsed（groupId/keyMaterial/epoch）
+      // 是真实的解析结果，不是占位。
+      // 群名现在真的来自邀请串（创建者写进去的），不再是占位数据。
+      // 成员数和邀请人还拿不到——中继是盲的，不知道群里有谁、谁邀请的谁，
+      // 所以这两项暂时不显示，而不是编一个假的出来。
+      const invite: InviteInfo = {
+        status: "valid",
+        groupName: parsed.groupName ?? "加密群聊",
+        inviterName: undefined,
+        expiryLabel: parsed.expiresAtMs ? formatExpiry(parsed.expiresAtMs) : undefined,
+      };
+      setScreen({ name: "invite", invite, parsed, isConfirming: false });
+    } catch (err) {
+      const reason = err instanceof InviteParseError ? mapParseErrorReason(err.reason) : "malformed";
+      setScreen({ name: "invite", invite: { status: "invalid", reason }, isConfirming: false });
+    }
+  }
+
+  async function handleConfirmJoin() {
+    if (screen.name !== "invite" || !screen.parsed) return;
+    const parsed = screen.parsed;
+    setScreen({ ...screen, isConfirming: true, errorMessage: undefined });
+
+    try {
+      const groupName = screen.invite.status === "valid" ? screen.invite.groupName : "邀群密聊";
+      await connectToGroup(parsed, groupName);
+    } catch (err) {
+      const message =
+        err instanceof MissingGroupIdError
+          ? "这个邀请是旧版兼容格式，暂不支持加密入群"
+          : `加群失败：${err instanceof Error ? err.message : "请重试"}`;
+      setScreen((prev) =>
+        prev.name === "invite" ? { ...prev, isConfirming: false, errorMessage: message } : prev
+      );
+    }
+  }
+
+  async function handleGroupCreated(input: {
+    groupId: string;
+    groupName: string;
+    keyMaterialB64Url: string;
+    inviteCode: string;
+    adminRecoveryCode: string;
+  }) {
+    const parsed = parseInviteAuto(input.inviteCode); // 复用解析路径，不手搓一份 ParsedInvite
+
+    // 先进群，再存管理员凭据。反过来的话，存凭据一旦失败就整个卡在建群这一步——
+    // 真机上就是这么断的。存失败最多是发不了公告，可以用恢复码补救，
+    // 但连不进自己刚建的群是彻底走不下去。
+    await connectToGroup(parsed, input.groupName);
+    try {
+      await saveAdminKey(input.groupId, input.adminRecoveryCode);
+      // 存完立刻重新判断——否则要等到下一次 sessions 变化，
+      // 建群者会看不到自己的发布入口
+      setHoldsAdminKey(true);
+    } catch {
+      // 忽略：群已经能用了，管理员权限可以用恢复码恢复
+    }
+  }
+
+  /** 当前打开的群的会话；不在群里就是 undefined */
+  function activeSession(): GroupSession | undefined {
+    if (screen.name !== "connected" || !screen.activeGroupId) return undefined;
+    return sessions[screen.activeGroupId];
+  }
+
+  /** 往当前群追加一条自己发的消息并落盘 */
+  async function appendOwnMessage(groupId: string, message: DisplayMessage, mediaBytes?: Uint8Array) {
+    const store = await getDeviceStore();
+    setSessions((prev) => {
+      const session = prev[groupId];
+      if (!session) return prev;
+      const messages = [...session.messages, message];
+      void saveGroupMessages(store, groupId, messages, mediaBytes ? new Map([[message.id, mediaBytes]]) : undefined);
+      const next = patchSession(prev, groupId, { messages });
+      sessionsRef.current = next;
+      return next;
+    });
+    // 自己发的消息也可能带到期时间（定时消失开着时），同样要排定时器
+    if (message.expiresAtMs !== undefined) scheduleExpiryFor(groupId);
+  }
+
+  function handleCopyMessage(message: DisplayMessage) {
+    if (!message.text) return;
+    void copyToClipboard(message.text);
+  }
+
+  /** 删除只影响本机——中继不存消息，也没有"撤回"这种协议动作 */
+  async function handleDeleteMessage(messageId: string) {
+    const session = activeSession();
+    if (!session) return;
+    const store = await getDeviceStore();
+    setSessions((prev) => {
+      const s = prev[session.groupId];
+      if (!s) return prev;
+      const messages = s.messages.filter((m) => m.id !== messageId);
+      void saveGroupMessages(store, session.groupId, messages);
+      return patchSession(prev, session.groupId, { messages });
+    });
+  }
+
+  async function handleSendMessage(text: string) {
+    const session = activeSession();
+    if (!session) return;
+    const { groupId, client } = session;
+    setSessions((prev) => patchSession(prev, groupId, { sendError: undefined }));
+
+    // 在 try 外面算好——发送失败时要把它一起保留在"未发送"的那条上，
+    // 否则重发会丢掉引用
+    const reply = replyTarget
+        ? {
+            senderName: replyTarget.isOwn ? (nickname ?? "我") : (replyTarget.fromDeviceId ?? "对方"),
+            excerpt: buildReplyExcerpt({
+              id: replyTarget.id,
+              text: replyTarget.text,
+              media: replyTarget.media ? { fileName: replyTarget.media.fileName } : undefined,
+              sentAtMs: replyTarget.sentAtMs,
+            }),
+          }
+        : undefined;
+
+    try {
+      // sendText 断线时会排队而不是抛错——排队也算"发出去了"，
+      // 连接状态横幅会告诉用户还有几条在等待
+      // 入队时就开始计时：用户看到的就是"我发出的那一刻"，
+      // 断线排队不该让消失时间往后拖。
+      const sentAtMs = Date.now();
+      const disappearMs = disappearAfterByGroup[groupId] ?? 0;
+      const expiresInMs = sanitizeExpiresInMs(disappearMs);
+      const outcome = await client.sendEnvelope({
+        kind: "text",
+        id: randomUUID(),
+        text,
+        sentAtMs,
+        ...(nickname ? { senderName: nickname } : {}),
+        ...(reply ? { replyTo: reply } : {}),
+        ...(expiresInMs !== undefined ? { expiresInMs } : {}),
+      });
+      setReplyTarget(null);
+      await appendOwnMessage(groupId, {
+        id: `sent-${nextMessageId++}`,
+        text,
+        // 断线时消息进了队列，会在重连后自动补发——标出来让用户知道
+        // 它还没真的发出去，而不是让他以为对方已经看到了
+        queued: outcome === "queued",
+        isOwn: true,
+        sentAtMs,
+        ...(reply ? { replyTo: reply } : {}),
+        ...(expiresInMs !== undefined ? { expiresAtMs: sentAtMs + expiresInMs } : {}),
+      });
+    } catch {
+      // sendEnvelope 断线时会排队而不是抛错，所以走到这里说明是加密或
+      // 序列化出了问题——那不是重发能解决的，如实报错。
+      setSessions((prev) => patchSession(prev, groupId, { sendError: "这条消息发不出去，请重试" }));
+    }
+  }
+
+  async function handleSendFile(
+    file: File,
+    mediaKind: "image" | "voice" | "file",
+    extra?: { durationMs?: number }
+  ) {
+    const session = activeSession();
+    if (!session) return;
+    const { groupId, client } = session;
+    setSessions((prev) => patchSession(prev, groupId, { sendError: undefined }));
+
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const fileId = randomUUID();
+      const fileDisappearMs = disappearAfterByGroup[groupId] ?? 0;
+      const fileExpiresInMs = sanitizeExpiresInMs(fileDisappearMs);
+      const { meta, chunks } = buildFileEnvelopes({
+        fileId,
+        ...(nickname ? { senderName: nickname } : {}),
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        mediaKind,
+        bytes,
+        ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
+        ...(fileExpiresInMs !== undefined ? { expiresInMs: fileExpiresInMs } : {}),
+      });
+
+      // meta 必须先到，接收方才知道总共有多少片。
+      // 大文件要好几秒，没有进度显示发送方会以为卡住了。
+      await sendFileEnvelopes(
+        { fileName: file.name },
+        meta,
+        chunks,
+        (env) => client.sendEnvelope(env as Parameters<typeof client.sendEnvelope>[0]),
+        {
+          onProgress: (p) =>
+            setSessions((prev) => patchSession(prev, groupId, { sendProgress: describeSendProgress(p) })),
+        }
+      );
+      setSessions((prev) => patchSession(prev, groupId, { sendProgress: undefined }));
+
+      // 自己发的媒体本地直接显示（中继不会把自己发的消息转发回来）
+      await appendOwnMessage(
+        groupId,
+        {
+          id: `sent-${nextMessageId++}`,
+          isOwn: true,
+          sentAtMs: Date.now(),
+          media: {
+            mediaKind,
+            fileName: file.name,
+            mimeType: file.type || "application/octet-stream",
+            objectUrl: URL.createObjectURL(file),
+            sizeBytes: bytes.byteLength,
+            ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
+          },
+          ...(fileExpiresInMs !== undefined
+            ? { expiresAtMs: Date.now() + fileExpiresInMs }
+            : {}),
+        },
+        bytes
+      );
+    } catch {
+      setSessions((prev) => patchSession(prev, groupId, { sendError: "发送失败，请检查连接" }));
+    }
+  }
+
+  async function handlePublishAnnouncement(
+    category: AnnouncementCategory,
+    title: string,
+    body: string,
+    audioFile?: File | undefined
+  ) {
+    const session = activeSession() ?? sortSessions(sessions)[0];
+    if (!session) return;
+
+    // 只有持有这个群管理员私钥的设备才能签发公告。没有私钥就发不出去——
+    // 本地解锁界面不构成权限。
+    const adminKey = await loadAdminKey(session.groupId);
+    if (!adminKey) throw new Error("这台设备没有该群的管理员密钥，无法发布公告");
+
+    // 音频走已有的分片加密传输，公告只带一个引用——公告帧不适合塞几 MB
+    let audioFileId: string | undefined;
+    if (audioFile) {
+      audioFileId = randomUUID();
+      const bytes = new Uint8Array(await audioFile.arrayBuffer());
+      const { meta, chunks } = buildFileEnvelopes({
+        fileId: audioFileId,
+        fileName: audioFile.name,
+        mimeType: audioFile.type || "audio/mpeg",
+        mediaKind: "voice",
+        bytes,
+      });
+      await sendFileEnvelopes(
+        { fileName: audioFile.name },
+        meta,
+        chunks,
+        (env) => session.client.sendEnvelope(env as Parameters<typeof session.client.sendEnvelope>[0]),
+        { onProgress: (p) => setPublishProgress(describeSendProgress(p)) }
+      );
+      setPublishProgress(null);
+      // 本机也要能播——不然发布者自己看不到播放器
+      const localUrl = URL.createObjectURL(audioFile);
+      setSessions((prev) => {
+        const s = prev[session.groupId];
+        if (!s) return prev;
+        const existing = s.today[category];
+        return patchSession(prev, session.groupId, {
+          today: { ...s.today, [category]: { title, body, ...existing, audioUrl: localUrl } },
+        });
+      });
+    }
+
+    const sentAtMs = Date.now();
+    const adminSignature = await signAnnouncement(adminKey, {
+      groupId: session.groupId,
+      category,
+      title,
+      body,
+      sentAtMs,
+      audioFileId,
+    });
+
+    await session.client.sendEnvelope({
+      kind: "announcement",
+      id: randomUUID(),
+      category,
+      title,
+      body,
+      sentAtMs,
+      adminSignature,
+      ...(audioFileId ? { audioFileId } : {}),
+      ...(nickname ? { senderName: nickname } : {}),
+    });
+    setSessions((prev) => {
+      const s = prev[session.groupId];
+      if (!s) return prev;
+      const existing = s.today[category];
+      return patchSession(prev, session.groupId, {
+        today: { ...s.today, [category]: { title, body, audioUrl: existing?.audioUrl } },
+      });
+    });
+  }
+
+  /**
+   * 和会议里某个人建立语音连接。
+   *
+   * 谁主动发 offer 由 shouldInitiateTo 决定（deviceId 字典序），两边必须一致，
+   * 否则会同时发 offer 撞车。
+   */
+  function connectToConferencePeer(peerDeviceId: string, conferenceId: string) {
+    const factory = callFactoryRef.current;
+    if (!factory) return;
+
+    const session = factory(`${conferenceId}:${peerDeviceId}`, peerDeviceId, "voice");
+    conferenceSessionsRef.current.set(peerDeviceId, session);
+
+    if (shouldInitiateTo(myDeviceIdRef.current, peerDeviceId)) {
+      setConference((prev) => (prev ? updateParticipant(prev, peerDeviceId, { state: "connecting" }) : prev));
+      void session.startOutgoing();
+    }
+    // 另一边会发 offer 过来，由 onSignaling 里的 call_invite 分支处理
+  }
+
+  /** 发起会议：广播邀请，群里在线的人会收到 */
+  function handleStartConference() {
+    const session = activeSession();
+    if (!session) return;
+    const conferenceId = randomUUID();
+    setConference(createConference(conferenceId));
+    session.client.sendConferenceFrame("conference_invite", conferenceId);
+  }
+
+  /** 离开会议：断开所有连接 */
+  function handleLeaveConference() {
+    for (const s of conferenceSessionsRef.current.values()) {
+      void s.hangup();
+    }
+    conferenceSessionsRef.current.clear();
+    setConference(null);
+  }
+
+  function handleToggleConferenceMute() {
+    setConference((prev) => {
+      if (!prev) return prev;
+      const next = setSelfMuted(prev, !prev.selfMuted);
+      for (const s of conferenceSessionsRef.current.values()) s.setMuted(next.selfMuted);
+      return next;
+    });
+  }
+
+  /**
+   * 记录见到的设备。
+   *
+   * 这里必须串行：读取名单 → 更新 → 写回是个读改写序列，上线和下线事件
+   * 连着来的时候，后一个会读到前一个还没写完的旧值，把刚记下的设备丢掉。
+   * 每个群一条 promise 链，保证顺序。
+   */
+  async function recordSightings(
+    groupId: string,
+    sightings: { deviceId: string; displayName?: string | undefined }[]
+  ): Promise<void> {
+    const previous = deviceWriteChainRef.current.get(groupId) ?? Promise.resolve();
+    const next = previous
+      .catch(() => undefined)
+      .then(async () => {
+        const store = await getDeviceStore();
+        let devices = await loadKnownDevices(store, groupId);
+        const now = Date.now();
+        for (const s of sightings) devices = markDeviceSeen(devices, s.deviceId, now, s.displayName);
+        await saveKnownDevices(store, groupId, devices);
+        setSessions((prev) => patchSession(prev, groupId, { knownDevices: devices }));
+      });
+    deviceWriteChainRef.current.set(groupId, next);
+    return next;
+  }
+
+  /**
+   * 更换群密钥。生成新的密钥材料、epoch 加一，返回新邀请码给管理员分发。
+   * 本机随即用新密钥重连——不然管理员自己反而读不到轮换后的消息。
+   */
+  async function handleRotateKey(): Promise<string> {
+    const session = activeSession() ?? sortSessions(sessions)[0];
+    if (!session) throw new Error("没有可以更换密钥的群");
+
+    const rotated = rotateGroupKey({
+      groupId: session.groupId,
+      groupName: session.groupName,
+      currentEpoch: session.epoch,
+      adminPublicKeyRawB64Url: session.adminPublicKey,
+      serverJoinCode: randomUUID().slice(0, 8).toUpperCase(),
+    });
+
+    // 旧连接用的是旧密钥，必须断掉重连
+    session.client.close();
+    // 轮换之后旧设备读不到新消息了，名单重新积累
+    await saveKnownDevices(await getDeviceStore(), session.groupId, forgetAllDevices());
+    await connectToGroup(parseInviteAuto(rotated.inviteCode), session.groupName, true);
+    return rotated.inviteCode;
+  }
+
+  async function handleRenameGroup(groupId: string, groupName: string): Promise<void> {
+    const store = await getDeviceStore();
+    await saveJoinedGroups(store, renameGroup(await loadJoinedGroups(store), groupId, groupName));
+    setSessions((prev) => patchSession(prev, groupId, { groupName }));
+  }
+
+  /**
+   * 退群：断连接、删本机记录。中继不保存任何东西，所以"退群"就是本机的事——
+   * 没有需要通知服务端的状态。留下的人不会收到任何提示，这一点在界面上说了。
+   */
+  async function handleLeaveGroup(groupId: string): Promise<void> {
+    clearExpiryTimer(groupId);
+    const leaving = sessions[groupId];
+    if (leaving) {
+      for (const m of leaving.messages) {
+        if (m.media?.objectUrl) URL.revokeObjectURL(m.media.objectUrl);
+      }
+    }
+    sessions[groupId]?.client.close();
+
+    const store = await getDeviceStore();
+    await saveJoinedGroups(store, removeGroup(await loadJoinedGroups(store), groupId));
+    mediaCacheRef.current.forget(groupId);
+    await saverRef.current.enqueue(groupId, () => clearMessages(store, groupId));
+    await saveKnownDevices(store, groupId, []);
+    setDisappearAfterByGroup((prev) => {
+      const next = { ...prev };
+      delete next[groupId];
+      return next;
+    });
+
+    setSessions((prev) => {
+      const next = { ...prev };
+      delete next[groupId];
+      sessionsRef.current = next;
+      return next;
+    });
+    setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+  }
+
+  /** 各群的今日内容合并显示——小团体通常只有一个群，多群时后加入的覆盖先加入的 */
+  function mergedToday(): TodayContent {
+    return sortSessions(sessions).reduce<TodayContent>((acc, s) => ({ ...acc, ...s.today }), {});
+  }
+
+  async function handleStartCall(kind: CallKind, peerDeviceId: string) {
+    if (screen.name !== "connected" || !callFactoryRef.current) return;
+    const callId = randomUUID();
+    const session = callFactoryRef.current(callId, peerDeviceId, kind);
+    setScreen({ ...screen, call: { session, kind, info: { state: "idle" }, peerDeviceId } });
+    await session.startOutgoing();
+  }
+
+  function handleDismissCall() {
+    setScreen((prev) => (prev.name === "connected" ? { ...prev, call: undefined } : prev));
+  }
+
+  if (!isSecureContextAvailable()) {
+    return <InsecureContextNotice />;
+  }
+
+  // 能力自检最先——地基不行的话，后面每一步都会以看不懂的方式失败
+  if (capability && !capability.ok) {
+    return (
+      <div
+        style={{
+          minHeight: "100%",
+          background: "#EBECE5",
+          padding: 32,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          gap: 12,
+        }}
+      >
+        <div style={{ fontSize: 16, fontWeight: 500, color: "#2B2B28" }}>{capability.reason}</div>
+        {capability.detail ? (
+          <div style={{ fontSize: 13, color: "#8A8A82", lineHeight: 1.8 }}>{capability.detail}</div>
+        ) : null}
+      </div>
+    );
+  }
+
+  // 应用锁在最前面——手机被别人拿到时，连群名都不该看到
+  if (locked === null) {
+    return <div style={{ minHeight: "100%", background: "#EBECE5" }} aria-busy="true" />;
+  }
+  if (locked) {
+    return (
+      <LockScreen
+        mode="unlock"
+        onUnlocked={() => setLocked(false)}
+        onAttemptsExhausted={() => {
+          // 次数用尽就清空本机数据。中继不存任何内容，所以这里删掉就是真的没了。
+          setLockEnabledState(false);
+          setBiometricEnabled(false);
+          void (async () => {
+            await disableLock();
+            indexedDB.deleteDatabase("secureinchat-storage");
+            indexedDB.deleteDatabase("secureinchat-keystore");
+            indexedDB.deleteDatabase("secureinchat-master-key");
+            indexedDB.deleteDatabase("secureinchat-admin-keys");
+          })();
+        }}
+        biometricEnabled={biometricSupported && biometricEnabled}
+        onBiometricUnlock={biometricSupported ? authenticateBiometric : undefined}
+      />
+    );
+  }
+  if (showLockSetup) {
+    return (
+      <LockScreen
+        mode="setup"
+        onUnlocked={() => {
+          setShowLockSetup(false);
+          setLockEnabledState(true);
+        }}
+        onCancel={() => setShowLockSetup(false)}
+      />
+    );
+  }
+
+  // 昵称是异步从 IndexedDB 读的。读完之前不渲染主界面——否则会出现竞态：
+  // 读得慢时老用户被重复要求设昵称，或者新用户点得快就绕过了设置。
+  // 这一步通常是几十毫秒，用户几乎察觉不到。
+  if (!profileLoaded) {
+    return <div style={{ minHeight: "100%", background: "#EBECE5" }} aria-busy="true" />;
+  }
+
+  if (needsProfile) {
+    return <ProfileSetupScreen onDone={handleProfileDone} />;
+  }
+
+  if (screen.name === "join") {
+    return (
+      <JoinGroupScreen
+        onSubmitInviteCode={handleSubmitInviteCode}
+        onCreateGroup={() => {
+          const go = () => setScreen({ name: "createGroup" });
+          if (!requireProfile(go)) go();
+        }}
+        onScanQr={() => {
+          const go = () => setScreen({ name: "scanQr" });
+          if (!requireProfile(go)) go();
+        }}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "serverSettings") {
+    return (
+      <ServerSettingsScreen
+        defaultUrl={RELAY_URL}
+        onSaved={(url) => setRelayUrl(url)}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "adminPublish") {
+    return (
+      <AdminPublishScreen
+        content={mergedToday()}
+        onPublish={handlePublishAnnouncement}
+        onRotateKey={handleRotateKey}
+        progress={publishProgress}
+        onLockAdmin={() => {
+          void setAdminUnlocked(false);
+          setIsAdmin(false);
+          setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+        }}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "editProfile") {
+    return (
+      <EditProfileScreen
+        currentNickname={nickname ?? ""}
+        onSaved={(name) => {
+          nicknameRef.current = name;
+          setNickname(name);
+          setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+        }}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "groupSettings") {
+    const s = sessions[screen.groupId];
+    if (!s) {
+      return <div style={{ minHeight: "100%", background: "#EBECE5" }} aria-busy="true" />;
+    }
+    return (
+      <GroupSettingsScreen
+        groupName={s.groupName}
+        memberCount={s.onlinePeers.length}
+        onRename={(name) => handleRenameGroup(s.groupId, name)}
+        onLeave={() => handleLeaveGroup(s.groupId)}
+        onShowInvite={
+          groupSettingsAdminAvailable
+            ? () => setScreen({ name: "groupInvite", groupId: s.groupId, from: screen.name === "groupSettings" ? screen.from : "chat" })
+            : undefined
+        }
+        disappearAfterMs={disappearAfterByGroup[s.groupId] ?? 0}
+        onSetDisappearAfter={(ms) => void handleSetDisappearAfter(s.groupId, ms)}
+        onBack={() =>
+          // 从哪儿进来就回哪儿——从列表长按进来的，返回不该跳进聊天页
+          setScreen(
+            screen.name === "groupSettings" && screen.from === "list"
+              ? { name: "connected", activeGroupId: null, view: "list", deviceId: "" }
+              : { name: "connected", activeGroupId: s.groupId, view: "chat", deviceId: "" }
+          )
+        }
+      />
+    );
+  }
+
+  if (screen.name === "groupInvite") {
+    const groupName = groupInviteState.status === "ready" ? groupInviteState.groupName : undefined;
+    const inviteCode = groupInviteState.status === "ready" ? groupInviteState.inviteCode : undefined;
+    const errorMessage = groupInviteState.status === "error" ? groupInviteState.message : undefined;
+    return (
+      <GroupInviteScreen
+        {...(groupName !== undefined ? { groupName } : {})}
+        {...(inviteCode !== undefined ? { inviteCode } : {})}
+        {...(errorMessage !== undefined ? { error: errorMessage } : {})}
+        onCopy={() => {
+          if (inviteCode) void copyToClipboard(inviteCode);
+        }}
+        // 回到群设置，并带回当初进入群设置的来源，返回键的行为保持一致
+        onBack={() => setScreen({ name: "groupSettings", groupId: screen.groupId, from: screen.from })}
+      />
+    );
+  }
+
+  if (screen.name === "devices") {
+    const s = activeSession() ?? sortSessions(sessions)[0];
+    return (
+      <ConnectedDevicesScreen
+        groupName={s?.groupName ?? ""}
+        devices={s?.knownDevices ?? []}
+        onlineNow={s?.onlinePeers ?? []}
+        myDeviceId={screen.name === "devices" ? myDeviceIdRef.current : ""}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "diagnostics") {
+    return (
+      <ConnectionDiagnosticsScreen
+        relayUrl={relayUrl}
+        iceConfig={ICE_CONFIG}
+        status={sortSessions(sessions)[0]?.connectionStatus ?? "disconnected"}
+        latency={latency}
+        disconnects={disconnects}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "adminRecovery") {
+    return (
+      <AdminRecoveryScreen
+        groups={sortSessions(sessions).map((s) => ({
+          groupId: s.groupId,
+          groupName: s.groupName,
+          adminPublicKey: s.adminPublicKey,
+        }))}
+        onRecovered={() => {
+          setHoldsAdminKey(true);
+          setIsAdmin(true);
+          void setAdminUnlocked(true);
+          setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+        }}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+      />
+    );
+  }
+
+  if (screen.name === "scanQr") {
+    return (
+      <QrScanScreen
+        onScanned={(text) => handleSubmitInviteCode(text)}
+        onBack={() => setScreen({ name: "join" })}
+      />
+    );
+  }
+
+  if (screen.name === "createGroup") {
+    return (
+      <CreateGroupScreen relayUrl={relayUrl} onBack={() => setScreen({ name: "join" })} onCreated={handleGroupCreated} />
+    );
+  }
+
+  if (screen.name === "invite") {
+    return (
+      <InviteScreen
+        invite={screen.invite}
+        isConfirming={screen.isConfirming}
+        errorMessage={screen.errorMessage}
+        onBack={() => setScreen({ name: "join" })}
+        onConfirm={handleConfirmJoin}
+      />
+    );
+  }
+
+  // 会议界面优先——正在开会时不该被其他界面盖住
+  if (conference) {
+    const s = activeSession() ?? sortSessions(sessions)[0];
+    return (
+      <ConferenceScreen
+        state={conference}
+        groupName={s?.groupName ?? ""}
+        myNickname={nickname}
+        elapsedSec={conferenceElapsed}
+        onToggleSelfMute={handleToggleConferenceMute}
+        onLeave={handleLeaveConference}
+      />
+    );
+  }
+
+  // 有通话时，通话界面优先于消息列表/聊天页显示
+  if (screen.name === "connected" && screen.call) {
+    const call = screen.call;
+    const callSession = activeSession();
+    return (
+      <CallScreen
+        hasTurn={ICE_CONFIG.hasTurn}
+        kind={call.kind}
+        info={call.info}
+        peerLabel={callSession?.groupName ?? "通话"}
+        localStream={call.localStream}
+        remoteStream={call.remoteStream}
+        onAccept={() => void call.session.accept()}
+        onReject={() => void call.session.reject()}
+        onHangup={() =>
+          void (call.info.state === "outgoing" || call.info.state === "ringing-remote"
+            ? call.session.cancel()
+            : call.session.hangup())
+        }
+        onToggleMute={(muted) => call.session.setMuted(muted)}
+        onToggleCamera={(enabled) => call.session.setCameraEnabled(enabled)}
+        onDismiss={handleDismissCall}
+      />
+    );
+  }
+
+  const allSessions = sortSessions(sessions);
+  const active = activeSession();
+
+  if (screen.view === "list" || !active) {
+    return (
+      <MessageListScreen
+        initialTab={screen.activeGroupId === null && cameFromChatRef.current ? "messages" : undefined}
+        groups={sortSessions(sessions).map((s) => ({
+          groupId: s.groupId,
+          groupName: s.groupName,
+          unread: unreadFor(s),
+          onlineCount: s.onlinePeers.length,
+          lastMessage: previewFor(s),
+        }))}
+        onOpenGroupSettings={(groupId) => setScreen({ name: "groupSettings", groupId, from: "list" })}
+        onOpenGroup={(groupId) => {
+          // 打开即标记已读
+          setSessions((prev) => patchSession(prev, groupId, { lastReadAtMs: Date.now() }));
+          setScreen((prev) =>
+            prev.name === "connected" ? { ...prev, activeGroupId: groupId, view: "chat" } : prev
+          );
+        }}
+        onJoinAnotherGroup={() => setScreen({ name: "join" })}
+        todayContent={mergedToday()}
+        // 只看有没有管理员密钥。七次点击本来是为了对普通成员隐藏发布入口，
+        // 但没有密钥的人本来就发不出去——那个手势只是把入口对唯一需要它的人
+        // （建群者）也藏了起来，他根本不知道要去点版本号。
+        isAdmin={holdsAdminKey}
+        onOpenAdmin={() => setScreen({ name: "adminPublish" })}
+        onOpenAdminRecovery={() => setScreen({ name: "adminRecovery" })}
+        onOpenLockSetup={() => setShowLockSetup(true)}
+        onOpenDiagnostics={() => setScreen({ name: "diagnostics" })}
+        onOpenDevices={() => setScreen({ name: "devices" })}
+        onOpenEditProfile={() => setScreen({ name: "editProfile" })}
+        onAdminUnlocked={() => {
+          void setAdminUnlocked(true);
+          setIsAdmin(true);
+        }}
+        deviceId={screen.deviceId}
+        nickname={nickname}
+        onOpenServerSettings={() => setScreen({ name: "serverSettings" })}
+        relayUrl={relayUrl}
+        screenSecurityEnabled={screenSecurityEnabled}
+        onToggleScreenSecurity={screenSecuritySupported() ? handleToggleScreenSecurity : undefined}
+        biometricEnabled={biometricEnabled}
+        onToggleBiometric={biometricSupported ? handleToggleBiometric : undefined}
+        lockEnabled={lockEnabled}
+      />
+    );
+  }
+
+  if (screen.view === "search") {
+    return (
+      <MessageSearchScreen
+        groupName={active.groupName}
+        messages={active.messages}
+        onBack={() => setScreen({ ...screen, view: "chat" })}
+      />
+    );
+  }
+
+  return (
+    <ChatScreen
+      groupName={active.groupName}
+      messages={active.messages}
+      incomingProgress={active.incomingProgress}
+      sendError={active.sendError}
+      sendProgress={active.sendProgress}
+      connectionStatus={active.connectionStatus}
+      pendingCount={active.pendingCount}
+      knownPeers={active.onlinePeers}
+      onStartCall={(kind, peer) => void handleStartCall(kind, peer)}
+      onSend={handleSendMessage}
+      onSendFile={handleSendFile}
+      onCopyMessage={handleCopyMessage}
+      onDeleteMessage={(id) => void handleDeleteMessage(id)}
+      onSetReplyTarget={setReplyTarget}
+      replyTarget={replyTarget}
+      onOpenSearch={() => setScreen({ ...screen, view: "search" })}
+      onStartConference={handleStartConference}
+      onOpenGroupSettings={() => setScreen({ name: "groupSettings", groupId: active.groupId, from: "chat" })}
+      myNickname={nickname}
+      memberNames={active.knownDevices.map((d) => d.displayName)}
+      knownDevices={active.knownDevices}
+      myDeviceId={myDeviceIdRef.current}
+      onBack={() => {
+        setReplyTarget(null);
+        // 从聊天返回应该看到消息列表，而不是默认的公告 tab
+        cameFromChatRef.current = true;
+        setScreen({ ...screen, view: "list", activeGroupId: null });
+      }}
+    />
+  );
+}
