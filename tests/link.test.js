@@ -49,4 +49,20 @@ t('registrable domain', () => {
   assert.strictEqual(L.registrable('a.b.example.co.uk'), 'example.co.uk');
   assert.strictEqual(L.registrable('www.example.com'), 'example.com');
 });
+t('mailto and other non-web schemes without // are reported as not a web page (W14)', () => {
+  for (const [raw, sch] of [['mailto:paypal@evil.example', 'mailto'], ['MAILTO:someone@example.com?subject=hi', 'mailto'], ['tel:+15555550100', 'tel'], ['sms:+15555550100', 'sms'], ['magnet:?xt=urn:btih:abc', 'magnet'], ['  geo:37.78,-122.4', 'geo']]) {
+    const r = L.check(raw);
+    assert.strictEqual(r.error, 'scheme', raw);
+    assert.strictEqual(r.scheme, sch, raw);
+    assert.strictEqual(r.findings.length, 0, raw);
+    assert.strictEqual(r.clean, '', raw);
+  }
+});
+t('host:port and userinfo without a scheme still get https and are checked (W14)', () => {
+  assert.strictEqual(L.check('localhost:3000/a').clean, 'https://localhost:3000/a');
+  assert.ok(ids(L.check('example.com:8080/')).includes('port'));
+  assert.ok(ids(L.check('user:pw@evil.example/login')).includes('userinfo'));
+  assert.ok(ids(L.check('paypal.com@evil.example/login')).includes('userinfo'));
+});
+t('ftp:// still reported as a non-web scheme', () => { const r = L.check('ftp://example.com/x'); assert.strictEqual(r.error, 'scheme'); assert.strictEqual(r.scheme, 'ftp'); });
 console.log(n + ' link tests passed');

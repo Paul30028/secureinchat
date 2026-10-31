@@ -49,7 +49,7 @@
           "name": "Why did it miss a name or an address?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "It matches patterns such as emails and numbers. A name has no fixed pattern, so it is not detected. Check the output yourself before you share it."
+            "text": "It matches patterns such as emails and numbers. A name has no fixed pattern, so it is not detected. If you know which names or words to hide, add them under \"Names and other words to hide\"; the tool does not find them for you. Check the output yourself before you share it."
           }
         },
         {
@@ -98,8 +98,23 @@
       <div><label for="rd-in">Text to redact</label><textarea id="rd-in" class="rd-text" spellcheck="false" autocomplete="off" placeholder="Paste a log, an email or a config here"></textarea></div>
       <div><label for="rd-out">Redacted text</label><textarea id="rd-out" class="rd-text" readonly spellcheck="false"></textarea></div>
     </div>
-    <div class="rd-rules" role="group" aria-label="What to redact"><label class="check"><input id="rule-email" type="checkbox" checked> <span>Email addresses</span></label><label class="check"><input id="rule-phone" type="checkbox" checked> <span>Phone numbers</span></label><label class="check"><input id="rule-ipv4" type="checkbox" checked> <span>IPv4 addresses</span></label><label class="check"><input id="rule-ipv6" type="checkbox" checked> <span>IPv6 addresses</span></label><label class="check"><input id="rule-mac" type="checkbox" checked> <span>MAC addresses</span></label><label class="check"><input id="rule-card" type="checkbox" checked> <span>Card numbers</span></label><label class="check"><input id="rule-iban" type="checkbox" checked> <span>IBANs</span></label><label class="check"><input id="rule-apikey" type="checkbox" checked> <span>API keys and tokens</span></label><label class="check"><input id="rule-jwt" type="checkbox" checked> <span>JSON Web Tokens</span></label><label class="check"><input id="rule-url_cred" type="checkbox" checked> <span>Passwords in URLs</span></label><label class="check"><input id="rule-privkey" type="checkbox" checked> <span>Private keys</span></label></div>
+    <div class="rd-terms">
+      <label for="rd-terms">Names and other words to hide</label>
+      <textarea id="rd-terms" class="rd-text" spellcheck="false" autocomplete="off" placeholder="Ann Lee, Acme Corp"></textarea>
+      <p class="hint">One per line or separated by commas. Matched without regard to case.</p>
+    </div>
+    <div class="rd-rules" role="group" aria-label="What to redact"><label class="check"><input id="rule-term" type="checkbox" checked> <span>Your words</span></label><label class="check"><input id="rule-email" type="checkbox" checked> <span>Email addresses</span></label><label class="check"><input id="rule-phone" type="checkbox" checked> <span>Phone numbers</span></label><label class="check"><input id="rule-cn_mobile" type="checkbox" checked> <span>Chinese mobile numbers</span></label><label class="check"><input id="rule-cn_id" type="checkbox" checked> <span>Chinese ID numbers</span></label><label class="check"><input id="rule-ipv4" type="checkbox" checked> <span>IPv4 addresses</span></label><label class="check"><input id="rule-ipv6" type="checkbox" checked> <span>IPv6 addresses</span></label><label class="check"><input id="rule-mac" type="checkbox" checked> <span>MAC addresses</span></label><label class="check"><input id="rule-card" type="checkbox" checked> <span>Card numbers</span></label><label class="check"><input id="rule-iban" type="checkbox" checked> <span>IBANs</span></label><label class="check"><input id="rule-apikey" type="checkbox" checked> <span>API keys and tokens</span></label><label class="check"><input id="rule-jwt" type="checkbox" checked> <span>JSON Web Tokens</span></label><label class="check"><input id="rule-url_cred" type="checkbox" checked> <span>Passwords in URLs</span></label><label class="check"><input id="rule-privkey" type="checkbox" checked> <span>Private keys</span></label></div>
     <div class="rd-actions"><button id="rd-copy" class="btn" type="button" disabled>Copy result</button><button id="rd-clear" class="btn btn--quiet" type="button">Clear</button></div>
+    <div class="rd-restore" aria-labelledby="restore-h">
+      <h2 id="restore-h">Put the real values back</h2>
+      <div class="rd-grid">
+        <div><label for="rd-reply">Paste the AI's reply</label><textarea id="rd-reply" class="rd-text" spellcheck="false" autocomplete="off" placeholder="Paste the reply that contains placeholders like [EMAIL_1]"></textarea></div>
+        <div><label for="rd-restored">Reply with real values</label><textarea id="rd-restored" class="rd-text" readonly spellcheck="false"></textarea></div>
+      </div>
+      <div class="rd-actions"><button id="rd-restore-copy" class="btn" type="button" disabled>Copy restored reply</button></div>
+      <p id="rd-restore-status" class="summary" role="status" aria-live="polite"></p>
+      <p class="hint">The list that links placeholders to real values exists only in this tab. It is cleared when you reload the page or press Clear. Nothing is sent or saved.</p>
+    </div>
     <p class="hint">Nothing you paste is uploaded or stored. It finds patterns, not names or addresses, so read the result before sharing. See <a href="/privacy/">how this site handles data</a>.</p>
   </section>
   <section class="wrap" id="results" aria-labelledby="results-h">
@@ -115,12 +130,35 @@
       </tbody>
     </table>
   </section>
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. Compare the list before and after you paste text or run the tool.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
 
   <section class="wrap prose" aria-labelledby="what-h">
     <h2 id="what-h">What it does</h2>
-    <p>Paste text and the tool replaces emails, phone numbers, IP and MAC addresses, card numbers, IBANs (checked with the standard checksum), API keys, tokens, passwords inside URLs and private keys with labelled placeholders such as <span class="mono">[EMAIL_1]</span>. The same value always gets the same placeholder, so a log stays readable after redaction. This is useful before you paste a log, a config or an email into a bug report, a forum or an AI assistant.</p>
+    <p>Paste text and the tool replaces emails, phone numbers, IP and MAC addresses, card numbers, IBANs (checked with the standard checksum), Chinese mainland mobile numbers, Chinese resident ID numbers (checked with the GB 11643 check digit and birth date), API keys, tokens, passwords inside URLs and private keys with labelled placeholders such as <span class="mono">[EMAIL_1]</span>. The same value always gets the same placeholder, so a log stays readable after redaction. This is useful before you paste a log, a config or an email into a bug report, a forum or an AI assistant.</p>
     <h2>What it does not do</h2>
-    <p>It finds patterns, not meaning. Names, street addresses, company names and anything written in an unusual format are not detected. Always read the result before you share it. A card number is only replaced if it passes the standard checksum, so a made-up number may be left alone.</p>
+    <p>It finds patterns, not meaning. Names, street addresses, company names and anything written in an unusual format are not detected. Add names you know about under "Names and other words to hide" and they are replaced with [NAME_1], [NAME_2] and so on; the tool does not discover names by itself. Always read the result before you share it. A card number is only replaced if it passes the standard checksum, so a made-up number may be left alone.</p>
     <h2>How your text is handled</h2>
     <p>The text is processed in this page. It is not uploaded, logged or stored, and the page loads no analytics. Your browser or an extension may still keep what you type, so use a private window for sensitive material. Related: <a href="/tools/photo-metadata-remover/">remove metadata from a photo</a>.</p>
   </section>
@@ -129,7 +167,7 @@
     <h3>Is my text sent to a server?</h3>
     <p>No. The matching runs in your browser. The page makes no network request when you paste or redact text.</p>
     <h3>Why did it miss a name or an address?</h3>
-    <p>It matches patterns such as emails and numbers. A name has no fixed pattern, so it is not detected. Check the output yourself before you share it.</p>
+    <p>It matches patterns such as emails and numbers. A name has no fixed pattern, so it is not detected. If you know which names or words to hide, add them under "Names and other words to hide"; the tool does not find them for you. Check the output yourself before you share it.</p>
     <h3>Why is the same placeholder used twice?</h3>
     <p>Equal values get the same placeholder, for example [IP_1] or [EMAIL_1], so you can still follow what happened in a log after redaction.</p>
     <h3>Can it find every API key?</h3>
@@ -150,5 +188,6 @@
 </footer>
 <script src="/tools/assets/redact.js" defer></script>
 <script src="/tools/assets/redact-app.js" defer></script>
+<script src="/tools/assets/net-log.js" defer></script>
 </body>
 </html>

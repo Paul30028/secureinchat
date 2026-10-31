@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>照片元数据清理：在本机查看并删除 EXIF 与 GPS 信息</title>
+  <meta content="免费的照片元数据清理工具。查看一张 JPEG 里藏着的 GPS 位置、设备和时间，然后在浏览器里保存一份清理后的副本，照片不会被上传。" name="description"/>
+  <link href="https://secureinchat.com/zh/tools/photo-metadata-remover/" rel="canonical"/>
+  <link href="https://secureinchat.com/tools/photo-metadata-remover/" hreflang="en" rel="alternate"/>
+  <link href="https://secureinchat.com/zh/tools/photo-metadata-remover/" hreflang="zh-CN" rel="alternate"/>
+  <link href="https://secureinchat.com/tools/photo-metadata-remover/" hreflang="x-default" rel="alternate"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "照片元数据清理",
+      "url": "https://secureinchat.com/zh/tools/photo-metadata-remover/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "需要 JavaScript。",
+      "description": "免费的照片元数据清理工具。查看一张 JPEG 里藏着的 GPS 位置、设备和时间，然后在浏览器里保存一份清理后的副本，照片不会被上传。",
+      "inLanguage": "zh-CN",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "我的照片会被上传吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。文件在本页内读取并重新编码，没有上传，页面代码不保存任何东西，也不加载统计脚本。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "照片里有哪些元数据？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "手机和相机拍的 JPEG 通常带 EXIF：设备品牌和型号、日期和时间，常常还有 GPS 坐标，有时还有软件、镜头或序列号。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "社交网站会帮我删掉元数据吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "有些在你上传时会删，但你无法确认是哪一些；而且用邮件、云链接或某些聊天软件发原图，可能把原文件原样带过去。分享之前自己先删掉。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "这里是怎么删除的？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "页面把图片解码后画到一块空白画布上，再把画布保存成新文件。元数据不属于像素，所以不会被复制。之后页面会再读一遍新的 JPEG，确认没有残留的 EXIF。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "画质会变吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG 会以高质量重新编码，所以可能有很小的损失。PNG 输出是无损的。内嵌的色彩配置会被去掉，在某些查看器里颜色可能有轻微变化。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "支持哪些格式？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG、PNG 和 WebP，前提是你的浏览器能解码。这里不支持 HEIC 和动图。清理前只显示 JPEG 的元数据，但清理会去掉所有支持格式的元数据。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "画面里的东西会被删掉吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。路牌、人脸或地标仍然可能暴露你在哪里。这个工具只删除隐藏数据。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat 首页" class="brand" href="/zh/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       更实用的工具，更私密的互联网
+      </span>
+     </span>
+    </a>
+    <nav aria-label="主导航" class="desktop-navigation">
+     <a href="/zh/tools/">
+      隐私工具
+     </a>
+     <a href="/blog/">
+      使用指南
+     </a>
+     <a href="/zh/checkup/">
+      隐私体检
+     </a>
+     <a href="/messaging/">
+      加密通信
+     </a>
+     <a href="/mission/">
+      我们的使命
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/tools/" lang="en">
+      EN
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/zh/checkup/">
+      开始体检
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="打开导航菜单">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="移动端导航">
+      <a href="/zh/tools/">
+       隐私工具
+      </a>
+      <a href="/blog/">
+       使用指南
+      </a>
+      <a href="/zh/checkup/">
+       隐私体检
+      </a>
+      <a href="/messaging/">
+       加密通信
+      </a>
+      <a href="/mission/">
+       我们的使命
+      </a>
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑" class="breadcrumbs">
+      <a href="/zh/">首页</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/zh/tools/">工具</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">照片元数据清理</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <span class="tool-detail-emblem"><svg aria-hidden="true" class="tool-detail-emblem-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <rect height="24" rx="3" width="26" x="3" y="4">
+           </rect>
+           <circle cx="11" cy="11" r="2.5">
+           </circle>
+           <path d="m5 25 8-8 5 5 4-4 5 7">
+           </path>
+          </svg></span>
+      <div>
+       <h1 id="h1">照片元数据清理</h1>
+       <p class="page-lead">看看一张照片暴露了拍摄的地点和时间，然后保存一份去掉这些信息的副本。文件不会离开你的设备。</p>
+       <ul class="state-list"><li><span class="state-label">本地处理</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+      <section class="tool-workspace" aria-label="照片元数据清理">
+       <div class="legacy-tool">
+
+    <div class="picker"><input id="file" type="file" accept="image/*" aria-label="选择一张照片"><button id="clean" class="btn" type="button" hidden>删除元数据并下载</button></div>
+    <p class="hint">选择 JPEG、PNG 或 WebP。原文件不会被改动，页面不保存任何东西。另见 <a href="/zh/tools/text-redactor/">文本脱敏</a>。</p>
+
+       </div>
+       <div class="legacy-tool"><section id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">结果</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">选择一张照片开始。</p>
+    </div>
+    <table class="results">
+      <caption class="sr">按类别列出的照片元数据</caption>
+      <thead><tr><th scope="col">检查</th><th scope="col">结果</th><th scope="col">状态</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="检查"><span class="c-name">照片</span><span class="c-desc">选择一张照片，看看它带着什么。</span></th>
+          <td data-label="结果"><div class="vals"><div class="val mono">尚未运行</div></div></td>
+          <td data-label="状态"><span class="pill">未运行</span></td>
+        </tr>
+      </tbody>
+    </table>
+</section></div>
+       <div class="legacy-tool"><section class="netlog-section" aria-label="本页发出的网络请求">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">本页发出的网络请求：<span class="netlog-count">0</span></summary>
+        <p class="netlog-note">本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。照片只在本标签页里读取：选择一张照片后，这里不应出现新的请求。</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="本页发出的网络请求">
+            <thead>
+              <tr>
+                <th scope="col">时间</th>
+                <th scope="col">类型</th>
+                <th scope="col">地址</th>
+                <th scope="col">大小</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>你的浏览器没有向页面公开请求计时信息。</p>
+        <p class="netlog-footer">本列表来自你浏览器的 Resource Timing API，显示本页通过 fetch、XHR 和信标加载或发出的资源。它看不到 WebSocket 或 WebRTC 流量、浏览器扩展，以及浏览器对页面隐藏的请求，所以这是证据，不是证明。更可靠的保证是页面的 Content-Security-Policy，你可以在浏览器的开发者工具（Network 标签，响应头）里读到，以及 <a href="https://github.com/Paul30028/secureinchat" rel="noopener">GitHub 上的源代码</a>。</p>
+      </details>
+    </div>
+</section></div>
+      </section>
+      <div class="info-content tool-prose">
+<section aria-labelledby="what-h">
+    <h2 id="what-h">照片里藏着什么</h2>
+    <p>多数手机照片会存下一块叫 EXIF 的隐藏数据。其中可能有你站立位置的精确坐标、拍摄时间，以及设备型号。如果你把原文件发出去，收到的人用免费软件就能读到这些。</p>
+    <p>本页先显示一张 JPEG 里有什么，再生成一份去掉这些数据的副本。原文件不会被改动。检查和清理都在你的浏览器里完成，所以照片不会离开你的设备。</p>
+    <h2 id="how-h">分享照片之前</h2>
+    <ul>
+      <li>删掉文件里的元数据，就像本页这样。</li>
+      <li>看看画面里有没有暴露地点的细节：路牌、门牌号、窗外的景色。</li>
+      <li>如果你很少需要定位，在相机应用里关掉记录位置。</li>
+    </ul>
+</section>
+<section aria-labelledby="faq-h">
+    <h2 id="faq-h">常见问题</h2>
+    <h3>我的照片会被上传吗？</h3>
+    <p>不会。文件在本页内读取并重新编码，没有上传，页面代码不保存任何东西，也不加载统计脚本。</p>
+    <h3>照片里有哪些元数据？</h3>
+    <p>手机和相机拍的 JPEG 通常带 EXIF：设备品牌和型号、日期和时间，常常还有 GPS 坐标，有时还有软件、镜头或序列号。</p>
+    <h3>社交网站会帮我删掉元数据吗？</h3>
+    <p>有些在你上传时会删，但你无法确认是哪一些；而且用邮件、云链接或某些聊天软件发原图，可能把原文件原样带过去。分享之前自己先删掉。</p>
+    <h3>这里是怎么删除的？</h3>
+    <p>页面把图片解码后画到一块空白画布上，再把画布保存成新文件。元数据不属于像素，所以不会被复制。之后页面会再读一遍新的 JPEG，确认没有残留的 EXIF。</p>
+    <h3>画质会变吗？</h3>
+    <p>JPEG 会以高质量重新编码，所以可能有很小的损失。PNG 输出是无损的。内嵌的色彩配置会被去掉，在某些查看器里颜色可能有轻微变化。</p>
+    <h3>支持哪些格式？</h3>
+    <p>JPEG、PNG 和 WebP，前提是你的浏览器能解码。这里不支持 HEIC 和动图。清理前只显示 JPEG 的元数据，但清理会去掉所有支持格式的元数据。HEIC 照片、视频、PDF 和 Office 文件请用 <a href="/zh/tools/file-metadata-remover/">文件元数据清理</a>，它不重新编码就能去掉元数据。</p>
+    <h3>画面里的东西会被删掉吗？</h3>
+    <p>不会。路牌、人脸或地标仍然可能暴露你在哪里。这个工具只删除隐藏数据。</p>
+</section>
+<aside id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">合作伙伴的工具</h2>
+    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a>（联盟链接）是加密云存储，适合存放或分享清理之后的文件。也可以直接访问 <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a>，不带推广佣金。</p>
+</aside>
+      </div>
+     </div>
+     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>你的数据如何处理</h2>
+       <div class="data-handling">
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>留在你的设备上</strong><p>留在本机：照片和读出的元数据</p></div></div>
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>发送给他人</strong><p>无</p></div></div>
+       </div>
+       <p class="state-list"><span class="state-label">本地处理</span></p>
+       <a class="text-link" href="/principles/">查看每个工具的数据流 <span aria-hidden="true">→</span></a>
+      </section>
+      <figure class="editorial-figure"><img alt="照片里的位置、时间和设备信息" height="360" src="/assets/illustrations/photo-metadata.svg" width="760"/></figure>
+      <section class="content-panel content-panel--soft">
+       <h2>需要别的检查？</h2>
+       <p>按用途和数据需要比较这些工具。</p>
+       <a class="text-link" href="/zh/tools/">浏览所有工具 <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat 首页" class="brand brand--footer" href="/zh/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        更实用的工具，更私密的互联网
+       </span>
+      </span>
+     </a>
+     <nav aria-label="页脚导航" class="footer-links">
+      <a href="/mission/">
+       使命
+      </a>
+      <a href="/principles/">
+       原则
+      </a>
+      <a href="/privacy/">
+       隐私
+      </a>
+      <a href="/principles/#labels">
+       状态标签
+      </a>
+      <a href="/sponsor/">
+       赞助与联盟披露
+      </a>
+      <a href="/contact/">
+       联系
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat。保留所有权利。
+     </p>
+     <p>
+      重视隐私，明确说明局限。
+     </p>
+    </div>
+   </div>
+  </footer>
+  <script src="/tools/assets/exif.js" defer></script>
+  <script src="/tools/assets/exif-app.js" defer></script>
+  <script src="/tools/assets/net-log.js" defer></script>
+ </body>
+</html>

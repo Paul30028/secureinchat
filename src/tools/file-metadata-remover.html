@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File Metadata Remover: Clean Hidden Data from Photos, Documents and Video Locally</title>
+<meta name="description" content="See and remove hidden metadata from JPEG, PNG, HEIC, MP4, PDF, DOCX and other files. Runs in your browser; the file never leaves your device.">
+<link rel="canonical" href="https://secureinchat.com/tools/file-metadata-remover/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="File Metadata Remover: Clean Hidden Data from Photos, Documents and Video Locally">
+<meta property="og:description" content="See and remove hidden metadata from JPEG, PNG, HEIC, MP4, PDF, DOCX and other files. Runs in your browser; the file never leaves your device.">
+<meta property="og:url" content="https://secureinchat.com/tools/file-metadata-remover/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "File metadata remover",
+      "url": "https://secureinchat.com/tools/file-metadata-remover/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript and WebAssembly.",
+      "description": "See and remove hidden metadata from JPEG, PNG, HEIC, MP4, PDF, DOCX and other files. Runs in your browser; the file never leaves your device.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-20"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Is my file uploaded?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. The file is read, cleaned and scanned again inside this page with WebAssembly. There is no upload and the page stores nothing."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which formats work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG, PNG, WebP, AVIF, GIF, HEIC, HEIF, TIFF, SVG, MP4, MOV, MP3, FLAC, WAV, OGG, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP and EPUB. Old Office files (.doc, .xls, .ppt) are not supported: save them as .docx, .xlsx or .pptx first. Anything else is refused before it is read."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why is my HEIC or video the same size after cleaning?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "For HEIC and MP4 the library clears the metadata bytes where they are instead of rebuilding the file, so the size stays the same. The data is gone; the empty space remains. This is normal."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will the content change?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Only hidden metadata is removed. The text of a document, and the faces and street signs in a photo, are still there. The orientation tag is kept, so a photo does not turn."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Why does the second scan still show something?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A few values are part of the file structure and cannot be removed without breaking the file. The page lists them after cleaning instead of hiding them. If that list matters to you, do not share the file."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which library does this use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The open source metadata-remover by iAnonymous3000, used under the MIT licence. The licence text is at /tools/assets/mr/LICENSE.txt and the source is at github.com/iAnonymous3000/metadata-remover."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">Skip to results</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/">SecureInChat</a>
+    <nav aria-label="Main"><a href="/protect/">Protect</a><a href="/tools/" aria-current="page">Tools</a><a href="/blog/">Guides</a><a href="/messaging/">Messaging</a><a href="/about/">About</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">File metadata remover</h1>
+    <p class="lede">See the hidden data in a photo, a document, a video or an audio file, then save a copy without it. The file never leaves your device.</p>
+    <div class="picker"><input id="file" type="file" accept=".jpg,.jpeg,.png,.webp,.avif,.gif,.heic,.heif,.tif,.tiff,.svg,.mp4,.mov,.mp3,.flac,.wav,.ogg,.pdf,.docx,.xlsx,.pptx,.odt,.ods,.odp,.epub,image/jpeg,image/png,image/webp,image/avif,image/gif,image/heic,image/heif,image/tiff,image/svg+xml,video/mp4,video/quicktime,audio/mpeg,audio/flac,audio/wav,audio/ogg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation,application/epub+zip" aria-label="Choose a file"><button id="clean" class="btn" type="button" hidden>Remove metadata and download</button></div>
+    <p class="hint">One file at a time, up to 200 MB. Your original file is not changed. Nothing is uploaded or stored. For a closer look at what a phone photo carries, see the <a href="/tools/photo-metadata-remover/">photo metadata remover</a>.</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">Result</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">Choose a file to begin.</p>
+    </div>
+    <table class="results">
+      <caption class="sr">Metadata found in the file, by category</caption>
+      <thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Status</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="Check"><span class="c-name">File</span><span class="c-desc">Choose a file to see what it holds.</span></th>
+          <td data-label="Result"><div class="vals"><div class="val mono">Not run yet</div></div></td>
+          <td data-label="Status"><span class="pill">Not run</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. Choosing a file for the first time loads the WebAssembly cleaning engine from this same site; that request appears here and is expected.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">What it removes</h2>
+    <p>Most files carry a block of hidden data next to the content you see. A phone photo can hold the exact coordinates where you stood, the time and the device model. A Word or PDF file can hold the author, the company, the software that wrote it, and the times it was created and last edited. A video or an audio file can hold the device, the software and the date. Whoever receives the original file can read all of it with free software.</p>
+    <p>This page lists what the file holds, then makes a copy without it. The original file is not changed. The listing, the cleaning and the second scan all happen in your browser, so the file never leaves your device.</p>
+    <p>The orientation tag of a photo is kept on purpose, so a photo does not come out turned. For HEIC photos and MP4 video the library clears the metadata bytes where they sit instead of rebuilding the file, so the cleaned copy has the same size as the original. That is normal: the data is gone, the empty space stays.</p>
+    <h2>What it does not do</h2>
+    <p>It does not change what the file shows. The text of a document and the faces, signs and landmarks in a photo are still there. Hidden data is only one way a file gives something away, so read the content as well before you share it.</p>
+    <p>Old Office formats (.doc, .xls, .ppt) are not supported. Open the file and save it as .docx, .xlsx or .pptx, then clean the new file. Formats that are not in the list are refused before they are read.</p>
+    <p>It handles one file at a time, up to 200 MB, and does not unpack archives. A file is only cleaned if it can be read: a damaged file is reported, not repaired.</p>
+    <p>After cleaning, the page scans the new file again and shows what is left. Some values belong to the file structure and cannot be removed without breaking the file; those are listed instead of hidden. A short list is a check, not a promise that the file is safe.</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="how-h">
+    <h2 id="how-h">How it works</h2>
+    <p>Everything runs in this tab. The file is read into memory, the file type is detected, the metadata is listed and removed by a WebAssembly module, and the result is scanned one more time before it is offered as a download. No file is uploaded, nothing is stored, and the page loads no analytics.</p>
+    <p>The cleaning engine is the open source <a href="https://github.com/iAnonymous3000/metadata-remover" rel="noopener">metadata-remover</a> project by iAnonymous3000, used under the MIT licence. The licence text that ships with the build is at <a href="/tools/assets/mr/LICENSE.txt">/tools/assets/mr/LICENSE.txt</a>.</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">Frequently asked questions</h2>
+    <h3>Is my file uploaded?</h3>
+    <p>No. The file is read, cleaned and scanned again inside this page with WebAssembly. There is no upload and the page stores nothing.</p>
+    <h3>Which formats work?</h3>
+    <p>JPEG, PNG, WebP, AVIF, GIF, HEIC, HEIF, TIFF, SVG, MP4, MOV, MP3, FLAC, WAV, OGG, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP and EPUB. Old Office files (.doc, .xls, .ppt) are not supported: save them as .docx, .xlsx or .pptx first. Anything else is refused before it is read.</p>
+    <h3>Why is my HEIC or video the same size after cleaning?</h3>
+    <p>For HEIC and MP4 the library clears the metadata bytes where they are instead of rebuilding the file, so the size stays the same. The data is gone; the empty space remains. This is normal.</p>
+    <h3>Will the content change?</h3>
+    <p>No. Only hidden metadata is removed. The text of a document, and the faces and street signs in a photo, are still there. The orientation tag is kept, so a photo does not turn.</p>
+    <h3>Why does the second scan still show something?</h3>
+    <p>A few values are part of the file structure and cannot be removed without breaking the file. The page lists them after cleaning instead of hiding them. If that list matters to you, do not share the file.</p>
+    <h3>Which library does this use?</h3>
+    <p>The open source metadata-remover by iAnonymous3000, used under the MIT licence. The licence text is at /tools/assets/mr/LICENSE.txt and the source is at github.com/iAnonymous3000/metadata-remover.</p>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat. See what you give away, then switch it off.</p>
+    <nav aria-label="Footer"><a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship and affiliate disclosure</a><a href="/contact/">Contact</a></nav>
+  </div>
+</footer>
+<script type="module" src="/tools/assets/mr-app.js"></script>
+<script src="/tools/assets/net-log.js" defer></script>
+</body>
+</html>

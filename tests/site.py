@@ -33,7 +33,7 @@ BASE = f'http://127.0.0.1:{srv.server_address[1]}'
 WS_OK = """(()=>{class W{constructor(u){this.u=u;setTimeout(()=>{this.onopen&&this.onopen();setTimeout(()=>{this.onmessage&&this.onmessage({data:JSON.stringify({type:'auth_challenge',challenge:'abcdef0123456789abcdef'})})},40)},60)}close(){}}window.WebSocket=W})();"""
 WS_BAD = """(()=>{class W{constructor(u){setTimeout(()=>{this.onerror&&this.onerror();this.onclose&&this.onclose({code:1006})},60)}close(){}}window.WebSocket=W})();"""
 
-PAGES = ['/', '/zh/', '/ja/', '/messaging/', '/start/', '/start/being-tracked/', '/start/account-hacked/', '/start/less-tracking/', '/start/network-down/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/tools/privacy-report/', '/tools/account-checkup/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/link-checker/', '/tools/site-health-check/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/checkup/', '/zh/checkup/', '/tools/phone-checkup/', '/zh/tools/phone-checkup/', '/blog/encrypted-messaging-when-networks-fail/', '/blog/check-app-permissions-android-iphone/', '/blog/ai-apps-permissions-and-data/', '/blog/move-to-encrypted-email/', '/blog/email-aliases-hide-your-address/', '/blog/protect-your-phone-number-sim-swap/', '/blog/privacy-reset-checklist-iphone-android/', '/blog/data-broker-opt-out-guide/', '/shop/']
+PAGES = ['/', '/zh/', '/ja/', '/messaging/', '/start/', '/start/being-tracked/', '/start/account-hacked/', '/start/less-tracking/', '/start/network-down/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/tools/privacy-report/', '/tools/account-checkup/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/link-checker/', '/tools/site-health-check/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/checkup/', '/zh/checkup/', '/tools/phone-checkup/', '/zh/tools/phone-checkup/', '/zh/tools/text-redactor/', '/zh/tools/file-metadata-remover/', '/zh/tools/password-checker/', '/zh/tools/account-checkup/', '/zh/tools/link-checker/', '/blog/encrypted-messaging-when-networks-fail/', '/blog/check-app-permissions-android-iphone/', '/blog/ai-apps-permissions-and-data/', '/blog/move-to-encrypted-email/', '/blog/email-aliases-hide-your-address/', '/blog/protect-your-phone-number-sim-swap/', '/blog/privacy-reset-checklist-iphone-android/', '/blog/data-broker-opt-out-guide/', '/shop/']
 fails = []
 def check(cond, msg):
     print(('ok   ' if cond else 'FAIL ') + msg)
@@ -129,6 +129,27 @@ for _f in _glob.glob(os.path.join(ROOT, '**', '*.html'), recursive=True):
         _p = os.path.join(ROOT, _h.lstrip('/'))
         if not (os.path.isfile(_p) or os.path.isfile(os.path.join(_p, 'index.html'))): _bad.add(f'{_h} (in {os.path.relpath(_f, ROOT)})')
 check(not _bad, f'internal links resolve: {sorted(_bad)[:8]}')
+
+# W13: Chinese pages link to the Chinese tools index and to a tool's Chinese page whenever one exists.
+# Only the language switch (lang/hreflang="en") may point at the English version.
+_zh_tools = {os.path.basename(os.path.dirname(p)) for p in _glob.glob(os.path.join(ROOT, 'zh', 'tools', '*', 'index.html'))}
+_zh_bad = []
+for _f in _glob.glob(os.path.join(ROOT, 'zh', '**', '*.html'), recursive=True):
+    for _a in _re.findall(r'<a\b[^>]*>', open(_f, encoding='utf-8').read()):
+        if _re.search(r'\b(?:lang|hreflang)="en"', _a): continue
+        _m = _re.search(r'href="/tools/([a-z0-9-]*)/?"', _a)
+        if _m and (_m.group(1) == '' or _m.group(1) in _zh_tools): _zh_bad.append(f'{os.path.relpath(_f, ROOT)}: /tools/{_m.group(1)}')
+check(len(_zh_tools) >= 7 and not _zh_bad, f'zh pages use Chinese tool pages ({len(_zh_tools)} zh tools): {_zh_bad[:8]}')
+_zc = open(os.path.join(ROOT, 'zh', 'checkup', 'index.html'), encoding='utf-8').read()
+_zc_cards = _re.findall(r'class="button button--primary checkup-card-action" href="([^"]+)"', _zc)
+check(_zc_cards == ['/zh/tools/link-checker/', '/zh/tools/phone-checkup/', '/zh/tools/account-checkup/'], f'/zh/checkup/ cards link Chinese tools {_zc_cards}')
+_zh_home = open(os.path.join(ROOT, 'zh', 'index.html'), encoding='utf-8').read()
+check(_re.findall(r'class="tool-action" href="([^"]+)"', _zh_home) == ['/zh/tools/account-checkup/', '/zh/tools/photo-metadata-remover/', '/zh/tools/text-redactor/', '/zh/tools/link-checker/'], '/zh/ tool cards link Chinese tools')
+check('11 个工具' not in _zh_home, '/zh/ no stale tool count')
+_en_home = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
+_en_index_n = open(os.path.join(ROOT, 'tools', 'index.html'), encoding='utf-8').read().count('class="tool-catalogue-item"')
+_en_counts = [int(x) for x in _re.findall(r'View all (\d+) tools', _en_home)]
+check(_en_index_n >= 10 and all(n == _en_index_n for n in _en_counts), f'/ "View all N tools" matches /tools/ index ({_en_counts} vs {_en_index_n})')
 
 # Heading order (WCAG 1.3.1): no built page may skip a level going down (h1 -> h3 breaks screen-reader outlines).
 _skips = []

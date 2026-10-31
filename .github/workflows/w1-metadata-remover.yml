@@ -1,0 +1,79 @@
+# W1: build and test iAnonymous3000/metadata-remover (MIT, Rust -> WASM) at a pinned commit, then check
+# its output with our own fixtures and independent tools. Evaluation only: nothing is deployed and the
+# site does not use this code yet. Paul approved building and testing it in CI on 2026-10-28.
+name: w1-metadata-remover
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feature/w1-metadata-remover"]
+    paths: ['tests/w1/**', '.github/workflows/w1-metadata-remover.yml']
+permissions:
+  contents: write
+env:
+  MR_REPO: https://github.com/iAnonymous3000/metadata-remover.git
+  MR_SHA: 2524864b3135d6a77fdbb635c571d6948f8b2b3d
+  WASM_PACK_VERSION: 0.14.0
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch metadata-remover at the pinned commit
+        run: |
+          git init -q mr && cd mr
+          git remote add origin "$MR_REPO"
+          git fetch -q --depth 1 origin "$MR_SHA"
+          git checkout -q FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$MR_SHA"
+          head -3 LICENSE
+      - uses: dtolnay/rust-toolchain@1.94.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Their Rust tests
+        working-directory: mr/wasm
+        run: cargo test --locked 2>&1 | tee ../../rust-tests.txt | grep -E "test result|FAILED|panicked" ; test ${PIPESTATUS[0]} -eq 0
+      - name: Build WASM (web and node targets)
+        run: |
+          cargo install wasm-pack --version "$WASM_PACK_VERSION" --locked
+          cd mr/wasm
+          wasm-pack build --target web --release --out-dir pkg-web
+          wasm-pack build --target nodejs --release --out-dir pkg-node
+          for f in pkg-web/metadata_remover_bg.wasm pkg-web/metadata_remover.js; do
+            echo "$f: $(stat -c%s "$f") bytes, gzip $(gzip -9c "$f" | wc -c) bytes"
+          done | tee ../../sizes.txt
+      - name: Tools for the independent check
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libimage-exiftool-perl ffmpeg > /dev/null
+          pip install -q pillow piexif pypdf python-docx pillow-heif
+      - name: Our fixtures through process_file, checked with exiftool, Pillow, pypdf and python-docx
+        run: |
+          python3 tests/w1/make_fixtures.py fx/in
+          node tests/w1/run_clean.mjs "$PWD/mr/wasm/pkg-node" fx/in fx/out
+          python3 tests/w1/check.py fx/in fx/out | tee check.txt
+      - name: Summary
+        if: always()
+        run: |
+          { echo "## W1 metadata-remover @ ${MR_SHA:0:7}"; echo; echo '```'; cat sizes.txt 2>/dev/null; grep -E "test result" rust-tests.txt 2>/dev/null; cat check.txt 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit the built web package to this branch (only if it changed)
+        if: success() && github.ref == 'refs/heads/feature/w1-metadata-remover'
+        run: |
+          mkdir -p public/tools/assets/mr
+          cp mr/wasm/pkg-web/metadata_remover.js mr/wasm/pkg-web/metadata_remover_bg.wasm public/tools/assets/mr/
+          cp mr/LICENSE public/tools/assets/mr/LICENSE.txt
+          echo "iAnonymous3000/metadata-remover @ $MR_SHA, built by wasm-pack $WASM_PACK_VERSION (rust 1.94.1) in workflow run $GITHUB_RUN_ID" > public/tools/assets/mr/SOURCE.txt
+          git config user.name "w1-build-bot"; git config user.email "actions@users.noreply.github.com"
+          git add public/tools/assets/mr
+          if git diff --cached --quiet; then echo "package unchanged"; else git commit -qm "W1: built metadata-remover web package (pinned ${MR_SHA:0:7})" && git push -q; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: w1-results
+          path: |
+            fx/out
+            sizes.txt
+            rust-tests.txt
+            check.txt

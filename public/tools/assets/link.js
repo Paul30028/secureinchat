@@ -12,6 +12,9 @@
   var SHORTENERS = ['bit.ly', 't.co', 'tinyurl.com', 'goo.gl', 'ow.ly', 'is.gd', 'buff.ly', 'cutt.ly', 'rebrand.ly', 'shorturl.at', 'tiny.cc', 'rb.gy', 't.ly', 'lnkd.in', 'trib.al', 'bl.ink', 's.id', 'v.gd', 'qr.co', 'shorte.st', 'adf.ly'];
   var BRANDS = ['paypal', 'apple', 'icloud', 'microsoft', 'office365', 'outlook', 'google', 'gmail', 'amazon', 'netflix', 'facebook', 'instagram', 'whatsapp', 'telegram', 'dhl', 'fedex', 'ups', 'usps', 'royalmail', 'chase', 'wellsfargo', 'bankofamerica', 'hsbc', 'barclays', 'coinbase', 'binance', 'metamask', 'docusign', 'dropbox', 'linkedin', 'steam', 'roblox'];
   var REDIRECT_KEYS = ['url', 'u', 'redirect', 'redirect_uri', 'redirect_url', 'redir', 'next', 'target', 'dest', 'destination', 'continue', 'return', 'returnurl', 'goto', 'out', 'link', 'q'];
+  // Only these are treated as non-web schemes when written without "//"; anything else (e.g. "localhost:3000",
+  // "user:pw@host") still gets "https://" so the existing checks run on it.
+  var NON_WEB = ['mailto', 'tel', 'sms', 'smsto', 'mms', 'callto', 'facetime', 'facetime-audio', 'sip', 'sips', 'xmpp', 'geo', 'magnet', 'bitcoin', 'ethereum', 'news', 'urn', 'about', 'blob', 'intent', 'market', 'itms-services', 'skype', 'whatsapp', 'tg', 'webcal'];
   var TWO_PART = ['co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'com.au', 'net.au', 'org.au', 'co.jp', 'ne.jp', 'or.jp', 'com.br', 'com.cn', 'com.hk', 'com.sg', 'com.tw', 'co.nz', 'co.za', 'com.mx', 'co.in', 'co.kr', 'com.tr', 'com.ar'];
 
   function isTracking(key) {
@@ -67,6 +70,10 @@
     var s = String(raw || '').trim();
     if (!s) return { error: 'empty' };
     if (/^(javascript|data|vbscript):/i.test(s)) return { error: 'script', scheme: s.split(':')[0].toLowerCase() };
+    // Schemes without "//" (mailto:, tel:, ...) are not web pages. Without this they would get "https://"
+    // prepended and the part before the @ would be misreported as the "text before an @" trick.
+    var bare = /^([a-z][a-z0-9+.-]*):(?!\/\/)/i.exec(s);
+    if (bare && NON_WEB.indexOf(bare[1].toLowerCase()) >= 0) return { error: 'scheme', scheme: bare[1].toLowerCase() };
     if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) s = 'https://' + s;
     var u;
     try { u = new URL(s); } catch (e) { return { error: 'invalid' }; }

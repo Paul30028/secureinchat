@@ -274,6 +274,7 @@ const LOCAL = {
       ['/tools/account-checkup/', '账号安全自查', '八项本地勾选清单：两步验证、密码复用、恢复方式、登录设备，附 Google、Apple、Microsoft 官方步骤。', 'local'],
       ['/tools/link-checker/', '链接检查器', '去掉链接里的追踪参数，并在点开前看出钓鱼链接的迹象。链接不会被打开或发送。', 'local'],
       ['/tools/photo-metadata-remover/', '照片元数据清除', '查看并删除照片里隐藏的位置、设备和日期。', 'local'],
+      ['/tools/file-metadata-remover/', '文件元数据清除', '查看并删除照片、视频、PDF 和 Office 文件里隐藏的位置、设备和作者信息。', 'local'],
       ['/tools/text-redactor/', '文本脱敏', '在分享文本或粘贴给 AI 之前，把邮箱、号码和密钥换成占位符。', 'local'],
     ],
     toolMore: '全部工具',
@@ -306,6 +307,7 @@ const LOCAL = {
       ['/tools/account-checkup/', 'アカウント安全チェック', '端末内で使う 8 項目のチェックリスト：2 段階認証、パスワード使い回し、復旧方法、ログイン中の端末。Google、Apple、Microsoft の公式手順付き。', 'local'],
       ['/tools/link-checker/', 'リンクチェッカー', 'リンクから追跡パラメータを取り除き、開く前にフィッシングの兆候を確認します。リンクは開かれず、送信もされません。', 'local'],
       ['/tools/photo-metadata-remover/', '写真メタデータ削除', '写真に隠れた位置情報、機種、日付を確認して削除します。', 'local'],
+      ['/tools/file-metadata-remover/', 'ファイルメタデータ削除', '写真、動画、PDF、Office ファイルに隠れた位置情報、機種、作成者の情報を確認して削除します。', 'local'],
       ['/tools/text-redactor/', 'テキスト墨消し', '文章を共有したり AI に貼り付けたりする前に、メールアドレス、番号、キーを仮の文字に置き換えます。', 'local'],
     ],
     toolMore: 'すべてのツール',
@@ -555,6 +557,7 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
         <tr><td><a href="/tools/webrtc-leak-test/">WebRTC leak test</a></td><td>Everything</td><td>A STUN request to a public server, which sees your public address</td></tr>
         <tr><td><a href="/tools/ipv6-leak-test/">IPv6 leak test</a></td><td>Verdicts</td><td>Your IPv6 address to ipify</td></tr>
         <tr><td><a href="/tools/photo-metadata-remover/">Photo metadata remover</a></td><td>The photo and its metadata</td><td>Nothing</td></tr>
+        <tr><td><a href="/tools/file-metadata-remover/">File metadata remover</a></td><td>The file and its metadata</td><td>Nothing</td></tr>
         <tr><td><a href="/tools/browser-fingerprint-test/">Fingerprint test</a></td><td>All signals</td><td>Nothing</td></tr>
         <tr><td><a href="/tools/password-checker/">Password checker</a></td><td>The password and its full hash</td><td>The first five characters of its SHA-1 hash to Pwned Passwords</td></tr>
         <tr><td><a href="/tools/text-redactor/">Text redactor</a></td><td>The text you paste</td><td>Nothing</td></tr>
@@ -754,6 +757,22 @@ write('blog/index.html', blogIndex());
   write('tools/index.html', kitShell({ title, desc, canonical: '/tools/', current: '/tools/', headExtra: headExtra({ canonical: '/tools/', title, desc }), main: m }));
 }
 
+// Chinese tools index: ChatGPT's tools-index.zh template. Translated tools link to their Chinese pages;
+// the rest still link to the English page and say so on the button.
+{
+  const ZH_TOOLS = { '/tools/phone-checkup/': '/zh/tools/phone-checkup/', '/tools/photo-metadata-remover/': '/zh/tools/photo-metadata-remover/', '/tools/text-redactor/': '/zh/tools/text-redactor/', '/tools/file-metadata-remover/': '/zh/tools/file-metadata-remover/', '/tools/password-checker/': '/zh/tools/password-checker/', '/tools/account-checkup/': '/zh/tools/account-checkup/', '/tools/link-checker/': '/zh/tools/link-checker/' };
+  const title = '隐私工具 | SecureInChat'; const desc = '免费的隐私工具：每项检查做什么、哪些数据留在浏览器里、什么时候会用到外部服务，都写清楚。';
+  let m = kitMain('tools-index.zh.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/');
+  m = m.replace(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g, (a) => {
+    const href = /class="tool-catalogue-action" href="([^"]+)"/.exec(a);
+    if (!href) return a;
+    if (ZH_TOOLS[href[1]]) return a.replace(`href="${href[1]}"`, `href="${ZH_TOOLS[href[1]]}"`);
+    return a.replace(/(class="tool-catalogue-action" href="[^"]+"[^>]*>)\s*立即使用/, '$1 使用（英文页面）');
+  });
+  // /zh/blog/ does not exist yet: the Chinese header's guides link goes to the English guides.
+  write('zh/tools/index.html', kitShell({ lang: 'zh', title, desc, canonical: '/zh/tools/', current: '/zh/tools/', headExtra: headExtra({ canonical: '/zh/tools/', title, desc }), main: m }).replace(/href="\/zh\/blog\/"/g, 'href="/blog/"'));
+}
+
 // Tool detail pages: kit tool-detail layout around each tool's unchanged live markup (src/tools/<slug>.html).
 {
   const idx = KIT_T('tools-index.en.html');
@@ -767,7 +786,7 @@ write('blog/index.html', blogIndex());
   FLOW['browser-fingerprint-test'] = FLOW['browser-fingerprint-test'] || FLOW['fingerprint-test'];
   const L = { local: ['Local processing', 'state-label'], list: ['Local checklist', 'state-label'], net: ['Network lookup', 'state-label state-label--network'], some: ['Some network lookups', 'state-label state-label--network'], limited: ['Limited lookup', 'state-label state-label--network'], site: ['Site request', 'state-label state-label--network'] };
   const TOOLS = [
-    ['link-checker', 'Link checker', L.local, FIG.url], ['photo-metadata-remover', 'Photo metadata remover', L.local, FIG.photo], ['text-redactor', 'Text redactor', L.local, FIG.redact],
+    ['link-checker', 'Link checker', L.local, FIG.url], ['photo-metadata-remover', 'Photo metadata remover', L.local, FIG.photo], ['file-metadata-remover', 'File metadata remover', L.local, FIG.photo], ['text-redactor', 'Text redactor', L.local, FIG.redact],
     ['browser-fingerprint-test', 'Browser fingerprint test', L.local, FIG.flows], ['account-checkup', 'Account security checkup', L.list, FIG.account],
     ['ip-leak-test', 'IP leak test', L.net, FIG.flows], ['webrtc-leak-test', 'WebRTC leak test', L.net, FIG.flows], ['ipv6-leak-test', 'IPv6 leak test', L.net, FIG.flows],
     ['privacy-report', 'Browser privacy report', L.some, FIG.flows], ['password-checker', 'Password checker', L.limited, FIG.account], ['site-health-check', 'Website health check', L.site, FIG.flows],
@@ -776,8 +795,164 @@ write('blog/index.html', blogIndex());
   for (const [slug, name, label, figure] of TOOLS) {
     const src = fs.readFileSync(path.join(ROOT, 'src/tools', `${slug}.html`), 'utf8');
     if (!FLOW[slug]) throw new Error('no data-flow row for ' + slug);
-    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name }));
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, ...(['photo-metadata-remover', 'text-redactor', 'file-metadata-remover', 'password-checker', 'account-checkup', 'link-checker'].includes(slug) ? { alt: { en: `/tools/${slug}/`, 'zh-CN': `/zh/tools/${slug}/` } } : {}) }));
   }
+}
+
+
+// Chinese photo metadata remover. Same tool markup and scripts as the English page, so exif-app.js and
+// net-log.js switch their interface strings on document.documentElement.lang instead of being duplicated.
+// The icons and the data-flow row are built here because ICONS and FLOW live inside the block above.
+{
+  const PHOTO_ALT = { en: '/tools/photo-metadata-remover/', 'zh-CN': '/zh/tools/photo-metadata-remover/' };
+  const idxZh = KIT_T('tools-index.en.html');
+  let photoIcon = '';
+  for (const a of idxZh.match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'photo-metadata-remover') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) photoIcon = svg[0];
+    break;
+  }
+  const zhSrc = fs.readFileSync(path.join(ROOT, 'src/tools/zh/photo-metadata-remover.html'), 'utf8');
+  write('zh/tools/photo-metadata-remover/index.html', toolPage({
+    slug: 'photo-metadata-remover',
+    src: zhSrc,
+    icon: photoIcon,
+    label: ['本地处理', 'state-label'],
+    flow: { stays: '留在本机：照片和读出的元数据', sent: '无' },
+    figure: { ...FIG.photo, alt: '照片里的位置、时间和设备信息' },
+    crumbName: '照片元数据清理',
+    lang: 'zh-CN',
+    alt: PHOTO_ALT,
+  }));
+}
+
+// Chinese text redactor (W8). Same markup ids and scripts as the English page; redact-app.js and
+// net-log.js pick their interface strings from document.documentElement.lang.
+{
+  let icon = '';
+  for (const a of KIT_T('tools-index.en.html').match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'text-redactor') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) icon = svg[0];
+    break;
+  }
+  write('zh/tools/text-redactor/index.html', toolPage({
+    slug: 'text-redactor',
+    src: fs.readFileSync(path.join(ROOT, 'src/tools/zh/text-redactor.html'), 'utf8'),
+    icon,
+    label: ['本地处理', 'state-label'],
+    flow: { stays: '留在本机：你粘贴的文本和占位符对照表', sent: '无' },
+    figure: { ...FIG.redact, alt: '分享前被遮住敏感内容的文本' },
+    crumbName: '文本脱敏',
+    lang: 'zh-CN',
+    alt: { en: '/tools/text-redactor/', 'zh-CN': '/zh/tools/text-redactor/' },
+  }));
+}
+
+// Chinese file metadata remover (W9). Same markup ids and scripts as the English page; mr-app.js and
+// net-log.js pick their interface strings from document.documentElement.lang. The engine's category and
+// field names stay in English on both pages (the page says so).
+{
+  let icon = '';
+  for (const a of KIT_T('tools-index.en.html').match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'file-metadata-remover') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) icon = svg[0];
+    break;
+  }
+  write('zh/tools/file-metadata-remover/index.html', toolPage({
+    slug: 'file-metadata-remover',
+    src: fs.readFileSync(path.join(ROOT, 'src/tools/zh/file-metadata-remover.html'), 'utf8'),
+    icon,
+    label: ['本地处理', 'state-label'],
+    flow: { stays: '留在本机：你的文件、读出的元数据和清理后的副本', sent: '无' },
+    figure: { ...FIG.photo, alt: '文件里的作者、位置、时间和设备信息' },
+    crumbName: '文件元数据清理',
+    lang: 'zh-CN',
+    alt: { en: '/tools/file-metadata-remover/', 'zh-CN': '/zh/tools/file-metadata-remover/' },
+  }));
+}
+
+
+// Chinese password checker (W10). Same markup ids and scripts as the English page; pw-app.js maps the
+// shared pw.js labels and notes to Chinese and net-log.js follows document.documentElement.lang.
+// No partner block on this page (the Chinese tool pages carry no affiliate links).
+{
+  let icon = '';
+  for (const a of KIT_T('tools-index.en.html').match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'password-checker') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) icon = svg[0];
+    break;
+  }
+  write('zh/tools/password-checker/index.html', toolPage({
+    slug: 'password-checker',
+    src: fs.readFileSync(path.join(ROOT, 'src/tools/zh/password-checker.html'), 'utf8'),
+    icon,
+    label: ['有限查询', 'state-label state-label--network'],
+    flow: { stays: '留在本机：密码本身和它的完整哈希值', sent: '只在你按下按钮时：SHA-1 哈希值的前 5 个字符，发给 Pwned Passwords' },
+    figure: { ...FIG.account, alt: '账号的登录方式、受信任设备和恢复途径' },
+    crumbName: '密码检查',
+    lang: 'zh-CN',
+    alt: { en: '/tools/password-checker/', 'zh-CN': '/zh/tools/password-checker/' },
+  }));
+}
+
+
+// Chinese account security checkup (W11). Same markup ids and scripts as the English page; account-app.js
+// swaps the shared account.js wording for Chinese when the document language is zh. Official help links stay
+// the English pages the English checkup was checked against, labelled （英文）. No partner block.
+{
+  let icon = '';
+  for (const a of KIT_T('tools-index.en.html').match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'account-checkup') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) icon = svg[0];
+    break;
+  }
+  write('zh/tools/account-checkup/index.html', toolPage({
+    slug: 'account-checkup',
+    src: fs.readFileSync(path.join(ROOT, 'src/tools/zh/account-checkup.html'), 'utf8'),
+    icon,
+    label: ['本地清单', 'state-label'],
+    flow: { stays: '你的答案，直到刷新或关闭页面', sent: '无' },
+    figure: { ...FIG.account, alt: '账号的登录方式、受信任设备和恢复途径' },
+    crumbName: '账号安全自查',
+    lang: 'zh-CN',
+    alt: { en: '/tools/account-checkup/', 'zh-CN': '/zh/tools/account-checkup/' },
+  }));
+}
+
+
+// Chinese link checker (W12). Same markup ids and scripts as the English page; link-app.js swaps the shared
+// link.js labels, statuses and summaries for Chinese when the document language is zh. No partner block,
+// no VPN or IP-test links.
+{
+  let icon = '';
+  for (const a of KIT_T('tools-index.en.html').match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
+    const href = /href="\/tools\/([a-z0-9-]+)\/"/.exec(a);
+    if (!href || href[1] !== 'link-checker') continue;
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(a);
+    if (svg) icon = svg[0];
+    break;
+  }
+  write('zh/tools/link-checker/index.html', toolPage({
+    slug: 'link-checker',
+    src: fs.readFileSync(path.join(ROOT, 'src/tools/zh/link-checker.html'), 'utf8'),
+    icon,
+    label: ['本地处理', 'state-label'],
+    flow: { stays: '你粘贴的链接，它不会被打开', sent: '无' },
+    figure: { ...FIG.url, alt: '一个网址被拆成网站名、路径和可能用于追踪的查询参数' },
+    crumbName: '链接检查器',
+    lang: 'zh-CN',
+    alt: { en: '/tools/link-checker/', 'zh-CN': '/zh/tools/link-checker/' },
+  }));
 }
 
 
@@ -833,7 +1008,7 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -844,14 +1019,42 @@ ${urls.map(([u]) => { const post = POSTS.find((p) => u === `/blog/${p.slug}/`); 
 write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 
 const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
-const TOOLS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+// 'wasm-unsafe-eval' lets the file metadata remover compile its WebAssembly (same-origin file). It allows WebAssembly
+// compilation only; JavaScript eval stays blocked. Cloudflare joins repeated CSP headers rather than replacing them,
+// so a per-page exception under /tools/* is not possible; it is set for the whole /tools/ section.
+const TOOLS_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/phone-checkup/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 
 # Tools: no analytics, only the lookups the tests need.
 /tools/*
+  Content-Security-Policy: ${TOOLS_CSP}
+${common}
+
+# Translated tool pages live outside /tools/ and get the same tools policy.
+/zh/tools/photo-metadata-remover/
+  Content-Security-Policy: ${TOOLS_CSP}
+${common}
+
+/zh/tools/text-redactor/
+  Content-Security-Policy: ${TOOLS_CSP}
+${common}
+
+/zh/tools/file-metadata-remover/
+  Content-Security-Policy: ${TOOLS_CSP}
+${common}
+
+/zh/tools/password-checker/
+  Content-Security-Policy: ${TOOLS_CSP}
+${common}
+
+/zh/tools/account-checkup/
+  Content-Security-Policy: ${TOOLS_CSP}
+${common}
+
+/zh/tools/link-checker/
   Content-Security-Policy: ${TOOLS_CSP}
 ${common}
 

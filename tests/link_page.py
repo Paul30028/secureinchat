@@ -21,6 +21,8 @@ with sync_playwright() as p:
         check('warning sign' in pg.inner_text('#summary'), 'summary: ' + pg.inner_text('#summary'))
         check(pg.inner_text('#lk-site').startswith('secure-paypal.example.net'), 'site shown')
         check(len(reqs) == n0, f'no network requests while checking ({len(reqs) - n0})')
+        pg.fill('#lk-in', 'mailto:paypal@evil.example'); pg.wait_for_timeout(100)
+        check(pg.inner_text('#summary').strip().startswith('This is a mailto link, not a web page.') and 'Text before an @' not in pg.inner_text('#rows'), 'mailto reported as not a web page (W14): ' + pg.inner_text('#summary'))
         pg.fill('#lk-in', 'https://www.wikipedia.org/'); pg.wait_for_timeout(100)
         check('No warning signs' in pg.inner_text('#summary'), 'clean link summary')
         check(pg.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') <= 0, f'no overflow {vp["width"]}')

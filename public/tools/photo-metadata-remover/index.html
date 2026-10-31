@@ -8,6 +8,9 @@
   <title>Photo Metadata Remover: See and Remove EXIF and GPS Data Locally</title>
   <meta content="Free photo metadata remover. See the GPS location, device and dates hidden in a JPEG, then save a clean copy. Runs in your browser and never uploads the photo." name="description"/>
   <link href="https://secureinchat.com/tools/photo-metadata-remover/" rel="canonical"/>
+  <link href="https://secureinchat.com/tools/photo-metadata-remover/" hreflang="en" rel="alternate"/>
+  <link href="https://secureinchat.com/zh/tools/photo-metadata-remover/" hreflang="zh-CN" rel="alternate"/>
+  <link href="https://secureinchat.com/tools/photo-metadata-remover/" hreflang="x-default" rel="alternate"/>
   <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
   <script type="application/ld+json">
 {
@@ -236,6 +239,29 @@
       </tbody>
     </table>
 </section></div>
+       <div class="legacy-tool"><section class="netlog-section" aria-label="Network requests from this page">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">Network requests from this page: <span class="netlog-count">0</span></summary>
+        <p class="netlog-note">This list records what the page loads and sends through fetch, XHR and beacons. A photo is read in this tab only: choosing one should not add a request here.</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="Network requests from this page">
+            <thead>
+              <tr>
+                <th scope="col">Time</th>
+                <th scope="col">Type</th>
+                <th scope="col">Address</th>
+                <th scope="col">Size</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>Your browser does not expose request timing to pages.</p>
+        <p class="netlog-footer">This list comes from your browser's Resource Timing API. It shows what this page loaded or sent with fetch, XHR and beacons. It cannot show WebSocket or WebRTC traffic, browser extensions, or requests the browser hides from pages, so it is evidence, not proof. The stronger guarantee is the page's Content-Security-Policy, which you can read in your browser's developer tools (Network tab, response headers), and the <a href="https://github.com/Paul30028/secureinchat" rel="noopener">source code on GitHub</a>.</p>
+      </details>
+    </div>
+</section></div>
       </section>
       <div class="info-content tool-prose">
 <section aria-labelledby="what-h">
@@ -262,7 +288,7 @@
     <h3>Will image quality change?</h3>
     <p>A JPEG is re-encoded at high quality, so there can be a small loss. PNG output is lossless. The embedded colour profile is dropped, which can shift colours slightly in some viewers.</p>
     <h3>Which formats work?</h3>
-    <p>JPEG, PNG and WebP, if your browser can decode them. HEIC and animated images are not supported. Only JPEG metadata is shown before cleaning, but cleaning removes metadata from all supported formats.</p>
+    <p>JPEG, PNG and WebP, if your browser can decode them. HEIC and animated images are not supported here. Only JPEG metadata is shown before cleaning, but cleaning removes metadata from all supported formats. For HEIC photos, videos, PDFs and Office files, use the <a href="/tools/file-metadata-remover/">file metadata remover</a>, which removes metadata without re-encoding.</p>
     <h3>Does it remove what is in the picture itself?</h3>
     <p>No. A street sign, a face or a landmark in the photo can still give away where you are. This tool only removes hidden data.</p>
 </section>
@@ -354,5 +380,6 @@
   </footer>
   <script src="/tools/assets/exif.js" defer></script>
   <script src="/tools/assets/exif-app.js" defer></script>
+  <script src="/tools/assets/net-log.js" defer></script>
  </body>
 </html>

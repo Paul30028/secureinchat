@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>文件元数据清理：在本机删除照片、文档和视频里的隐藏信息</title>
+  <meta content="查看并删除照片、文档、视频和音频文件里的隐藏元数据：JPEG、PNG、HEIC、MP4、PDF、DOCX 等。在你的浏览器里运行，文件不会离开你的设备。" name="description"/>
+  <link href="https://secureinchat.com/zh/tools/file-metadata-remover/" rel="canonical"/>
+  <link href="https://secureinchat.com/tools/file-metadata-remover/" hreflang="en" rel="alternate"/>
+  <link href="https://secureinchat.com/zh/tools/file-metadata-remover/" hreflang="zh-CN" rel="alternate"/>
+  <link href="https://secureinchat.com/tools/file-metadata-remover/" hreflang="x-default" rel="alternate"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "文件元数据清理",
+      "url": "https://secureinchat.com/zh/tools/file-metadata-remover/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "需要 JavaScript 和 WebAssembly。",
+      "description": "查看并删除照片、文档、视频和音频文件里的隐藏元数据：JPEG、PNG、HEIC、MP4、PDF、DOCX 等。在你的浏览器里运行，文件不会离开你的设备。",
+      "inLanguage": "zh-CN",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-28"
+    },
+    {
+      "@type": "FAQPage",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "我的文件会被上传吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。文件在本页里用 WebAssembly 读取、清理并再次扫描。没有上传，页面也不保存任何东西。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "支持哪些格式？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JPEG、PNG、WebP、AVIF、GIF、HEIC、HEIF、TIFF、SVG、MP4、MOV、MP3、FLAC、WAV、OGG、PDF、DOCX、XLSX、PPTX、ODT、ODS、ODP 和 EPUB。不支持旧版 Office 文件（.doc、.xls、.ppt），请先另存为 .docx、.xlsx 或 .pptx。其他格式在读取之前就会被拒绝。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么 HEIC 照片或视频清理后大小没变？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "对于 HEIC 和 MP4，清理库是在原位置清空元数据的字节，而不是重建整个文件，所以大小不变。数据已经没了，只是空位还在。这是正常的。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "内容会被改变吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。只删除隐藏的元数据。文档里的文字、照片里的人脸和路牌都还在。照片的方向标记会保留，所以照片不会转向。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么再次扫描还显示有东西？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "少数值是文件结构的一部分，删掉就会破坏文件。页面会在清理后把它们列出来，而不是藏起来。如果这些内容对你很重要，就不要分享这个文件。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么结果里的类别和字段名是英文？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "它们由清理引擎直接给出，本页原样显示，不做翻译，以免译错字段的含义。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "用的是哪个库？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "iAnonymous3000 的开源项目 metadata-remover，按 MIT 许可证使用。许可证全文在 /tools/assets/mr/LICENSE.txt，源代码在 github.com/iAnonymous3000/metadata-remover。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat 首页" class="brand" href="/zh/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       更实用的工具，更私密的互联网
+      </span>
+     </span>
+    </a>
+    <nav aria-label="主导航" class="desktop-navigation">
+     <a href="/zh/tools/">
+      隐私工具
+     </a>
+     <a href="/blog/">
+      使用指南
+     </a>
+     <a href="/zh/checkup/">
+      隐私体检
+     </a>
+     <a href="/messaging/">
+      加密通信
+     </a>
+     <a href="/mission/">
+      我们的使命
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/tools/" lang="en">
+      EN
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/zh/checkup/">
+      开始体检
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="打开导航菜单">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="移动端导航">
+      <a href="/zh/tools/">
+       隐私工具
+      </a>
+      <a href="/blog/">
+       使用指南
+      </a>
+      <a href="/zh/checkup/">
+       隐私体检
+      </a>
+      <a href="/messaging/">
+       加密通信
+      </a>
+      <a href="/mission/">
+       我们的使命
+      </a>
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑" class="breadcrumbs">
+      <a href="/zh/">首页</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/zh/tools/">工具</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">文件元数据清理</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <span class="tool-detail-emblem"><svg aria-hidden="true" class="tool-detail-emblem-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M9 5H19V10">
+           </path>
+           <path d="M5 8H12.5L17 12.5V27H5Z">
+           </path>
+           <path d="M12.5 8V12.5H17">
+           </path>
+           <circle cx="23.5" cy="22" r="5">
+           </circle>
+           <path d="M21 22h5">
+           </path>
+          </svg></span>
+      <div>
+       <h1 id="h1">文件元数据清理</h1>
+       <p class="page-lead">查看照片、文档、视频或音频文件里的隐藏数据，然后保存一份不带这些数据的副本。文件不会离开你的设备。</p>
+       <ul class="state-list"><li><span class="state-label">本地处理</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+      <section class="tool-workspace" aria-label="文件元数据清理">
+       <div class="legacy-tool">
+
+    <div class="picker"><input id="file" type="file" accept=".jpg,.jpeg,.png,.webp,.avif,.gif,.heic,.heif,.tif,.tiff,.svg,.mp4,.mov,.mp3,.flac,.wav,.ogg,.pdf,.docx,.xlsx,.pptx,.odt,.ods,.odp,.epub,image/jpeg,image/png,image/webp,image/avif,image/gif,image/heic,image/heif,image/tiff,image/svg+xml,video/mp4,video/quicktime,audio/mpeg,audio/flac,audio/wav,audio/ogg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation,application/epub+zip" aria-label="选择文件"><button id="clean" class="btn" type="button" hidden>删除元数据并下载</button></div>
+    <p class="hint">一次一个文件，最大 200 MB。原文件不会被改动。不上传，也不保存。想仔细看手机照片带了什么，可以用<a href="/zh/tools/photo-metadata-remover/">照片元数据清理</a>。</p>
+
+       </div>
+       <div class="legacy-tool"><section id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">结果</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">选择一个文件开始。</p>
+    </div>
+    <table class="results">
+      <caption class="sr">文件里找到的元数据，按类别列出</caption>
+      <thead><tr><th scope="col">检查</th><th scope="col">结果</th><th scope="col">状态</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="检查"><span class="c-name">文件</span><span class="c-desc">选择一个文件，看看里面有什么。</span></th>
+          <td data-label="结果"><div class="vals"><div class="val mono">尚未运行</div></div></td>
+          <td data-label="状态"><span class="pill">未运行</span></td>
+        </tr>
+      </tbody>
+    </table>
+</section></div>
+       <div class="legacy-tool"><section class="netlog-section" aria-label="本页发出的网络请求">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">本页发出的网络请求：<span class="netlog-count">0</span></summary>
+        <p class="netlog-note">本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。第一次选择文件时，页面会从本站加载 WebAssembly 清理引擎；这条请求会出现在这里，属于正常现象。</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="本页发出的网络请求">
+            <thead>
+              <tr>
+                <th scope="col">时间</th>
+                <th scope="col">类型</th>
+                <th scope="col">地址</th>
+                <th scope="col">大小</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>你的浏览器没有向页面公开请求计时信息。</p>
+        <p class="netlog-footer">本列表来自你浏览器的 Resource Timing API，显示本页通过 fetch、XHR 和信标加载或发出的资源。它看不到 WebSocket 或 WebRTC 流量、浏览器扩展，以及浏览器对页面隐藏的请求，所以这是证据，不是证明。更可靠的保证是页面的 Content-Security-Policy，你可以在浏览器的开发者工具（Network 标签，响应头）里读到，以及 <a href="https://github.com/Paul30028/secureinchat" rel="noopener">GitHub 上的源代码</a>。</p>
+      </details>
+    </div>
+</section></div>
+      </section>
+      <div class="info-content tool-prose">
+<section aria-labelledby="what-h">
+    <h2 id="what-h">它删除什么</h2>
+    <p>大多数文件在你看到的内容旁边还带着一块隐藏数据。手机照片可能记录你拍照时所在的精确坐标、时间和设备型号。Word 或 PDF 文件可能记录作者、公司、生成它的软件，以及创建和最后编辑的时间。视频或音频文件可能记录设备、软件和日期。拿到原文件的人用免费软件就能读出这些内容。</p>
+    <p>本页先列出文件里有什么，再生成一份不带这些数据的副本。原文件不会被改动。列出、清理和再次扫描都在你的浏览器里完成，所以文件不会离开你的设备。</p>
+    <p>照片的方向标记是特意保留的，这样照片不会转向。对于 HEIC 照片和 MP4 视频，清理库是在原位置清空元数据的字节，而不是重建文件，所以清理后的副本和原文件一样大。这是正常的：数据已经没了，只是空位还在。</p>
+    <p>结果表里的类别和字段名（比如 GPS、Author）由清理引擎直接给出，本页保留英文原样，不做翻译。</p>
+    <h2 id="not-h">它不做什么</h2>
+    <p>它不改变文件显示的内容。文档里的文字，照片里的人脸、招牌和地标都还在。隐藏数据只是文件泄露信息的一种途径，分享之前也要看看内容本身。</p>
+    <p>不支持旧版 Office 格式（.doc、.xls、.ppt）。请打开文件，另存为 .docx、.xlsx 或 .pptx，再清理新文件。不在支持列表里的格式在读取之前就会被拒绝。</p>
+    <p>一次处理一个文件，最大 200 MB，不解压压缩包。只有能读取的文件才会被清理：损坏的文件会报告出来，不会被修复。</p>
+    <p>清理后，页面会再扫描一次新文件，显示还剩下什么。有些值属于文件结构，删掉就会破坏文件；这些值会被列出来，而不是藏起来。列表很短只说明检查过，不保证文件一定安全。</p>
+</section>
+<section aria-labelledby="how-h">
+    <h2 id="how-h">它怎么工作</h2>
+    <p>一切都在这个标签页里运行。文件被读入内存，识别文件类型，由 WebAssembly 模块列出并删除元数据，结果再扫描一次后才提供下载。不上传文件，不保存任何东西，页面也不加载统计脚本。</p>
+    <p>清理引擎是 iAnonymous3000 的开源项目 <a href="https://github.com/iAnonymous3000/metadata-remover" rel="noopener">metadata-remover</a>，按 MIT 许可证使用。随构建一起发布的许可证全文在 <a href="/tools/assets/mr/LICENSE.txt">/tools/assets/mr/LICENSE.txt</a>。</p>
+</section>
+<section aria-labelledby="faq-h">
+    <h2 id="faq-h">常见问题</h2>
+    <h3>我的文件会被上传吗？</h3>
+    <p>不会。文件在本页里用 WebAssembly 读取、清理并再次扫描。没有上传，页面也不保存任何东西。</p>
+    <h3>支持哪些格式？</h3>
+    <p>JPEG、PNG、WebP、AVIF、GIF、HEIC、HEIF、TIFF、SVG、MP4、MOV、MP3、FLAC、WAV、OGG、PDF、DOCX、XLSX、PPTX、ODT、ODS、ODP 和 EPUB。不支持旧版 Office 文件（.doc、.xls、.ppt），请先另存为 .docx、.xlsx 或 .pptx。其他格式在读取之前就会被拒绝。</p>
+    <h3>为什么 HEIC 照片或视频清理后大小没变？</h3>
+    <p>对于 HEIC 和 MP4，清理库是在原位置清空元数据的字节，而不是重建整个文件，所以大小不变。数据已经没了，只是空位还在。这是正常的。</p>
+    <h3>内容会被改变吗？</h3>
+    <p>不会。只删除隐藏的元数据。文档里的文字、照片里的人脸和路牌都还在。照片的方向标记会保留，所以照片不会转向。</p>
+    <h3>为什么再次扫描还显示有东西？</h3>
+    <p>少数值是文件结构的一部分，删掉就会破坏文件。页面会在清理后把它们列出来，而不是藏起来。如果这些内容对你很重要，就不要分享这个文件。</p>
+    <h3>为什么结果里的类别和字段名是英文？</h3>
+    <p>它们由清理引擎直接给出，本页原样显示，不做翻译，以免译错字段的含义。</p>
+    <h3>用的是哪个库？</h3>
+    <p>iAnonymous3000 的开源项目 metadata-remover，按 MIT 许可证使用。许可证全文在 /tools/assets/mr/LICENSE.txt，源代码在 github.com/iAnonymous3000/metadata-remover。</p>
+</section>
+      </div>
+     </div>
+     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>你的数据如何处理</h2>
+       <div class="data-handling">
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>留在你的设备上</strong><p>留在本机：你的文件、读出的元数据和清理后的副本</p></div></div>
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>发送给他人</strong><p>无</p></div></div>
+       </div>
+       <p class="state-list"><span class="state-label">本地处理</span></p>
+       <a class="text-link" href="/principles/">查看每个工具的数据流 <span aria-hidden="true">→</span></a>
+      </section>
+      <figure class="editorial-figure"><img alt="文件里的作者、位置、时间和设备信息" height="360" src="/assets/illustrations/photo-metadata.svg" width="760"/></figure>
+      <section class="content-panel content-panel--soft">
+       <h2>需要别的检查？</h2>
+       <p>按用途和数据需要比较这些工具。</p>
+       <a class="text-link" href="/zh/tools/">浏览所有工具 <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat 首页" class="brand brand--footer" href="/zh/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        更实用的工具，更私密的互联网
+       </span>
+      </span>
+     </a>
+     <nav aria-label="页脚导航" class="footer-links">
+      <a href="/mission/">
+       使命
+      </a>
+      <a href="/principles/">
+       原则
+      </a>
+      <a href="/privacy/">
+       隐私
+      </a>
+      <a href="/principles/#labels">
+       状态标签
+      </a>
+      <a href="/sponsor/">
+       赞助与联盟披露
+      </a>
+      <a href="/contact/">
+       联系
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat。保留所有权利。
+     </p>
+     <p>
+      重视隐私，明确说明局限。
+     </p>
+    </div>
+   </div>
+  </footer>
+  <script type="module" src="/tools/assets/mr-app.js"></script>
+  <script src="/tools/assets/net-log.js" defer></script>
+ </body>
+</html>

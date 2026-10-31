@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>文本脱敏：在本机隐藏手机号、身份证号、邮箱和密钥</title>
+  <meta content="把聊天记录、简历或合同交给 AI 之前，在浏览器里把手机号、身份证号、银行卡号、邮箱和密钥换成占位符，用完再换回来。文本不会被上传。" name="description"/>
+  <link href="https://secureinchat.com/zh/tools/text-redactor/" rel="canonical"/>
+  <link href="https://secureinchat.com/tools/text-redactor/" hreflang="en" rel="alternate"/>
+  <link href="https://secureinchat.com/zh/tools/text-redactor/" hreflang="zh-CN" rel="alternate"/>
+  <link href="https://secureinchat.com/tools/text-redactor/" hreflang="x-default" rel="alternate"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "文本脱敏",
+      "url": "https://secureinchat.com/zh/tools/text-redactor/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "需要 JavaScript。",
+      "description": "把聊天记录、简历或合同交给 AI 之前，在浏览器里把手机号、身份证号、银行卡号、邮箱和密钥换成占位符，用完再换回来。文本不会被上传。",
+      "inLanguage": "zh-CN",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "dateModified": "2026-10-28"
+    },
+    {
+      "@type": "FAQPage",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "我的文本会被发到服务器吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不会。匹配在你的浏览器里完成。粘贴或脱敏文本时，页面不会发出网络请求。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么姓名和地址没有被隐藏？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "工具按固定格式匹配，比如手机号和身份证号。中文姓名和地址没有固定格式，自动识别误报太多，所以不做。请把要隐藏的姓名、公司名、地址写进“你自己的词”一栏。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "身份证号是怎么识别的？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "只识别 18 位的第二代居民身份证号：出生日期必须是真实存在的日期，最后一位校验码必须符合国家标准 GB 11643-1999。校验码不对的号码不会被替换，所以写错一位的号码可能会留在文本里。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "规则能找到所有手机号和银行卡号吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "不能。手机号只认 1 开头的 11 位中国大陆号码，可带 +86 前缀和空格或短横线；银行卡号要通过通用的 Luhn 校验。用全角数字、中间夹着别的字或者写成汉字的号码会被漏掉。发送前自己再看一遍。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "怎么把 AI 回复里的占位符换回真实内容？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "把 AI 的回复粘贴到“把真实内容换回来”一栏，页面会用本次会话里的对照表换回去。对照表只存在于当前标签页，刷新页面或点“清空”就没了。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+  <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat 首页" class="brand" href="/zh/">
+     <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+      </path>
+      <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+      </path>
+      <circle cx="34" cy="11" fill="#C6A15B" r="3">
+      </circle>
+     </svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       更实用的工具，更私密的互联网
+      </span>
+     </span>
+    </a>
+    <nav aria-label="主导航" class="desktop-navigation">
+     <a href="/zh/tools/">
+      隐私工具
+     </a>
+     <a href="/blog/">
+      使用指南
+     </a>
+     <a href="/zh/checkup/">
+      隐私体检
+     </a>
+     <a href="/messaging/">
+      加密通信
+     </a>
+     <a href="/mission/">
+      我们的使命
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/tools/" lang="en">
+      EN
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/zh/checkup/">
+      开始体检
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="打开导航菜单">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="移动端导航">
+      <a href="/zh/tools/">
+       隐私工具
+      </a>
+      <a href="/blog/">
+       使用指南
+      </a>
+      <a href="/zh/checkup/">
+       隐私体检
+      </a>
+      <a href="/messaging/">
+       加密通信
+      </a>
+      <a href="/mission/">
+       我们的使命
+      </a>
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑" class="breadcrumbs">
+      <a href="/zh/">首页</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/zh/tools/">工具</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">文本脱敏</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <span class="tool-detail-emblem"><svg aria-hidden="true" class="tool-detail-emblem-art" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+           <path d="M7 3h14l5 5v21H7Z">
+           </path>
+           <path d="M21 3v6h5M11 14h11M11 19h11M11 24h7">
+           </path>
+          </svg></span>
+      <div>
+       <h1 id="h1">文本脱敏</h1>
+       <p class="page-lead">把聊天记录、简历或合同片段交给 AI 之前，先把手机号、身份证号、银行卡号和邮箱换成占位符。全部在你的浏览器里完成。</p>
+       <ul class="state-list"><li><span class="state-label">本地处理</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout">
+     <div class="tool-main-column">
+      <section class="tool-workspace" aria-label="文本脱敏">
+       <div class="legacy-tool">
+
+    <div class="rd-grid">
+      <div><label for="rd-in">要脱敏的文本</label><textarea id="rd-in" class="rd-text" spellcheck="false" autocomplete="off" placeholder="在这里粘贴聊天记录、简历或日志"></textarea></div>
+      <div><label for="rd-out">脱敏后的文本</label><textarea id="rd-out" class="rd-text" readonly spellcheck="false"></textarea></div>
+    </div>
+    <div class="rd-terms">
+      <label for="rd-terms">你自己的词：姓名、地址和其他要隐藏的内容</label>
+      <textarea id="rd-terms" class="rd-text" spellcheck="false" autocomplete="off" placeholder="张伟，某某科技有限公司，朝阳区某某路 8 号"></textarea>
+      <p class="hint">每行一个，或用逗号、分号隔开。英文不区分大小写。姓名和地址不会被自动识别，请写在这里。</p>
+    </div>
+    <div class="rd-rules" role="group" aria-label="要隐藏的内容"><label class="check"><input id="rule-term" type="checkbox" checked> <span>你自己的词</span></label><label class="check"><input id="rule-cn_mobile" type="checkbox" checked> <span>手机号（中国大陆）</span></label><label class="check"><input id="rule-cn_id" type="checkbox" checked> <span>身份证号</span></label><label class="check"><input id="rule-card" type="checkbox" checked> <span>银行卡号</span></label><label class="check"><input id="rule-email" type="checkbox" checked> <span>邮箱地址</span></label><label class="check"><input id="rule-phone" type="checkbox" checked> <span>其他电话号码</span></label><label class="check"><input id="rule-ipv4" type="checkbox" checked> <span>IPv4 地址</span></label><label class="check"><input id="rule-ipv6" type="checkbox" checked> <span>IPv6 地址</span></label><label class="check"><input id="rule-mac" type="checkbox" checked> <span>MAC 地址</span></label><label class="check"><input id="rule-iban" type="checkbox" checked> <span>IBAN</span></label><label class="check"><input id="rule-apikey" type="checkbox" checked> <span>API 密钥和令牌</span></label><label class="check"><input id="rule-jwt" type="checkbox" checked> <span>JSON Web Token</span></label><label class="check"><input id="rule-url_cred" type="checkbox" checked> <span>网址里的密码</span></label><label class="check"><input id="rule-privkey" type="checkbox" checked> <span>私钥</span></label></div>
+    <div class="rd-actions"><button id="rd-copy" class="btn" type="button" disabled>复制结果</button><button id="rd-clear" class="btn btn--quiet" type="button">清空</button></div>
+    <div class="rd-restore" aria-labelledby="restore-h">
+      <h2 id="restore-h">把真实内容换回来</h2>
+      <div class="rd-grid">
+        <div><label for="rd-reply">粘贴 AI 的回复</label><textarea id="rd-reply" class="rd-text" spellcheck="false" autocomplete="off" placeholder="粘贴含有 [PHONE_1] 这类占位符的回复"></textarea></div>
+        <div><label for="rd-restored">换回真实内容后的回复</label><textarea id="rd-restored" class="rd-text" readonly spellcheck="false"></textarea></div>
+      </div>
+      <div class="rd-actions"><button id="rd-restore-copy" class="btn" type="button" disabled>复制还原后的回复</button></div>
+      <p id="rd-restore-status" class="summary" role="status" aria-live="polite"></p>
+      <p class="hint">占位符和真实内容的对照表只存在于这个标签页，刷新页面或点“清空”就会消失。不会发送，也不会保存。</p>
+    </div>
+    <p class="hint">你粘贴的内容不会被上传或保存。规则匹配会漏掉不常见的写法，发送前自己再看一遍。见 <a href="/privacy/" hreflang="en">本站如何处理数据（英文）</a>。</p>
+
+       </div>
+       <div class="legacy-tool"><section id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">结果</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">粘贴文本开始脱敏。</p>
+    </div>
+    <table class="results">
+      <caption class="sr">文本中被替换的内容</caption>
+      <thead><tr><th scope="col">检查</th><th scope="col">结果</th><th scope="col">状态</th></tr></thead>
+      <tbody id="rows">
+
+      </tbody>
+    </table>
+</section></div>
+       <div class="legacy-tool"><section class="netlog-section" aria-label="本页发出的网络请求">
+    <div id="netlog" class="netlog">
+      <details class="netlog-details">
+        <summary class="netlog-summary">本页发出的网络请求：<span class="netlog-count">0</span></summary>
+        <p class="netlog-note">本列表记录本页通过 fetch、XHR 和信标加载或发出的资源。比较一下粘贴文本之前和之后的列表：脱敏时这里不应出现新的请求。</p>
+        <div class="netlog-scroll">
+          <table class="netlog-table" aria-label="本页发出的网络请求">
+            <thead>
+              <tr>
+                <th scope="col">时间</th>
+                <th scope="col">类型</th>
+                <th scope="col">地址</th>
+                <th scope="col">大小</th>
+              </tr>
+            </thead>
+            <tbody class="netlog-rows"></tbody>
+          </table>
+        </div>
+        <p class="netlog-fallback" hidden>你的浏览器没有向页面公开请求计时信息。</p>
+        <p class="netlog-footer">本列表来自你浏览器的 Resource Timing API，显示本页通过 fetch、XHR 和信标加载或发出的资源。它看不到 WebSocket 或 WebRTC 流量、浏览器扩展，以及浏览器对页面隐藏的请求，所以这是证据，不是证明。更可靠的保证是页面的 Content-Security-Policy，你可以在浏览器的开发者工具（Network 标签，响应头）里读到，以及 <a href="https://github.com/Paul30028/secureinchat" rel="noopener">GitHub 上的源代码</a>。</p>
+      </details>
+    </div>
+</section></div>
+      </section>
+      <div class="info-content tool-prose">
+<section aria-labelledby="what-h">
+    <h2 id="what-h">它做什么</h2>
+    <p>粘贴文本后，工具把手机号、身份证号、银行卡号、邮箱、IP 和 MAC 地址、API 密钥、令牌、网址里的密码和私钥换成带标签的占位符，比如 <span class="mono">[PHONE_1]</span>、<span class="mono">[ID_NUMBER_1]</span>。同一个值总是换成同一个占位符，所以 AI 仍然能看懂“这两处是同一个人的电话”。AI 回复之后，可以在下方把占位符换回真实内容。</p>
+    <h2 id="rules-h">规则怎么判断</h2>
+    <ul>
+      <li>手机号（中国大陆）：1 开头、第二位是 3 到 9 的 11 位号码，可带 +86、0086 或 86 前缀，可用空格或短横线按 3-4-4 分开。前后紧挨数字或字母的不算。座机号（如 010-12345678）不会被当成手机号。</li>
+      <li>身份证号：18 位第二代居民身份证号，最后一位可以是 X。出生日期必须是真实日期，校验码按国家标准 GB 11643-1999 计算必须正确。15 位的旧身份证号不识别。</li>
+      <li>银行卡号：13 到 19 位、通过通用 Luhn 校验的数字。随手编的号码可能通不过校验而被留下。</li>
+    </ul>
+    <h2 id="not-h">它不做什么</h2>
+    <p>它只认格式，不懂意思。姓名、地址、公司名、用全角数字或汉字写的号码，以及其他不常见的写法都不会被找到。把你知道的姓名和地址写进“你自己的词”，它们会换成 [NAME_1]、[NAME_2]，工具不会自己去发现姓名。发送前一定自己再读一遍。</p>
+    <h2 id="how-h">你的文本如何处理</h2>
+    <p>文本只在本页里处理，不上传、不记录、不保存，页面也不加载统计脚本。你的浏览器或扩展仍可能保留你输入的内容，处理敏感材料时请用无痕窗口。相关工具：<a href="/zh/tools/photo-metadata-remover/">删除照片里的元数据</a>。</p>
+</section>
+<section aria-labelledby="faq-h">
+    <h2 id="faq-h">常见问题</h2>
+    <h3>我的文本会被发到服务器吗？</h3>
+    <p>不会。匹配在你的浏览器里完成。粘贴或脱敏文本时，页面不会发出网络请求。</p>
+    <h3>为什么姓名和地址没有被隐藏？</h3>
+    <p>工具按固定格式匹配，比如手机号和身份证号。中文姓名和地址没有固定格式，自动识别误报太多，所以不做。请把要隐藏的姓名、公司名、地址写进“你自己的词”一栏。</p>
+    <h3>身份证号是怎么识别的？</h3>
+    <p>只识别 18 位的第二代居民身份证号：出生日期必须是真实存在的日期，最后一位校验码必须符合国家标准 GB 11643-1999。校验码不对的号码不会被替换，所以写错一位的号码可能会留在文本里。</p>
+    <h3>规则能找到所有手机号和银行卡号吗？</h3>
+    <p>不能。手机号只认 1 开头的 11 位中国大陆号码，可带 +86 前缀和空格或短横线；银行卡号要通过通用的 Luhn 校验。用全角数字、中间夹着别的字或者写成汉字的号码会被漏掉。发送前自己再看一遍。</p>
+    <h3>怎么把 AI 回复里的占位符换回真实内容？</h3>
+    <p>把 AI 的回复粘贴到“把真实内容换回来”一栏，页面会用本次会话里的对照表换回去。对照表只存在于当前标签页，刷新页面或点“清空”就没了。</p>
+</section>
+      </div>
+     </div>
+     <aside class="tool-sidebar">
+      <section class="content-panel">
+       <h2>你的数据如何处理</h2>
+       <div class="data-handling">
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>留在你的设备上</strong><p>留在本机：你粘贴的文本和占位符对照表</p></div></div>
+        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>发送给他人</strong><p>无</p></div></div>
+       </div>
+       <p class="state-list"><span class="state-label">本地处理</span></p>
+       <a class="text-link" href="/principles/">查看每个工具的数据流 <span aria-hidden="true">→</span></a>
+      </section>
+      <figure class="editorial-figure"><img alt="分享前被遮住敏感内容的文本" height="360" src="/assets/illustrations/text-redaction.svg" width="760"/></figure>
+      <section class="content-panel content-panel--soft">
+       <h2>需要别的检查？</h2>
+       <p>按用途和数据需要比较这些工具。</p>
+       <a class="text-link" href="/zh/tools/">浏览所有工具 <span aria-hidden="true">→</span></a>
+      </section>
+     </aside>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat 首页" class="brand brand--footer" href="/zh/">
+      <svg aria-hidden="true" class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+       <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3">
+       </path>
+       <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3">
+       </path>
+       <circle cx="34" cy="11" fill="#E5C989" r="3">
+       </circle>
+      </svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        更实用的工具，更私密的互联网
+       </span>
+      </span>
+     </a>
+     <nav aria-label="页脚导航" class="footer-links">
+      <a href="/mission/">
+       使命
+      </a>
+      <a href="/principles/">
+       原则
+      </a>
+      <a href="/privacy/">
+       隐私
+      </a>
+      <a href="/principles/#labels">
+       状态标签
+      </a>
+      <a href="/sponsor/">
+       赞助与联盟披露
+      </a>
+      <a href="/contact/">
+       联系
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat。保留所有权利。
+     </p>
+     <p>
+      重视隐私，明确说明局限。
+     </p>
+    </div>
+   </div>
+  </footer>
+  <script src="/tools/assets/redact.js" defer></script>
+  <script src="/tools/assets/redact-app.js" defer></script>
+  <script src="/tools/assets/net-log.js" defer></script>
+ </body>
+</html>
