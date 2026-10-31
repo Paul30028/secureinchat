@@ -1,0 +1,1021 @@
+<<<FULL
+先说明两处前提，避免合并时踩坑：
+
+backup.ts 复用 @secureinchat/crypto-core 的 encryptAead / decryptAead / importAeadKeyRaw（来自 aead.ts），并给固定 AAD "sic-backup:v1" 绑定上下文。前提是 crypto-core/src/index.ts 已经 export * from "./aead"；如果没导出，需要在 crypto-core 的 index 里补一行 export * from "./aead";（不算加依赖）。
+
+PBKDF2 派生用 crypto.subtle 而不是 keyDerivation.ts 的 HKDF——按你的要求，HKDF 不能用在密码上。iterations 作为 encryptBackup 的可选参数，默认 600000；解密从文件里读 iter，所以测试用小迭代加密后解密也快。
+
+仓库内路径：packages/chat-core/src/backup.ts
+
+ts
+Copy
+Download
+import {
+  decryptAead,
+  encryptAead,
+  importAeadKeyRaw,
+} from "@secureinchat/crypto-core";
+import { bytesToBase64Url, base64UrlToBytes } from "./fileTransfer";
+import { trimToLimit, type StoredMessage } from "./messageStore";
+import { upsertGroup, type JoinedGroup } from "./groupStore";
+
+/**
+ * 加密备份到文件 / 从文件恢复。
+ *
+ * 为什么需要：中继不存消息（盲中继），历史只在本机；换手机或清数据就全没了，
+ * 群也要重新要邀请码。备份把「已加入的群 + 消息历史 + 昵称」打成一个加密文件。
+ *
+ * 刻意不包含：
+ * - 设备身份密钥：在系统 Keystore 里，不可导出。恢复后新设备会重新注册。
+ * - 管理员私钥：已有「管理员恢复码」这条路。备份里放私钥会扩大泄露面。
+ * - 阅后即焚消息：已过期的和仍在倒计时的都不备份——对方期望它会消失，
+ *   备份里带过去会绕过这个承诺。
+ *
+ * 加密：PBKDF2-SHA256 从用户输入的备份密码派生 256 位 AES-GCM 密钥，
+ * 16 字节随机盐、12 字节随机 IV。文件格式是 JSON，密文里是 UTF-8 JSON。
+ */
+
+const BACKUP_FORMAT = "sic-backup";
+const BACKUP_VERSION = 1;
+/** 默认 PBKDF2 迭代次数。测试可以调小，实际使用不要改。 */
+const DEFAULT_KDF_ITERATIONS = 600_000;
+/** 防御性上限：防止被篡改的文件写一个天文数字让恢复卡死。 */
+const MAX_KDF_ITERATIONS = 10_000_000;
+const SALT_BYTES = 16;
+/** 备份密码最短长度，界面也用这个常量。 */
+export const MIN_BACKUP_PASSWORD_LENGTH = 10;
+/** 固定 AAD：绑定「这段密文属于备份文件 v1」，防止被挪用到别的上下文。 */
+const BACKUP_AAD = new TextEncoder().encode("sic-backup:v1");
+
+export class BackupError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BackupError";
+  }
+}
+
+/** 解密后的明文结构。 */
+export interface BackupPayload {
+  /** 生成备份的时刻 */
+  createdAtMs: number;
+  /** 备份时的昵称。老备份没有这个字段，恢复时不动本机昵称。 */
+  nickname?: string | undefined;
+  groups: JoinedGroup[];
+  messagesByGroup: Record<string, StoredMessage[]>;
+}
+
+/** 磁盘上的文件结构（外层，未加密的元数据 + 密文）。 */
+interface BackupFile {
+  format: typeof BACKUP_FORMAT;
+  v: typeof BACKUP_VERSION;
+  kdf: {
+    name: "PBKDF2";
+    hash: "SHA-256";
+    iter: number;
+    salt: string;
+  };
+  iv: string;
+  ct: string;
+}
+
+/**
+ * 组装要备份的明文。
+ *
+ * 消息过滤规则：任何带 expiresAtMs 的消息都不进备份。
+ * - 已过期（expiresAtMs <= nowMs）：对方期望它已经消失，备份里不该复活。
+ * - 计时中（expiresAtMs > nowMs）：对方期望它到点消失，备份里带过去会绕过承诺。
+ * 所以不区分两者，一律排除；partitionExpired 只是用来把「已过期」和
+ * 「仍在倒计时」分开表达，最终都进不了备份。
+ */
+export function buildBackupPayload(
+  groups: JoinedGroup[],
+  messagesByGroup: Record<string, StoredMessage[]>,
+  nickname: string | undefined,
+  nowMs: number
+): BackupPayload {
+  const filtered: Record<string, StoredMessage[]> = {};
+  for (const [groupId, messages] of Object.entries(messagesByGroup)) {
+    filtered[groupId] = messages.filter((m) => m.expiresAtMs === undefined);
+  }
+  return {
+    createdAtMs: nowMs,
+    ...(nickname !== undefined ? { nickname } : {}),
+    groups,
+    messagesByGroup: filtered,
+  };
+}
+
+async function deriveKeyFromPassword(
+  password: string,
+  salt: Uint8Array,
+  iterations: number
+): Promise<CryptoKey> {
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password) as BufferSource,
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: salt as BufferSource, iterations, hash: "SHA-256" },
+    keyMaterial,
+    256
+  );
+  return importAeadKeyRaw(new Uint8Array(bits));
+}
+
+/**
+ * 加密成文件文本。返回 JSON 字符串，调用方自己决定怎么下载/存盘。
+ * @param iterations 仅供测试调小；默认 600000，实际使用不要改。
+ */
+export async function encryptBackup(
+  payload: BackupPayload,
+  password: string,
+  iterations: number = DEFAULT_KDF_ITERATIONS
+): Promise<string> {
+  if (password.length < MIN_BACKUP_PASSWORD_LENGTH) {
+    throw new BackupError(`备份密码至少 ${MIN_BACKUP_PASSWORD_LENGTH} 个字符`);
+  }
+  if (!Number.isInteger(iterations) || iterations <= 0 || iterations > MAX_KDF_ITERATIONS) {
+    throw new BackupError("PBKDF2 迭代次数必须是合理的正整数");
+  }
+
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
+  const key = await deriveKeyFromPassword(password, salt, iterations);
+  const plaintext = new TextEncoder().encode(JSON.stringify(payload));
+
+  let iv: Uint8Array;
+  let ciphertext: Uint8Array;
+  try {
+    const out = await encryptAead(key, plaintext, BACKUP_AAD);
+    iv = out.iv;
+    ciphertext = out.ciphertext;
+  } catch (err) {
+    throw new BackupError(`加密失败：${err instanceof Error ? err.message : "请重试"}`);
+  }
+
+  const file: BackupFile = {
+    format: BACKUP_FORMAT,
+    v: BACKUP_VERSION,
+    kdf: {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      iter: iterations,
+      salt: bytesToBase64Url(salt),
+    },
+    iv: bytesToBase64Url(iv),
+    ct: bytesToBase64Url(ciphertext),
+  };
+  return JSON.stringify(file);
+}
+
+/**
+ * 解密备份文件文本。
+ *
+ * 错误分两类：
+ * - 格式不对（不是 JSON、format/v 不匹配、kdf 字段缺失或非法）：抛具体的
+ *   BackupError，方便排查「这不是本应用的备份文件」。
+ * - 解密失败（密码错或文件被改）：统一抛「密码不对，或文件已损坏」，
+ *   不区分原因——AES-GCM 认证失败时本来也区分不了。
+ */
+export async function decryptBackup(text: string, password: string): Promise<BackupPayload> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new BackupError("备份文件不是合法 JSON");
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new BackupError("备份文件格式不对");
+  }
+  const file = parsed as Partial<BackupFile>;
+  if (file.format !== BACKUP_FORMAT || file.v !== BACKUP_VERSION) {
+    throw new BackupError("备份文件格式不对");
+  }
+  const kdf = file.kdf;
+  if (
+    typeof kdf !== "object" ||
+    kdf === null ||
+    kdf.name !== "PBKDF2" ||
+    kdf.hash !== "SHA-256" ||
+    typeof kdf.iter !== "number" ||
+    !Number.isInteger(kdf.iter) ||
+    kdf.iter <= 0 ||
+    kdf.iter > MAX_KDF_ITERATIONS ||
+    typeof kdf.salt !== "string"
+  ) {
+    throw new BackupError("备份文件的密钥派生参数不对");
+  }
+  if (typeof file.iv !== "string" || typeof file.ct !== "string") {
+    throw new BackupError("备份文件内容不完整");
+  }
+
+  let salt: Uint8Array;
+  let iv: Uint8Array;
+  let ciphertext: Uint8Array;
+  try {
+    salt = base64UrlToBytes(kdf.salt);
+    iv = base64UrlToBytes(file.iv);
+    ciphertext = base64UrlToBytes(file.ct);
+  } catch {
+    throw new BackupError("备份文件内容不是合法的 base64url");
+  }
+  if (salt.byteLength === 0 || iv.byteLength === 0 || ciphertext.byteLength === 0) {
+    throw new BackupError("备份文件内容不完整");
+  }
+
+  let plaintext: Uint8Array;
+  try {
+    const key = await deriveKeyFromPassword(password, salt, kdf.iter);
+    plaintext = await decryptAead(key, { iv, ciphertext }, BACKUP_AAD);
+  } catch {
+    // 不区分「密码错」和「文件被改」——统一提示，避免给攻击者侧信道信息
+    throw new BackupError("密码不对，或文件已损坏");
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(new TextDecoder().decode(plaintext));
+  } catch {
+    throw new BackupError("备份内容不是合法 JSON");
+  }
+  if (!isBackupPayload(payload)) {
+    throw new BackupError("备份内容格式不对");
+  }
+  return payload;
+}
+
+function isBackupPayload(v: unknown): v is BackupPayload {
+  if (typeof v !== "object" || v === null) return false;
+  const p = v as Partial<BackupPayload>;
+  if (typeof p.createdAtMs !== "number" || !Number.isFinite(p.createdAtMs)) return false;
+  if (!Array.isArray(p.groups)) return false;
+  if (typeof p.messagesByGroup !== "object" || p.messagesByGroup === null) return false;
+  return true;
+}
+
+export interface MergeRestoreResult {
+  groups: JoinedGroup[];
+  messagesByGroup: Record<string, StoredMessage[]>;
+}
+
+/**
+ * 把备份合并到本机现有数据。
+ *
+ * - 群：按 groupId upsertGroup。本机已有的群保留 joinedAtMs / lastReadAtMs，
+ *   群名、密钥材料、epoch、disappearAfterMs 等按备份里的更新（和重新加入邀请
+ *   的语义一致）；备份里有、本机没有的群直接加进来。
+ * - 消息：按 id 去重。同一个 id 保留本机已有的那条——本机的可能是最近一次
+ *   保存，媒体内容更完整；备份只补进本机没有的消息。合并后按 sentAtMs 排序，
+ *   再用 trimToLimit 截断到上限。
+ */
+export function mergeRestore(
+  existingGroups: JoinedGroup[],
+  existingMessagesByGroup: Record<string, StoredMessage[]>,
+  payload: BackupPayload
+): MergeRestoreResult {
+  let groups = existingGroups;
+  for (const g of payload.groups) {
+    groups = upsertGroup(groups, g);
+  }
+
+  const messagesByGroup: Record<string, StoredMessage[]> = { ...existingMessagesByGroup };
+  for (const [groupId, incoming] of Object.entries(payload.messagesByGroup)) {
+    const existing = messagesByGroup[groupId] ?? [];
+    const byId = new Map<string, StoredMessage>();
+    for (const m of existing) byId.set(m.id, m);
+    for (const m of incoming) {
+      if (!byId.has(m.id)) byId.set(m.id, m);
+    }
+    const merged = [...byId.values()].sort((a, b) => a.sentAtMs - b.sentAtMs);
+    messagesByGroup[groupId] = trimToLimit(merged);
+  }
+
+  return { groups, messagesByGroup };
+}
+
+仓库内路径：packages/chat-core/src/index.ts
+
+ts
+Copy
+Download
+export * from "./dedup";
+export * from "./ordering";
+export * from "./offlineOutbox";
+export * from "./groupJoin";
+export * from "./relayClient";
+export * from "./messageEnvelope";
+export * from "./fileTransfer";
+export * from "./messageStore";
+export * from "./groupStore";
+export * from "./messageActions";
+export * from "./announcementCategories";
+export * from "./sendProgress";
+export * from "./keyRotation";
+export * from "./connectionStats";
+export * from "./knownDevices";
+export * from "./mentions";
+export * from "./disappearing";
+export * from "./backup";
+
+仓库内路径：packages/chat-core/test/backup.test.ts
+
+ts
+Copy
+Download
+import { describe, expect, it } from "vitest";
+import {
+  buildBackupPayload,
+  encryptBackup,
+  decryptBackup,
+  mergeRestore,
+  BackupError,
+  MIN_BACKUP_PASSWORD_LENGTH,
+  type BackupPayload,
+} from "../src/backup";
+import { base64UrlToBytes, bytesToBase64Url } from "../src/fileTransfer";
+import type { JoinedGroup } from "../src/groupStore";
+import type { StoredMessage } from "../src/messageStore";
+
+/** 测试里把 PBKDF2 迭代调小：600000 次派生每次要几百毫秒，整套测试会太慢。 */
+const TEST_ITER = 1000;
+const TEST_PASSWORD = "0123456789"; // 正好 10 位，满足最短长度
+
+function makeGroup(id: string): JoinedGroup {
+  return {
+    groupId: id,
+    groupName: `群 ${id}`,
+    keyMaterialB64Url: `key-${id}`,
+    epoch: 0,
+    joinedAtMs: 1_000,
+    lastReadAtMs: 2_000,
+  };
+}
+
+function makeMessage(id: string, sentAtMs: number, text?: string): StoredMessage {
+  return {
+    id,
+    isOwn: false,
+    sentAtMs,
+    text: text ?? `消息 ${id}`,
+  };
+}
+
+describe("buildBackupPayload", () => {
+  it("排除已过期和仍在倒计时的消息", () => {
+    const now = 10_000;
+    const messages: StoredMessage[] = [
+      makeMessage("normal", 100),
+      { ...makeMessage("expiring", 200), expiresAtMs: now + 5_000 }, // 计时中
+      { ...makeMessage("expired", 300), expiresAtMs: now - 1_000 }, // 已过期
+    ];
+    const payload = buildBackupPayload([], { g1: messages }, undefined, now);
+    expect(payload.messagesByGroup["g1"]?.map((m) => m.id)).toEqual(["normal"]);
+  });
+
+  it("不带昵称时 payload 里没有 nickname 字段", () => {
+    const payload = buildBackupPayload([], {}, undefined, 0);
+    expect(payload).not.toHaveProperty("nickname");
+  });
+
+  it("带昵称时原样保留", () => {
+    const payload = buildBackupPayload([], {}, "测试昵称", 0);
+    expect(payload.nickname).toBe("测试昵称");
+  });
+});
+
+describe("encryptBackup / decryptBackup", () => {
+  it("往返一致", async () => {
+    const payload: BackupPayload = {
+      createdAtMs: 12_345,
+      nickname: "测试",
+      groups: [makeGroup("g1")],
+      messagesByGroup: {
+        g1: [makeMessage("a", 100), makeMessage("b", 200)],
+      },
+    };
+    const text = await encryptBackup(payload, TEST_PASSWORD, TEST_ITER);
+    const back = await decryptBackup(text, TEST_PASSWORD);
+    expect(back).toEqual(payload);
+  });
+
+  it("密码太短时拒绝加密", async () => {
+    const payload: BackupPayload = { createdAtMs: 0, groups: [], messagesByGroup: {} };
+    const short = "x".repeat(MIN_BACKUP_PASSWORD_LENGTH - 1);
+    await expect(encryptBackup(payload, short, TEST_ITER)).rejects.toBeInstanceOf(BackupError);
+  });
+
+  it("错密码解密失败，抛 BackupError", async () => {
+    const payload: BackupPayload = { createdAtMs: 0, groups: [], messagesByGroup: {} };
+    const text = await encryptBackup(payload, TEST_PASSWORD, TEST_ITER);
+    await expect(decryptBackup(text, "wrong-password")).rejects.toBeInstanceOf(BackupError);
+    await expect(decryptBackup(text, "wrong-password")).rejects.toThrow(
+      "密码不对，或文件已损坏"
+    );
+  });
+
+  it("改密文一个字节就解密失败", async () => {
+    const payload: BackupPayload = { createdAtMs: 0, groups: [], messagesByGroup: {} };
+    const text = await encryptBackup(payload, TEST_PASSWORD, TEST_ITER);
+    const parsed = JSON.parse(text) as { ct: string };
+    const bytes = base64UrlToBytes(parsed.ct);
+    bytes[0] = bytes[0]! ^ 0xff;
+    const tampered = JSON.stringify({ ...parsed, ct: bytesToBase64Url(bytes) });
+    await expect(decryptBackup(tampered, TEST_PASSWORD)).rejects.toBeInstanceOf(BackupError);
+  });
+
+  it("格式字段不对时报错", async () => {
+    await expect(decryptBackup("not json at all", TEST_PASSWORD)).rejects.toBeInstanceOf(BackupError);
+    await expect(
+      decryptBackup(JSON.stringify({ format: "wrong", v: 1 }), TEST_PASSWORD)
+    ).rejects.toBeInstanceOf(BackupError);
+    await expect(
+      decryptBackup(JSON.stringify({ format: "sic-backup", v: 999 }), TEST_PASSWORD)
+    ).rejects.toBeInstanceOf(BackupError);
+  });
+
+  it("kdf 字段缺失或非法时报错", async () => {
+    const broken = JSON.stringify({
+      format: "sic-backup",
+      v: 1,
+      iv: "AAAA",
+      ct: "AAAA",
+    });
+    await expect(decryptBackup(broken, TEST_PASSWORD)).rejects.toBeInstanceOf(BackupError);
+
+    const badIter = JSON.stringify({
+      format: "sic-backup",
+      v: 1,
+      kdf: { name: "PBKDF2", hash: "SHA-256", iter: -1, salt: "AAAA" },
+      iv: "AAAA",
+      ct: "AAAA",
+    });
+    await expect(decryptBackup(badIter, TEST_PASSWORD)).rejects.toBeInstanceOf(BackupError);
+  });
+});
+
+describe("mergeRestore", () => {
+  it("合并群：本机已有的 upsert，备份里多出来的加进来", () => {
+    const existing: JoinedGroup[] = [makeGroup("g1")];
+    const payload: BackupPayload = {
+      createdAtMs: 0,
+      groups: [makeGroup("g1"), makeGroup("g2")],
+      messagesByGroup: {},
+    };
+    const result = mergeRestore(existing, {}, payload);
+    expect(result.groups.map((g) => g.groupId).sort()).toEqual(["g1", "g2"]);
+  });
+
+  it("消息按 id 去重：同 id 保留本机那条，备份补进新增的，按 sentAtMs 排序", () => {
+    const existingGroups: JoinedGroup[] = [makeGroup("g1")];
+    const existingMsgs: Record<string, StoredMessage[]> = {
+      g1: [makeMessage("a", 100), makeMessage("b", 300)],
+    };
+    const payload: BackupPayload = {
+      createdAtMs: 0,
+      groups: [makeGroup("g1")],
+      messagesByGroup: {
+        g1: [makeMessage("a", 100, "备份里的 a"), makeMessage("c", 200)],
+      },
+    };
+    const result = mergeRestore(existingGroups, existingMsgs, payload);
+    const g1 = result.messagesByGroup["g1"];
+    expect(g1?.map((m) => m.id)).toEqual(["a", "c", "b"]);
+    // 同 id 保留本机那条
+    expect(g1?.[0]?.text).toBe("消息 a");
+  });
+
+  it("备份里有、本机没有的群，消息也一起合并", () => {
+    const payload: BackupPayload = {
+      createdAtMs: 0,
+      groups: [makeGroup("g2")],
+      messagesByGroup: {
+        g2: [makeMessage("d", 50)],
+      },
+    };
+    const result = mergeRestore([], {}, payload);
+    expect(result.groups.map((g) => g.groupId)).toEqual(["g2"]);
+    expect(result.messagesByGroup["g2"]?.map((m) => m.id)).toEqual(["d"]);
+  });
+
+  it("超过 300 条被截断，保留最新的 300 条", () => {
+    const many: StoredMessage[] = Array.from({ length: 350 }, (_, i) => makeMessage(`m${i}`, i));
+    const payload: BackupPayload = {
+      createdAtMs: 0,
+      groups: [],
+      messagesByGroup: { g1: many },
+    };
+    const result = mergeRestore([], {}, payload);
+    const g1 = result.messagesByGroup["g1"];
+    expect(g1).toHaveLength(300);
+    expect(g1?.[0]?.id).toBe("m50");
+    expect(g1?.[299]?.id).toBe("m349");
+  });
+});
+
+两点如实说明：
+
+测试会真实跑 PBKDF2：encryptBackup(payload, pw, 1000) 和 decryptBackup 都走真实 crypto.subtle，每个用例约几十毫秒。整套 backup.test.ts 应该在 1 秒内。如果 CI 环境 Node 的 WebCrypto 缺 subtle（Node 18 以下是），需要把 vitest 的 environment 设为 node 并确认 Node ≥ 18；现有 appLock.test.ts 已经在用 crypto.subtle，所以环境本身没问题。
+
+buildBackupPayload 的昵称参数是 string | undefined，不是可选：调用方必须显式传 undefined 或值。这样在 exactOptionalPropertyTypes 下不会把 undefined 误塞进 payload。如果你希望签名是 nickname?: string，告诉我，我改成可选参数。
+
+下一轮给 android-client：BackupScreen.tsx、MessageListScreen 入口、App.tsx 的锚点替换、以及 BackupScreen 测试。
+FULL>>>
+<<<CODE 0
+import {
+  decryptAead,
+  encryptAead,
+  importAeadKeyRaw,
+} from "@secureinchat/crypto-core";
+import { bytesToBase64Url, base64UrlToBytes } from "./fileTransfer";
+import { trimToLimit, type StoredMessage } from "./messageStore";
+import { upsertGroup, type JoinedGroup } from "./groupStore";
+
+/**
+ * 加密备份到文件 / 从文件恢复。
+ *
+ * 为什么需要：中继不存消息（盲中继），历史只在本机；换手机或清数据就全没了，
+ * 群也要重新要邀请码。备份把「已加入的群 + 消息历史 + 昵称」打成一个加密文件。
+ *
+ * 刻意不包含：
+ * - 设备身份密钥：在系统 Keystore 里，不可导出。恢复后新设备会重新注册。
+ * - 管理员私钥：已有「管理员恢复码」这条路。备份里放私钥会扩大泄露面。
+ * - 阅后即焚消息：已过期的和仍在倒计时的都不备份——对方期望它会消失，
+ *   备份里带过去会绕过这个承诺。
+ *
+ * 加密：PBKDF2-SHA256 从用户输入的备份密码派生 256 位 AES-GCM 密钥，
+ * 16 字节随机盐、12 字节随机 IV。文件格式是 JSON，密文里是 UTF-8 JSON。
+ */
+
+const BACKUP_FORMAT = "sic-backup";
+const BACKUP_VERSION = 1;
+/** 默认 PBKDF2 迭代次数。测试可以调小，实际使用不要改。 */
+const DEFAULT_KDF_ITERATIONS = 600_000;
+/** 防御性上限：防止被篡改的文件写一个天文数字让恢复卡死。 */
+const MAX_KDF_ITERATIONS = 10_000_000;
+const SALT_BYTES = 16;
+/** 备份密码最短长度，界面也用这个常量。 */
+export const MIN_BACKUP_PASSWORD_LENGTH = 10;
+/** 固定 AAD：绑定「这段密文属于备份文件 v1」，防止被挪用到别的上下文。 */
+const BACKUP_AAD = new TextEncoder().encode("sic-backup:v1");
+
+export class BackupError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BackupError";
+  }
+}
+
+/** 解密后的明文结构。 */
+export interface BackupPayload {
+  /** 生成备份的时刻 */
+  createdAtMs: number;
+  /** 备份时的昵称。老备份没有这个字段，恢复时不动本机昵称。 */
+  nickname?: string | undefined;
+  groups: JoinedGroup[];
+  messagesByGroup: Record<string, StoredMessage[]>;
+}
+
+/** 磁盘上的文件结构（外层，未加密的元数据 + 密文）。 */
+interface BackupFile {
+  format: typeof BACKUP_FORMAT;
+  v: typeof BACKUP_VERSION;
+  kdf: {
+    name: "PBKDF2";
+    hash: "SHA-256";
+    iter: number;
+    salt: string;
+  };
+  iv: string;
+  ct: string;
+}
+
+/**
+ * 组装要备份的明文。
+ *
+ * 消息过滤规则：任何带 expiresAtMs 的消息都不进备份。
+ * - 已过期（expiresAtMs <= nowMs）：对方期望它已经消失，备份里不该复活。
+ * - 计时中（expiresAtMs > nowMs）：对方期望它到点消失，备份里带过去会绕过承诺。
+ * 所以不区分两者，一律排除；partitionExpired 只是用来把「已过期」和
+ * 「仍在倒计时」分开表达，最终都进不了备份。
+ */
+export function buildBackupPayload(
+  groups: JoinedGroup[],
+  messagesByGroup: Record<string, StoredMessage[]>,
+  nickname: string | undefined,
+  nowMs: number
+): BackupPayload {
+  const filtered: Record<string, StoredMessage[]> = {};
+  for (const [groupId, messages] of Object.entries(messagesByGroup)) {
+    filtered[groupId] = messages.filter((m) => m.expiresAtMs === undefined);
+  }
+  return {
+    createdAtMs: nowMs,
+    ...(nickname !== undefined ? { nickname } : {}),
+    groups,
+    messagesByGroup: filtered,
+  };
+}
+
+async function deriveKeyFromPassword(
+  password: string,
+  salt: Uint8Array,
+  iterations: number
+): Promise<CryptoKey> {
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password) as BufferSource,
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: salt as BufferSource, iterations, hash: "SHA-256" },
+    keyMaterial,
+    256
+  );
+  return importAeadKeyRaw(new Uint8Array(bits));
+}
+
+/**
+ * 加密成文件文本。返回 JSON 字符串，调用方自己决定怎么下载/存盘。
+ * @param iterations 仅供测试调小；默认 600000，实际使用不要改。
+ */
+export async function encryptBackup(
+  payload: BackupPayload,
+  password: string,
+  iterations: number = DEFAULT_KDF_ITERATIONS
+): Promise<string> {
+  if (password.length < MIN_BACKUP_PASSWORD_LENGTH) {
+    throw new BackupError(`备份密码至少 ${MIN_BACKUP_PASSWORD_LENGTH} 个字符`);
+  }
+  if (!Number.isInteger(iterations) || iterations <= 0 || iterations > MAX_KDF_ITERATIONS) {
+    throw new BackupError("PBKDF2 迭代次数必须是合理的正整数");
+  }
+
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
+  const key = await deriveKeyFromPassword(password, salt, iterations);
+  const plaintext = new TextEncoder().encode(JSON.stringify(payload));
+
+  let iv: Uint8Array;
+  let ciphertext: Uint8Array;
+  try {
+    const out = await encryptAead(key, plaintext, BACKUP_AAD);
+    iv = out.iv;
+    ciphertext = out.ciphertext;
+  } catch (err) {
+    throw new BackupError(`加密失败：${err instanceof Error ? err.message : "请重试"}`);
+  }
+
+  const file: BackupFile = {
+    format: BACKUP_FORMAT,
+    v: BACKUP_VERSION,
+    kdf: {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      iter: iterations,
+      salt: bytesToBase64Url(salt),
+    },
+    iv: bytesToBase64Url(iv),
+    ct: bytesToBase64Url(ciphertext),
+  };
+  return JSON.stringify(file);
+}
+
+/**
+ * 解密备份文件文本。
+ *
+ * 错误分两类：
+ * - 格式不对（不是 JSON、format/v 不匹配、kdf 字段缺失或非法）：抛具体的
+ *   BackupError，方便排查「这不是本应用的备份文件」。
+ * - 解密失败（密码错或文件被改）：统一抛「密码不对，或文件已损坏」，
+ *   不区分原因——AES-GCM 认证失败时本来也区分不了。
+ */
+export async function decryptBackup(text: string, password: string): Promise<BackupPayload> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new BackupError("备份文件不是合法 JSON");
+  }
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new BackupError("备份文件格式不对");
+  }
+  const file = parsed as Partial<BackupFile>;
+  if (file.format !== BACKUP_FORMAT || file.v !== BACKUP_VERSION) {
+    throw new BackupError("备份文件格式不对");
+  }
+  const kdf = file.kdf;
+  if (
+    typeof kdf !== "object" ||
+    kdf === null ||
+    kdf.name !== "PBKDF2" ||
+    kdf.hash !== "SHA-256" ||
+    typeof kdf.iter !== "number" ||
+    !Number.isInteger(kdf.iter) ||
+    kdf.iter <= 0 ||
+    kdf.iter > MAX_KDF_ITERATIONS ||
+    typeof kdf.salt !== "string"
+  ) {
+    throw new BackupError("备份文件的密钥派生参数不对");
+  }
+  if (typeof file.iv !== "string" || typeof file.ct !== "string") {
+    throw new BackupError("备份文件内容不完整");
+  }
+
+  let salt: Uint8Array;
+  let iv: Uint8Array;
+  let ciphertext: Uint8Array;
+  try {
+    salt = base64UrlToBytes(kdf.salt);
+    iv = base64UrlToBytes(file.iv);
+    ciphertext = base64UrlToBytes(file.ct);
+  } catch {
+    throw new BackupError("备份文件内容不是合法的 base64url");
+  }
+  if (salt.byteLength === 0 || iv.byteLength === 0 || ciphertext.byteLength === 0) {
+    throw new BackupError("备份文件内容不完整");
+  }
+
+  let plaintext: Uint8Array;
+  try {
+    const key = await deriveKeyFromPassword(password, salt, kdf.iter);
+    plaintext = await decryptAead(key, { iv, ciphertext }, BACKUP_AAD);
+  } catch {
+    // 不区分「密码错」和「文件被改」——统一提示，避免给攻击者侧信道信息
+    throw new BackupError("密码不对，或文件已损坏");
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(new TextDecoder().decode(plaintext));
+  } catch {
+    throw new BackupError("备份内容不是合法 JSON");
+  }
+  if (!isBackupPayload(payload)) {
+    throw new BackupError("备份内容格式不对");
+  }
+  return payload;
+}
+
+function isBackupPayload(v: unknown): v is BackupPayload {
+  if (typeof v !== "object" || v === null) return false;
+  const p = v as Partial<BackupPayload>;
+  if (typeof p.createdAtMs !== "number" || !Number.isFinite(p.createdAtMs)) return false;
+  if (!Array.isArray(p.groups)) return false;
+  if (typeof p.messagesByGroup !== "object" || p.messagesByGroup === null) return false;
+  return true;
+}
+
+export interface MergeRestoreResult {
+  groups: JoinedGroup[];
+  messagesByGroup: Record<string, StoredMessage[]>;
+}
+
+/**
+ * 把备份合并到本机现有数据。
+ *
+ * - 群：按 groupId upsertGroup。本机已有的群保留 joinedAtMs / lastReadAtMs，
+ *   群名、密钥材料、epoch、disappearAfterMs 等按备份里的更新（和重新加入邀请
+ *   的语义一致）；备份里有、本机没有的群直接加进来。
+ * - 消息：按 id 去重。同一个 id 保留本机已有的那条——本机的可能是最近一次
+ *   保存，媒体内容更完整；备份只补进本机没有的消息。合并后按 sentAtMs 排序，
+ *   再用 trimToLimit 截断到上限。
+ */
+export function mergeRestore(
+  existingGroups: JoinedGroup[],
+  existingMessagesByGroup: Record<string, StoredMessage[]>,
+  payload: BackupPayload
+): MergeRestoreResult {
+  let groups = existingGroups;
+  for (const g of payload.groups) {
+    groups = upsertGroup(groups, g);
+  }
+
+  const messagesByGroup: Record<string, StoredMessage[]> = { ...existingMessagesByGroup };
+  for (const [groupId, incoming] of Object.entries(payload.messagesByGroup)) {
+    const existing = messagesByGroup[groupId] ?? [];
+    const byId = new Map<string, StoredMessage>();
+    for (const m of existing) byId.set(m.id, m);
+    for (const m of incoming) {
+      if (!byId.has(m.id)) byId.set(m.id, m);
+    }
+    const merged = [...byId.values()].sort((a, b) => a.sentAtMs - b.sentAtMs);
+    messagesByGroup[groupId] = trimToLimit(merged);
+  }
+
+  return { groups, messagesByGroup };
+}
+CODE>>>
+<<<CODE 1
+export * from "./dedup";
+export * from "./ordering";
+export * from "./offlineOutbox";
+export * from "./groupJoin";
+export * from "./relayClient";
+export * from "./messageEnvelope";
+export * from "./fileTransfer";
+export * from "./messageStore";
+export * from "./groupStore";
+export * from "./messageActions";
+export * from "./announcementCategories";
+export * from "./sendProgress";
+export * from "./keyRotation";
+export * from "./connectionStats";
+export * from "./knownDevices";
+export * from "./mentions";
+export * from "./disappearing";
+export * from "./backup";
+CODE>>>
+<<<CODE 2
+import { describe, expect, it } from "vitest";
+import {
+  buildBackupPayload,
+  encryptBackup,
+  decryptBackup,
+  mergeRestore,
+  BackupError,
+  MIN_BACKUP_PASSWORD_LENGTH,
+  type BackupPayload,
+} from "../src/backup";
+import { base64UrlToBytes, bytesToBase64Url } from "../src/fileTransfer";
+import type { JoinedGroup } from "../src/groupStore";
+import type { StoredMessage } from "../src/messageStore";
+
+/** 测试里把 PBKDF2 迭代调小：600000 次派生每次要几百毫秒，整套测试会太慢。 */
+const TEST_ITER = 1000;
+const TEST_PASSWORD = "0123456789"; // 正好 10 位，满足最短长度
+
+function makeGroup(id: string): JoinedGroup {
+  return {
+    groupId: id,
+    groupName: `群 ${id}`,
+    keyMaterialB64Url: `key-${id}`,
+    epoch: 0,
+    joinedAtMs: 1_000,
+    lastReadAtMs: 2_000,
+  };
+}
+
+function makeMessage(id: string, sentAtMs: number, text?: string): StoredMessage {
+  return {
+    id,
+    isOwn: false,
+    sentAtMs,
+    text: text ?? `消息 ${id}`,
+  };
+}
+
+describe("buildBackupPayload", () => {
+  it("排除已过期和仍在倒计时的消息", () => {
+    const now = 10_000;
+    const messages: StoredMessage[] = [
+      makeMessage("normal", 100),
+      { ...makeMessage("expiring", 200), expiresAtMs: now + 5_000 }, // 计时中
+      { ...makeMessage("expired", 300), expiresAtMs: now - 1_000 }, // 已过期
+    ];
+    const payload = buildBackupPayload([], { g1: messages }, undefined, now);
+    expect(payload.messagesByGroup["g1"]?.map((m) => m.id)).toEqual(["normal"]);
+  });
+
+  it("不带昵称时 payload 里没有 nickname 字段", () => {
+    const payload = buildBackupPayload([], {}, undefined, 0);
+    expect(payload).not.toHaveProperty("nickname");
+  });
+
+  it("带昵称时原样保留", () => {
+    const payload = buildBackupPayload([], {}, "测试昵称", 0);
+    expect(payload.nickname).toBe("测试昵称");
+  });
+});
+
+describe("encryptBackup / decryptBackup", () => {
+  it("往返一致", async () => {
+    const payload: BackupPayload = {
+      createdAtMs: 12_345,
+      nickname: "测试",
+      groups: [makeGroup("g1")],
+      messagesByGroup: {
+        g1: [makeMessage("a", 100), makeMessage("b", 200)],
+      },
+    };
+    const text = await encryptBackup(payload, TEST_PASSWORD, TEST_ITER);
+    const back = await decryptBackup(text, TEST_PASSWORD);
+    expect(back).toEqual(payload);
+  });
+
+  it("密码太短时拒绝加密", async () => {
+    const payload: BackupPayload = { createdAtMs: 0, groups: [], messagesByGroup: {} };
+    const short = "x".repeat(MIN_BACKUP_PASSWORD_LENGTH - 1);
+    await expect(encryptBackup(payload, short, TEST_ITER)).rejects.toBeInstanceOf(BackupError);
+  });
+
+  it("错密码解密失败，抛 BackupError", async () => {
+    const payload: BackupPayload = { createdAtMs: 0, groups: [], messagesByGroup: {} };
+    const text = await encryptBackup(payload, TEST_PASSWORD, TEST_ITER);
+    await expect(decryptBackup(text, "wrong-password")).rejects.toBeInstanceOf(BackupError);
+    await expect(decryptBackup(text, "wrong-password")).rejects.toThrow(
+      "密码不对，或文件已损坏"
+    );
+  });
+
+  it("改密文一个字节就解密失败", async () => {
+    const payload: BackupPayload = { createdAtMs: 0, groups: [], messagesByGroup: {} };
+    const text = await encryptBackup(payload, TEST_PASSWORD, TEST_ITER);
+    const parsed = JSON.parse(text) as { ct: string };
+    const bytes = base64UrlToBytes(parsed.ct);
+    bytes[0] = bytes[0]! ^ 0xff;
+    const tampered = JSON.stringify({ ...parsed, ct: bytesToBase64Url(bytes) });
+    await expect(decryptBackup(tampered, TEST_PASSWORD)).rejects.toBeInstanceOf(BackupError);
+  });
+
+  it("格式字段不对时报错", async () => {
+    await expect(decryptBackup("not json at all", TEST_PASSWORD)).rejects.toBeInstanceOf(BackupError);
+    await expect(
+      decryptBackup(JSON.stringify({ format: "wrong", v: 1 }), TEST_PASSWORD)
+    ).rejects.toBeInstanceOf(BackupError);
+    await expect(
+      decryptBackup(JSON.stringify({ format: "sic-backup", v: 999 }), TEST_PASSWORD)
+    ).rejects.toBeInstanceOf(BackupError);
+  });
+
+  it("kdf 字段缺失或非法时报错", async () => {
+    const broken = JSON.stringify({
+      format: "sic-backup",
+      v: 1,
+      iv: "AAAA",
+      ct: "AAAA",
+    });
+    await expect(decryptBackup(broken, TEST_PASSWORD)).rejects.toBeInstanceOf(BackupError);
+
+    const badIter = JSON.stringify({
+      format: "sic-backup",
+      v: 1,
+      kdf: { name: "PBKDF2", hash: "SHA-256", iter: -1, salt: "AAAA" },
+      iv: "AAAA",
+      ct: "AAAA",
+    });
+    await expect(decryptBackup(badIter, TEST_PASSWORD)).rejects.toBeInstanceOf(BackupError);
+  });
+});
+
+describe("mergeRestore", () => {
+  it("合并群：本机已有的 upsert，备份里多出来的加进来", () => {
+    const existing: JoinedGroup[] = [makeGroup("g1")];
+    const payload: BackupPayload = {
+      createdAtMs: 0,
+      groups: [makeGroup("g1"), makeGroup("g2")],
+      messagesByGroup: {},
+    };
+    const result = mergeRestore(existing, {}, payload);
+    expect(result.groups.map((g) => g.groupId).sort()).toEqual(["g1", "g2"]);
+  });
+
+  it("消息按 id 去重：同 id 保留本机那条，备份补进新增的，按 sentAtMs 排序", () => {
+    const existingGroups: JoinedGroup[] = [makeGroup("g1")];
+    const existingMsgs: Record<string, StoredMessage[]> = {
+      g1: [makeMessage("a", 100), makeMessage("b", 300)],
+    };
+    const payload: BackupPayload = {
+      createdAtMs: 0,
+      groups: [makeGroup("g1")],
+      messagesByGroup: {
+        g1: [makeMessage("a", 100, "备份里的 a"), makeMessage("c", 200)],
+      },
+    };
+    const result = mergeRestore(existingGroups, existingMsgs, payload);
+    const g1 = result.messagesByGroup["g1"];
+    expect(g1?.map((m) => m.id)).toEqual(["a", "c", "b"]);
+    // 同 id 保留本机那条
+    expect(g1?.[0]?.text).toBe("消息 a");
+  });
+
+  it("备份里有、本机没有的群，消息也一起合并", () => {
+    const payload: BackupPayload = {
+      createdAtMs: 0,
+      groups: [makeGroup("g2")],
+      messagesByGroup: {
+        g2: [makeMessage("d", 50)],
+      },
+    };
+    const result = mergeRestore([], {}, payload);
+    expect(result.groups.map((g) => g.groupId)).toEqual(["g2"]);
+    expect(result.messagesByGroup["g2"]?.map((m) => m.id)).toEqual(["d"]);
+  });
+
+  it("超过 300 条被截断，保留最新的 300 条", () => {
+    const many: StoredMessage[] = Array.from({ length: 350 }, (_, i) => makeMessage(`m${i}`, i));
+    const payload: BackupPayload = {
+      createdAtMs: 0,
+      groups: [],
+      messagesByGroup: { g1: many },
+    };
+    const result = mergeRestore([], {}, payload);
+    const g1 = result.messagesByGroup["g1"];
+    expect(g1).toHaveLength(300);
+    expect(g1?.[0]?.id).toBe("m50");
+    expect(g1?.[299]?.id).toBe("m349");
+  });
+});
+CODE>>>
