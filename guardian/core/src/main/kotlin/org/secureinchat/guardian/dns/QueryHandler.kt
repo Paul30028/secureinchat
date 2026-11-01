@@ -32,7 +32,9 @@ data class LogEntry(
     val qtype: Int,
     val blocked: Boolean,
     val uid: Int = -1,
-    val paused: Boolean = false
+    val paused: Boolean = false,
+    /** G14: the blocked CNAME target when the answer, not the query name, was blocked. */
+    val via: String? = null
 )
 
 sealed interface Action {
@@ -110,12 +112,33 @@ class QueryHandler(
 
     fun onUpstreamAnswer(q: DnsQuery, answer: ByteArray, len: Int): ByteArray? {
         val resp = DnsPacket.buildResponseFromUpstream(q, answer, len)
-        if (resp != null) {
-            stats.answered.incrementAndGet()
-        } else {
+        if (resp == null) {
             stats.failed.incrementAndGet()
+            return null
         }
+        cloakedTarget(q, answer, len)?.let { target ->
+            stats.blocked.incrementAndGet()
+            appendLog(q.qname, q.qtype, blocked = true, uid = -1, paused = false, via = target)
+            return DnsPacket.buildBlockedResponse(q, mode)
+        }
+        stats.answered.incrementAndGet()
         return resp
+    }
+
+    /**
+     * G14, CNAME uncloaking: the first CNAME target in the answer that the current rules block, or
+     * null. Not applied while paused, nor when the user explicitly allowed the query name itself
+     * (their allow wins, as everywhere else). A user allow on the target makes match() say "allow",
+     * so that target passes too.
+     */
+    private fun cloakedTarget(q: DnsQuery, answer: ByteArray, len: Int): String? {
+        if (isPaused()) return null
+        val bl = blocklist
+        if (bl.match(q.qname)?.source == Blocklist.RuleSource.USER_ALLOW) return null
+        for (t in DnsAnswer.cnameTargets(answer, len)) {
+            if (bl.match(t)?.blocks == true) return t
+        }
+        return null
     }
 
     fun onUpstreamFailed(q: DnsQuery) {
@@ -144,8 +167,8 @@ class QueryHandler(
         tally.clear()
     }
 
-    private fun appendLog(name: String, qtype: Int, blocked: Boolean, uid: Int, paused: Boolean) {
-        val entry = LogEntry(clock(), name, qtype, blocked, uid, paused)
+    private fun appendLog(name: String, qtype: Int, blocked: Boolean, uid: Int, paused: Boolean, via: String? = null) {
+        val entry = LogEntry(clock(), name, qtype, blocked, uid, paused, via)
         synchronized(logLock) {
             logEntries[logWritePos] = entry
             logWritePos = (logWritePos + 1) % logCapacity

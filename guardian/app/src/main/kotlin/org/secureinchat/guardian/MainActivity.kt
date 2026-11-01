@@ -649,7 +649,10 @@ class MainActivity : Activity() {
             }
             sb.append(fmt.format(Date(e.timeMs)))
                 .append(' ').append(tag).append(' ')
-                .append(e.name).append(" (type ").append(e.qtype.toString()).append(")\n")
+                .append(e.name).append(" (type ").append(e.qtype.toString()).append(")")
+            // G14: blocked because the answer's CNAME pointed at a listed tracker.
+            e.via?.let { sb.append(txt(" → really $it", " → 实际指向 $it")) }
+            sb.append('\n')
             if (e.blocked) {
                 sb.setSpan(
                     ForegroundColorSpan(0xFFFF4444.toInt()),
