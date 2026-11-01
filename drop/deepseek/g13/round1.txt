@@ -1,0 +1,795 @@
+<<<FULL
+guardian/tools/update_blocklist.py
+
+python
+Copy
+Download
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Refresh the three bundled HaGeZi Multi snapshots (GPL-3.0, same licence as Guardian).
+
+Usage: python3 guardian/tools/update_blocklist.py
+
+Each tier uses its own full list. The three lists are NOT supersets of each other (light has
+domains multi does not, and vice versa), so no diffing is done - each one is bundled as shipped.
+The snapshots are committed, so builds are reproducible and the app never downloads lists.
+"""
+import pathlib, re, sys, urllib.request
+
+BASE = "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard"
+LICENCE_URL = "https://github.com/hagezi/dns-blocklists/blob/main/LICENSE"
+ASSETS = pathlib.Path(__file__).resolve().parent.parent / "app/src/main/assets"
+
+# (asset file, source URL, minimum entry count). The minimums are well below the current sizes
+# (~78k / ~175k / ~211k) so a normal upstream shrink does not break the build, but a truncated
+# or error-page download does.
+TIERS = [
+    ("blocklist-hagezi-light.txt", f"{BASE}/light-onlydomains.txt", 20_000),
+    ("blocklist-hagezi-normal.txt", f"{BASE}/multi-onlydomains.txt", 80_000),
+    ("blocklist-hagezi-pro.txt", f"{BASE}/pro-onlydomains.txt", 100_000),
+]
+
+for out_name, url, min_entries in TIERS:
+    text = urllib.request.urlopen(url, timeout=60).read().decode("utf-8")
+    head = "\n".join(l for l in text.splitlines()[:20] if l.startswith("#"))
+    if "hagezi/dns-blocklists/blob/main/LICENSE" not in head:
+        sys.exit(f"{out_name}: licence line missing from header; check the source before bundling")
+    entries = [l for l in text.splitlines() if l and not l.startswith("#")]
+    if len(entries) < min_entries:
+        sys.exit(f"{out_name}: only {len(entries)} entries; refusing to bundle a truncated list")
+    bad = [l for l in entries if not re.fullmatch(r"[a-z0-9_.-]+", l)]
+    if bad:
+        sys.exit(f"{out_name}: unexpected lines, first: {bad[:3]}")
+    if "bat.bing.com" not in entries:
+        sys.exit(f"{out_name}: bat.bing.com missing; update BLOCKED_HAGEZI in tests/emulator_flow.py")
+    out = ASSETS / out_name
+    out.write_text(
+        f"# Licence: GPL-3.0, {LICENCE_URL}\n# Source: {url}\n" + text,
+        encoding="utf-8",
+    )
+    ver = re.search(r"# Version: (\S+)", head)
+    print(f"{out.name}: {len(entries)} domains, version {ver.group(1) if ver else '?'}")
+
+guardian/app/src/main/kotlin/org/secureinchat/guardian/UserRulesStore.kt (完整的 level 部分;其余不变)
+
+kotlin
+Copy
+Download
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian
+
+import android.content.Context
+import org.secureinchat.guardian.dns.Blocklist
+
+object UserRulesStore {
+    private const val PREFS = "user_rules"
+    private const val KEY_ALLOWED = "allowed"
+    private const val KEY_BLOCKED = "blocked"
+    // G13: blocking strength. Kept in the same prefs as the user rules because it is a user setting
+    // that only this app reads, and policy_check already allows SharedPreferences here.
+    private const val KEY_LEVEL = "level"
+
+    /** One of "light" (default), "normal", "pro". An unrecognised value falls back to "light". */
+    fun level(ctx: Context): String {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val v = prefs.getString(KEY_LEVEL, "light") ?: "light"
+        return if (v == "light" || v == "normal" || v == "pro") v else "light"
+    }
+
+    /** Invalid values are ignored, so a bad caller cannot put the store into a state it cannot read. */
+    fun setLevel(ctx: Context, level: String) {
+        if (level != "light" && level != "normal" && level != "pro") return
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_LEVEL, level).apply()
+    }
+
+    fun allowed(ctx: Context): Set<String> = readSet(ctx, KEY_ALLOWED)
+    // ... 余下与现状完全一致:blocked / add / remove / addBlocked / removeBlocked /
+    //     replaceAll / mergeIn / readSet / addTo / removeFrom 都不改 ...
+}
+
+说明:level / setLevel 加在上面这段位置,其余方法逐字保留。
+
+GuardianVpnService.kt — 锚点+替换片段
+
+(1) 删除 LIST_ASSETS,改为按档位选文件
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+        private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")
+        private val rulesLock = Any()
+
+替换为:
+
+text
+Copy
+Download
+        private val rulesLock = Any()
+
+(2) 让 loadBlocklistStatic 按档位加载,并缓存按档位区分
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+        // The bundled lists never change while the app runs, so parse them once per process.
+        @Volatile private var baseCache: Blocklist? = null
+
+        private fun loadBlocklistStatic(ctx: Context): Blocklist {
+            baseCache?.let { return it }
+            return try {
+                val text = LIST_ASSETS.joinToString("\n") { name ->
+                    ctx.assets.open(name).use { it.bufferedReader().readText() }
+                }
+                Blocklist.parse(text).also { baseCache = it }
+            } catch (_: Throwable) {
+                Blocklist.parse("")
+            }
+        }
+
+替换为:
+
+text
+Copy
+Download
+        // G13: the three tier files are disjoint (light has entries multi does not, and vice versa),
+        // so the tier chooses which file is loaded; blocklist-extra.txt is always added on top.
+        private fun hageziAsset(level: String): String = when (level) {
+            "normal" -> "blocklist-hagezi-normal.txt"
+            "pro" -> "blocklist-hagezi-pro.txt"
+            else -> "blocklist-hagezi-light.txt"
+        }
+
+        private fun parseTier(ctx: Context, level: String): Blocklist {
+            val assets = listOf(hageziAsset(level), "blocklist-extra.txt")
+            val text = assets.joinToString("\n") { name ->
+                ctx.assets.open(name).use { it.bufferedReader().readText() }
+            }
+            return Blocklist.parse(text)
+        }
+
+        // Cached by tier: switching tiers throws away the previous list's memory instead of
+        // holding two (or three) at once. A miss for tier X evicts whatever was cached.
+        @Volatile private var baseCache: Blocklist? = null
+        @Volatile private var baseCacheLevel: String = ""
+
+        private fun loadBlocklistStatic(ctx: Context): Blocklist {
+            val level = UserRulesStore.level(ctx)
+            baseCache?.let { if (baseCacheLevel == level) return it }
+            return try {
+                parseTier(ctx, level).also {
+                    baseCache = it
+                    baseCacheLevel = level
+                }
+            } catch (e: Throwable) {
+                // G13: a missing or corrupt tier file must not take the app down. Fall back to light
+                // and log a single line (logcat only, nothing on disk); the current cache - if any -
+                // is reused so in-flight queries keep a working blocklist.
+                android.util.Log.w(
+                    "Guardian",
+                    "level $level failed to load (${e.javaClass.simpleName}: ${e.message}); falling back to light"
+                )
+                try {
+                    parseTier(ctx, "light").also {
+                        baseCache = it
+                        baseCacheLevel = "light"
+                    }
+                } catch (_: Throwable) {
+                    baseCache ?: Blocklist.parse("")
+                }
+            }
+        }
+
+(3) 新增 applyLevel(ctx)
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+        fun applyUserRules(ctx: Context) {
+            val h = activeHandler ?: return
+            Thread {
+                synchronized(rulesLock) {
+                    try {
+                        val base = loadBlocklistStatic(ctx)
+                        h.blocklist = applyUserRulesTo(base, ctx)
+                    } catch (_: Throwable) {}
+                }
+            }.apply { name = "guardian-rules" }.start()
+        }
+    }
+}
+
+替换为:
+
+text
+Copy
+Download
+        fun applyUserRules(ctx: Context) {
+            val h = activeHandler ?: return
+            Thread {
+                synchronized(rulesLock) {
+                    try {
+                        val base = loadBlocklistStatic(ctx)
+                        h.blocklist = applyUserRulesTo(base, ctx)
+                    } catch (_: Throwable) {}
+                }
+            }.apply { name = "guardian-rules" }.start()
+        }
+
+        // G13: switch the blocking tier while the VPN is running. The tier itself is already saved
+        // by the caller (UserRulesStore.setLevel), so this only reloads the asset and swaps the
+        // active handler's blocklist. When the VPN is not running (or is mid-start, when
+        // activeHandler is still null), there is nothing to swap; the saved tier will be picked up
+        // by the next startVpnBackground.
+        //
+        // isLoading is reused so the UI can keep showing "Loading list…" during the reload, the same
+        // way it does during a fresh start. On a bad tier file the reload falls back inside
+        // loadBlocklistStatic and the flag still resets in the finally block.
+        fun applyLevel(ctx: Context) {
+            val h = activeHandler ?: return
+            isLoading = true
+            Thread {
+                synchronized(rulesLock) {
+                    try {
+                        val base = loadBlocklistStatic(ctx)
+                        // Only swap if the same handler is still the active one. A Stop during the
+                        // reload sets activeHandler = null; a concurrent restart installs a new one.
+                        if (activeHandler === h) {
+                            h.blocklist = applyUserRulesTo(base, ctx)
+                        }
+                    } catch (_: Throwable) {
+                    } finally {
+                        isLoading = false
+                    }
+                }
+            }.apply { name = "guardian-level" }.start()
+        }
+    }
+}
+
+MainActivity.kt — 锚点+替换片段
+
+(1) 导入 RadioButton / RadioGroup
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+import android.widget.LinearLayout
+import android.widget.ScrollView
+
+替换为:
+
+text
+Copy
+Download
+import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.ScrollView
+
+(2) 新增字段
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+    private lateinit var rulesIoError: TextView
+
+    private var appListSignature: String = ""
+
+替换为:
+
+text
+Copy
+Download
+    private lateinit var rulesIoError: TextView
+
+    // G13: blocking strength radio group. The flag prevents the OnCheckedChangeListener from
+    // firing back to storage when refreshUi/onResume syncs the buttons from prefs.
+    private lateinit var levelGroup: RadioGroup
+    private var settingLevelProgrammatically = false
+
+    private var appListSignature: String = ""
+
+(3) buildUi 中加 RadioGroup(放 Pause 按钮之后、统计区之前)
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+        pauseBtn = Button(this).apply {
+            visibility = View.GONE
+            setOnClickListener { onPauseResumeClicked() }
+        }
+        root.addView(pauseBtn)
+
+        statsView = TextView(this).apply {
+
+替换为:
+
+text
+Copy
+Download
+        pauseBtn = Button(this).apply {
+            visibility = View.GONE
+            setOnClickListener { onPauseResumeClicked() }
+        }
+        root.addView(pauseBtn)
+
+        // G13: blocking strength. Radio buttons rather than a spinner: three options fit on screen
+        // and each one needs a one-line description the user can compare. The chosen tier is saved
+        // immediately; GuardianVpnService.applyLevel reloads the asset in the background if the VPN
+        // is running, otherwise it takes effect on the next start.
+        root.addView(TextView(this).apply {
+            textSize = 14f
+            text = txt("Blocking strength", "拦截强度")
+            setPadding(0, pad / 2, 0, pad / 4)
+        })
+        val levelKeys = arrayOf("light", "normal", "pro")
+        val levelLabels = arrayOf(
+            txt("Light — fewest broken sites (default)", "轻度——最少误拦(默认)"),
+            txt("Standard — more trackers blocked", "标准——拦得更多"),
+            txt(
+                "Strict — most blocked; some sites or apps may break, use Allow to fix",
+                "严格——拦得最多;个别网站或应用可能出问题,可用「放行」修复"
+            )
+        )
+        levelGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        for (i in levelKeys.indices) {
+            levelGroup.addView(RadioButton(this).apply {
+                text = levelLabels[i]
+                textSize = 13f
+                tag = levelKeys[i]
+            })
+        }
+        levelGroup.setOnCheckedChangeListener { _, checkedId ->
+            if (settingLevelProgrammatically) return@setOnCheckedChangeListener
+            val rb = levelGroup.findViewById<RadioButton>(checkedId) ?: return@setOnCheckedChangeListener
+            val level = rb.tag as? String ?: return@setOnCheckedChangeListener
+            UserRulesStore.setLevel(this, level)
+            GuardianVpnService.applyLevel(applicationContext)
+            uiHandler.post { refreshUi() }
+        }
+        root.addView(levelGroup)
+
+        statsView = TextView(this).apply {
+
+(4) onResume 时同步 RadioGroup
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+    override fun onResume() {
+        super.onResume()
+        // The user may have just changed Always-on in system settings.
+        GuardianVpnService.refreshAlwaysOn()
+        uiHandler.post(refreshTick)
+    }
+
+替换为:
+
+text
+Copy
+Download
+    override fun onResume() {
+        super.onResume()
+        // The user may have just changed Always-on in system settings.
+        GuardianVpnService.refreshAlwaysOn()
+        // G13: if the stored level changed elsewhere (or a reload fell back to light on error),
+        // bring the radio buttons back in line. Runs after onCreate, so it also covers the first
+        // frame.
+        syncLevelRadio()
+        uiHandler.post(refreshTick)
+    }
+
+(5) 新增 syncLevelRadio()
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+    private fun renderAlwaysOnRow() {
+
+替换为:
+
+text
+Copy
+Download
+    // G13: make the radio buttons reflect what UserRulesStore says. Setting isChecked fires the
+    // OnCheckedChangeListener, so the flag is set for the whole loop and the listener short-circuits.
+    private fun syncLevelRadio() {
+        if (!::levelGroup.isInitialized) return
+        val level = UserRulesStore.level(this)
+        settingLevelProgrammatically = true
+        try {
+            for (i in 0 until levelGroup.childCount) {
+                val rb = levelGroup.getChildAt(i) as? RadioButton ?: continue
+                val match = (rb.tag as? String) == level
+                if (rb.isChecked != match) rb.isChecked = match
+            }
+        } finally {
+            settingLevelProgrammatically = false
+        }
+    }
+
+    private fun renderAlwaysOnRow() {
+
+关于模拟器测试:如何判断「加载完成」
+
+页面顶部的状态行在重新加载期间会显示「Loading list…」(来自 isLoading 分支),加载结束回到「Status: Running」。流程:
+
+轻度档下 adb shell ping -c 1 scorecardresearch.com → 看到真实 IP
+
+点「严格」,levelGroup.isEnabled 不需要等;轮询 Status: Running(说明 isLoading 已复位)
+
+再次 ping scorecardresearch.com → 返回 0.0.0.0(被拦),Blocked most often 里出现该域名,日志里出现 BLOCK scorecardresearch.com
+
+点回「轻度」,再轮询 Status: Running,再 ping → 恢复真实 IP
+
+若轮询 Status: Running 有歧义(点击前也是 Running),备选信号是 rulesView 里的 blocked 总数变化:切换前后两次截取的「Rules: N blocked, …」里的 N 会变化(严格比轻度多),可以在点击「严格」后等到 N 变大再判断。我推荐用 Status: Running + 一次 rulesView 变化的双重检查。
+
+体积与性能估算(明确是估算)
+
+APK 体积:三个 HaGeZi 文本,未压缩合计约 9–10 MB(light 约 1.4 MB、normal 约 3.3 MB、pro 约 4 MB,按每域名平均 ~19 字符 + 换行)。APK 内 assets 默认 DEFLATE 压缩,域名文本压缩率通常 3–3.5 倍,所以净增约 2.5–3.0 MB,和你给的 2.7 MB 一致。注意:assets 默认会被压缩,运行时 assets.open() 返回的流自带解压,读取 4 MB 文本实际 I/O 大约 4 MB 解压后字节,耗时主因是解压 + 哈希插入。
+
+解析耗时:Blocklist.parse 对每个域名一次 HashSet.add + 归一化。中端手机约 300k–800k 域名/秒(短字符串、单线程、无 I/O),加 I/O:pro 档 21 万条,总耗时约 300–600 ms;normal 约 200–450 ms;light 约 100–250 ms。这些是量级估算,实际取决于机型、strings 大小、AOT/JIT 状态。
+
+峰值内存:readText() 先分配一个约 4 MB 的 String(char 数组 ~8 MB,UTF-16),再逐个 substring 加进 HashSet:21 万个 String(每个 ~48 B 头 + 16 B 字节区)+ HashSet 桶数组 + 每个 entry 的开销,合计 约 20–30 MB 的堆;加上中间 4 MB 文本,峰值约 25–35 MB。对 128 MB 堆的手机是安全的,但比其他模块大一个数量级。
+
+是否需要流式:现在不需要。300–600 ms 在一次显式的用户操作(切换档位/启动 VPN)里是可接受的,而且已是后台线程。如果以后要压,有两种简单方案,都不需要改 Blocklist.parse 的签名:
+
+在 parseTier 里用 assets.open(name).bufferedReader() 直接 for (line in reader.lineSequence()) 逐行喂给 Blocklist;但 Blocklist.parse 只接受整串,所以更现实的是给 Blocklist 增加一个 companion fun parseLines(lines: Sequence<String>): Blocklist,把现有 parse(text) 改成 parseLines(text.lineSequence()) 转发。改动小,缓存、plusBlocked/plusAllowed 都不受影响。
+
+更激进:把 HashSet<String> 换成单个大的 CharArray + 按域名排序的索引表(单块内存),把 30 MB 压到 ~8 MB;但这会牵动 Blocklist 内部,且对匹配性能影响不明确,目前不建议。
+
+我的判断:保持现状,不引入流式;如果真机 profile 显示启动卡顿(超过 1 秒),再按方案 1 改,收益上限约省 8 MB 峰值内存、耗时基本不变(瓶颈在哈希插入,不在读取)。
+
+一个我不确定的地方:bat.bing.com 是否真的在三个 HaGeZi 列表里都有。轻档通常包含,但严格档有大量更宽的模式可能吞掉它;如果 update_blocklist.py 在 pro 上报错,说明规格里的假设不对,那条硬性检查需要放宽为「在三档至少两档里」或直接从 blocklist-extra.txt 兜底。
+FULL>>>
+<<<CODE 0
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Refresh the three bundled HaGeZi Multi snapshots (GPL-3.0, same licence as Guardian).
+
+Usage: python3 guardian/tools/update_blocklist.py
+
+Each tier uses its own full list. The three lists are NOT supersets of each other (light has
+domains multi does not, and vice versa), so no diffing is done - each one is bundled as shipped.
+The snapshots are committed, so builds are reproducible and the app never downloads lists.
+"""
+import pathlib, re, sys, urllib.request
+
+BASE = "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard"
+LICENCE_URL = "https://github.com/hagezi/dns-blocklists/blob/main/LICENSE"
+ASSETS = pathlib.Path(__file__).resolve().parent.parent / "app/src/main/assets"
+
+# (asset file, source URL, minimum entry count). The minimums are well below the current sizes
+# (~78k / ~175k / ~211k) so a normal upstream shrink does not break the build, but a truncated
+# or error-page download does.
+TIERS = [
+    ("blocklist-hagezi-light.txt", f"{BASE}/light-onlydomains.txt", 20_000),
+    ("blocklist-hagezi-normal.txt", f"{BASE}/multi-onlydomains.txt", 80_000),
+    ("blocklist-hagezi-pro.txt", f"{BASE}/pro-onlydomains.txt", 100_000),
+]
+
+for out_name, url, min_entries in TIERS:
+    text = urllib.request.urlopen(url, timeout=60).read().decode("utf-8")
+    head = "\n".join(l for l in text.splitlines()[:20] if l.startswith("#"))
+    if "hagezi/dns-blocklists/blob/main/LICENSE" not in head:
+        sys.exit(f"{out_name}: licence line missing from header; check the source before bundling")
+    entries = [l for l in text.splitlines() if l and not l.startswith("#")]
+    if len(entries) < min_entries:
+        sys.exit(f"{out_name}: only {len(entries)} entries; refusing to bundle a truncated list")
+    bad = [l for l in entries if not re.fullmatch(r"[a-z0-9_.-]+", l)]
+    if bad:
+        sys.exit(f"{out_name}: unexpected lines, first: {bad[:3]}")
+    if "bat.bing.com" not in entries:
+        sys.exit(f"{out_name}: bat.bing.com missing; update BLOCKED_HAGEZI in tests/emulator_flow.py")
+    out = ASSETS / out_name
+    out.write_text(
+        f"# Licence: GPL-3.0, {LICENCE_URL}\n# Source: {url}\n" + text,
+        encoding="utf-8",
+    )
+    ver = re.search(r"# Version: (\S+)", head)
+    print(f"{out.name}: {len(entries)} domains, version {ver.group(1) if ver else '?'}")
+CODE>>>
+<<<CODE 1
+// SPDX-License-Identifier: GPL-3.0-or-later
+package org.secureinchat.guardian
+
+import android.content.Context
+import org.secureinchat.guardian.dns.Blocklist
+
+object UserRulesStore {
+    private const val PREFS = "user_rules"
+    private const val KEY_ALLOWED = "allowed"
+    private const val KEY_BLOCKED = "blocked"
+    // G13: blocking strength. Kept in the same prefs as the user rules because it is a user setting
+    // that only this app reads, and policy_check already allows SharedPreferences here.
+    private const val KEY_LEVEL = "level"
+
+    /** One of "light" (default), "normal", "pro". An unrecognised value falls back to "light". */
+    fun level(ctx: Context): String {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val v = prefs.getString(KEY_LEVEL, "light") ?: "light"
+        return if (v == "light" || v == "normal" || v == "pro") v else "light"
+    }
+
+    /** Invalid values are ignored, so a bad caller cannot put the store into a state it cannot read. */
+    fun setLevel(ctx: Context, level: String) {
+        if (level != "light" && level != "normal" && level != "pro") return
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_LEVEL, level).apply()
+    }
+
+    fun allowed(ctx: Context): Set<String> = readSet(ctx, KEY_ALLOWED)
+    // ... 余下与现状完全一致:blocked / add / remove / addBlocked / removeBlocked /
+    //     replaceAll / mergeIn / readSet / addTo / removeFrom 都不改 ...
+}
+CODE>>>
+<<<CODE 2
+        private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")
+        private val rulesLock = Any()
+CODE>>>
+<<<CODE 3
+        private val rulesLock = Any()
+CODE>>>
+<<<CODE 4
+        // The bundled lists never change while the app runs, so parse them once per process.
+        @Volatile private var baseCache: Blocklist? = null
+
+        private fun loadBlocklistStatic(ctx: Context): Blocklist {
+            baseCache?.let { return it }
+            return try {
+                val text = LIST_ASSETS.joinToString("\n") { name ->
+                    ctx.assets.open(name).use { it.bufferedReader().readText() }
+                }
+                Blocklist.parse(text).also { baseCache = it }
+            } catch (_: Throwable) {
+                Blocklist.parse("")
+            }
+        }
+CODE>>>
+<<<CODE 5
+        // G13: the three tier files are disjoint (light has entries multi does not, and vice versa),
+        // so the tier chooses which file is loaded; blocklist-extra.txt is always added on top.
+        private fun hageziAsset(level: String): String = when (level) {
+            "normal" -> "blocklist-hagezi-normal.txt"
+            "pro" -> "blocklist-hagezi-pro.txt"
+            else -> "blocklist-hagezi-light.txt"
+        }
+
+        private fun parseTier(ctx: Context, level: String): Blocklist {
+            val assets = listOf(hageziAsset(level), "blocklist-extra.txt")
+            val text = assets.joinToString("\n") { name ->
+                ctx.assets.open(name).use { it.bufferedReader().readText() }
+            }
+            return Blocklist.parse(text)
+        }
+
+        // Cached by tier: switching tiers throws away the previous list's memory instead of
+        // holding two (or three) at once. A miss for tier X evicts whatever was cached.
+        @Volatile private var baseCache: Blocklist? = null
+        @Volatile private var baseCacheLevel: String = ""
+
+        private fun loadBlocklistStatic(ctx: Context): Blocklist {
+            val level = UserRulesStore.level(ctx)
+            baseCache?.let { if (baseCacheLevel == level) return it }
+            return try {
+                parseTier(ctx, level).also {
+                    baseCache = it
+                    baseCacheLevel = level
+                }
+            } catch (e: Throwable) {
+                // G13: a missing or corrupt tier file must not take the app down. Fall back to light
+                // and log a single line (logcat only, nothing on disk); the current cache - if any -
+                // is reused so in-flight queries keep a working blocklist.
+                android.util.Log.w(
+                    "Guardian",
+                    "level $level failed to load (${e.javaClass.simpleName}: ${e.message}); falling back to light"
+                )
+                try {
+                    parseTier(ctx, "light").also {
+                        baseCache = it
+                        baseCacheLevel = "light"
+                    }
+                } catch (_: Throwable) {
+                    baseCache ?: Blocklist.parse("")
+                }
+            }
+        }
+CODE>>>
+<<<CODE 6
+        fun applyUserRules(ctx: Context) {
+            val h = activeHandler ?: return
+            Thread {
+                synchronized(rulesLock) {
+                    try {
+                        val base = loadBlocklistStatic(ctx)
+                        h.blocklist = applyUserRulesTo(base, ctx)
+                    } catch (_: Throwable) {}
+                }
+            }.apply { name = "guardian-rules" }.start()
+        }
+    }
+}
+CODE>>>
+<<<CODE 7
+        fun applyUserRules(ctx: Context) {
+            val h = activeHandler ?: return
+            Thread {
+                synchronized(rulesLock) {
+                    try {
+                        val base = loadBlocklistStatic(ctx)
+                        h.blocklist = applyUserRulesTo(base, ctx)
+                    } catch (_: Throwable) {}
+                }
+            }.apply { name = "guardian-rules" }.start()
+        }
+
+        // G13: switch the blocking tier while the VPN is running. The tier itself is already saved
+        // by the caller (UserRulesStore.setLevel), so this only reloads the asset and swaps the
+        // active handler's blocklist. When the VPN is not running (or is mid-start, when
+        // activeHandler is still null), there is nothing to swap; the saved tier will be picked up
+        // by the next startVpnBackground.
+        //
+        // isLoading is reused so the UI can keep showing "Loading list…" during the reload, the same
+        // way it does during a fresh start. On a bad tier file the reload falls back inside
+        // loadBlocklistStatic and the flag still resets in the finally block.
+        fun applyLevel(ctx: Context) {
+            val h = activeHandler ?: return
+            isLoading = true
+            Thread {
+                synchronized(rulesLock) {
+                    try {
+                        val base = loadBlocklistStatic(ctx)
+                        // Only swap if the same handler is still the active one. A Stop during the
+                        // reload sets activeHandler = null; a concurrent restart installs a new one.
+                        if (activeHandler === h) {
+                            h.blocklist = applyUserRulesTo(base, ctx)
+                        }
+                    } catch (_: Throwable) {
+                    } finally {
+                        isLoading = false
+                    }
+                }
+            }.apply { name = "guardian-level" }.start()
+        }
+    }
+}
+CODE>>>
+<<<CODE 8
+import android.widget.LinearLayout
+import android.widget.ScrollView
+CODE>>>
+<<<CODE 9
+import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.ScrollView
+CODE>>>
+<<<CODE 10
+    private lateinit var rulesIoError: TextView
+
+    private var appListSignature: String = ""
+CODE>>>
+<<<CODE 11
+    private lateinit var rulesIoError: TextView
+
+    // G13: blocking strength radio group. The flag prevents the OnCheckedChangeListener from
+    // firing back to storage when refreshUi/onResume syncs the buttons from prefs.
+    private lateinit var levelGroup: RadioGroup
+    private var settingLevelProgrammatically = false
+
+    private var appListSignature: String = ""
+CODE>>>
+<<<CODE 12
+        pauseBtn = Button(this).apply {
+            visibility = View.GONE
+            setOnClickListener { onPauseResumeClicked() }
+        }
+        root.addView(pauseBtn)
+
+        statsView = TextView(this).apply {
+CODE>>>
+<<<CODE 13
+        pauseBtn = Button(this).apply {
+            visibility = View.GONE
+            setOnClickListener { onPauseResumeClicked() }
+        }
+        root.addView(pauseBtn)
+
+        // G13: blocking strength. Radio buttons rather than a spinner: three options fit on screen
+        // and each one needs a one-line description the user can compare. The chosen tier is saved
+        // immediately; GuardianVpnService.applyLevel reloads the asset in the background if the VPN
+        // is running, otherwise it takes effect on the next start.
+        root.addView(TextView(this).apply {
+            textSize = 14f
+            text = txt("Blocking strength", "拦截强度")
+            setPadding(0, pad / 2, 0, pad / 4)
+        })
+        val levelKeys = arrayOf("light", "normal", "pro")
+        val levelLabels = arrayOf(
+            txt("Light — fewest broken sites (default)", "轻度——最少误拦(默认)"),
+            txt("Standard — more trackers blocked", "标准——拦得更多"),
+            txt(
+                "Strict — most blocked; some sites or apps may break, use Allow to fix",
+                "严格——拦得最多;个别网站或应用可能出问题,可用「放行」修复"
+            )
+        )
+        levelGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        for (i in levelKeys.indices) {
+            levelGroup.addView(RadioButton(this).apply {
+                text = levelLabels[i]
+                textSize = 13f
+                tag = levelKeys[i]
+            })
+        }
+        levelGroup.setOnCheckedChangeListener { _, checkedId ->
+            if (settingLevelProgrammatically) return@setOnCheckedChangeListener
+            val rb = levelGroup.findViewById<RadioButton>(checkedId) ?: return@setOnCheckedChangeListener
+            val level = rb.tag as? String ?: return@setOnCheckedChangeListener
+            UserRulesStore.setLevel(this, level)
+            GuardianVpnService.applyLevel(applicationContext)
+            uiHandler.post { refreshUi() }
+        }
+        root.addView(levelGroup)
+
+        statsView = TextView(this).apply {
+CODE>>>
+<<<CODE 14
+    override fun onResume() {
+        super.onResume()
+        // The user may have just changed Always-on in system settings.
+        GuardianVpnService.refreshAlwaysOn()
+        uiHandler.post(refreshTick)
+    }
+CODE>>>
+<<<CODE 15
+    override fun onResume() {
+        super.onResume()
+        // The user may have just changed Always-on in system settings.
+        GuardianVpnService.refreshAlwaysOn()
+        // G13: if the stored level changed elsewhere (or a reload fell back to light on error),
+        // bring the radio buttons back in line. Runs after onCreate, so it also covers the first
+        // frame.
+        syncLevelRadio()
+        uiHandler.post(refreshTick)
+    }
+CODE>>>
+<<<CODE 16
+    private fun renderAlwaysOnRow() {
+CODE>>>
+<<<CODE 17
+    // G13: make the radio buttons reflect what UserRulesStore says. Setting isChecked fires the
+    // OnCheckedChangeListener, so the flag is set for the whole loop and the listener short-circuits.
+    private fun syncLevelRadio() {
+        if (!::levelGroup.isInitialized) return
+        val level = UserRulesStore.level(this)
+        settingLevelProgrammatically = true
+        try {
+            for (i in 0 until levelGroup.childCount) {
+                val rb = levelGroup.getChildAt(i) as? RadioButton ?: continue
+                val match = (rb.tag as? String) == level
+                if (rb.isChecked != match) rb.isChecked = match
+            }
+        } finally {
+            settingLevelProgrammatically = false
+        }
+    }
+
+    private fun renderAlwaysOnRow() {
+CODE>>>
