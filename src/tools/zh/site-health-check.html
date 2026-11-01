@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>网站健康检查：HTTPS、安全响应头、搜索基础与站点地图</title>
+<meta name="description" content="免费的网站健康检查。检查任意公开网站的 HTTPS 与跳转、安全响应头、标题、描述、移动端视口、robots.txt 和站点地图，并可复制报告。">
+<link rel="canonical" href="https://secureinchat.com/zh/tools/site-health-check/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:title" content="网站健康检查：HTTPS、安全响应头、搜索基础与站点地图">
+<meta property="og:description" content="免费的网站健康检查。检查任意公开网站的 HTTPS 与跳转、安全响应头、标题、描述、移动端视口、robots.txt 和站点地图，并可复制报告。">
+<meta property="og:url" content="https://secureinchat.com/zh/tools/site-health-check/">
+<meta name="theme-color" content="#F4F6F3">
+<link rel="preload" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/tools/assets/style.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "网站健康检查",
+      "url": "https://secureinchat.com/zh/tools/site-health-check/",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "需要 JavaScript。",
+      "description": "免费的网站健康检查。检查任意公开网站的 HTTPS 与跳转、安全响应头、标题、描述、移动端视口、robots.txt 和站点地图，并可复制报告。",
+      "inLanguage": "zh-CN",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "inLanguage": "zh-CN",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "我输入的地址会被保存吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "我们的代码不保存也不记录它。请求会经过为本站提供服务的 Cloudflare，所以 Cloudflare 会像看到任何网页请求一样看到它。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么不能检查 IP 地址或内部网站？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "本工具从公网服务器抓取页面，所以只接受 80 和 443 端口上的公开域名。IP 地址、本地名称和内部主机都会被拒绝。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么结果全部正常也不代表网站安全？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "这些只是对首页的表面检查。它们能发现缺少 HTTPS 跳转、常见安全响应头这类基础问题，但不会测试你的代码、登录或服务器。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "为什么响应时间和其他工具不一样？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "它是在 Cloudflare 的一个节点上，测到服务器开始响应为止。其他工具从别的地方测量，包含的步骤也可能不同。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "可以把结果发给客户吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "可以。用「复制文字报告」，它会列出每项检查的状态和需要修改的地方。发送前请先读一遍，因为它只描述首页。"
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#results">跳到结果</a>
+<header class="top">
+  <div class="wrap top__in">
+    <a class="brand" href="/zh/">SecureInChat</a>
+    <nav aria-label="主导航"><a href="/zh/">首页</a><a href="/zh/tools/" aria-current="page">工具</a></nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap" aria-labelledby="h1">
+    <h1 id="h1">网站健康检查</h1>
+    <p class="lede">输入一个公开网站的地址，检查 HTTPS、跳转、安全响应头、搜索基础、robots.txt 和站点地图。</p>
+    <form id="sc-form" class="sc-form" novalidate>
+      <div class="sc-field"><label for="sc-url">网站地址</label><input id="sc-url" class="sc-input" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="example.com"></div>
+      <button id="sc-go" class="btn" type="submit">检查网站</button>
+    </form>
+    <div class="sc-actions"><button id="sc-copy" class="btn btn--quiet" type="button" disabled>复制文字报告</button></div>
+    <p class="hint">地址会发送到本站，用来抓取该网站的公开页面。我们的代码不保存它。见<a href="/privacy/" hreflang="en">本站如何处理数据（英文）</a>。</p>
+  </section>
+  <section class="wrap" id="results" aria-labelledby="results-h">
+    <div class="results-head">
+      <h2 id="results-h">结果</h2>
+      <p id="summary" class="summary" role="status" aria-live="polite" data-tone="idle">输入地址后开始检查。</p>
+    </div>
+    <table class="results">
+      <caption class="sr">网站健康检查结果</caption>
+      <thead><tr><th scope="col">检查</th><th scope="col">结果</th><th scope="col">状态</th></tr></thead>
+      <tbody id="rows">
+        <tr data-status="idle">
+          <th scope="row" data-label="检查"><span class="c-name">首页</span><span class="c-desc">在上方输入地址，然后按「检查网站」。</span></th>
+          <td data-label="结果"><div class="vals"><div class="val mono">尚未运行</div></div></td>
+          <td data-label="状态"><span class="pill">未运行</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <section class="wrap" aria-labelledby="sb-h">
+    <h2 id="sb-h">一次检查多个网站</h2>
+    <p>最多输入 10 个地址，每行一个，比如你为客户维护的网站。它们会依次检查，最后可以下载一份报告文件。请只用于你拥有或管理的网站。</p>
+    <label for="sb-list" class="sr">网站地址，每行一个</label>
+    <textarea id="sb-list" class="rd-text" spellcheck="false" autocomplete="off" placeholder="example.com"></textarea>
+    <div class="sc-actions"><button id="sb-go" class="btn" type="button">全部检查</button><button id="sb-dl" class="btn btn--quiet" type="button" disabled>下载报告（HTML）</button></div>
+    <p id="sb-status" class="hint" role="status" aria-live="polite">还没有检查任何网站。</p>
+    <table class="results"><caption class="sr">多个网站的检查结果</caption><thead><tr><th scope="col">网站</th><th scope="col">概况</th><th scope="col">正常</th><th scope="col">主要问题</th></tr></thead><tbody id="sb-rows"></tbody></table>
+  </section>
+  <section class="wrap prose" aria-labelledby="what-h">
+    <h2 id="what-h">它检查什么</h2>
+    <p>本工具从 Cloudflare 的服务器加载一个公开网站的首页，报告访客或搜索引擎最先遇到的情况：页面是否通过 HTTPS 加载、普通 HTTP 是否被跳转、状态码和跳转、服务器多快开始响应、常见的安全响应头、标题、描述、规范链接、视口、语言和主标题、是否禁止收录，以及 robots.txt 和站点地图是否存在、能否读取。</p>
+    <h2>它不检查什么</h2>
+    <p>它只看首页，不看每一个页面。它不读取证书，所以无法提醒你证书快要到期。响应时间来自一个地点，其他地方的访客看到的可能更快或更慢。所有检查都通过，也不代表网站安全或排名好。这是一次初步检查，指出常见、可以修好的缺口。</p>
+    <p>检查结果由本站接口以英文返回，本页在你的浏览器里把它们译成中文；响应头名称、响应头的值和网页标题等原始数据保持原样。</p>
+    <h2>你输入的地址如何处理</h2>
+    <p>地址会发送到本站，本站抓取该网站的公开页面并返回结果。我们的代码不保存也不记录地址和结果。为本站提供服务的 Cloudflare 会像看到任何网页请求一样看到这次请求。只能检查标准网页端口上的公开网站，抓取请求会标明自己是 SecureInChatSiteCheck。请只用于你拥有或管理的网站。完全在浏览器里运行的检查，见<a href="/zh/tools/">其他工具</a>。</p>
+  </section>
+  <section class="wrap prose" aria-labelledby="faq-h">
+    <h2 id="faq-h">常见问题</h2>
+    <h3>我输入的地址会被保存吗？</h3>
+    <p>我们的代码不保存也不记录它。请求会经过为本站提供服务的 Cloudflare，所以 Cloudflare 会像看到任何网页请求一样看到它。</p>
+    <h3>为什么不能检查 IP 地址或内部网站？</h3>
+    <p>本工具从公网服务器抓取页面，所以只接受 80 和 443 端口上的公开域名。IP 地址、本地名称和内部主机都会被拒绝。</p>
+    <h3>为什么结果全部正常也不代表网站安全？</h3>
+    <p>这些只是对首页的表面检查。它们能发现缺少 HTTPS 跳转、常见安全响应头这类基础问题，但不会测试你的代码、登录或服务器。</p>
+    <h3>为什么响应时间和其他工具不一样？</h3>
+    <p>它是在 Cloudflare 的一个节点上，测到服务器开始响应为止。其他工具从别的地方测量，包含的步骤也可能不同。</p>
+    <h3>可以把结果发给客户吗？</h3>
+    <p>可以。用「复制文字报告」，它会列出每项检查的状态和需要修改的地方。发送前请先读一遍，因为它只描述首页。</p>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>© 2026 SecureInChat。看清你交出了什么，再把它关掉。</p>
+    <nav aria-label="页脚"><a href="/mission/">使命</a><a href="/principles/">原则</a><a href="/privacy/">隐私</a><a href="/principles/#labels">状态标签</a><a href="/sponsor/">赞助与推广披露</a><a href="/contact/">联系</a></nav>
+  </div>
+</footer>
+<script src="/tools/assets/sitecheck-zh.js" defer></script>
+<script src="/tools/assets/sitecheck-app.js" defer></script>
+<script src="/tools/assets/sitecheck-batch.js" defer></script>
+</body>
+</html>
