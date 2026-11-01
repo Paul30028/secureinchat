@@ -519,10 +519,10 @@ def main():
     nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after cancelling the export picker")
     print("ok: Export opens the document picker")
 
-    # 4f. G13 blocking strength. scorecardresearch.com is in HaGeZi Pro only (not Light or Multi);
-    # subdomains are blocked by label-suffix matching. Each step uses a fresh subdomain because netd
-    # caches answers, and checks the app's own log line, which is what Guardian decided.
-    STRICT_ONLY = "scorecardresearch.com"
+    # 4f. G13 blocking strength. sentry.io is in HaGeZi Pro only: not in Light, not in Multi, and not in
+    # blocklist-extra.txt (which loads on every level; scorecardresearch.com is there, so it is no test).
+    # Subdomains are blocked by label-suffix matching; each step uses a fresh subdomain because netd caches.
+    STRICT_ONLY = "sentry.io"
 
     def pick_level(prefix):
         scroll_top()
