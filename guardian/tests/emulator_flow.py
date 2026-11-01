@@ -525,6 +525,22 @@ def main():
     snap("stopped-app")
     print("ok: stopped from the app")
 
+    # 5b. G12: stopping flushes the last interval, so today's durable count is above 0 even though
+    # the 60 s timer may not have fired; then "Clear block history" resets the row to 0.
+    m_hist = re.compile(r"Blocked today: (\d+) · last 7 days: (\d+)")
+    nodes = find_anywhere(lambda s: (lambda m: bool(m) and int(m.group(1)) > 0)(m_hist.search(s)),
+                          "Blocked today stayed 0 after blocking and stopping")
+    print("ok: " + m_hist.search(joined(nodes)).group(0))
+    nodes = scroll_find(lambda s: "Clear block history" in s, "no Clear block history button")
+    b = button(nodes, "Clear block history")
+    if not b:
+        fail("no Clear block history button", nodes)
+    tap(b)
+    find_anywhere(lambda s: "Blocked today: 0 · last 7 days: 0" in s, "history not cleared")
+    snap("history-cleared")
+    print("ok: Clear block history resets the row")
+    scroll_top()
+
     # 6. Start again, stop from the notification
     start_from_app()
     sh("input keyevent KEYCODE_HOME")

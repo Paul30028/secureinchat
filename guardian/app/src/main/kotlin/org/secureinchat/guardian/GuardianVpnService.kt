@@ -43,6 +43,13 @@ class GuardianVpnService : VpnService() {
     private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile private var notifRefresh: Runnable? = null
 
+    // G12: durable per-day block counts live in StatsStore. The running blocked counter is a Long
+    // in QueryHandler and resets on every service start; every STATS_FLUSH_MS we take the delta
+    // since the last flush and record it. A process kill between flushes costs at most one interval
+    // of counts, and a long session only writes on the flush tick, never once per query.
+    @Volatile private var lastFlushedBlocked: Long = 0L
+    @Volatile private var statsFlush: Runnable? = null
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
@@ -185,6 +192,10 @@ class GuardianVpnService : VpnService() {
                 )
             } catch (_: Throwable) {}
 
+            // G12: baseline the running counter, then start the periodic flush.
+            lastFlushedBlocked = 0L
+            scheduleStatsFlush()
+
             val t = Thread { readLoop(pfd) }
             t.name = "guardian-tun-read"
             readThread = t
@@ -276,6 +287,43 @@ class GuardianVpnService : VpnService() {
         notifRefresh = null
     }
 
+    // G12: every STATS_FLUSH_MS write the delta since the last flush into StatsStore, then re-arm.
+    // The Runnable re-schedules itself rather than using a fixed-rate executor so the interval
+    // survives the main looper being busy. The first tick is a full interval after start.
+    private fun scheduleStatsFlush() {
+        cancelStatsFlush()
+        val r = Runnable {
+            statsFlush = null
+            flushStatsNow()
+            scheduleStatsFlush()
+        }
+        statsFlush = r
+        mainHandler.postDelayed(r, STATS_FLUSH_MS)
+    }
+
+    private fun cancelStatsFlush() {
+        statsFlush?.let { mainHandler.removeCallbacks(it) }
+        statsFlush = null
+    }
+
+    // Snapshot the running counter, record the difference from the last flush, and remember the new
+    // baseline. Reading the snapshot first, then moving the baseline, is safe: any block that
+    // happens between the two steps is still counted in the next flush's delta, never double counted.
+    private fun flushStatsNow() {
+        val h = handler ?: return
+        val cur = h.snapshot().blocked
+        val prev = lastFlushedBlocked
+        if (cur <= prev) return
+        val delta = cur - prev
+        lastFlushedBlocked = cur
+        try {
+            StatsStore.record(
+                applicationContext,
+                if (delta > Int.MAX_VALUE.toLong()) Int.MAX_VALUE else delta.toInt()
+            )
+        } catch (_: Throwable) {}
+    }
+
     private fun startForegroundSafe() {
         val notif = buildNotification()
         if (Build.VERSION.SDK_INT >= 34) {
@@ -330,6 +378,9 @@ class GuardianVpnService : VpnService() {
 
     private fun stopVpnInternal() {
         cancelNotifRefresh()
+        // G12: capture whatever was blocked in the last interval before the handler goes away.
+        cancelStatsFlush()
+        flushStatsNow()
         startGeneration++
         running = false
         isRunning = false
@@ -367,6 +418,7 @@ class GuardianVpnService : VpnService() {
         const val ACTION_PAUSE = "org.secureinchat.guardian.action.PAUSE"
         const val ACTION_RESUME = "org.secureinchat.guardian.action.RESUME"
         const val PAUSE_DURATION_MS = 5 * 60 * 1000L
+        private const val STATS_FLUSH_MS = 60_000L
         private const val CHANNEL_ID = "guardian_vpn"
         private const val NOTIF_ID = 1
         private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")

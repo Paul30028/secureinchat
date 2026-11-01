@@ -46,6 +46,7 @@ class MainActivity : Activity() {
     private lateinit var alwaysOnView: TextView
     private lateinit var alwaysOnError: TextView
     private lateinit var statsView: TextView
+    private lateinit var historyView: TextView
     private lateinit var rulesView: TextView
     private lateinit var logView: TextView
     private lateinit var hintView: TextView
@@ -69,6 +70,8 @@ class MainActivity : Activity() {
     private var blockedSignature: String = ""
     private var allowedSignature: String = ""
     private var appListBuiltAt = 0L
+    // G12: signature so the "Blocked today" row is only re-rendered when its numbers change.
+    private var historySignature: String = ""
 
     private val uiHandler = Handler(Looper.getMainLooper())
     private val refreshTick = object : Runnable {
@@ -171,6 +174,14 @@ class MainActivity : Activity() {
             setPadding(0, pad / 2, 0, 0)
         }
         root.addView(statsView)
+
+        // G12: per-day block history, read from storage so it is shown even when the VPN is stopped.
+        // The in-session "Blocked: N" counter above resets on every service start; this does not.
+        historyView = TextView(this).apply {
+            textSize = 13f
+            setPadding(0, pad / 4, 0, 0)
+        }
+        root.addView(historyView)
 
         rulesView = TextView(this).apply {
             textSize = 13f
@@ -302,6 +313,14 @@ class MainActivity : Activity() {
         }
         root.addView(rulesIoError)
 
+        // G12: clears the durable block history. No confirmation dialog: it is a small counter, and
+        // the result is immediately visible in the "Blocked today" row above.
+        root.addView(Button(this).apply {
+            text = txt("Clear block history", "清除拦截记录")
+            textSize = 12f
+            setOnClickListener { onClearHistoryClicked() }
+        })
+
         // A little slack at the bottom so the last row is not glued to the scroll edge.
         // --- Always-on VPN (G9) ---------------------------------------------
         // At the bottom so the controls people use daily keep their place.
@@ -354,6 +373,14 @@ class MainActivity : Activity() {
         } catch (_: ActivityNotFoundException) {
             alwaysOnError.visibility = View.VISIBLE
         }
+    }
+
+    // G12: wipe the durable block history. The in-session "Blocked: N" counter above keeps its
+    // value; only the "Blocked today / last 7 days" row reads from StatsStore and will show 0.
+    private fun onClearHistoryClicked() {
+        StatsStore.clear(this)
+        historySignature = ""
+        uiHandler.post { refreshUi() }
     }
 
     // ACTION_CREATE_DOCUMENT opens the system picker in "save as" mode. The app never touches the
@@ -582,6 +609,8 @@ class MainActivity : Activity() {
             renderAllowedList()
         }
 
+        renderHistory()
+
         if (pdnsOn.isNotEmpty()) {
             if (hintView.visibility != View.VISIBLE) hintView.visibility = View.VISIBLE
             setIfChanged(hintView, txt(
@@ -591,6 +620,20 @@ class MainActivity : Activity() {
         } else if (hintView.visibility != View.GONE) {
             hintView.visibility = View.GONE
         }
+    }
+
+    // G12: cheap to read, so it is refreshed every tick alongside the in-session stats. The
+    // signature check keeps a setText off the common path when the numbers have not changed.
+    private fun renderHistory() {
+        val today = StatsStore.today(this)
+        val last7 = StatsStore.last7(this)
+        val sig = "$today/$last7"
+        if (sig == historySignature) return
+        historySignature = sig
+        setIfChanged(historyView, txt(
+            "Blocked today: $today · last 7 days: $last7",
+            "今天拦截 $today 次 · 最近 7 天 $last7 次"
+        ))
     }
 
     private fun renderLog(entries: List<LogEntry>) {

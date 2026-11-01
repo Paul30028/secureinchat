@@ -14,9 +14,20 @@ for p, s in src.items():
         if bad in s: fail.append(f'{rel}: public resolver {bad}')
     for bad in ['FileOutputStream(File(', 'openFileOutput', 'SharedPreferences', 'getSharedPreferences', 'HttpURLConnection', 'URL(']:
         # The user's allowlist is the one thing kept on disk, and only UserRulesStore.kt may touch storage.
-        if bad in ('SharedPreferences', 'getSharedPreferences') and rel.endswith('/UserRulesStore.kt'): continue
+        # G12: StatsStore.kt holds only per-day block counts (a date and an integer), never what was blocked.
+        if bad in ('SharedPreferences', 'getSharedPreferences') and (
+            rel.endswith('/UserRulesStore.kt') or rel.endswith('/StatsStore.kt')
+        ): continue
         if bad in s: fail.append(f'{rel}: {bad} (no disk logs, no HTTP)')
     if not s.startswith('// SPDX-License-Identifier: GPL-3.0-or-later'): fail.append(f'{rel}: missing SPDX header')
+    # G12: StatsStore must only ever hold per-day counts. Any reference to these identifiers is
+    # treated as a bug to catch before it ships, so the store cannot grow to remember what was
+    # blocked (only how many times). The regex uses word boundaries so it does not match, say,
+    # "guidelines"; test sources are already skipped above.
+    if rel.endswith('/StatsStore.kt'):
+        for pat in (r'\bdomain\b', r'\bqname\b', r'\buid\b'):
+            if re.search(pat, s, re.IGNORECASE):
+                fail.append(f'{rel}: forbidden identifier {pat} (StatsStore must only hold per-day counts)')
 man = os.path.join(ROOT, 'app', 'src', 'main', 'AndroidManifest.xml')
 if os.path.exists(man):
     m = open(man, encoding='utf-8').read()
