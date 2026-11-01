@@ -36,6 +36,12 @@ import {
   partitionExpired,
   nextExpiryMs,
   setDisappearAfter,
+  buildBackupPayload,
+  encryptBackup,
+  decryptBackup,
+  mergeRestore,
+  type StoredMessage,
+  type BackupPayload,
   type ConnectionStatus,
   type AnnouncementCategory,
 } from "@secureinchat/chat-core";
@@ -56,6 +62,7 @@ import { ConferenceScreen } from "./screens/ConferenceScreen";
 import { EditProfileScreen } from "./screens/EditProfileScreen";
 import { GroupSettingsScreen, disappearLabel } from "./screens/GroupSettingsScreen";
 import { GroupInviteScreen } from "./screens/GroupInviteScreen";
+import { BackupScreen } from "./screens/BackupScreen";
 import { isLockEnabled, disableLock } from "./appLock";
 import { checkCryptoStorage, type CapabilityResult } from "./capabilityCheck";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
@@ -122,6 +129,7 @@ type Screen =
   | { name: "editProfile" }
   | { name: "groupSettings"; groupId: string; from: "chat" | "list" }
   | { name: "groupInvite"; groupId: string; from: "chat" | "list" }
+  | { name: "backup" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -411,6 +419,106 @@ export function App() {
   // 首次设置昵称时，用户原本想做的事（加群/建群）先存这里，设置完再继续
   const pendingAfterProfileRef = useRef<(() => void) | null>(null);
   const [needsProfile, setNeedsProfile] = useState(false);
+
+  // 备份恢复：解密后的 payload 暂存在这里，等用户在预览里确认后再合并。
+  // 不放进 state，因为它可能很大，而且只有 handler 会读。
+  const pendingRestoreRef = useRef<BackupPayload | null>(null);
+
+  /**
+   * 导出备份。
+   * 从存储读，而不是从内存的 sessions 读——这样即使某个群当前没连上，
+   * 也能把它的历史备份出去。C8 已把媒体 base64 落盘，所以这里拿到的
+   * StoredMessage 自带媒体内容。
+   */
+  async function handleExportBackup(password: string): Promise<string> {
+    const store = await getDeviceStore();
+    const groups = await loadJoinedGroups(store);
+    const messagesByGroup: Record<string, StoredMessage[]> = {};
+    for (const g of groups) {
+      messagesByGroup[g.groupId] = await loadMessages(store, g.groupId);
+    }
+    const payload = buildBackupPayload(groups, messagesByGroup, nicknameRef.current, Date.now());
+    return encryptBackup(payload, password);
+  }
+
+  /**
+   * 解密备份并返回预览（不落盘）。
+   * 解密后的 payload 暂存到 pendingRestoreRef，等用户确认后再由
+   * handleConfirmRestore 执行合并。
+   */
+  async function handlePreviewRestore(
+    text: string,
+    password: string
+  ): Promise<{ groups: number; messages: number; skipped: number }> {
+    const payload = await decryptBackup(text, password);
+    pendingRestoreRef.current = payload;
+    // 预览按真正会发生的合并来算：本机已有的群不动，只报告新增的。
+    const store = await getDeviceStore();
+    const existingGroups = await loadJoinedGroups(store);
+    const merged = mergeRestore(existingGroups, {}, payload);
+    return { groups: merged.addedGroupIds.length, messages: merged.addedMessages, skipped: merged.skippedGroupIds.length };
+  }
+
+  /**
+   * 确认恢复：只添加本机没有的群和它们的消息，落盘，然后自动重连新群。
+   *
+   * 本机已有的群一律不动：它们的消息在内存会话里，写进存储的旧消息会在下一次保存时被覆盖；
+   * 而且旧备份的密钥和 epoch 不能盖过本机的（见 chat-core mergeRestore）。
+   * 写入走 saverRef 队列，和正常保存同一条顺序；写完把媒体告诉 C8 的 PersistedMediaCache，
+   * 否则下一次保存会把刚恢复的图片和语音写成 undefined。
+   */
+  async function handleConfirmRestore(): Promise<void> {
+    const payload = pendingRestoreRef.current;
+    if (!payload) throw new Error("没有待恢复的备份，请重新选择文件并解密");
+    pendingRestoreRef.current = null;
+    const store = await getDeviceStore();
+    const existingGroups = await loadJoinedGroups(store);
+    const merged = mergeRestore(existingGroups, {}, payload);
+    await saveJoinedGroups(store, merged.groups);
+    for (const groupId of merged.addedGroupIds) {
+      const messages = merged.messagesByGroup[groupId] ?? [];
+      await saverRef.current.enqueue(groupId, () => saveMessages(store, groupId, messages));
+      mediaCacheRef.current.seed(groupId, messages);
+    }
+    // 昵称：只在备份里有、且本机还没设过时补上——不要覆盖用户当前的选择
+    if (payload.nickname && !nicknameRef.current) {
+      await saveNickname(payload.nickname);
+      nicknameRef.current = payload.nickname;
+      setNickname(payload.nickname);
+    }
+    setDisappearAfterByGroup(
+      Object.fromEntries(merged.groups.map((g) => [g.groupId, g.disappearAfterMs ?? 0]))
+    );
+    // 自动重连恢复的群。恢复期间把 isAutoReconnectRef 设成 true，
+    // 避免第一个群触发 shouldOpenChat 把用户从备份页拽到聊天页。
+    const wasAutoReconnect = isAutoReconnectRef.current;
+    isAutoReconnectRef.current = true;
+    try {
+      for (const g of merged.groups) {
+        if (!merged.addedGroupIds.includes(g.groupId) || sessionsRef.current[g.groupId]) continue;
+        try {
+          await connectToGroup(
+            {
+              version: "SIC2",
+              isCompatMode: false,
+              serverJoinCode: "",
+              groupId: g.groupId,
+              keyMaterialB64Url: g.keyMaterialB64Url,
+              epoch: g.epoch,
+              ...(g.adminPublicKeyRawB64Url
+                ? { adminPublicKeyRawB64Url: g.adminPublicKeyRawB64Url }
+                : {}),
+            },
+            g.groupName
+          );
+        } catch {
+          // 单个群连不上不影响其他群；用户可在消息列表里重试
+        }
+      }
+    } finally {
+      isAutoReconnectRef.current = wasAutoReconnect;
+    }
+  }
 
   // 每个群本地的「消息定时消失」时长（毫秒），0 表示关闭。
   // 只影响自己之后发出的消息；收到的消息按消息里带的 expiresInMs 处理。
@@ -1594,6 +1702,17 @@ export function App() {
     );
   }
 
+  if (screen.name === "backup") {
+    return (
+      <BackupScreen
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onExport={handleExportBackup}
+        onPreviewRestore={handlePreviewRestore}
+        onConfirmRestore={handleConfirmRestore}
+      />
+    );
+  }
+
   if (screen.name === "devices") {
     const s = activeSession() ?? sortSessions(sessions)[0];
     return (
@@ -1754,6 +1873,7 @@ export function App() {
         biometricEnabled={biometricEnabled}
         onToggleBiometric={biometricSupported ? handleToggleBiometric : undefined}
         lockEnabled={lockEnabled}
+        onOpenBackup={() => setScreen({ name: "backup" })}
       />
     );
   }

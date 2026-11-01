@@ -46,6 +46,8 @@ export interface MessageListScreenProps {
   onToggleBiometric?: (() => void) | undefined;
   /** 应用锁是否已启用。未启用时点按生物识别行会引导去设置应用密码 */
   lockEnabled?: boolean | undefined;
+  /** 打开「备份与恢复」页面。不传就不显示这一行 */
+  onOpenBackup?: (() => void) | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -73,6 +75,7 @@ export function MessageListScreen({
   biometricEnabled,
   onToggleBiometric,
   lockEnabled,
+  onOpenBackup,
 }: MessageListScreenProps) {
   // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
   // 而不是像通用 IM 那样落在会话列表。
@@ -223,6 +226,25 @@ export function MessageListScreen({
                 {relayUrl}
               </div>
             </button>
+
+            {onOpenBackup ? (
+              <button
+                onClick={onOpenBackup}
+                style={{
+                  minHeight: touchTarget.minDp,
+                  marginTop: 8,
+                  textAlign: "left",
+                  background: "transparent",
+                  border: `0.5px solid ${colors.sageMint}`,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>备份与恢复</div>
+                <div style={{ fontSize: 11, color: "#9A9A94" }}>导出加密备份文件，换手机时恢复群和聊天记录</div>
+              </button>
+            ) : null}
 
             <button
               onClick={() => {

@@ -141,23 +141,20 @@ describe("mergeRestore", () => {
     expect(result.groups.map((g) => g.groupId).sort()).toEqual(["g1", "g2"]);
   });
 
-  it("消息按 id 去重：同 id 保留本机那条，备份补进新增的，按 sentAtMs 排序", () => {
+  it("本机已有的群：消息也不动，只报告为跳过", () => {
     const existingGroups: JoinedGroup[] = [makeGroup("g1")];
-    const existingMsgs: Record<string, StoredMessage[]> = {
-      g1: [makeMessage("a", 100), makeMessage("b", 300)],
-    };
+    const existingMsgs: Record<string, StoredMessage[]> = { g1: [makeMessage("a", 100)] };
     const payload: BackupPayload = {
       createdAtMs: 0,
-      groups: [makeGroup("g1")],
-      messagesByGroup: {
-        g1: [makeMessage("a", 100, "备份里的 a"), makeMessage("c", 200)],
-      },
+      groups: [makeGroup("g1"), makeGroup("g2")],
+      messagesByGroup: { g1: [makeMessage("old", 50)], g2: [makeMessage("b", 2), makeMessage("b", 2), makeMessage("a2", 1)] },
     };
     const result = mergeRestore(existingGroups, existingMsgs, payload);
-    const g1 = result.messagesByGroup["g1"];
-    expect(g1?.map((m) => m.id)).toEqual(["a", "c", "b"]);
-    // 同 id 保留本机那条
-    expect(g1?.[0]?.text).toBe("消息 a");
+    expect(result.messagesByGroup["g1"]).toBe(existingMsgs["g1"]);
+    expect(result.messagesByGroup["g2"]?.map((m) => m.id)).toEqual(["a2", "b"]);
+    expect(result.addedGroupIds).toEqual(["g2"]);
+    expect(result.skippedGroupIds).toEqual(["g1"]);
+    expect(result.addedMessages).toBe(2);
   });
 
   it("备份里有、本机没有的群，消息也一起合并", () => {

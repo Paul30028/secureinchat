@@ -246,6 +246,12 @@ function isBackupPayload(v: unknown): v is BackupPayload {
 export interface MergeRestoreResult {
   groups: JoinedGroup[];
   messagesByGroup: Record<string, StoredMessage[]>;
+  /** 本次新添加的群（本机原来没有） */
+  addedGroupIds: string[];
+  /** 备份里有、但本机已有而保持不动的群 */
+  skippedGroupIds: string[];
+  /** 写入新群的消息条数（去重、截断之后） */
+  addedMessages: number;
 }
 
 function isRestorableGroup(v: unknown): v is JoinedGroup {
@@ -281,14 +287,13 @@ function isRestorableMessage(v: unknown): v is StoredMessage {
 /**
  * 把备份合并到本机现有数据。
  *
- * - 群：本机已有的群**完全以本机为准**，备份里的同一个群被忽略。
- *   原因：备份可能是旧的，里面的密钥材料和 epoch 也是旧的。如果用它覆盖，
- *   群会退回旧 epoch——这正是「epoch 不高于当前的邀请码一律忽略」要防的降级，
- *   被移除成员换钥之后，旧备份不能把旧钥匙带回来。
- *   备份里有、本机没有的群直接加进来。
- * - 结构不合法的群和消息丢弃，不让一个坏文件写进存储。
- * - 消息：按 id 去重，同一个 id 保留本机那条；只合并到最终存在的群；
- *   合并后按 sentAtMs 排序，再用 trimToLimit 截断到上限。
+ * 规则只有一条：**本机已有的群完全不动**（群设置和消息都不动），只添加本机没有的群和它们的消息。
+ * - 群：备份可能是旧的，里面的密钥材料和 epoch 也是旧的。用它覆盖会把群退回旧 epoch——
+ *   这正是「epoch 不高于当前的邀请码一律忽略」要防的降级。
+ * - 消息：已连接的群，消息列表在内存会话里，每次保存都整体写回存储；往存储里补旧消息会在
+ *   下一次保存时被覆盖掉。只给新添加的群写消息，就不会出现「恢复了又丢了」。
+ * - 结构不合法的群和消息丢弃；带倒计时的消息即使出现在手改过的文件里也丢弃。
+ * 新群的消息按 id 去重、按 sentAtMs 排序，再用 trimToLimit 截断到上限。
  */
 export function mergeRestore(
   existingGroups: JoinedGroup[],
@@ -297,24 +302,32 @@ export function mergeRestore(
 ): MergeRestoreResult {
   const localIds = new Set(existingGroups.map((g) => g.groupId));
   let groups = existingGroups;
+  const added: string[] = [];
+  const skipped: string[] = [];
   for (const g of payload.groups as unknown[]) {
-    if (!isRestorableGroup(g) || localIds.has(g.groupId)) continue;
+    if (!isRestorableGroup(g)) continue;
+    if (localIds.has(g.groupId)) {
+      if (!skipped.includes(g.groupId)) skipped.push(g.groupId);
+      continue;
+    }
+    if (added.includes(g.groupId)) continue;
     groups = upsertGroup(groups, g);
+    added.push(g.groupId);
   }
-  const finalIds = new Set(groups.map((g) => g.groupId));
 
   const messagesByGroup: Record<string, StoredMessage[]> = { ...existingMessagesByGroup };
-  for (const [groupId, incoming] of Object.entries(payload.messagesByGroup)) {
-    if (!finalIds.has(groupId) || !Array.isArray(incoming)) continue;
-    const existing = messagesByGroup[groupId] ?? [];
+  let addedMessages = 0;
+  for (const groupId of added) {
+    const incoming = payload.messagesByGroup[groupId];
+    if (!Array.isArray(incoming)) continue;
     const byId = new Map<string, StoredMessage>();
-    for (const m of existing) byId.set(m.id, m);
     for (const m of incoming as unknown[]) {
       if (isRestorableMessage(m) && !byId.has(m.id)) byId.set(m.id, m);
     }
-    const merged = [...byId.values()].sort((a, b) => a.sentAtMs - b.sentAtMs);
-    messagesByGroup[groupId] = trimToLimit(merged);
+    const merged = trimToLimit([...byId.values()].sort((a, b) => a.sentAtMs - b.sentAtMs));
+    messagesByGroup[groupId] = merged;
+    addedMessages += merged.length;
   }
 
-  return { groups, messagesByGroup };
+  return { groups, messagesByGroup, addedGroupIds: added, skippedGroupIds: skipped, addedMessages };
 }
