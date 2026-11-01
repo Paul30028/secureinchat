@@ -8,6 +8,23 @@ object UserRulesStore {
     private const val PREFS = "user_rules"
     private const val KEY_ALLOWED = "allowed"
     private const val KEY_BLOCKED = "blocked"
+    // G13: blocking strength. Kept in the same prefs as the user rules because it is a user setting
+    // that only this app reads, and policy_check already allows SharedPreferences here.
+    private const val KEY_LEVEL = "level"
+
+    /** One of "light" (default), "normal", "pro". An unrecognised value falls back to "light". */
+    fun level(ctx: Context): String {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val v = prefs.getString(KEY_LEVEL, "light") ?: "light"
+        return if (v == "light" || v == "normal" || v == "pro") v else "light"
+    }
+
+    /** Invalid values are ignored, so a bad caller cannot put the store into a state it cannot read. */
+    fun setLevel(ctx: Context, level: String) {
+        if (level != "light" && level != "normal" && level != "pro") return
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_LEVEL, level).apply()
+    }
 
     fun allowed(ctx: Context): Set<String> = readSet(ctx, KEY_ALLOWED)
 

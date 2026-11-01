@@ -515,6 +515,43 @@ def main():
     nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after cancelling the export picker")
     print("ok: Export opens the document picker")
 
+    # 4f. G13 blocking strength. scorecardresearch.com is in HaGeZi Pro only (not Light or Multi);
+    # subdomains are blocked by label-suffix matching. Each step uses a fresh subdomain because netd
+    # caches answers, and checks the app's own log line, which is what Guardian decided.
+    STRICT_ONLY = "scorecardresearch.com"
+
+    def pick_level(prefix):
+        scroll_top()
+        nodes = scroll_find(lambda s: prefix in s, f"no '{prefix}' option")
+        for t, d, b, c in nodes:
+            if c.endswith("RadioButton") and t.startswith(prefix) and b:
+                tap(b)
+                break
+        else:
+            fail(f"no radio button starting with '{prefix}'", nodes)
+        time.sleep(1)
+        # isLoading shows "Loading list…" in the status line; Running means the new list is in place.
+        wait_ui(lambda s: "Status: Running" in s and "Loading list" not in s,
+                f"still loading after choosing {prefix}", timeout=90)
+
+    resolve("g13a." + STRICT_ONLY, tries=2)
+    find_anywhere(lambda s: f"ALLOW g13a.{STRICT_ONLY}" in s, f"Light should forward g13a.{STRICT_ONLY}")
+    print(f"ok: Light forwards {STRICT_ONLY}")
+
+    pick_level("Strict")
+    addr, out = resolve("g13b." + STRICT_ONLY)
+    if addr not in ("0.0.0.0", "127.0.0.1"):
+        fail(f"Strict did not block g13b.{STRICT_ONLY}: {addr} {out[-200:]}")
+    find_anywhere(lambda s: f"BLOCK g13b.{STRICT_ONLY}" in s, f"log does not show BLOCK g13b.{STRICT_ONLY}")
+    snap("level-strict")
+    print(f"ok: Strict blocks {STRICT_ONLY}")
+
+    pick_level("Light")
+    resolve("g13c." + STRICT_ONLY, tries=2)
+    find_anywhere(lambda s: f"ALLOW g13c.{STRICT_ONLY}" in s, f"back on Light, g13c.{STRICT_ONLY} not forwarded")
+    print("ok: back to Light")
+    scroll_top()
+
     # 5. Stop from the app
     b = button(nodes, "Stop")
     if not b:

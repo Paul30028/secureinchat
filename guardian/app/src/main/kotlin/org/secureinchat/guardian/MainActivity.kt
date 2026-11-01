@@ -29,6 +29,8 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import java.text.SimpleDateFormat
@@ -65,6 +67,11 @@ class MainActivity : Activity() {
     // the user can read it (and so the emulator flow can find it).
     private lateinit var rulesIoError: TextView
 
+    // G13: blocking strength radio group. The flag prevents the OnCheckedChangeListener from
+    // firing back to storage when refreshUi/onResume syncs the buttons from prefs.
+    private lateinit var levelGroup: RadioGroup
+    private var settingLevelProgrammatically = false
+
     private var appListSignature: String = ""
     private var blockedSignature: String = ""
     private var allowedSignature: String = ""
@@ -99,6 +106,10 @@ class MainActivity : Activity() {
         super.onResume()
         // The user may have just changed Always-on in system settings.
         GuardianVpnService.refreshAlwaysOn()
+        // G13: if the stored level changed elsewhere (or a reload fell back to light on error),
+        // bring the radio buttons back in line. Runs after onCreate, so it also covers the first
+        // frame.
+        syncLevelRadio()
         uiHandler.post(refreshTick)
     }
     override fun onPause() { super.onPause(); uiHandler.removeCallbacks(refreshTick) }
@@ -164,6 +175,42 @@ class MainActivity : Activity() {
             setOnClickListener { onPauseResumeClicked() }
         }
         root.addView(pauseBtn)
+
+        // G13: blocking strength. Radio buttons rather than a spinner: three options fit on screen
+        // and each one needs a one-line description the user can compare. The chosen tier is saved
+        // immediately; GuardianVpnService.applyLevel reloads the asset in the background if the VPN
+        // is running, otherwise it takes effect on the next start.
+        root.addView(TextView(this).apply {
+            textSize = 14f
+            text = txt("Blocking strength", "拦截强度")
+            setPadding(0, pad / 2, 0, pad / 4)
+        })
+        val levelKeys = arrayOf("light", "normal", "pro")
+        val levelLabels = arrayOf(
+            txt("Light — fewest broken sites (default)", "轻度——最少误拦(默认)"),
+            txt("Standard — more trackers blocked", "标准——拦得更多"),
+            txt(
+                "Strict — most blocked; some sites or apps may break, use Allow to fix",
+                "严格——拦得最多;个别网站或应用可能出问题,可用「放行」修复"
+            )
+        )
+        levelGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        for (i in levelKeys.indices) {
+            levelGroup.addView(RadioButton(this).apply {
+                text = levelLabels[i]
+                textSize = 13f
+                tag = levelKeys[i]
+            })
+        }
+        levelGroup.setOnCheckedChangeListener { _, checkedId ->
+            if (settingLevelProgrammatically) return@setOnCheckedChangeListener
+            val rb = levelGroup.findViewById<RadioButton>(checkedId) ?: return@setOnCheckedChangeListener
+            val level = rb.tag as? String ?: return@setOnCheckedChangeListener
+            UserRulesStore.setLevel(this, level)
+            GuardianVpnService.applyLevel(applicationContext)
+            uiHandler.post { refreshUi() }
+        }
+        root.addView(levelGroup)
 
         statsView = TextView(this).apply {
             textSize = 14f
@@ -461,6 +508,23 @@ class MainActivity : Activity() {
         appListSignature = ""
         rulesIoError.visibility = View.GONE
         uiHandler.post { refreshUi() }
+    }
+
+    // G13: make the radio buttons reflect what UserRulesStore says. Setting isChecked fires the
+    // OnCheckedChangeListener, so the flag is set for the whole loop and the listener short-circuits.
+    private fun syncLevelRadio() {
+        if (!::levelGroup.isInitialized) return
+        val level = UserRulesStore.level(this)
+        settingLevelProgrammatically = true
+        try {
+            for (i in 0 until levelGroup.childCount) {
+                val rb = levelGroup.getChildAt(i) as? RadioButton ?: continue
+                val match = (rb.tag as? String) == level
+                if (rb.isChecked != match) rb.isChecked = match
+            }
+        } finally {
+            settingLevelProgrammatically = false
+        }
     }
 
     private fun renderAlwaysOnRow() {
