@@ -1,0 +1,761 @@
+任务 C9b(聊天 App):备份导出在 Android 真机上能保存文件——写一个自己的原生插件，不加依赖。之后的 C10 决定也写在最后，供你了解方向。
+
+背景:你在 C9 答复里提醒「Android WebView 里 a[download] 可能不工作」。这是对的:Capacitor 的 Android WebView 默认不处理 blob: URL 的下载，点「生成备份文件」在真机上很可能什么都不发生。C9 已合并(BackupScreen.tsx 里 downloadText 用 a[download])。恢复用的 <input type="file"> 不受影响(Capacitor 的 BridgeWebChromeClient 已经处理文件选择器)，不用改。
+
+需求:
+1. 新文件 apps/android-client/android/app/src/main/java/com/sic/invitechat/next/DocumentSavePlugin.java
+   - @CapacitorPlugin(name = "DocumentSave")，一个方法 save({ fileName: string, mimeType: string, text: string })。
+   - 用 Intent.ACTION_CREATE_DOCUMENT(CATEGORY_OPENABLE，EXTRA_TITLE = fileName，type = mimeType)让用户选保存位置;用 Capacitor 的 startActivityForResult + @ActivityCallback 接结果;拿到 Uri 后用 ContentResolver.openOutputStream(uri, "wt") 写入 UTF-8 文本并关闭。
+   - 结果:成功 resolve { saved: true, name: <系统返回的显示名，拿不到就用 fileName> };用户取消 resolve { saved: false }(不是 reject);写入失败 reject，消息里写清楚原因。
+   - 不申请任何存储权限(SAF 不需要);不保留 Uri 的持久权限;不在 Java 里记录文本内容到 logcat。
+   - MainActivity.java 里 registerPlugin(DocumentSavePlugin.class)，和现有两个插件一样放在 super.onCreate 之前。
+2. 新文件 apps/android-client/src/documentSave.ts:
+   - registerPlugin<...>("DocumentSave")。
+   - export async function saveTextFile(fileName, mimeType, text): Promise<"saved" | "cancelled">:原生平台走插件;非原生平台(Web)走现在的 a[download] 逻辑并返回 "saved"。
+3. BackupScreen.tsx:把 downloadText 换成 saveTextFile。成功文案保持「备份已保存。请把文件放到安全的地方——密码忘了就打不开了。」(把「已下载」改成「已保存」);用户取消时不显示错误，也不显示成功，只把按钮恢复可点。导出密码在取消后保留(用户可能只是想换个位置再存一次);保存成功后才清空。
+4. 测试:BackupScreen.test.tsx 里 mock documentSave 模块(vi.mock("../src/documentSave"))，覆盖:保存成功显示「备份已保存」、取消时没有提示且密码还在、保存失败显示错误。documentSave.ts 在非原生环境下的分支也测一下(jsdom 里 Capacitor.isNativePlatform() 返回 false)。
+5. 不改 chat-core，不改恢复流程。
+
+规则同前:不加依赖、不加权限、中文文案、保留现有注释、长文件只给「锚点(原文逐字，唯一)→ 替换」片段;新文件给完整内容;不写进度百分比。
+
+—— 关于 C10(仅供了解，这一轮不做)——
+我看了你的方案比较，结论:先做 A(Android Keystore 硬件密钥包裹主密钥，StrongBox 优先、失败回退 TEE)，作为 M1;C(硬件 + PIN 两层)作为 M2 目标架构;B 单独不用。M1 阶段 HK 不绑定用户认证(冷启动不弹系统认证)，在 README 和界面如实写明:防「拷走应用数据目录离线解密」，不防「已解锁设备上的在线提取」。迁移用你提的双密钥 keyring + 后台全量迁移;设备签名密钥的硬件化放到后续里程碑。C9b 完成后我会发 C10-A 的正式规格。
+
+当前源码(以此为准):
+
+=== apps/android-client/src/screens/BackupScreen.tsx ===
+import { useRef, useState } from "react";
+import { colors, touchTarget, Button } from "@secureinchat/ui";
+
+/** 备份密码最短长度。和 chat-core 的 MIN_BACKUP_PASSWORD_LENGTH 保持一致。 */
+const MIN_BACKUP_PASSWORD_LENGTH = 10;
+
+export interface RestorePreview {
+  /** 将新添加的群（本机原来没有的） */
+  groups: number;
+  /** 将写入这些新群的消息条数 */
+  messages: number;
+  /** 备份里有、但本机已有而保持不动的群 */
+  skipped?: number | undefined;
+}
+
+export interface BackupScreenProps {
+  onBack: () => void;
+  /** 导出：读存储、生成加密备份文本。密码太短或存储读取失败时抛错。 */
+  onExport: (password: string) => Promise<string>;
+  /** 解密备份文件，返回预览（不落盘）。解密失败时抛错。 */
+  onPreviewRestore: (text: string, password: string) => Promise<RestorePreview>;
+  /** 确认合并：使用最近一次 onPreviewRestore 的结果。 */
+  onConfirmRestore: () => Promise<void>;
+}
+
+function formatDateForFilename(now: Date): string {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}${m}${d}`;
+}
+
+function downloadText(filename: string, text: string): void {
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  // 延迟释放：某些浏览器在 click 后同步 revoke 会导致下载失败
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const inputStyle = {
+  minHeight: touchTarget.minDp,
+  width: "100%",
+  boxSizing: "border-box" as const,
+  border: `0.5px solid ${colors.sageMint}`,
+  borderRadius: 14,
+  padding: "0 16px",
+  fontSize: 14,
+  background: colors.ivory,
+  color: colors.textPrimary,
+  boxShadow: "none",
+};
+
+const errorStyle = {
+  color: "#A33",
+  fontSize: 12,
+  margin: 0,
+  lineHeight: 1.6,
+};
+
+const successStyle = {
+  color: colors.deepInkGreen,
+  fontSize: 12,
+  margin: 0,
+  lineHeight: 1.6,
+};
+
+type Mode = "export" | "restore";
+
+/**
+ * 加密备份与恢复。
+ *
+ * 备份里有群和聊天记录，用用户设的密码加密（PBKDF2 + AES-GCM）。
+ * 不包含设备身份密钥（在系统 Keystore 里，不可导出）和管理员私钥
+ * （走「管理员恢复码」这条路）。正在倒计时的阅后即焚消息也不备份——
+ * 对方期望它到点消失。
+ *
+ * 导出：输两遍密码 → 生成加密文本 → 用 a[download] 触发浏览器下载。
+ * 恢复：选文件 → 输密码 → 解密并预览（N 个群、M 条消息）→ 确认后合并。
+ */
+export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRestore }: BackupScreenProps) {
+  const [mode, setMode] = useState<Mode>("export");
+
+  // 导出状态
+  const [exportPassword, setExportPassword] = useState("");
+  const [exportConfirm, setExportConfirm] = useState("");
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportDone, setExportDone] = useState(false);
+
+  // 恢复状态
+  const [restoreText, setRestoreText] = useState<string | null>(null);
+  const [restoreFileName, setRestoreFileName] = useState<string>("");
+  const [restorePassword, setRestorePassword] = useState("");
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [restoreBusy, setRestoreBusy] = useState(false);
+  const [preview, setPreview] = useState<RestorePreview | null>(null);
+  const [restoreDone, setRestoreDone] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleExport() {
+    setExportError(null);
+    setExportDone(false);
+    if (exportPassword.length < MIN_BACKUP_PASSWORD_LENGTH) {
+      setExportError(`备份密码至少 ${MIN_BACKUP_PASSWORD_LENGTH} 个字符`);
+      return;
+    }
+    if (exportPassword !== exportConfirm) {
+      setExportError("两次输入的密码不一致");
+      return;
+    }
+    setExportBusy(true);
+    try {
+      const text = await onExport(exportPassword);
+      const filename = `secureinchat-backup-${formatDateForFilename(new Date())}.json`;
+      downloadText(filename, text);
+      setExportDone(true);
+      setExportPassword("");
+      setExportConfirm("");
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "生成备份失败，请重试");
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
+  async function handleFileChosen(file: File) {
+    setRestoreError(null);
+    setPreview(null);
+    setRestoreDone(false);
+    try {
+      const text = await readFileAsText(file);
+      setRestoreText(text);
+      setRestoreFileName(file.name);
+    } catch {
+      setRestoreError("读取文件失败");
+      setRestoreText(null);
+      setRestoreFileName("");
+    }
+  }
+
+  async function handlePreview() {
+    if (!restoreText) return;
+    setRestoreError(null);
+    setPreview(null);
+    setRestoreDone(false);
+    setRestoreBusy(true);
+    try {
+      const result = await onPreviewRestore(restoreText, restorePassword);
+      setPreview(result);
+    } catch (err) {
+      // 解密失败统一提示，不区分「密码错」和「文件被改」
+      setRestoreError(err instanceof Error ? err.message : "密码不对，或文件已损坏");
+    } finally {
+      setRestoreBusy(false);
+    }
+  }
+
+  async function handleConfirmRestore() {
+    setRestoreError(null);
+    setRestoreBusy(true);
+    try {
+      await onConfirmRestore();
+      setRestoreDone(true);
+      setPreview(null);
+      setRestoreText(null);
+      setRestorePassword("");
+      setRestoreFileName("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err) {
+      setRestoreError(err instanceof Error ? err.message : "恢复失败，请重试");
+    } finally {
+      setRestoreBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ minHeight: "100%", background: colors.ivory, padding: 24, overflowY: "auto" }}>
+      <button
+        onClick={onBack}
+        aria-label="返回"
+        style={{
+          background: "transparent",
+          border: "none",
+          boxShadow: "none",
+          color: colors.deepInkGreen,
+          fontSize: 14,
+          marginBottom: 16,
+          cursor: "pointer",
+          minHeight: touchTarget.minDp,
+        }}
+      >
+        ← 返回
+      </button>
+
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 8px" }}>备份与恢复</h1>
+      <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "0 0 20px" }}>
+        备份里有你的群和聊天记录，用你设的密码加密。忘记密码就无法恢复。
+        设备密钥和管理员私钥不在备份里——管理员请另外保存好管理员恢复码。
+        正在倒计时的阅后即焚消息不会被备份。
+      </p>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <Button
+          variant={mode === "export" ? "primary" : "secondary"}
+          onClick={() => setMode("export")}
+          style={{ flex: 1 }}
+        >
+          导出备份
+        </Button>
+        <Button
+          variant={mode === "restore" ? "primary" : "secondary"}
+          onClick={() => setMode("restore")}
+          style={{ flex: 1 }}
+        >
+          从备份恢复
+        </Button>
+      </div>
+
+      {mode === "export" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ fontSize: 14, color: colors.textPrimary }}>设置备份密码</div>
+          <input
+            type="password"
+            value={exportPassword}
+            onChange={(e) => {
+              setExportPassword(e.target.value);
+              setExportError(null);
+              setExportDone(false);
+            }}
+            aria-label="备份密码输入框"
+            placeholder={`至少 ${MIN_BACKUP_PASSWORD_LENGTH} 个字符`}
+            style={inputStyle}
+          />
+          <input
+            type="password"
+            value={exportConfirm}
+            onChange={(e) => {
+              setExportConfirm(e.target.value);
+              setExportError(null);
+              setExportDone(false);
+            }}
+            aria-label="再次输入备份密码"
+            placeholder="再输一次"
+            style={inputStyle}
+          />
+          {exportError ? (
+            <p role="alert" style={errorStyle}>
+              {exportError}
+            </p>
+          ) : null}
+          {exportDone ? (
+            <p role="status" style={successStyle}>
+              备份已下载。请把文件放到安全的地方——密码忘了就打不开了。
+            </p>
+          ) : null}
+          <Button
+            variant="primary"
+            onClick={() => void handleExport()}
+            disabled={exportBusy || exportPassword.length === 0 || exportConfirm.length === 0}
+          >
+            {exportBusy ? "生成中..." : "生成备份文件"}
+          </Button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ fontSize: 14, color: colors.textPrimary }}>选择备份文件</div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleFileChosen(file);
+            }}
+            aria-label="选择备份文件"
+            style={{
+              minHeight: touchTarget.minDp,
+              fontSize: 13,
+              color: colors.textPrimary,
+            }}
+          />
+          {restoreFileName ? (
+            <p style={{ fontSize: 11, color: "#9A9A94", margin: 0 }}>已选择：{restoreFileName}</p>
+          ) : null}
+
+          <div style={{ fontSize: 14, color: colors.textPrimary, marginTop: 8 }}>输入备份密码</div>
+          <input
+            type="password"
+            value={restorePassword}
+            onChange={(e) => {
+              setRestorePassword(e.target.value);
+              setRestoreError(null);
+              setPreview(null);
+            }}
+            aria-label="恢复密码输入框"
+            placeholder="导出时设置的密码"
+            style={inputStyle}
+          />
+
+          {restoreError ? (
+            <p role="alert" style={errorStyle}>
+              {restoreError}
+            </p>
+          ) : null}
+
+          {preview ? (
+            <div
+              style={{
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "12px 14px",
+                background: `${colors.sageMint}22`,
+              }}
+            >
+              <p style={{ fontSize: 13, color: colors.textPrimary, margin: 0 }}>
+                将恢复 {preview.groups} 个群、{preview.messages} 条消息。
+              </p>
+              {preview.skipped ? (
+                <p style={{ fontSize: 12, color: colors.textPrimary, margin: "6px 0 0" }}>
+                  另有 {preview.skipped} 个群本机已有，保持不变，不导入它们的旧记录。
+                </p>
+              ) : null}
+              <p style={{ fontSize: 11, color: "#9A9A94", margin: "6px 0 0", lineHeight: 1.6 }}>
+                只添加本机没有的群，不会改动已有的群和消息。恢复后会自动重连新添加的群。
+              </p>
+            </div>
+          ) : null}
+
+          {restoreDone ? (
+            <p role="status" style={successStyle}>
+              恢复完成。回到消息列表就能看到恢复的群。
+            </p>
+          ) : null}
+
+          {!preview ? (
+            <Button
+              variant="primary"
+              onClick={() => void handlePreview()}
+              disabled={restoreBusy || !restoreText || restorePassword.length === 0}
+            >
+              {restoreBusy ? "解密中..." : "解密并预览"}
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={() => void handleConfirmRestore()} disabled={restoreBusy}>
+              {restoreBusy ? "恢复中..." : "确认恢复"}
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * File.text() only exists from Chrome 76; older Android System WebViews (and jsdom) lack it.
+ * FileReader works everywhere, so use it when text() is missing.
+ */
+function readFileAsText(file: File): Promise<string> {
+  if (typeof (file as { text?: unknown }).text === "function") return file.text();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () => reject(reader.error ?? new Error("read failed"));
+    reader.readAsText(file);
+  });
+}
+
+=== apps/android-client/test/BackupScreen.test.tsx ===
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { BackupScreen } from "../src/screens/BackupScreen";
+
+function renderScreen(overrides: {
+  onExport?: (password: string) => Promise<string>;
+  onPreviewRestore?: (text: string, password: string) => Promise<{ groups: number; messages: number }>;
+  onConfirmRestore?: () => Promise<void>;
+} = {}) {
+  const onExport = overrides.onExport ?? vi.fn().mockResolvedValue("{\"format\":\"sic-backup\"}");
+  const onPreviewRestore = overrides.onPreviewRestore ?? vi.fn().mockResolvedValue({ groups: 2, messages: 5 });
+  const onConfirmRestore = overrides.onConfirmRestore ?? vi.fn().mockResolvedValue(undefined);
+  render(
+    <BackupScreen
+      onBack={vi.fn()}
+      onExport={onExport}
+      onPreviewRestore={onPreviewRestore}
+      onConfirmRestore={onConfirmRestore}
+    />
+  );
+  return { onExport, onPreviewRestore, onConfirmRestore };
+}
+
+describe("BackupScreen 导出", () => {
+  it("两次密码不一致时显示提示，不调用 onExport", () => {
+    const { onExport } = renderScreen();
+    fireEvent.change(screen.getByLabelText("备份密码输入框"), { target: { value: "1234567890" } });
+    fireEvent.change(screen.getByLabelText("再次输入备份密码"), { target: { value: "1234567891" } });
+    fireEvent.click(screen.getByText("生成备份文件"));
+    expect(screen.getByRole("alert")).toHaveTextContent("两次输入的密码不一致");
+    expect(onExport).not.toHaveBeenCalled();
+  });
+
+  it("密码太短时显示提示，不调用 onExport", () => {
+    const { onExport } = renderScreen();
+    fireEvent.change(screen.getByLabelText("备份密码输入框"), { target: { value: "short" } });
+    fireEvent.change(screen.getByLabelText("再次输入备份密码"), { target: { value: "short" } });
+    fireEvent.click(screen.getByText("生成备份文件"));
+    expect(screen.getByRole("alert")).toHaveTextContent("至少 10 个字符");
+    expect(onExport).not.toHaveBeenCalled();
+  });
+
+  it("密码合法时调用 onExport，成功后显示下载提示", async () => {
+    const onExport = vi.fn().mockResolvedValue("{\"format\":\"sic-backup\"}");
+    renderScreen({ onExport });
+    fireEvent.change(screen.getByLabelText("备份密码输入框"), { target: { value: "0123456789" } });
+    fireEvent.change(screen.getByLabelText("再次输入备份密码"), { target: { value: "0123456789" } });
+    fireEvent.click(screen.getByText("生成备份文件"));
+    await waitFor(() => expect(onExport).toHaveBeenCalledWith("0123456789"));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("备份已下载")
+    );
+  });
+});
+
+describe("BackupScreen 恢复", () => {
+  it("错密码时显示解密失败的提示", async () => {
+    const onPreviewRestore = vi
+      .fn()
+      .mockRejectedValue(new Error("密码不对，或文件已损坏"));
+    renderScreen({ onPreviewRestore });
+
+    // 切到恢复 tab
+    fireEvent.click(screen.getByText("从备份恢复"));
+
+    // 选文件（jsdom 里用 fireEvent.change 模拟）
+    const file = new File(["{}"], "backup.json", { type: "application/json" });
+    const input = screen.getByLabelText("选择备份文件");
+    fireEvent.change(input, { target: { files: [file] } });
+    // 读文件是异步的：等「已选择」出现，说明内容已读进来
+    await screen.findByText("已选择：backup.json");
+
+    fireEvent.change(screen.getByLabelText("恢复密码输入框"), { target: { value: "wrong-password" } });
+    fireEvent.click(screen.getByText("解密并预览"));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("密码不对，或文件已损坏")
+    );
+  });
+
+  it("解密成功后显示将恢复的群和消息数量；确认后调用 onConfirmRestore", async () => {
+    const onPreviewRestore = vi.fn().mockResolvedValue({ groups: 3, messages: 12 });
+    const onConfirmRestore = vi.fn().mockResolvedValue(undefined);
+    renderScreen({ onPreviewRestore, onConfirmRestore });
+
+    fireEvent.click(screen.getByText("从备份恢复"));
+    const file = new File(["{}"], "backup.json", { type: "application/json" });
+    const input = screen.getByLabelText("选择备份文件");
+    fireEvent.change(input, { target: { files: [file] } });
+    // 读文件是异步的：等「已选择」出现，说明内容已读进来
+    await screen.findByText("已选择：backup.json");
+    fireEvent.change(screen.getByLabelText("恢复密码输入框"), { target: { value: "0123456789" } });
+    fireEvent.click(screen.getByText("解密并预览"));
+
+    await waitFor(() =>
+      expect(screen.getByText("将恢复 3 个群、12 条消息。")).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByText("确认恢复"));
+    await waitFor(() => expect(onConfirmRestore).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("恢复完成")
+    );
+  });
+});
+
+=== apps/android-client/android/app/src/main/java/com/sic/invitechat/next/MainActivity.java ===
+package com.sic.invitechat.next;
+
+import android.os.Bundle;
+
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(ScreenSecurityPlugin.class);
+        registerPlugin(BiometricPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+
+=== apps/android-client/android/app/src/main/java/com/sic/invitechat/next/BiometricPlugin.java ===
+package com.sic.invitechat.next;
+
+import android.hardware.biometrics.BiometricManager;
+import android.hardware.biometrics.BiometricPrompt;
+import android.os.Build;
+import android.os.CancellationSignal;
+
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * 指纹/面部解锁。只做两件事：查硬件可用性，弹一次系统验证。
+ * 不读取、不保存任何生物特征数据——验证成功等同于"输对了 PIN"，
+ * 由 JS 层决定是否解锁，PIN 始终是唯一的后备方式。
+ *
+ * 用系统框架的 android.hardware.biometrics.*（API 28/29+），
+ * 不引入 androidx.biometric。API < 29 一律视为不可用。
+ */
+@CapacitorPlugin(name = "Biometric")
+public class BiometricPlugin extends Plugin {
+
+    @PluginMethod
+    public void isAvailable(PluginCall call) {
+        JSObject result = new JSObject();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            result.put("available", false);
+            result.put("reason", "api");
+            call.resolve(result);
+            return;
+        }
+        try {
+            // Framework API (not androidx): the manager comes from the system service.
+            BiometricManager manager = getActivity().getSystemService(BiometricManager.class);
+            if (manager == null) {
+                result.put("available", false);
+                result.put("reason", "unavailable");
+                call.resolve(result);
+                return;
+            }
+            int status;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                int authenticators = BiometricManager.Authenticators.BIOMETRIC_STRONG
+                        | BiometricManager.Authenticators.BIOMETRIC_WEAK;
+                status = manager.canAuthenticate(authenticators);
+            } else {
+                // API 29：只有无参版本
+                status = manager.canAuthenticate();
+            }
+            boolean available = status == BiometricManager.BIOMETRIC_SUCCESS;
+            result.put("available", available);
+            switch (status) {
+                case BiometricManager.BIOMETRIC_SUCCESS:
+                    result.put("reason", "ok");
+                    break;
+                case BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED:
+                    result.put("reason", "none_enrolled");
+                    break;
+                case BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE:
+                    result.put("reason", "no_hardware");
+                    break;
+                default:
+                    result.put("reason", "unavailable");
+                    break;
+            }
+            call.resolve(result);
+        } catch (Exception e) {
+            result.put("available", false);
+            result.put("reason", "unavailable");
+            call.resolve(result);
+        }
+    }
+
+    @PluginMethod
+    public void authenticate(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            JSObject result = new JSObject();
+            result.put("ok", false);
+            result.put("code", -1);
+            result.put("message", "系统版本不支持指纹解锁");
+            call.resolve(result);
+            return;
+        }
+
+        String title = call.getString("title", "解锁");
+        String subtitle = call.getString("subtitle", "");
+        String cancelLabel = call.getString("cancelLabel", "取消");
+
+        final AtomicBoolean resolved = new AtomicBoolean(false);
+
+        try {
+            getActivity().runOnUiThread(() -> {
+                try {
+                    CancellationSignal cancellationSignal = new CancellationSignal();
+                    BiometricPrompt prompt = new BiometricPrompt.Builder(getActivity())
+                            .setTitle(title)
+                            .setSubtitle(subtitle)
+                            // 用户点取消后，系统会回调 onAuthenticationError，不在这里 resolve，
+                            // 避免二次 resolve
+                            .setNegativeButton(cancelLabel, getActivity().getMainExecutor(), (dialog, which) -> {
+                            })
+                            .build();
+
+                    prompt.authenticate(
+                            cancellationSignal,
+                            getActivity().getMainExecutor(),
+                            new BiometricPrompt.AuthenticationCallback() {
+                                @Override
+                                public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                                    if (!resolved.compareAndSet(false, true)) return;
+                                    JSObject res = new JSObject();
+                                    res.put("ok", true);
+                                    call.resolve(res);
+                                }
+
+                                @Override
+                                public void onAuthenticationError(int errorCode, CharSequence errString) {
+                                    if (!resolved.compareAndSet(false, true)) return;
+                                    JSObject res = new JSObject();
+                                    res.put("ok", false);
+                                    res.put("code", errorCode);
+                                    res.put("message", errString != null ? errString.toString() : "");
+                                    call.resolve(res);
+                                }
+
+                                @Override
+                                public void onAuthenticationFailed() {
+                                    // 单次不匹配——系统会继续等待下一次尝试，这里不 resolve
+                                }
+                            }
+                    );
+                } catch (Exception e) {
+                    if (!resolved.compareAndSet(false, true)) return;
+                    JSObject res = new JSObject();
+                    res.put("ok", false);
+                    res.put("code", -3);
+                    res.put("message", e.getMessage() != null ? e.getMessage() : "启动生物识别失败");
+                    call.resolve(res);
+                }
+            });
+        } catch (Exception e) {
+            if (!resolved.compareAndSet(false, true)) return;
+            JSObject res = new JSObject();
+            res.put("ok", false);
+            res.put("code", -3);
+            res.put("message", e.getMessage() != null ? e.getMessage() : "启动生物识别失败");
+            call.resolve(res);
+        }
+    }
+}
+
+=== apps/android-client/src/biometricUnlock.ts ===
+import { Capacitor, registerPlugin } from "@capacitor/core";
+import { IndexedDbStorageBackend } from "@secureinchat/secure-storage";
+
+/**
+ * 应用锁的指纹/面部解锁。
+ *
+ * 只是"解锁的便捷方式"：成功等同于输对了 PIN，PIN 始终是唯一的后备。
+ * 不读取、不保存任何生物特征数据——系统框架负责验证，我们只拿到成功/失败。
+ *
+ * API 29 以下、设备没有录入生物特征、硬件不可用时，这里全部返回 false，
+ * 上层据此不显示任何开关或按钮（不做假功能）。
+ *
+ * Web 端没有对应的系统能力，所有函数直接返回 false，不假装生效。
+ */
+
+const PREF_KEY = "biometricunlock:v1";
+
+const backend = new IndexedDbStorageBackend();
+
+interface BiometricAvailabilityResult {
+  available: boolean;
+  reason?: string;
+}
+
+interface BiometricAuthResult {
+  ok: boolean;
+  code?: number;
+  message?: string;
+}
+
+interface BiometricPlugin {
+  isAvailable(): Promise<BiometricAvailabilityResult>;
+  authenticate(o: { title: string; subtitle: string; cancelLabel: string }): Promise<BiometricAuthResult>;
+}
+
+const Biometric = registerPlugin<BiometricPlugin>("Biometric");
+
+/** 只有在原生平台、且系统确实能验证生物特征时才返回 true。 */
+export async function biometricAvailable(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const result = await Biometric.isAvailable();
+    return result.available === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function isBiometricUnlockEnabled(): Promise<boolean> {
+  try {
+    const bytes = await backend.get(PREF_KEY);
+    if (!bytes) return false;
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    if (typeof parsed !== "object" || parsed === null) return false;
+    return (parsed as { enabled?: unknown }).enabled === true;
+  } catch {
+    // 坏 JSON / 读取失败——当 false，不能让应用起不来
+    return false;
+  }
+}
+
+export async function setBiometricUnlockEnabled(v: boolean): Promise<void> {
+  await backend.set(PREF_KEY, new TextEncoder().encode(JSON.stringify({ enabled: v })));
+}
+
+/**
+ * 弹一次系统验证。成功返回 true，失败/取消/不支持都返回 false（不抛）。
+ * 取消和单次不匹配都不计入 PIN 错误次数——由调用方保证。
+ */
+export async function authenticateBiometric(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  try {
+    const result = await Biometric.authenticate({
+      title: "解锁邀群密聊",
+      subtitle: "用指纹或面部解锁",
+      cancelLabel: "取消",
+    });
+    return result.ok === true;
+  } catch {
+    return false;
+  }
+}
