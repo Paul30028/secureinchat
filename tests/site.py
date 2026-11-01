@@ -145,8 +145,8 @@ _zc_cards = _re.findall(r'class="button button--primary checkup-card-action" hre
 check(_zc_cards == ['/zh/tools/link-checker/', '/zh/tools/phone-checkup/', '/zh/tools/account-checkup/'], f'/zh/checkup/ cards link Chinese tools {_zc_cards}')
 _zh_home = open(os.path.join(ROOT, 'zh', 'index.html'), encoding='utf-8').read()
 _zh_cards = _re.findall(r'class="v4-card-link" href="([^"]+)"', _zh_home)
-# Every translated tool card points at its Chinese page; only the fingerprint test (no zh page yet) stays English.
-check(_zh_cards == ['/zh/tools/photo-metadata-remover/', '/zh/tools/file-metadata-remover/', '/zh/tools/text-redactor/', '/zh/tools/link-checker/', '/tools/browser-fingerprint-test/', '/zh/tools/account-checkup/'], f'/zh/ tool cards link Chinese tools {_zh_cards}')
+# Every tool card on /zh/ points at its Chinese page (the fingerprint test got one in W16).
+check(_zh_cards == ['/zh/tools/photo-metadata-remover/', '/zh/tools/file-metadata-remover/', '/zh/tools/text-redactor/', '/zh/tools/link-checker/', '/zh/tools/browser-fingerprint-test/', '/zh/tools/account-checkup/'], f'/zh/ tool cards link Chinese tools {_zh_cards}')
 check('11 个工具' not in _zh_home, '/zh/ no stale tool count')
 _en_home = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
 _en_index_n = open(os.path.join(ROOT, 'tools', 'index.html'), encoding='utf-8').read().count('class="tool-catalogue-item"')
