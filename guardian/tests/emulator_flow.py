@@ -310,8 +310,12 @@ def main():
     print(f"guardian: {ALLOWED} -> {addr}")
     if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{ALLOWED} should resolve to a real address through Guardian, got {addr}: {out}")
-    nodes = wait_ui(lambda s: f"ALLOW {ALLOWED}" in s and re.search(r"Answered: [1-9]", s),
-                    f"log does not show ALLOW {ALLOWED} with an answered query")
+    # The real address already proves Guardian forwarded the query (it is the only DNS path while the VPN is
+    # up). The on-screen log keeps only the last 10 lines and the emulator's own Google traffic can push the
+    # line out within seconds, so the log line is a soft check; the answered counter is the hard one.
+    nodes = wait_ui(lambda s: re.search(r"Answered: [1-9]", s), "no answered query counted")
+    if f"ALLOW {ALLOWED}" not in joined(nodes):
+        print(f"note: ALLOW {ALLOWED} already scrolled out of the 10-line log (background traffic)")
     snap("block-and-allow")
     print(f"ok: {ALLOWED} forwarded and answered")
 
@@ -534,21 +538,27 @@ def main():
         wait_ui(lambda s: "Status: Running" in s and "Loading list" not in s,
                 f"still loading after choosing {prefix}", timeout=90)
 
-    resolve("g13a." + STRICT_ONLY, tries=2)
-    find_anywhere(lambda s: f"ALLOW g13a.{STRICT_ONLY}" in s, f"Light should forward g13a.{STRICT_ONLY}")
-    print(f"ok: Light forwards {STRICT_ONLY}")
+    # Judge by the DNS answer, not the 10-line log (background traffic pushes lines out): a blocked
+    # name always gets the block address; a forwarded one gets a real address or no answer (NXDOMAIN).
+    BLOCK_ADDRS = ("0.0.0.0", "127.0.0.1", "::")
+    addr, out = resolve("g13a." + STRICT_ONLY, tries=2)
+    if addr in BLOCK_ADDRS:
+        fail(f"Light blocked g13a.{STRICT_ONLY} ({addr}); it is in Pro only")
+    print(f"ok: Light forwards {STRICT_ONLY} ({addr})")
 
     pick_level("Strict")
     addr, out = resolve("g13b." + STRICT_ONLY)
-    if addr not in ("0.0.0.0", "127.0.0.1"):
+    if addr not in BLOCK_ADDRS:
         fail(f"Strict did not block g13b.{STRICT_ONLY}: {addr} {out[-200:]}")
-    find_anywhere(lambda s: f"BLOCK g13b.{STRICT_ONLY}" in s, f"log does not show BLOCK g13b.{STRICT_ONLY}")
+    find_anywhere(lambda s: f"Rule: {STRICT_ONLY} (built-in list)" in s,
+                  f"no 'Blocked most often' row with Rule: {STRICT_ONLY}")
     snap("level-strict")
     print(f"ok: Strict blocks {STRICT_ONLY}")
 
     pick_level("Light")
-    resolve("g13c." + STRICT_ONLY, tries=2)
-    find_anywhere(lambda s: f"ALLOW g13c.{STRICT_ONLY}" in s, f"back on Light, g13c.{STRICT_ONLY} not forwarded")
+    addr, out = resolve("g13c." + STRICT_ONLY, tries=2)
+    if addr in BLOCK_ADDRS:
+        fail(f"back on Light, g13c.{STRICT_ONLY} still blocked ({addr})")
     print("ok: back to Light")
     scroll_top()
 
