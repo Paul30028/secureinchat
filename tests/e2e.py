@@ -96,7 +96,9 @@ def run_scenario(p, name, sc, viewport, mobile=False, shot=None, vpn_toggle_chec
     overflow = page.evaluate('document.documentElement.scrollWidth - window.innerWidth')
     assert overflow <= 0, f'{name}: horizontal overflow {overflow}px'
     page.evaluate("document.fonts.ready")
-    assert page.evaluate("document.fonts.check('700 20px \"Noto Serif\"') && document.fonts.check('400 16px \"Atkinson Hyperlegible Next\"')"), 'self-hosted fonts not loaded'
+    # v4 design uses the platform sans stack (no web fonts); headings and body share it.
+    fams = page.evaluate("[getComputedStyle(document.body).fontFamily, getComputedStyle(document.querySelector('h1')).fontFamily]")
+    assert all('system-ui' in f for f in fams), f'v4 font stack not applied: {fams}'
     summary = page.inner_text('#summary')
     if shot:
         page.locator('#route').scroll_into_view_if_needed()
