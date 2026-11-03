@@ -100,6 +100,37 @@ def wait_ui(pred, what, timeout=30):
     fail(what, nodes)
 
 
+def ui_has(pred, timeout):
+    """Like wait_ui, but returns None instead of failing."""
+    end = time.time() + timeout
+    while time.time() < end:
+        nodes = dump()
+        if pred(joined(nodes)):
+            return nodes
+        time.sleep(1)
+    return None
+
+
+def wait_block_logged(name):
+    """The on-screen log keeps only the last 10 lines, and the emulator's own background queries can
+    push a line out before we look (seen on API 34). Blocking itself is proven by the DNS answer;
+    this checks that blocks are logged. If [name]'s line is gone, query a fresh subdomain (netd would
+    answer a repeat of [name] from its cache, so it would never reach Guardian) and look for that."""
+    nodes = ui_has(lambda s: f"BLOCK {name}" in s, 15)
+    if nodes:
+        return nodes
+    for i in range(3):
+        probe = f"logcheck{i}-{int(time.time())}.{name}"
+        addr, out = resolve(probe)
+        if addr not in ("0.0.0.0", "127.0.0.1"):
+            fail(f"{probe} should be blocked like {name}, got {addr}: {out}")
+        nodes = ui_has(lambda s: f"BLOCK {probe}" in s, 10)
+        if nodes:
+            print(f"note: {name} line had scrolled out of the log; {probe} was logged")
+            return nodes
+    fail(f"log does not show BLOCK {name} (nor a fresh subdomain of it)", dump())
+
+
 _screen = None
 
 
@@ -296,13 +327,13 @@ def main():
     # Guardian's NULL_IP answer; the "before" check above showed a real address without Guardian.
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{BLOCKED} should resolve to 0.0.0.0 through Guardian, got {addr}: {out}")
-    nodes = wait_ui(lambda s: f"BLOCK {BLOCKED}" in s, f"log does not show BLOCK {BLOCKED}")
+    nodes = wait_block_logged(BLOCKED)
     print(f"ok: {BLOCKED} blocked (0.0.0.0) and logged")
     addr, out = resolve(BLOCKED_HAGEZI)
     print(f"guardian: {BLOCKED_HAGEZI} -> {addr}")
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{BLOCKED_HAGEZI} (HaGeZi snapshot) should be blocked, got {addr}: {out}")
-    wait_ui(lambda s: f"BLOCK {BLOCKED_HAGEZI}" in s, f"log does not show BLOCK {BLOCKED_HAGEZI}")
+    wait_block_logged(BLOCKED_HAGEZI)
     print(f"ok: {BLOCKED_HAGEZI} blocked from the bundled snapshot")
 
     # 4. Allowed domain is forwarded to the network's resolver
