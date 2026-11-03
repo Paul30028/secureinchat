@@ -29,6 +29,8 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.TextView
 import java.text.SimpleDateFormat
@@ -36,6 +38,8 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import org.secureinchat.guardian.dns.Blocklist
+import org.secureinchat.guardian.dns.DotProvider
+import org.secureinchat.guardian.dns.DotProviders
 import org.secureinchat.guardian.dns.LogEntry
 import org.secureinchat.guardian.dns.QueryHandler
 import org.secureinchat.guardian.dns.RulesText
@@ -51,6 +55,11 @@ class MainActivity : Activity() {
     private lateinit var rulesView: TextView
     private lateinit var logView: TextView
     private lateinit var hintView: TextView
+    private lateinit var privacyView: TextView
+    private lateinit var dotStatusView: TextView
+    // G18: the stored choice, kept here so the 1 Hz refresh does not read preferences every tick.
+    private var dotChoice: DotProvider? = null
+    private var dotStatusDefaultColor = 0
     private lateinit var toggleBtn: Button
     private lateinit var pauseBtn: Button
     private lateinit var appListContainer: LinearLayout
@@ -198,15 +207,14 @@ class MainActivity : Activity() {
         }
         root.addView(hintView)
 
-        val privacy = TextView(this).apply {
+        dotChoice = DnsSettingsStore.provider(this)
+        // G18: the text depends on the encrypted DNS choice; refreshUi keeps it current.
+        privacyView = TextView(this).apply {
             textSize = 12f
-            text = txt(
-                "Only DNS queries go through Guardian. Allowed queries are sent to your current network's DNS servers. No logs are saved.",
-                "只有 DNS 查询经过 Guardian。放行的查询发给你当前网络的 DNS 服务器。记录不保存。"
-            )
+            text = privacyText()
             setPadding(0, pad / 2, 0, 0)
         }
-        root.addView(privacy)
+        root.addView(privacyView)
 
         logView = TextView(this).apply {
             textSize = 12f
@@ -321,6 +329,50 @@ class MainActivity : Activity() {
             textSize = 12f
             setOnClickListener { onClearHistoryClicked() }
         })
+
+        // --- Encrypted DNS (G18) ------------------------------------------
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("Encrypted DNS", "加密 DNS")
+            setPadding(0, pad, 0, pad / 4)
+        })
+        root.addView(TextView(this).apply {
+            textSize = 12f
+            text = txt(
+                "Off: allowed lookups go to your network's DNS servers, unencrypted. On: they go encrypted (DNS over TLS) to the provider you choose, which then sees them instead of your network. If the provider cannot be reached, lookups fail; Guardian never falls back to unencrypted DNS.",
+                "关闭：放行的查询以不加密的方式发给当前网络的 DNS 服务器。开启：查询加密(DNS over TLS)后发给你选的服务商，由它而不是你的网络看到这些查询。服务商连不上时查询会失败;Guardian 不会退回不加密的 DNS。"
+            )
+        })
+        val dotGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        val dotOptions = listOf<DotProvider?>(null) + DotProviders.ALL
+        for ((i, p) in dotOptions.withIndex()) {
+            dotGroup.addView(RadioButton(this).apply {
+                id = View.generateViewId()
+                tag = i
+                textSize = 13f
+                text = if (p == null) txt("Off (default)", "关闭(默认)")
+                       else "${p.label}: " + txt(p.about, p.aboutZh)
+                isChecked = p?.id == dotChoice?.id
+            })
+        }
+        dotGroup.setOnCheckedChangeListener { group, checkedId ->
+            val idx = group.findViewById<View>(checkedId)?.tag as? Int ?: return@setOnCheckedChangeListener
+            val p = dotOptions[idx]
+            if (p?.id == dotChoice?.id) return@setOnCheckedChangeListener
+            dotChoice = p
+            DnsSettingsStore.setProvider(this, p?.id)
+            // Closing the old client can wait on an in-flight query, so not on the UI thread.
+            Thread { GuardianVpnService.applyDnsSetting(applicationContext) }
+                .apply { name = "guardian-dns-setting" }.start()
+            uiHandler.post { refreshUi() }
+        }
+        root.addView(dotGroup)
+        dotStatusView = TextView(this).apply {
+            textSize = 12f
+            setPadding(0, pad / 4, 0, 0)
+        }
+        dotStatusDefaultColor = dotStatusView.currentTextColor
+        root.addView(dotStatusView)
 
         // A little slack at the bottom so the last row is not glued to the scroll edge.
         // --- Always-on VPN (G9) ---------------------------------------------
@@ -582,6 +634,8 @@ class MainActivity : Activity() {
         })
 
         renderAlwaysOnRow()
+        setIfChanged(privacyView, privacyText())
+        renderDotStatus(running)
 
         toggleBtn.isEnabled = !loading
         setIfChanged(toggleBtn, if (running) txt("Stop", "停止") else txt("Start", "启动"))
@@ -919,6 +973,37 @@ class MainActivity : Activity() {
             row.addView(removeBtn)
             allowedListContainer.addView(row)
         }
+    }
+
+    private fun privacyText(): String {
+        val p = dotChoice
+        return if (p == null) txt(
+            "Only DNS queries go through Guardian. Allowed queries are sent to your current network's DNS servers. No logs are saved.",
+            "只有 DNS 查询经过 Guardian。放行的查询发给你当前网络的 DNS 服务器。记录不保存。"
+        ) else txt(
+            "Only DNS queries go through Guardian. Allowed queries are sent encrypted to ${p.label}. No logs are saved.",
+            "只有 DNS 查询经过 Guardian。放行的查询加密后发给 ${p.label}。记录不保存。"
+        )
+    }
+
+    // G18: says plainly when the chosen provider cannot be reached, because lookups then fail.
+    private fun renderDotStatus(running: Boolean) {
+        val p = dotChoice
+        val st = GuardianVpnService.dotState
+        val text = when {
+            p == null -> txt("Encrypted DNS: off", "加密 DNS:关闭")
+            !running -> txt("Encrypted DNS: ${p.label}, used while Guardian is on", "加密 DNS:${p.label},Guardian 开启时使用")
+            st == null || st.hostname != p.tlsName || st.connected == null ->
+                txt("Encrypted DNS: ${p.label}, not used yet", "加密 DNS:${p.label},尚未使用")
+            st.connected -> txt("Encrypted DNS: ${p.label}, connected", "加密 DNS:${p.label},已连接")
+            else -> txt(
+                "Encrypted DNS: cannot reach ${p.label}. Lookups fail until it can be reached (no unencrypted fallback).",
+                "加密 DNS:连不上 ${p.label}。连上之前查询会失败(不会退回不加密的 DNS)。"
+            )
+        }
+        setIfChanged(dotStatusView, text)
+        val red = st != null && st.connected == false && running && p != null
+        dotStatusView.setTextColor(if (red) 0xFFFF4444.toInt() else dotStatusDefaultColor)
     }
 
     // The screen refreshes every second; setting identical text still re-lays out the view, which keeps

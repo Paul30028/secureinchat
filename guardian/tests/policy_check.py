@@ -24,6 +24,7 @@ for p, s in src.items():
         # G12: StatsStore.kt holds only per-day block counts (a date and an integer), never what was blocked.
         if bad in ('SharedPreferences', 'getSharedPreferences') and (
             rel.endswith('/UserRulesStore.kt') or rel.endswith('/StatsStore.kt')
+            or rel.endswith('/DnsSettingsStore.kt')
         ): continue
         if bad in s: fail.append(f'{rel}: {bad} (no disk logs, no HTTP)')
     if not s.startswith('// SPDX-License-Identifier: GPL-3.0-or-later'): fail.append(f'{rel}: missing SPDX header')
@@ -35,6 +36,14 @@ for p, s in src.items():
         for pat in (r'\bdomain\b', r'\bqname\b', r'\buid\b'):
             if re.search(pat, s, re.IGNORECASE):
                 fail.append(f'{rel}: forbidden identifier {pat} (StatsStore must only hold per-day counts)')
+    # G18: DnsSettingsStore holds one setting, the encrypted DNS provider id. Same guard as StatsStore,
+    # plus: it writes only through putString of that one key, so it cannot start keeping anything else.
+    if rel.endswith('/DnsSettingsStore.kt'):
+        for pat in (r'\bdomain\b', r'\bqname\b', r'\buid\b', r'putStringSet', r'putLong', r'putInt'):
+            if re.search(pat, s, re.IGNORECASE):
+                fail.append(f'{rel}: forbidden identifier {pat} (DnsSettingsStore holds only the provider id)')
+        if len(re.findall(r'const val KEY_', s)) != 1:
+            fail.append(f'{rel}: DnsSettingsStore must define exactly one preference key')
 man = os.path.join(ROOT, 'app', 'src', 'main', 'AndroidManifest.xml')
 if os.path.exists(man):
     m = open(man, encoding='utf-8').read()

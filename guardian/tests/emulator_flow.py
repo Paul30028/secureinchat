@@ -552,6 +552,33 @@ def main():
     nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after cancelling the export picker")
     print("ok: Export opens the document picker")
 
+    # 4g. Encrypted DNS (G18): choose Quad9, a name not looked up before resolves for real and the
+    #     status says "connected" (set only after a DoT answer came back); then back to Off.
+    def radio(label_prefix):
+        nodes = scroll_find(lambda s: any(l.startswith(label_prefix) for l in s.split("\n")),
+                            f"no '{label_prefix}' option on screen")
+        for txt_, _, bnds, cls in nodes:
+            if cls.endswith("RadioButton") and txt_.startswith(label_prefix) and bnds:
+                return bnds
+        fail(f"'{label_prefix}' is not a radio button", nodes)
+
+    tap(radio("Quad9:"))
+    time.sleep(2)
+    dot_probe = "www.wikipedia.org"
+    addr, out = resolve(dot_probe)
+    print(f"guardian with Quad9 DoT: {dot_probe} -> {addr}")
+    if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
+        fail(f"{dot_probe} should resolve over DoT to Quad9, got {addr}: {out}", dump())
+    find_anywhere(lambda s: "Encrypted DNS: Quad9, connected" in s,
+                  "encrypted DNS status does not say 'Quad9, connected'")
+    snap("dot-quad9")
+    print("ok: Quad9 DoT answers and the status says connected")
+    tap(radio("Off (default)"))
+    find_anywhere(lambda s: "Encrypted DNS: off" in s, "encrypted DNS status does not return to off")
+    scroll_top()
+    nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after turning encrypted DNS off")
+    print("ok: encrypted DNS back to off")
+
     # 5. Stop from the app
     b = button(nodes, "Stop")
     if not b:
