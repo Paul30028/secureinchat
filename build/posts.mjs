@@ -1,6 +1,65 @@
 // Blog posts. Body is HTML using the .doc styles. Keep claims verifiable and scoped.
 export const POSTS = [
   {
+    slug: 'phone-number-taken-first-hour',
+    title: 'My phone number was just taken: what to do in the first hour',
+    desc: 'Your phone suddenly has no service, or your carrier says your SIM moved to a new device you never asked for. The first hour, in order: get your number back from your carrier, secure your email, warn your bank, then report it to the FTC and the FBI\'s IC3. Every step links to the official page it comes from.',
+    date: '2026-11-03',
+    body: `
+    <p>This page is for the moment it happens: your phone suddenly shows no service, with no calls, texts or data, or you get a message from your carrier that your SIM or number has moved to a device you never asked for. The FTC lists both as warning signs of a SIM swap. Someone who controls your number receives your calls and your text-message sign-in codes, so the order below matters: the number first, then your email, then your money, then the reports. Each step links to the official page it is based on, checked on 3 November 2026. We have no affiliation with any company named here.</p>
+    <p>Source: <a href="https://consumer.ftc.gov/consumer-alerts/2019/10/sim-swap-scams-how-protect-yourself" rel="noopener">FTC: SIM swap scams, how to protect yourself</a>.</p>
+    <p>If you want to prevent this rather than recover from it, see <a href="/blog/protect-your-phone-number-sim-swap/">protecting your phone number</a> and the <a href="/tools/phone-checkup/#carrier-locks">carrier number-lock table</a>.</p>
+
+    <h2>Minutes 0 to 15: get your number back</h2>
+    <p>The FTC, the FBI's Internet Crime Complaint Center (IC3) and Verizon all put this first: contact your mobile carrier straight away to regain control of your number. Your own phone may have no service, so use another phone, or the carrier's chat over Wi-Fi. Use a number from the carrier's own website or your bill, not one from a text or a caller. Hang up on anyone who calls you first and says they are fixing it.</p>
+    <table>
+      <thead><tr><th>Carrier</th><th>How its official page says to reach it</th></tr></thead>
+      <tbody>
+        <tr><td>Verizon</td><td>Dial *611 (Verizon says this works even if your device has been deactivated) or 1-800-922-0204 from any phone. Out of hours: "Chat With Us" on its site, sign in and type "Live Agent" for 24-hour chat.</td></tr>
+        <tr><td>T-Mobile</td><td>Its SIM Protection page tells customers reporting fraud on an active account to contact T-Mobile as soon as possible through its contact page. It does not give a dedicated fraud number there.</td></tr>
+        <tr><td>AT&amp;T</td><td>Global Fraud Management for an order, charge or account change you did not approve, and for a number you think was illegally transferred: 877-844-5584, or the AT&amp;T wireless fraud page.</td></tr>
+        <tr><td>Any other carrier</td><td>The number on your bill or on its own website. Ask for the fraud team.</td></tr>
+      </tbody>
+    </table>
+    <p>What to ask for: that the number be returned to your SIM, that the change be logged as fraud, a new account PIN, and the number and SIM locks switched on (Verizon's page says to turn on Number Lock, which is free; T-Mobile's says to add SIM Protection and Port Out Protection). Write down the date, time, the name or ID of the person you spoke to and any reference number. You will need them for the reports in step 4.</p>
+    <p>Sources: <a href="https://www.ic3.gov/PSA/2022/PSA220208" rel="noopener">FBI IC3: SIM swap schemes (8 February 2022)</a>, <a href="https://www.verizon.com/about/account-security/sim-swapping" rel="noopener">Verizon: SIM swapping</a>, <a href="https://www.verizon.com/about/account-security/unauthorized-port-outs" rel="noopener">Verizon: unauthorized port-outs</a>, <a href="https://www.t-mobile.com/support/plans-features/sim-protection/" rel="noopener">T-Mobile: SIM Protection</a>, <a href="https://www.att.com/support/article/my-account/KM1159583/" rel="noopener">AT&amp;T: when to contact fraud</a>.</p>
+
+    <h2>Minutes 15 to 30: lock down your email</h2>
+    <p>Your main email can reset almost every other password, so secure it before anything else. Do this from a device you trust, and if the person may have your password as well, change it before you do anything else in the account.</p>
+    <ul>
+      <li><strong>Google:</strong> if you can sign in, review recent security events and your signed-in devices, change your password, and in Gmail remove filters and forwarding you did not set up. If someone changed your password or recovery phone, use Google's account recovery page.</li>
+      <li><strong>Apple Account:</strong> change your password (or reset it if someone already changed it), remove devices you do not recognise at account.apple.com, and confirm you control every email address and phone number on the account. Apple specifically says to check that SMS forwarding has not been set up on a linked number. If you cannot sign in, account recovery starts at iforgot.apple.com and includes a waiting period.</li>
+      <li><strong>Microsoft:</strong> Microsoft says to run a full malware scan before you change the password, then change or reset it, and check connected accounts, forwarding and automatic replies. If you cannot get in, use its account recovery form.</li>
+      <li><strong>Any other email provider:</strong> change the password, sign out other sessions, and look for forwarding rules and recovery details you did not add.</li>
+    </ul>
+    <p>While you are in each account, remove your phone number as a way to sign in or recover, if you can, and switch to an authenticator app or a security key. Until your carrier confirms the number is back and locked, codes sent by text may go to the other person.</p>
+    <p>Sources: <a href="https://support.google.com/accounts/answer/6294825?hl=en" rel="noopener">Google: Secure a hacked or compromised Google Account</a>, <a href="https://support.apple.com/en-us/102560" rel="noopener">Apple: If you think your Apple Account has been compromised</a>, <a href="https://support.microsoft.com/en-us/accounts-billing/manage/how-to-recover-a-hacked-or-compromised-microsoft-account" rel="noopener">Microsoft: How to recover a hacked or compromised Microsoft account</a>.</p>
+
+    <h2>Minutes 30 to 45: warn your bank and card companies</h2>
+    <p>The IC3 advises contacting your financial institutions to put an alert on your accounts for suspicious sign-in attempts and transactions. The FTC adds: review your credit card, bank and other financial accounts for charges or changes you did not make, and report any you find to that company. Call the number on the back of your card or on the bank's own website. Change your banking passwords, and if your bank sends sign-in codes by text, ask what else it offers.</p>
+    <p>Sources: <a href="https://www.ic3.gov/PSA/2022/PSA220208" rel="noopener">FBI IC3</a>, <a href="https://consumer.ftc.gov/consumer-alerts/2019/10/sim-swap-scams-how-protect-yourself" rel="noopener">FTC</a>.</p>
+
+    <h2>Minutes 45 to 60: report it (United States)</h2>
+    <ul>
+      <li><strong>FBI Internet Crime Complaint Center:</strong> the IC3 asks SIM-swap victims to report to <a href="https://www.ic3.gov/" rel="noopener">ic3.gov</a> and to local police or an FBI field office. Have ready your contact details, any money lost (accounts, dates, amounts, where it went) and a description of what happened. The IC3 does not investigate complaints itself; it passes them to law enforcement. It does not accept attachments, so keep your own copies of evidence, and it says you should not expect it to contact you.</li>
+      <li><strong>FTC:</strong> if a scammer may have your Social Security, card or bank account number, the FTC points you to IdentityTheft.gov, where reporting gives you a free personal recovery plan.</li>
+      <li><strong>Fraud alert:</strong> the FTC also recommends a free one-year fraud alert with one of the three credit bureaus; that bureau must tell the other two.</li>
+    </ul>
+    <p>Real agencies do not ask you for money to fix this. The FTC warned in October 2026 about callers pretending to be FTC staff who threaten to deactivate your phone number; a real FTC employee will never ask you to send money.</p>
+    <p>Sources: <a href="https://www.ic3.gov/PSA/2022/PSA220208" rel="noopener">FBI IC3</a>, <a href="https://www.ic3.gov/Home/FAQ" rel="noopener">IC3 FAQ</a>, <a href="https://www.identitytheft.gov/Info-Lost-or-Stolen" rel="noopener">IdentityTheft.gov: when information is lost or exposed</a>, <a href="https://consumer.ftc.gov/consumer-alerts/2024/09/how-recover-identity-theft" rel="noopener">FTC: How to recover from identity theft</a>, <a href="https://consumer.ftc.gov/consumer-alerts/2026/10/ftc-not-calling-deactivate-your-phone-number" rel="noopener">FTC: The FTC is not calling to deactivate your phone number</a>.</p>
+
+    <h2>Later today: freeze your credit</h2>
+    <p>A credit freeze makes it much harder to open new credit in your name. The FTC says it is free to place and to lift, lasts until you lift it, and must be set up separately with each of the three bureaus: <a href="https://www.equifax.com/personal/credit-report-services" rel="noopener">Equifax</a>, <a href="https://www.experian.com/help/" rel="noopener">Experian</a> and <a href="https://www.transunion.com/credit-help" rel="noopener">TransUnion</a>. You can have both a fraud alert and a freeze.</p>
+    <p>Source: <a href="https://consumer.ftc.gov/articles/credit-freezes-and-fraud-alerts" rel="noopener">FTC: Credit freezes and fraud alerts</a>.</p>
+
+    <h2>Outside the United States</h2>
+    <p>The first three steps are the same everywhere: carrier, email, bank. The reporting bodies differ by country, and we have only listed the US ones we could check on their official pages. Ask your carrier and your bank where to report.</p>
+
+    <h2>What we have not tested</h2>
+    <p>We have not tested any carrier's fraud line or how quickly numbers are returned. Phone numbers and menu names are copied from each company's pages as of 3 November 2026 and can change; if one is wrong, email us and we will fix it.</p>
+`,
+  },
+  {
     slug: 'data-broker-opt-out-guide',
     title: 'Data broker opt-out guide: the US, the UK and the EU, with official removal pages',
     desc: 'How to ask data brokers to delete or stop selling your information, by region. In the US: California\'s free DROP request, prescreened offer and mail opt-outs, and the removal pages of Spokeo, Acxiom and LexisNexis. In the UK: the open register opt-out and your rights under UK data protection law. In the EU: erasure and objection under the GDPR and how to complain. Every step links to the official page.',
@@ -238,7 +297,7 @@ export const POSTS = [
     <p>Sources: <a href="https://support.signal.org/hc/en-us/articles/6712070553754-Phone-Number-Privacy-and-Usernames" rel="noopener">Signal: Phone Number Privacy and Usernames</a>, <a href="https://support.signal.org/hc/en-us/articles/360007059792-Signal-PIN" rel="noopener">Signal PIN and Registration Lock</a>.</p>
 
     <h2>If you think your number has been taken</h2>
-    <p>If you get an alert about a SIM change or number transfer you did not ask for, act at once. The FTC's steps: contact your carrier, using a number or website you already know is real, to take back your number; then change the passwords on your accounts and check your bank and card statements for transactions you did not make. In the US, IdentityTheft.gov has recovery plans if your identity documents or account numbers may be exposed.</p>
+    <p>For a step-by-step version, see <a href="/blog/phone-number-taken-first-hour/">what to do in the first hour</a>. If you get an alert about a SIM change or number transfer you did not ask for, act at once. The FTC's steps: contact your carrier, using a number or website you already know is real, to take back your number; then change the passwords on your accounts and check your bank and card statements for transactions you did not make. In the US, IdentityTheft.gov has recovery plans if your identity documents or account numbers may be exposed.</p>
     <p>Source: <a href="https://consumer.ftc.gov/consumer-alerts/2019/10/sim-swap-scams-how-protect-yourself" rel="noopener">FTC: SIM swap scams</a>.</p>
 
     <h2>What we have not tested</h2>
