@@ -13,6 +13,7 @@
 - 有需要 Paul 决定的事，写在报告最上面一节「需要 Paul」。
 
 ## 下一阶段(按顺序)
+0. **K2b 先修 G18b 的模拟器第 4g 步**(详情在 TASKS.md)。基线 `git checkout -B claude/charming-galileo-vdrqio origin/feature/G18b`。修好、CI 绿、写报告，再做下面的 K3。
 1. **K3 C10-A 聊天 App 本地数据用硬件密钥保护。** 基线:`git fetch origin && git checkout -B claude/charming-galileo-vdrqio origin/feature/C10`。先读那边的 `CLAUDE.md` 和 `docs/PROJECT_HANDBOOK.md`,方案在 `drop/deepseek/c10/design.txt`(选 A:Keystore 包裹，StrongBox 优先、回退 TEE,M1 不绑定用户认证)。JS 部分用 vitest 覆盖迁移(中途中断、新旧条目混合、密钥失效提示);Java 插件靠 CI 的 Build Android APK 编译验证。`feature/C10` 刚合入 C9b(DocumentSavePlugin),CI 和 APK 都是绿的。
 2. **K5 Exodus 宽正则(G15b)。** 决定：对只匹配「某个大公司主域名的任意子域」的规则(例如 `\.google\.com`、`\.facebook\.com`)**不显示公司名**,因为这些域名大多是第一方服务，标成「Google Ads」会误导。做法：在 `TrackerDb.parse` 里识别这类正则(只由 `\.<label>\.<tld>` 构成、无更具体前缀)并标记 `broad = true`,`byDomain` 跳过它们;README 写清楚。基线 `origin/feature/G18b`。加测试：`mail.google.com` 不再显示 Google Ads,`doubleclick.net` 仍是 Google DoubleClick。
 3. K1、K4(真机测试)你那边没有手机和安卓 SDK,改由 Paul 做;我会给 Paul 写一页测试清单。
