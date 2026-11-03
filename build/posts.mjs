@@ -1,6 +1,69 @@
 // Blog posts. Body is HTML using the .doc styles. Keep claims verifiable and scoped.
 export const POSTS = [
   {
+    slug: 'scam-warning-card-for-parents',
+    title: 'A free printable scam warning card for your parents',
+    desc: 'A one-page card to print and keep by the phone: the four signs of a scam from the FTC, the payment methods scammers ask for, what to do before sending money, and where to report in the United States. It prints from your browser; nothing is sent or saved.',
+    date: '2026-11-03',
+    body: `
+    <p>Many scam calls and texts work the same way, and the FTC sums them up in four signs. This page turns that advice into a card you can print, fill in by hand and leave next to the phone, or keep in a wallet. Every line on the card comes from an official page, linked below and checked on 3 November 2026. We have no affiliation with any organisation named here.</p>
+    <p><strong>How to print it:</strong> use your browser's Print command (Ctrl+P, or ⌘P on a Mac). When you print this page, only the card is printed. To keep a PDF instead, choose "Save as PDF" as the printer. The PDF is made by your own browser; this page does not upload, store or send anything, and the two blank lines on the card are for writing on with a pen after printing.</p>
+
+    <h2>The card</h2>
+    <div class="print-card" aria-label="Scam warning card">
+      <h3>Stop. Hang up. Check.</h3>
+      <p class="print-card-sub">It may be a scam if someone who contacted <em>you</em>:</p>
+      <ol>
+        <li><strong>Pretends to be</strong> from a company, a government office or a family member you know.</li>
+        <li><strong>Says there is a problem or a prize</strong>: trouble with your account, your computer, the police, or money you have won.</li>
+        <li><strong>Rushes you</strong> to act right now, or tells you to keep it a secret.</li>
+        <li><strong>Tells you how to pay</strong>: gift cards, a wire transfer, cryptocurrency or a payment app.</li>
+      </ol>
+      <h3>Never</h3>
+      <ul>
+        <li>Pay with gift cards. Gift cards are for gifts, not payments.</li>
+        <li>Give personal or bank details to someone you did not expect to hear from.</li>
+        <li>Click links in unexpected texts or emails, or call a number shown in a pop-up warning.</li>
+        <li>Let a caller take remote control of your computer.</li>
+      </ul>
+      <h3>Before you send money</h3>
+      <ul>
+        <li>Hang up. Call back on a number <strong>you</strong> already know: the back of your card, your bill, or your family member's own phone.</li>
+        <li>Talk to someone you trust first, even if the caller said to keep it secret.</li>
+      </ul>
+      <p class="print-card-fill">Call first: ______________________________</p>
+      <p class="print-card-fill">Phone: ______________________________</p>
+      <h3>Report it (United States)</h3>
+      <ul>
+        <li>ReportFraud.ftc.gov</li>
+        <li>Age 60 or older: National Elder Fraud Hotline, 833-372-8311 (833-FRAUD-11), Monday to Friday, 10 a.m. to 6 p.m. Eastern</li>
+        <li>Forward scam texts to 7726 (SPAM)</li>
+      </ul>
+      <p class="print-card-foot">Government agencies will never call, text or email to ask for money or personal information. Sources: FTC, U.S. Department of Justice. secureinchat.com</p>
+    </div>
+
+    <h2>Where each line comes from</h2>
+    <ul>
+      <li><strong>The four signs, and "stop and talk to someone you trust":</strong> <a href="https://consumer.ftc.gov/articles/how-avoid-scam" rel="noopener">FTC: How to avoid a scam</a>. The FTC's list of ways scammers ask to be paid is cryptocurrency, wire transfer services such as Western Union or MoneyGram, payment apps and gift cards.</li>
+      <li><strong>"Gift cards are for gifts, not payments":</strong> <a href="https://consumer.ftc.gov/consumer-alerts/2022/12/tis-season-spot-avoid-gift-card-scams" rel="noopener">FTC: Spot and avoid gift card scams</a>. If someone has already paid with a gift card, the FTC says to contact the company that issued the card straight away and keep the card and receipts.</li>
+      <li><strong>Calling the family member back:</strong> <a href="https://consumer.ftc.gov/articles/scammers-use-fake-emergencies-steal-your-money" rel="noopener">FTC: Scammers use fake emergencies to steal your money</a> says to use a phone number you know is right, to call someone else in the family even if the caller asked for secrecy, and, if you cannot hang up, to ask a question only the real person would know.</li>
+      <li><strong>Links in unexpected texts, and forwarding to 7726:</strong> <a href="https://consumer.ftc.gov/articles/how-recognize-and-report-spam-text-messages" rel="noopener">FTC: How to recognize and report spam text messages</a>. If you are not sure whether a link is safe, our <a href="/tools/link-checker/">link checker</a> shows common warning signs without opening it.</li>
+      <li><strong>Pop-up warnings and remote access:</strong> <a href="https://consumer.ftc.gov/articles/how-spot-avoid-and-report-tech-support-scams" rel="noopener">FTC: How to spot, avoid and report tech support scams</a>: legitimate tech companies won't contact you to say there is a problem with your computer, and real security pop-ups never ask you to call a phone number.</li>
+      <li><strong>What government agencies never do:</strong> <a href="https://consumer.ftc.gov/articles/how-avoid-government-impersonation-scam" rel="noopener">FTC: How to avoid a government impersonation scam</a>.</li>
+      <li><strong>National Elder Fraud Hotline:</strong> <a href="https://ovc.ojp.gov/program/stop-elder-fraud/providing-help-restoring-hope" rel="noopener">U.S. Department of Justice, Office for Victims of Crime</a>. It is free and is for people aged 60 or older, or anyone helping them. The hotline itself warns that scammers pretend to be its staff: it will not ask for money or your Social Security number on a call it makes to you.</li>
+    </ul>
+
+    <h2>Tips for giving it to someone</h2>
+    <p>The card works best when you go through it together once, rather than handing it over. Write your own name and number on the blank lines, so the person knows who to call before sending money.</p>
+
+    <h2>Outside the United States</h2>
+    <p>The four signs and the "hang up and call back" step apply anywhere. The reporting lines on the card are US only; we have not added other countries because we have only listed bodies whose official pages we could check. A local bank or the police can tell you where to report.</p>
+
+    <h2>What we have not tested</h2>
+    <p>We have checked that the page prints as a single card in Chromium; other browsers and printers are untested and may split it across two pages. Phone numbers and hours are copied from the official pages as of 3 November 2026 and can change.</p>
+`,
+  },
+  {
     slug: 'data-broker-opt-out-guide',
     title: 'Data broker opt-out guide: the US, the UK and the EU, with official removal pages',
     desc: 'How to ask data brokers to delete or stop selling your information, by region. In the US: California\'s free DROP request, prescreened offer and mail opt-outs, and the removal pages of Spokeo, Acxiom and LexisNexis. In the UK: the open register opt-out and your rights under UK data protection law. In the EU: erasure and objection under the GDPR and how to complain. Every step links to the official page.',

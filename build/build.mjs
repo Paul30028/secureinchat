@@ -733,7 +733,7 @@ for (const p of POSTS) {
 const GUIDE_CATS = [
   ['network', 'Network &amp; connection', /ip-leak|webrtc|ipv6|dns-leak|vpn|leak-test-sites/],
   ['ai', 'AI &amp; privacy', /ai-|bank-statement|photo-before|cv-before|before-you-paste|redact/],
-  ['accounts', 'Accounts &amp; phones', /phone|email|alias|app-permissions|password|privacy-reset/],
+  ['accounts', 'Accounts &amp; phones', /phone|email|alias|app-permissions|password|privacy-reset|scam/],
   ['tracking', 'Data &amp; tracking', /broker/],
   ['offline', 'Offline communication', /networks-fail/],
   ['relay', 'Blind relay', /blind-relay/],

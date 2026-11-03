@@ -463,3 +463,20 @@
     font-size: .8125rem;
   }
 }
+
+/* M3: printable scam warning card (/blog/scam-warning-card-for-parents/). On screen it is a bordered box;
+   when the page is printed, only the card is printed. */
+.print-card { border: 2px solid currentColor; border-radius: 12px; padding: 1.25rem 1.5rem; margin: 1.5rem 0; max-width: 40rem; }
+.print-card h3 { margin: 1rem 0 .4rem; font-size: 1.15rem; }
+.print-card h3:first-child { margin-top: 0; font-size: 1.6rem; }
+.print-card ol, .print-card ul { margin: .25rem 0 .5rem; padding-left: 1.4rem; }
+.print-card li { margin: .2rem 0; }
+.print-card-sub { margin: 0 0 .25rem; font-weight: 600; }
+.print-card-fill { margin: .9rem 0 0; font-size: 1.05rem; }
+.print-card-foot { margin: 1rem 0 0; font-size: .85rem; }
+@media print {
+  body:has(.print-card) *:not(.print-card):not(.print-card *):not(:has(.print-card)) { display: none !important; }
+  body:has(.print-card), body:has(.print-card) :has(.print-card) { display: block !important; margin: 0 !important; padding: 0 !important; border: 0 !important; width: auto !important; max-width: none !important; min-height: 0 !important; background: #fff !important; box-shadow: none !important; }
+  body:has(.print-card) .print-card { margin: 0; max-width: none; color: #000; background: #fff; font-size: 11.5pt; line-height: 1.35; break-inside: avoid; }
+  @page { margin: 12mm; }
+}
