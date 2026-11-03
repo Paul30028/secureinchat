@@ -26,7 +26,7 @@ CI(`.github/workflows/ci.yml`、`build-apk.yml`)用 Node 20;本地如果是 Node
 
 有安卓 SDK 时:`cd apps/android-client && npm run build && npx cap sync android && cd android && ./gradlew assembleDebug`,装到真机测试。**真机测试是最重要的缺口。**
 
-## 当前任务
+## 当前任务(总任务板在 `next` 分支的 `docs/TASKS.md`,K3、K4 是你的)
 
 - **C9b**:自写 `DocumentSavePlugin`(SAF `ACTION_CREATE_DOCUMENT`)，让备份导出在真机能保存文件(WebView 不处理 blob 下载)。规格 `drop/claude/c9b.txt`;DeepSeek 在写(对话 `94119765-ceb5-4f77-91d2-420eb33313dd`)。
 - **C10-A**:Android Keystore 硬件密钥包裹本地主密钥(StrongBox 优先，回退 TEE);双密钥 keyring + 后台迁移;M1 不绑定用户认证，界面和 README 如实写边界。方案比较 `drop/deepseek/c10/design.txt`。
