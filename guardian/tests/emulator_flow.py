@@ -417,7 +417,13 @@ def main():
     blocked_row = re.compile(rf"^{re.escape(user_dom)}$", re.M)
     nodes = scroll_find(lambda s: blocked_row.search(s), f"'Blocked by you' does not list {user_dom}")
     snap("blocked-by-user")
-    addr, out = resolve(user_dom)
+    # The rule reloads asynchronously and netd may still hold an earlier answer, so allow ~30 s.
+    end = time.time() + 30
+    while True:
+        addr, out = resolve(user_dom)
+        if addr in ("0.0.0.0", "127.0.0.1") or time.time() > end:
+            break
+        time.sleep(3)
     print(f"guardian after Block: {user_dom} -> {addr}")
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{user_dom} should be blocked after the user blocked it, got {addr}: {out}")
