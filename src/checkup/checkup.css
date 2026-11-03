@@ -139,3 +139,18 @@
     animation-iteration-count: 1 !important;
   }
 }
+
+/* M1: carrier number-lock table (phone checkup) */
+.carrier-locks { margin-top: var(--space-6); padding-top: var(--space-5); border-top: 1px solid var(--color-border); }
+.carrier-locks > p { color: var(--color-text-muted); font-size: var(--font-size-sm); max-width: 72ch; }
+.carrier-table { width: 100%; margin-top: var(--space-4); border-collapse: collapse; font-size: var(--font-size-sm); }
+.carrier-table th, .carrier-table td { padding: var(--space-3); border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+.carrier-table thead th { font-weight: var(--font-weight-medium); color: var(--color-text-subtle); font-size: var(--font-size-xs); }
+.carrier-table tbody th { white-space: nowrap; }
+@media (max-width: 760px) {
+  .carrier-table thead { display: none; }
+  .carrier-table, .carrier-table tbody, .carrier-table tr, .carrier-table th, .carrier-table td { display: block; width: auto; }
+  .carrier-table tr { padding-block: var(--space-3); border-bottom: 1px solid var(--color-border); }
+  .carrier-table th, .carrier-table td { padding: var(--space-2) 0; border-bottom: 0; white-space: normal; }
+  .carrier-table td::before { content: attr(data-label); display: block; color: var(--color-text-subtle); font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); }
+}

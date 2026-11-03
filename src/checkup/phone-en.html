@@ -61,9 +61,9 @@
       </div>
       <div class="phone-check-item-content">
         <p><strong>Why it matters</strong> An attacker who convinces a carrier to transfer or replace your SIM may receive calls or SMS intended for you.</p>
-        <p><strong>What to do</strong> Contact your mobile carrier using its official app, account portal or published support number. Ask about account PINs, port-out locks, number locks and SIM-swap protection; enable the options available for your plan.</p>
+        <p><strong>What to do</strong> Contact your mobile carrier using its official app, account portal or published support number. Ask about account PINs, port-out locks, number locks and SIM-swap protection; enable the options available for your plan. <a href="#carrier-locks">See the carrier table below</a>.</p>
         
-        <p class="phone-source-slot"><strong>Official source:</strong> <span><a href="https://www.verizon.com/support/knowledge-base-309293/" rel="noopener">Verizon</a> · <a href="https://www.t-mobile.com/support/plans-features/help-with-t-mobile-account-fraud" rel="noopener">T-Mobile</a> · <a href="https://about.att.com/story/2025/wireless-account-lock.html" rel="noopener">AT&amp;T Wireless Account Lock</a> · <a href="https://www.ofcom.org.uk/phones-and-broadband/switching-provider/switching-mobile" rel="noopener">Ofcom (UK)</a></span></p>
+        <p class="phone-source-slot"><strong>Official source:</strong> <span><a href="https://www.verizon.com/support/knowledge-base-309293/" rel="noopener">Verizon</a> · <a href="https://www.t-mobile.com/support/plans-features/help-with-t-mobile-account-fraud" rel="noopener">T-Mobile</a> · <a href="https://about.att.com/story/2025/wireless-account-lock.html" rel="noopener">AT&amp;T Wireless Account Lock</a> · <a href="https://www.ofcom.org.uk/phones-and-broadband/switching-provider/switching-mobile-phone-provider" rel="noopener">Ofcom (UK)</a></span></p>
       </div>
     </article>
 <article class="phone-check-item" data-next-en="Start with your main email account, then review financial and other high-impact accounts for passkeys or authenticator options." data-next-zh="先检查主要邮箱，再检查金融和其他重要账号是否支持通行密钥或验证器。">
@@ -119,6 +119,48 @@
         <section class="next-step-panel" aria-labelledby="next-step-title" aria-live="polite">
           <div class="next-step-mark" aria-hidden="true">→</div>
           <div class="next-step-copy"><h2 id="next-step-title">Suggested next step</h2><p data-next-step>Start by reviewing the SIM PIN setting and understanding the recovery process before enabling it.</p></div>
+        </section>
+
+        <section class="carrier-locks" id="carrier-locks" aria-labelledby="carrier-locks-title">
+          <h2 id="carrier-locks-title">Carrier number locks and transfer PINs</h2>
+          <p>What each carrier’s own pages say about locking your number and about the PIN another carrier needs to move it. Every row links to the official page it comes from. A lock helps only if the account owner turns it on; turn it off before you move your number yourself.</p>
+          <table class="carrier-table" aria-labelledby="carrier-locks-title">
+            <thead><tr><th scope="col">Carrier</th><th scope="col">Lock and what it blocks</th><th scope="col">How to turn it on</th><th scope="col">Transfer PIN (when you leave)</th></tr></thead>
+            <tbody>
+              <tr>
+                <th scope="row" data-label="Carrier">Verizon (US)</th>
+                <td data-label="Lock and what it blocks"><strong>Number Lock</strong> stops a Number Transfer PIN being created, so the number cannot be ported. <strong>SIM Protection</strong> blocks SIM swaps, upgrades and bring-your-own-device activations on protected lines. After you turn SIM Protection off, SIM changes stay blocked for at least 15 minutes.</td>
+                <td data-label="How to turn it on">My Verizon app: Me → Edit profile and settings → Security → SIM Protection or Number Lock, then switch on each number.</td>
+                <td data-label="Transfer PIN">Account Owner or Account Manager on a standard monthly account: My Verizon, or dial #PORT from the phone. Expires after 7 days. Number Lock must be off first.</td>
+              </tr>
+              <tr>
+                <th scope="row" data-label="Carrier">T-Mobile (US)</th>
+                <td data-label="Lock and what it blocks"><strong>SIM Protection</strong> (free on postpaid) stops your number being moved to another device. <strong>Port Out Protection</strong> blocks transfers to another carrier and is added line by line. An <strong>account PIN/passcode</strong> (6–15 digits) is used to verify you when you contact customer service.</td>
+                <td data-label="How to turn it on">T-Life: Manage → gear icon → Security → SIM Protection. Port Out Protection: Manage → See Plans → Manage add-ons. Authorised users can add both; on postpaid, only the Primary Account Holder can remove them.</td>
+                <td data-label="Transfer PIN">Only the Primary Account Holder: T-Life on the T-Mobile network with Wi-Fi off → Account → gear icon → Permission &amp; controls → Transfer PIN. Port Out Protection must be off. The page does not say how long the PIN lasts.</td>
+              </tr>
+              <tr>
+                <th scope="row" data-label="Carrier">AT&amp;T (US)</th>
+                <td data-label="Lock and what it blocks"><strong>Wireless Account Lock</strong> (free, introduced July 2025) blocks number transfers, SIM swaps, device purchases and billing changes. Business accounts have a separate Business Account Lock; AT&amp;T says prepaid has a similar lock.</td>
+                <td data-label="How to turn it on">Postpaid consumer accounts: toggle in the myAT&amp;T app. The account owner and people given secondary online access can manage it.</td>
+                <td data-label="Transfer PIN">Primary online access users: account profile → Settings → Transfer phone number → Request new PIN, or dial *PORT (needs your account passcode). Expires after 4 days (14 for business). The lock must be off.</td>
+              </tr>
+              <tr>
+                <th scope="row" data-label="Carrier">Google Fi (US)</th>
+                <td data-label="Lock and what it blocks"><strong>Number Lock</strong> (no extra cost) stops your number being moved to another phone or ported to another carrier.</td>
+                <td data-label="How to turn it on">Fi website: Phone settings → Privacy &amp; security → Number lock, sign in again, switch on. Google warns that if you lose access to your Google Account with Number Lock on, Fi cannot give you your port-out details, so add a recovery email or recovery contact first.</td>
+                <td data-label="Transfer PIN">Fi app or website: Account → Manage plan → leave Google Fi → Transfer your number to another carrier → Get Transfer Info. Expires if unused for 14 days.</td>
+              </tr>
+              <tr>
+                <th scope="row" data-label="Carrier">UK (all networks)</th>
+                <td data-label="Lock and what it blocks">We did not find an official EE, Vodafone, O2 or Three page describing a port-out lock, so none is listed. Ask your network directly.</td>
+                <td data-label="How to turn it on">—</td>
+                <td data-label="Transfer PIN">Ofcom’s text-to-switch: text PAC to 65075 from your phone. The code is valid for 30 days; the new provider should complete the switch within one working day.</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="phone-source-slot"><strong>Official sources:</strong> <span><a href="https://www.verizon.com/support/knowledge-base-309293/" rel="noopener">Verizon: SIM Protection and Number Lock</a> · <a href="https://www.verizon.com/support/port-out-faqs/" rel="noopener">Verizon: port-out FAQs</a> · <a href="https://www.t-mobile.com/support/plans-features/help-with-t-mobile-account-fraud" rel="noopener">T-Mobile: protect your account</a> · <a href="https://www.t-mobile.com/support/account/transfer-your-phone-number" rel="noopener">T-Mobile: transfer your number</a> · <a href="https://about.att.com/story/2025/wireless-account-lock.html" rel="noopener">AT&amp;T: Wireless Account Lock</a> · <a href="https://www.att.com/support/article/wireless/KM1447526/" rel="noopener">AT&amp;T: transfer PIN</a> · <a href="https://support.google.com/fi/answer/15147412?hl=en" rel="noopener">Google Fi: Number Lock</a> · <a href="https://support.google.com/fi/answer/10888419?hl=en" rel="noopener">Google Fi: transfer your number</a> · <a href="https://www.ofcom.org.uk/phones-and-broadband/switching-provider/switching-mobile-phone-provider" rel="noopener">Ofcom: switching mobile provider</a></span></p>
+          <p class="phone-source-disclaimer">Carrier table checked against the linked official pages on 3 November 2026. EU carriers are not listed yet. Menus and rules change; if a step has moved, follow the carrier’s page.</p>
         </section>
 
         <div class="phone-guide-callout"><p>For context, read our guide to phone-number protection and SIM swapping.</p><a href="/blog/protect-your-phone-number-sim-swap/">Read the phone number and SIM-swap guide →</a></div>
