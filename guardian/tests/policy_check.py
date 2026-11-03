@@ -10,8 +10,15 @@ if re.search(r'^\s*(implementation|api|kapt|ksp)\s*\(', gradle, re.M): fail.appe
 for p, s in src.items():
     rel = os.path.relpath(p, ROOT)
     if '/test/' in rel or rel.startswith('tests/'): continue
-    for bad in ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1', '9.9.9.9', '208.67.222.222', 'dns.google', 'cloudflare-dns']:
-        if bad in s: fail.append(f'{rel}: public resolver {bad}')
+    # G18: public resolvers may be named only in DotProviders.kt, and only as DNS-over-TLS endpoints
+    # (port 853, certificate checked). Everywhere else they stay forbidden: no clear-text public DNS fallback.
+    if not rel.endswith('/DotProviders.kt'):
+        for bad in ['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1', '9.9.9.9', '149.112.112.112', '208.67.222.222', 'dns.google', 'cloudflare-dns', 'dns.quad9.net', 'one.one.one.one']:
+            if bad in s: fail.append(f'{rel}: public resolver {bad}')
+    else:
+        if re.search(r'\b53\b', s): fail.append(f'{rel}: DotProviders must not mention port 53 (DoT only)')
+    if rel.endswith('/DotClient.kt') and ('DatagramSocket' in s or ', 53' in s):
+        fail.append(f'{rel}: DoT client must not use UDP or port 53')
     for bad in ['FileOutputStream(File(', 'openFileOutput', 'SharedPreferences', 'getSharedPreferences', 'HttpURLConnection', 'URL(']:
         # The user's allowlist is the one thing kept on disk, and only UserRulesStore.kt may touch storage.
         # G12: StatsStore.kt holds only per-day block counts (a date and an integer), never what was blocked.
