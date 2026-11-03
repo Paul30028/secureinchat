@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { colors, touchTarget, Button } from "@secureinchat/ui";
+import { saveTextFile } from "../documentSave";
 
 /** 备份密码最短长度。和 chat-core 的 MIN_BACKUP_PASSWORD_LENGTH 保持一致。 */
 const MIN_BACKUP_PASSWORD_LENGTH = 10;
@@ -28,19 +29,6 @@ function formatDateForFilename(now: Date): string {
   const m = String(now.getMonth() + 1).padStart(2, "0");
   const d = String(now.getDate()).padStart(2, "0");
   return `${y}${m}${d}`;
-}
-
-function downloadText(filename: string, text: string): void {
-  const blob = new Blob([text], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // 延迟释放：某些浏览器在 click 后同步 revoke 会导致下载失败
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 const inputStyle = {
@@ -80,7 +68,7 @@ type Mode = "export" | "restore";
  * （走「管理员恢复码」这条路）。正在倒计时的阅后即焚消息也不备份——
  * 对方期望它到点消失。
  *
- * 导出：输两遍密码 → 生成加密文本 → 用 a[download] 触发浏览器下载。
+ * 导出：输两遍密码 → 生成加密文本 → 原生用系统文件选择器保存，Web 用 a[download]。
  * 恢复：选文件 → 输密码 → 解密并预览（N 个群、M 条消息）→ 确认后合并。
  */
 export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRestore }: BackupScreenProps) {
@@ -118,7 +106,12 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
     try {
       const text = await onExport(exportPassword);
       const filename = `secureinchat-backup-${formatDateForFilename(new Date())}.json`;
-      downloadText(filename, text);
+      const result = await saveTextFile(filename, "application/json", text);
+      if (result === "cancelled") {
+        // 用户取消：保留密码，用户可能只是想换个位置再存一次。
+        // 不显示成功也不显示错误，按钮在 finally 里恢复可点。
+        return;
+      }
       setExportDone(true);
       setExportPassword("");
       setExportConfirm("");
@@ -256,7 +249,7 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
           ) : null}
           {exportDone ? (
             <p role="status" style={successStyle}>
-              备份已下载。请把文件放到安全的地方——密码忘了就打不开了。
+              备份已保存。请把文件放到安全的地方——密码忘了就打不开了。
             </p>
           ) : null}
           <Button

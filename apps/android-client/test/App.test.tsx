@@ -2262,6 +2262,14 @@ describe("disappearing messages (C7)", () => {
       await act(async () => {
         vi.advanceTimersByTime(5 * 60_000 + 2_000);
       });
+      // The expiry timer can be (re)scheduled by a render that lands after the jump above (the app's
+      // storage work is async), so keep stepping fake time until the message is gone.
+      for (let i = 0; i < 20 && screen.queryByText("五分钟后消失"); i++) {
+        await act(async () => {
+          vi.advanceTimersByTime(60_000);
+          await new Promise((r) => setTimeout(r, 0));
+        });
+      }
     } finally {
       vi.useRealTimers();
     }
