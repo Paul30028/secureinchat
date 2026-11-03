@@ -11,7 +11,7 @@ private fun t(name: String, block: () -> Unit) {
         throw e
     }
 }
-private fun eq(a: Any?, b: Any?) { check(a == b) { "expected $a, got $b" } }
+private fun eq(actual: Any?, expected: Any?) { check(actual == expected) { "expected $expected, got $actual" } }
 
 fun main() {
 
@@ -102,6 +102,38 @@ fun main() {
         eq(db.byClassName("org.other")?.id, null)
     }
 
+    t("byDomain ignores case") {
+        val db = TrackerDb.parse("1\tInMobi\tAdvertisement\thttp://inmobi.com\tinmobi\\.com\tcom.inmobi.")
+        eq(db.byDomain("W.InMobi.COM")?.name, "InMobi")
+    }
+
+    t("results stay correct after the LRU evicts") {
+        val db = TrackerDb.parse("1\tA\tAnalytics\thttp://a.com\ttrk\\.example\t")
+        eq(db.byDomain("x.trk.example")?.id, 1)
+        eq(db.byDomain("miss.example"), null)
+        // Far more distinct names than the 512-entry cache holds, so both earlier entries are evicted.
+        for (i in 0 until 2000) db.byDomain("n$i.other.example")
+        eq(db.byDomain("x.trk.example")?.id, 1)
+        eq(db.byDomain("miss.example"), null)
+    }
+
+    t("concurrent lookups agree") {
+        val db = TrackerDb.parse("1\tA\tAnalytics\thttp://a.com\ttrk\\.example\t")
+        val errors = java.util.concurrent.atomic.AtomicInteger()
+        val threads = (0 until 8).map { k ->
+            Thread {
+                for (i in 0 until 3000) {
+                    val hit = db.byDomain("h${i % 700}.trk.example")
+                    val miss = db.byDomain("m${(i + k) % 700}.none.example")
+                    if (hit?.id != 1 || miss != null) errors.incrementAndGet()
+                }
+            }
+        }
+        threads.forEach { it.start() }
+        threads.forEach { it.join() }
+        eq(errors.get(), 0)
+    }
+
     t("empty tsv gives empty db") {
         val db = TrackerDb.parse("")
         eq(db.size, 0)
@@ -122,7 +154,7 @@ fun main() {
         check(db.withNetwork >= 250) { "expected >= 250 with network, got ${db.withNetwork}" }
         // At least one of these two must map to some tracker. The spec explicitly says: if neither
         // does, report it, do not weaken the assertion. Per the TSV excerpt line 5 ("Google
-        // DoubleClick" with doubleclick\\.net in its regex) this should pass on doubleclick.net.
+        // DoubleClick" with doubleclick\.net in its regex) this should pass on doubleclick.net.
         val dc = db.byDomain("doubleclick.net")
         val bb = db.byDomain("bat.bing.com")
         check(dc != null || bb != null) {

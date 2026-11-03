@@ -100,6 +100,37 @@ def wait_ui(pred, what, timeout=30):
     fail(what, nodes)
 
 
+def ui_has(pred, timeout):
+    """Like wait_ui, but returns None instead of failing."""
+    end = time.time() + timeout
+    while time.time() < end:
+        nodes = dump()
+        if pred(joined(nodes)):
+            return nodes
+        time.sleep(1)
+    return None
+
+
+def wait_block_logged(name):
+    """The on-screen log keeps only the last 10 lines, and the emulator's own background queries can
+    push a line out before we look (seen on API 34). Blocking itself is proven by the DNS answer;
+    this checks that blocks are logged. If [name]'s line is gone, query a fresh subdomain (netd would
+    answer a repeat of [name] from its cache, so it would never reach Guardian) and look for that."""
+    nodes = ui_has(lambda s: f"BLOCK {name}" in s, 15)
+    if nodes:
+        return nodes
+    for i in range(3):
+        probe = f"logcheck{i}-{int(time.time())}.{name}"
+        addr, out = resolve(probe)
+        if addr not in ("0.0.0.0", "127.0.0.1"):
+            fail(f"{probe} should be blocked like {name}, got {addr}: {out}")
+        nodes = ui_has(lambda s: f"BLOCK {probe}" in s, 10)
+        if nodes:
+            print(f"note: {name} line had scrolled out of the log; {probe} was logged")
+            return nodes
+    fail(f"log does not show BLOCK {name} (nor a fresh subdomain of it)", dump())
+
+
 _screen = None
 
 
@@ -296,13 +327,13 @@ def main():
     # Guardian's NULL_IP answer; the "before" check above showed a real address without Guardian.
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{BLOCKED} should resolve to 0.0.0.0 through Guardian, got {addr}: {out}")
-    nodes = wait_ui(lambda s: f"BLOCK {BLOCKED}" in s, f"log does not show BLOCK {BLOCKED}")
+    nodes = wait_block_logged(BLOCKED)
     print(f"ok: {BLOCKED} blocked (0.0.0.0) and logged")
     addr, out = resolve(BLOCKED_HAGEZI)
     print(f"guardian: {BLOCKED_HAGEZI} -> {addr}")
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{BLOCKED_HAGEZI} (HaGeZi snapshot) should be blocked, got {addr}: {out}")
-    wait_ui(lambda s: f"BLOCK {BLOCKED_HAGEZI}" in s, f"log does not show BLOCK {BLOCKED_HAGEZI}")
+    wait_block_logged(BLOCKED_HAGEZI)
     print(f"ok: {BLOCKED_HAGEZI} blocked from the bundled snapshot")
 
     # 4. Allowed domain is forwarded to the network's resolver
@@ -325,10 +356,12 @@ def main():
     nodes = find_anywhere(lambda s: dom_row.search(s) and rule_builtin in s,
                           f"'Blocked most often' row lacks '{rule_builtin}'")
     print(f"ok: row shows '{rule_builtin}'")
-    # G15: the same row names the tracker company from the bundled Exodus data (ODbL).
-    # Keep the returned dump: find_anywhere scrolls, so older button bounds would be stale.
-    nodes = find_anywhere(lambda s: dom_row.search(s) and "Tracker: Google DoubleClick" in s, "no 'Tracker: Google DoubleClick' line under the doubleclick.net row")
-    print("ok: row shows 'Tracker: Google DoubleClick'")
+    # G15: the row also names the tracker from the Exodus data. doubleclick.net maps to
+    # "Google DoubleClick", whose category column is empty, so the line is the name alone.
+    tracker_line = "Tracker: Google DoubleClick"
+    nodes = find_anywhere(lambda s: dom_row.search(s) and tracker_line in s,
+                          f"'Blocked most often' row lacks '{tracker_line}'")
+    print(f"ok: row shows '{tracker_line}'")
     b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
     if not b:
         # The row may sit at the bottom edge with its button cut off; scroll a little and look again.
@@ -524,6 +557,33 @@ def main():
     scroll_top()
     nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after cancelling the export picker")
     print("ok: Export opens the document picker")
+
+    # 4g. Encrypted DNS (G18): choose Quad9, a name not looked up before resolves for real and the
+    #     status says "connected" (set only after a DoT answer came back); then back to Off.
+    def radio(label_prefix):
+        nodes = scroll_find(lambda s: any(l.startswith(label_prefix) for l in s.split("\n")),
+                            f"no '{label_prefix}' option on screen")
+        for txt_, _, bnds, cls in nodes:
+            if cls.endswith("RadioButton") and txt_.startswith(label_prefix) and bnds:
+                return bnds
+        fail(f"'{label_prefix}' is not a radio button", nodes)
+
+    tap(radio("Quad9:"))
+    time.sleep(2)
+    dot_probe = "www.wikipedia.org"
+    addr, out = resolve(dot_probe)
+    print(f"guardian with Quad9 DoT: {dot_probe} -> {addr}")
+    if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
+        fail(f"{dot_probe} should resolve over DoT to Quad9, got {addr}: {out}", dump())
+    find_anywhere(lambda s: "Encrypted DNS: Quad9, connected" in s,
+                  "encrypted DNS status does not say 'Quad9, connected'")
+    snap("dot-quad9")
+    print("ok: Quad9 DoT answers and the status says connected")
+    tap(radio("Off (default)"))
+    find_anywhere(lambda s: "Encrypted DNS: off" in s, "encrypted DNS status does not return to off")
+    scroll_top()
+    nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after turning encrypted DNS off")
+    print("ok: encrypted DNS back to off")
 
     # 5. Stop from the app
     b = button(nodes, "Stop")

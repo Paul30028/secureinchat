@@ -15,14 +15,24 @@ import android.os.Looper
 import android.os.ParcelFileDescriptor
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.IOException
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLPeerUnverifiedException
+import javax.net.ssl.SSLSocket
+import javax.net.ssl.SSLSocketFactory
 import org.secureinchat.guardian.dns.Action
 import org.secureinchat.guardian.dns.Blocklist
 import org.secureinchat.guardian.dns.BlockMode
+import org.secureinchat.guardian.dns.DotClient
+import org.secureinchat.guardian.dns.DotProvider
 import org.secureinchat.guardian.dns.QueryHandler
 import org.secureinchat.guardian.dns.TrackerDb
 
@@ -37,6 +47,14 @@ class GuardianVpnService : VpnService() {
     @Volatile private var running = false
     private var handler: QueryHandler? = null
     private var upstream: Upstream? = null
+
+    // G18: encrypted DNS. null = off (the default): allowed queries go to the network's resolver.
+    // When set, allowed queries go only through this DoT client; if it cannot reach the provider the
+    // query fails (SERVFAIL). There is deliberately no fallback to the network's clear-text resolver.
+    @Volatile private var dot: DotClient? = null
+    // After a failed DoT query, fail the next ones fast instead of letting every queued query wait out
+    // the connect timeouts; one query is let through after the backoff to see if the provider is back.
+    @Volatile private var dotFailedAtMs = 0L
 
     // Pause expires on its own (QueryHandler.isPaused() returns false once the absolute timestamp
     // passes), so the notification needs a one-shot timer that rewrites it back to "DNS filtering
@@ -179,6 +197,7 @@ class GuardianVpnService : VpnService() {
             val up = Upstream(applicationContext) { sock -> protect(sock) }
             up.start()
             upstream = up
+            setDot(DnsSettingsStore.provider(applicationContext))
 
             handler = h
             activeHandler = h
@@ -360,7 +379,7 @@ class GuardianVpnService : VpnService() {
                 val exec = pool ?: return
                 try {
                     exec.execute {
-                        val ans = upstream?.sendQuery(act.payload)
+                        val ans = sendUpstream(act.payload)
                         if (ans == null) {
                             h.onUpstreamFailed(act.query)
                         } else {
@@ -371,6 +390,67 @@ class GuardianVpnService : VpnService() {
                 } catch (_: Throwable) {}
             }
             Action.Drop -> {}
+        }
+    }
+
+    /** G18: DoT when chosen (fail closed), otherwise the network's resolver as before. */
+    private fun sendUpstream(payload: ByteArray): ByteArray? {
+        val d = dot ?: return upstream?.sendQuery(payload)
+        val now = System.currentTimeMillis()
+        if (now - dotFailedAtMs < DOT_BACKOFF_MS) return null
+        val ans = d.query(payload)
+        if (ans == null) {
+            dotFailedAtMs = System.currentTimeMillis()
+            dotState = DotState(d.hostname, connected = false)
+        } else {
+            dotFailedAtMs = 0L
+            if (dotState?.connected != true) dotState = DotState(d.hostname, connected = true)
+        }
+        return ans
+    }
+
+    /** Swaps the DoT client; null turns encrypted DNS off. May block briefly on the old client's lock. */
+    private fun setDot(p: DotProvider?) {
+        val old = dot
+        dot = p?.let { makeDot(it) }
+        dotFailedAtMs = 0L
+        dotState = p?.let { DotState(it.tlsName, connected = null) }
+        try { old?.close() } catch (_: Throwable) {}
+    }
+
+    private fun makeDot(p: DotProvider): DotClient = DotClient(
+        hostname = p.tlsName,
+        // Address literals from DotProviders: InetAddress.getByName does no DNS lookup for these.
+        addresses = p.addresses.map { InetSocketAddress(InetAddress.getByName(it), DOT_PORT) },
+        openSocket = {
+            // protect() before connect, so the TLS connection bypasses Guardian's own tunnel.
+            val s = Socket()
+            if (!protect(s)) {
+                try { s.close() } catch (_: Throwable) {}
+                throw IOException("VpnService.protect failed")
+            }
+            s
+        },
+        wrapTls = { raw, host -> wrapTls(raw, host) }
+    )
+
+    // Platform trust store, hostname checked twice: by the TLS stack (endpoint identification) and
+    // again explicitly after the handshake. No pinning (it would break when the provider rotates keys).
+    private fun wrapTls(raw: Socket, host: String): Socket {
+        val factory = SSLSocketFactory.getDefault() as SSLSocketFactory
+        val tls = factory.createSocket(raw, host, DOT_PORT, true) as SSLSocket
+        try {
+            val params = tls.sslParameters
+            params.endpointIdentificationAlgorithm = "HTTPS"
+            tls.sslParameters = params
+            tls.startHandshake()
+            if (!HttpsURLConnection.getDefaultHostnameVerifier().verify(host, tls.session)) {
+                throw SSLPeerUnverifiedException("certificate does not match $host")
+            }
+            return tls
+        } catch (e: Exception) {
+            try { tls.close() } catch (_: Throwable) {}
+            throw e
         }
     }
 
@@ -403,6 +483,9 @@ class GuardianVpnService : VpnService() {
         pool = null
         try { upstream?.stop() } catch (_: Throwable) {}
         upstream = null
+        try { dot?.close() } catch (_: Throwable) {}
+        dot = null
+        dotState = null
         handler = null
         activeHandler = null
 
@@ -424,6 +507,8 @@ class GuardianVpnService : VpnService() {
         const val ACTION_RESUME = "org.secureinchat.guardian.action.RESUME"
         const val PAUSE_DURATION_MS = 5 * 60 * 1000L
         private const val STATS_FLUSH_MS = 60_000L
+        private const val DOT_PORT = 853
+        private const val DOT_BACKOFF_MS = 10_000L
         private const val CHANNEL_ID = "guardian_vpn"
         private const val NOTIF_ID = 1
         private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")
@@ -444,6 +529,21 @@ class GuardianVpnService : VpnService() {
         @Volatile var lockdown: Boolean? = null
             private set
         @Volatile private var instance: GuardianVpnService? = null
+
+        /**
+         * G18: what the encrypted DNS line shows. null while stopped or off. [connected] is null until
+         * the first query after start or a provider change, then the outcome of the latest query.
+         */
+        data class DotState(val hostname: String, val connected: Boolean?)
+
+        @Volatile var dotState: DotState? = null
+            private set
+
+        /** G18: apply the stored encrypted DNS choice to the running service. Call off the UI thread. */
+        fun applyDnsSetting(ctx: Context) {
+            val svc = instance ?: return
+            svc.setDot(DnsSettingsStore.provider(ctx))
+        }
 
         /** Re-reads the Always-on state, e.g. when the user comes back from system settings. */
         fun refreshAlwaysOn() {
