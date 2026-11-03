@@ -4,6 +4,8 @@ on:
   push:
     branches: [main, "feature/**"]
   pull_request:
+  # Manual runs, e.g. for claude/* work branches that the push filter does not cover
+  workflow_dispatch:
 
 jobs:
   typecheck-and-test:
