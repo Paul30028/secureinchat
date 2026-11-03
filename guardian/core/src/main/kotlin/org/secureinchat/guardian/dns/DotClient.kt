@@ -28,8 +28,14 @@ class DotClient(
     private val addresses: List<InetSocketAddress>,
     private val openSocket: () -> Socket,
     private val wrapTls: (Socket, String) -> Socket,
-    private val connectTimeoutMs: Int = 4000,
-    private val readTimeoutMs: Int = 4000
+    private val connectTimeoutMs: Int = 3000,
+    private val readTimeoutMs: Int = 4000,
+    /**
+     * Total time one query may spend opening a connection across all addresses. Without it, a provider
+     * whose packets are dropped costs (addresses × connect timeout) per lookup, and the system resolver
+     * gives up long before Guardian answers (seen in the emulator: a lookup hung for over 30 s).
+     */
+    private val connectBudgetMs: Long = 5000
 ) {
     private val lock = Any()
     private var socket: Socket? = null
@@ -46,6 +52,10 @@ class DotClient(
         val id = ((payload[0].toInt() and 0xFF) shl 8) or (payload[1].toInt() and 0xFF)
         synchronized(lock) {
             repeat(2) { attempt ->
+                // The retry is for a reused connection the resolver closed in the meantime. When this
+                // attempt had to open a fresh connection and still failed, a second sweep only doubles
+                // the wait.
+                val reused = socket != null
                 try {
                     if (socket == null) connect()
                     val out = output!!
@@ -65,10 +75,10 @@ class DotClient(
                     throw IOException("no answer with the query id")
                 } catch (_: IOException) {
                     closeLocked()
-                    if (attempt == 1) return null
+                    if (attempt == 1 || !reused) return null
                 } catch (_: RuntimeException) {
                     closeLocked()
-                    if (attempt == 1) return null
+                    if (attempt == 1 || !reused) return null
                 }
             }
             return null
@@ -79,11 +89,14 @@ class DotClient(
 
     private fun connect() {
         var last: Exception? = null
+        val deadline = System.currentTimeMillis() + connectBudgetMs
         for (addr in addresses) {
+            val remaining = deadline - System.currentTimeMillis()
+            if (remaining <= 0) break
             var raw: Socket? = null
             try {
                 raw = openSocket()
-                raw.connect(addr, connectTimeoutMs)
+                raw.connect(addr, minOf(connectTimeoutMs.toLong(), remaining).toInt().coerceAtLeast(1))
                 raw.soTimeout = readTimeoutMs
                 val tls = wrapTls(raw, hostname)
                 tls.soTimeout = readTimeoutMs

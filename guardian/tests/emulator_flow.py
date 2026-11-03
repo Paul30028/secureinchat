@@ -16,13 +16,14 @@
 
 Usage: emulator_flow.py <guardian.apk>. Screens, UI dumps and logcat go to /tmp/guardian-flow.
 """
-import pathlib, re, subprocess, sys, time
+import pathlib, re, socket, subprocess, sys, time
 import xml.etree.ElementTree as ET
 
 PKG = "org.secureinchat.guardian"
 BLOCKED = "doubleclick.net"   # from app/src/main/assets/blocklist-extra.txt
 BLOCKED_HAGEZI = "bat.bing.com"   # from the bundled HaGeZi LIGHT snapshot, not in the extra list
 ALLOWED = "example.com"
+ROOT = pathlib.Path(__file__).resolve().parent.parent   # guardian/
 OUT = pathlib.Path("/tmp/guardian-flow")
 OUT.mkdir(parents=True, exist_ok=True)
 step_no = 0
@@ -254,7 +255,12 @@ def resolve(name, tries=6):
     discovered asynchronously after the VPN starts, and netd caches negative answers briefly."""
     last = ""
     for i in range(tries):
-        last = sh(f"ping -c 1 -W 2 {name}", check=False, timeout=30)
+        try:
+            last = sh(f"ping -c 1 -W 2 {name}", check=False, timeout=30)
+        except subprocess.TimeoutExpired:
+            # The lookup itself hung (Guardian did not answer in time): a result, not a crash of the flow.
+            last = f"ping {name}: no answer within 30 s"
+            continue
         m = re.search(r"PING \S+ \(([0-9a-fA-F:.]+)\)", last)
         if m:
             return m.group(1), last
@@ -568,22 +574,37 @@ def main():
                 return bnds
         fail(f"'{label_prefix}' is not a radio button", nodes)
 
-    tap(radio("Quad9:"))
-    time.sleep(2)
-    dot_probe = "www.wikipedia.org"
-    addr, out = resolve(dot_probe)
-    print(f"guardian with Quad9 DoT: {dot_probe} -> {addr}")
-    if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
-        fail(f"{dot_probe} should resolve over DoT to Quad9, got {addr}: {out}", dump())
-    find_anywhere(lambda s: "Encrypted DNS: Quad9, connected" in s,
-                  "encrypted DNS status does not say 'Quad9, connected'")
-    snap("dot-quad9")
-    print("ok: Quad9 DoT answers and the status says connected")
-    tap(radio("Off (default)"))
-    find_anywhere(lambda s: "Encrypted DNS: off" in s, "encrypted DNS status does not return to off")
-    scroll_top()
-    nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after turning encrypted DNS off")
-    print("ok: encrypted DNS back to off")
+    # The emulator's traffic leaves through this host, so if the host cannot open TCP to Quad9's DoT
+    # port, the step cannot pass for reasons that have nothing to do with Guardian. Say so instead of
+    # failing (and instead of pretending it passed). The address comes from DotProviders.kt.
+    providers = (ROOT / "core/src/main/kotlin/org/secureinchat/guardian/dns/DotProviders.kt").read_text()
+    quad9_ip = re.search(r'id = "quad9".*?addresses = listOf\("([0-9.]+)"', providers, re.S).group(1)
+    try:
+        socket.create_connection((quad9_ip, 853), timeout=5).close()
+        dot_reachable = True
+    except OSError as e:
+        dot_reachable = False
+        print(f"UNTESTED: encrypted DNS step skipped, this CI host cannot reach {quad9_ip}:853 ({e})")
+    if dot_reachable:
+        tap(radio("Quad9:"))
+        time.sleep(2)
+        dot_probe = "www.wikipedia.org"
+        addr, out = resolve(dot_probe, tries=4)
+        print(f"guardian with Quad9 DoT: {dot_probe} -> {addr}")
+        if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
+            nodes = find_anywhere(lambda s: "Encrypted DNS:" in s, "no encrypted DNS status line", timeout=20)
+            status = [l for l in joined(nodes).split("\n") if l.startswith("Encrypted DNS:")]
+            fail(f"{dot_probe} should resolve over DoT to Quad9, got {addr} ({out.strip()[-200:]}); "
+                 f"status: {status}", nodes)
+        find_anywhere(lambda s: "Encrypted DNS: Quad9, connected" in s,
+                      "encrypted DNS status does not say 'Quad9, connected'")
+        snap("dot-quad9")
+        print("ok: Quad9 DoT answers and the status says connected")
+        tap(radio("Off (default)"))
+        find_anywhere(lambda s: "Encrypted DNS: off" in s, "encrypted DNS status does not return to off")
+        scroll_top()
+        nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after turning encrypted DNS off")
+        print("ok: encrypted DNS back to off")
 
     # 5. Stop from the app
     b = button(nodes, "Stop")

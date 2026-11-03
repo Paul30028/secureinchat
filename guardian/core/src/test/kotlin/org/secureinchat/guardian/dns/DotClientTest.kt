@@ -130,5 +130,37 @@ fun main() {
         c.close()
     }
 
+    dtt("blackholed provider: one lookup gives up within the connect budget, no second sweep") {
+        // Every address drops packets: connect waits out its timeout. 4 addresses x 1 s with a 2.5 s
+        // budget must stop after the budget, not try all four twice (that was ~32 s with the defaults).
+        val attempts = AtomicInteger()
+        class BlackholeSocket : Socket() {
+            override fun connect(endpoint: java.net.SocketAddress?, timeout: Int) {
+                attempts.incrementAndGet()
+                Thread.sleep(timeout.toLong())
+                throw java.net.SocketTimeoutException("blackholed")
+            }
+        }
+        val addrs = (1..4).map { InetSocketAddress(InetAddress.getLoopbackAddress(), 1000 + it) }
+        val c = DotClient("dns.example", addrs, { BlackholeSocket() }, { s, _ -> s },
+            connectTimeoutMs = 1000, readTimeoutMs = 500, connectBudgetMs = 2500)
+        val t0 = System.currentTimeMillis()
+        deq2(c.query(query(7)), null)
+        val took = System.currentTimeMillis() - t0
+        check(took < 3500) { "took $took ms" }
+        check(attempts.get() <= 3) { "${attempts.get()} connect attempts" }
+    }
+
+    dtt("a reused connection that the resolver closed is retried once on a fresh one") {
+        // First connection answers once and then closes; the next query must reconnect and succeed.
+        val r = FakeResolver { q, out, n -> out.send(answerFor(q)); n != 1 }
+        val c = client(r.addr)
+        check(c.query(query(8)) != null)
+        Thread.sleep(100)
+        check(c.query(query(9)) != null) { "no retry on a fresh connection" }
+        deq2(c.connectionsOpened, 2)
+        c.close()
+    }
+
     println("DotClientTest: $dn passed")
 }
