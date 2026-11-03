@@ -88,6 +88,11 @@ try:
         ok(dl.suggested_filename == 'gps-clean.jpg', 'download named <name>-clean.<ext>: ' + dl.suggested_filename)
         wait_summary(pg, 'second scan found no metadata')
         ok('second scan found no metadata' in pg.inner_text('#summary'), 'summary confirms the second scan is clean')
+        ok(re.match(r'Removed \d+ items?\. Cleaned\.', pg.inner_text('#summary').strip()) is not None, 'W18 summary counts removed items: ' + pg.inner_text('#summary'))
+        after = pg.inner_text('#rows')
+        ok('Second check' in after and 'scanned the cleaned copy again' in after, 'W18 second-check row')
+        ok(pg.locator('#rows tr[data-status="pass"] .pill', has_text='Removed').count() >= 1 and 'Still there' not in after, 'W18 categories show Removed')
+        ok('Cleaned copy: gps-clean.jpg' in after, 'W18 cleaned copy named in the File row')
         try:
             gps_after = piexif.load(clean_jpg).get('GPS') or {}
         except Exception:

@@ -101,7 +101,10 @@ with sync_playwright() as p:
         out = os.path.join(tmp, f'gps-clean-{width}.jpg'); info.value.save_as(out)
         ok(info.value.suggested_filename == 'gps-clean.jpg', tag + 'download name ' + info.value.suggested_filename)
         wait_summary(pg, '已清理')
-        ok(pg.locator('#summary').inner_text().strip() == '已清理。再次扫描没有发现剩余的元数据。清理后的副本已保存到下载文件夹，原文件没有改动。', tag + 'clean message')
+        s = pg.locator('#summary').inner_text().strip()
+        ok(re.fullmatch(r'已删除 \d+ 项。已清理。再次扫描没有发现剩余的元数据。清理后的副本已保存到下载文件夹，原文件没有改动。', s) is not None, tag + 'clean message: ' + s)
+        after = pg.locator('#rows').inner_text()
+        ok('再次检查' in after and '清理引擎在浏览器里重新扫描了清理后的副本。' in after and '仍然存在' not in after, tag + 'W18 rows in Chinese')
         try: gps_after = piexif.load(out).get('GPS') or {}
         except Exception: gps_after = {}
         ok(not gps_after, tag + 'downloaded JPEG has no GPS')

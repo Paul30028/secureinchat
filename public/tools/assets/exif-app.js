@@ -2,11 +2,13 @@
 (function () {
   'use strict';
   var E = window.EXIFR;
+  var C = window.CLEANDIFF;
   var input = document.getElementById('file');
   var tbody = document.getElementById('rows');
   var summary = document.getElementById('summary');
   var clean = document.getElementById('clean');
   var current = null;
+  var before = null; // metadata items read from the chosen JPEG, kept to compare with the cleaned copy
   var MAX_BYTES = 40 * 1024 * 1024, MAX_PIXELS = 100 * 1000 * 1000;
 
   // Interface strings. The page is shared by /tools/photo-metadata-remover/ and its Chinese translation,
@@ -38,6 +40,14 @@
     stillHas: '清理后的副本仍然带着元数据。不要分享它。',
     cantDecode: '这个浏览器无法解码这张图片。这里不支持 HEIC 和动图。',
     mark: '你选择了一张照片',
+    other: '其他', otherDesc: '文件里的其他字段。',
+    removed: '已删除', stillThere: '仍然存在',
+    cleanedCopy: '清理后的副本：',
+    second: '再次检查', secondDesc: '清理后的副本。', checked: '已检查', notAvailable: '无法检查',
+    secondRead: '已在浏览器里重新读取清理后的副本。',
+    secondNA: '再次检查：本页无法读取 PNG 和 WebP 的元数据。文件已重新编码，元数据块不会被带上。',
+    removedAll: function (n) { return '已删除 ' + n + ' 项。再次检查清理后的副本，没有剩余。已保存到下载文件夹，原文件没有改动。'; },
+    leftCount: function (n) { return '清理后的副本仍然带着 ' + n + ' 项元数据。不要分享它。'; },
   } : {
     labelCheck: 'Check', labelResult: 'Result', labelStatus: 'Status',
     onlyJpeg: 'Only JPEG, PNG and WebP photos are supported here.',
@@ -64,6 +74,14 @@
     stillHas: 'The cleaned copy still shows metadata. Do not share it.',
     cantDecode: 'This browser could not decode that image. HEIC and animated files are not supported here.',
     mark: 'You picked a photo',
+    other: 'Other', otherDesc: 'Other fields in the file.',
+    removed: 'Removed', stillThere: 'Still there',
+    cleanedCopy: 'Cleaned copy: ',
+    second: 'Second check', secondDesc: 'The cleaned copy.', checked: 'Checked', notAvailable: 'Not available',
+    secondRead: 'The cleaned copy was read again in your browser.',
+    secondNA: 'Second check: not available for PNG and WebP on this page. The file was re-encoded, which drops metadata blocks.',
+    removedAll: function (n) { return 'Removed ' + n + ' item' + (n === 1 ? '' : 's') + '. A second check of the cleaned copy found none left. Saved to your downloads; your original is unchanged.'; },
+    leftCount: function (n) { return 'The cleaned copy still shows ' + n + ' metadata item' + (n === 1 ? '' : 's') + '. Do not share it.'; },
   };
 
   function row(name, desc, status, label, lines, why) {
@@ -88,7 +106,7 @@
   function show(rows) { tbody.textContent = ''; rows.forEach(function (r) { tbody.appendChild(r); }); }
 
   function inspect(file) {
-    current = null; clean.hidden = true;
+    current = null; before = null; clean.hidden = true;
     if (!file) return;
     if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { summary.textContent = T.onlyJpeg; summary.setAttribute('data-tone', 'fail'); show([]); return; }
     if (file.size > MAX_BYTES) { summary.textContent = T.tooBig; summary.setAttribute('data-tone', 'fail'); show([]); return; }
@@ -108,6 +126,7 @@
                              : row(T.device, T.deviceDesc, 'pass', T.none, [T.noDevice]));
         rows.push(dates.length ? row(T.dates, T.datesDesc, 'warn', T.found, dates.map(function (f) { return f[0] + ': ' + f[1]; }), T.datesWhy)
                                : row(T.dates, T.datesDesc, 'pass', T.none, [T.noDates]));
+        before = C.fromExif(r);
         summary.textContent = r.found ? T.carries : T.noMeta;
         summary.setAttribute('data-tone', r.found ? 'fail' : 'ok');
       } else {
@@ -116,8 +135,37 @@
         summary.setAttribute('data-tone', 'warn');
       }
       show(rows);
-      current = file; clean.hidden = false; clean.disabled = false; clean.textContent = T.cleanBtn;
+      current = { file: file, before: before }; clean.hidden = false; clean.disabled = false; clean.textContent = T.cleanBtn;
     }).catch(function () { summary.textContent = T.cantRead; summary.setAttribute('data-tone', 'fail'); });
+  }
+
+  var CAT = { location: 'location', device: 'device', dates: 'dates' };
+  function catName(c) { var k = CAT[String(c).toLowerCase()]; return k ? T[k] : T.other; }
+  function catDesc(c) { var k = CAT[String(c).toLowerCase()]; return k ? T[k + 'Desc'] : T.otherDesc; }
+  function line(it) { return it.name + ': ' + (it.category === 'Location' && it.value === 'present' ? T.gpsBlock : it.value); }
+
+  // One row per category that had items before cleaning: "Removed" when every item is gone, otherwise
+  // "Still there" with only the items that are left. Then the second-check row.
+  function resultRows(beforeItems, diff) {
+    var rows = [];
+    var leftGroups = C.byCategory(diff.left.concat(diff.added));
+    function leftOf(name) {
+      for (var i = 0; i < leftGroups.length; i++) if (leftGroups[i].name.toLowerCase() === name.toLowerCase()) return leftGroups[i].items;
+      return [];
+    }
+    var seen = {};
+    C.byCategory(beforeItems).forEach(function (g) {
+      seen[g.name.toLowerCase()] = true;
+      var left = leftOf(g.name);
+      rows.push(left.length ? row(catName(g.name), catDesc(g.name), 'fail', T.stillThere, left.map(line))
+                            : row(catName(g.name), catDesc(g.name), 'pass', T.removed, g.items.map(line)));
+    });
+    leftGroups.forEach(function (g) {
+      if (!seen[g.name.toLowerCase()]) rows.push(row(catName(g.name), catDesc(g.name), 'fail', T.stillThere, g.items.map(line)));
+    });
+    if (!beforeItems.length) rows.push(row(T.metadata, T.metadataDesc, 'pass', T.none, [T.noGps, T.noDevice, T.noDates]));
+    rows.push(row(T.second, T.secondDesc, diff.left.length + diff.added.length ? 'fail' : 'pass', T.checked, [T.secondRead]));
+    return rows;
   }
 
   function outType(t) { return t === 'image/png' ? 'image/png' : t === 'image/webp' ? 'image/webp' : 'image/jpeg'; }
@@ -125,7 +173,7 @@
 
   function cleanFile() {
     if (!current) return;
-    var file = current;
+    var job = current, file = job.file;
     clean.disabled = true; clean.textContent = T.working;
     createImageBitmap(file).then(function (bmp) {
       if (bmp.width * bmp.height > MAX_PIXELS) { bmp.close(); throw new Error('big'); }
@@ -140,9 +188,21 @@
           a.href = url; a.download = file.name.replace(/\.[^.]+$/, '') + '-clean.' + ext(type);
           document.body.appendChild(a); a.click(); a.remove();
           setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
-          var ok = type !== 'image/jpeg' || !again.found;
-          summary.textContent = ok ? T.done : T.stillHas;
-          summary.setAttribute('data-tone', ok ? 'ok' : 'fail');
+          var outName = a.download;
+          if (job !== current) return; // another file was chosen meanwhile; its table is on screen now
+          var fileRow = row(T.file, T.fileDesc, 'info', T.info, [file.name, file.type + ', ' + fmtSize(file.size), T.cleanedCopy + outName + ', ' + fmtSize(blob.size)]);
+          if (type !== 'image/jpeg' || !job.before) {
+            // PNG and WebP metadata is not read on this page, so no per-item claim is made for them.
+            show([fileRow, row(T.second, T.secondDesc, 'info', T.notAvailable, [T.secondNA])]);
+            summary.textContent = T.done;
+            summary.setAttribute('data-tone', 'ok');
+          } else {
+            var diff = C.compare(job.before, C.fromExif(again));
+            show([fileRow].concat(resultRows(job.before, diff)));
+            var bad = diff.left.length + diff.added.length;
+            summary.textContent = bad ? T.leftCount(bad) : job.before.length ? T.removedAll(job.before.length) : T.done;
+            summary.setAttribute('data-tone', bad ? 'fail' : 'ok');
+          }
           clean.disabled = false; clean.textContent = T.cleanBtn;
         });
       });

@@ -38,7 +38,13 @@ var T = ZH ? {
   clean: '已清理。再次扫描没有发现剩余的元数据。清理后的副本已保存到下载文件夹，原文件没有改动。',
   left: function (n, names) { return '清理后的副本已保存，但再次扫描仍找到 ' + n + ' 项：' + names + '。它们属于文件结构的一部分；如果这对你很重要，就不要分享这个文件。'; },
   listSep: '、',
-  mark: '你选择了一个文件'
+  mark: '你选择了一个文件',
+  removedN: function (n) { return '已删除 ' + n + ' 项。'; },
+  removed: '已删除', stillThere: '仍然存在',
+  onlyAfter: '清理后才出现',
+  cleanedCopy: '清理后的副本：',
+  second: '再次检查', secondDesc: '清理后的副本。', checked: '已检查',
+  secondScan: '清理引擎在浏览器里重新扫描了清理后的副本。'
 } : {
   button: 'Remove metadata and download',
   supported: 'JPEG, PNG, WebP, AVIF, GIF, HEIC, HEIF, TIFF, SVG, MP4, MOV, MP3, FLAC, WAV, OGG, PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP and EPUB',
@@ -63,7 +69,13 @@ var T = ZH ? {
   clean: 'Cleaned. A second scan found no metadata left. The cleaned copy was saved to your downloads; your original file is unchanged.',
   left: function (n, names) { return 'The cleaned copy was saved, but a second scan still found ' + n + ' item' + (n === 1 ? '' : 's') + ': ' + names + '. These are part of the file structure; do not share the file if that matters to you.'; },
   listSep: ', ',
-  mark: 'You picked a file'
+  mark: 'You picked a file',
+  removedN: function (n) { return 'Removed ' + n + ' item' + (n === 1 ? '' : 's') + '. '; },
+  removed: 'Removed', stillThere: 'Still there',
+  onlyAfter: 'Present only after cleaning',
+  cleanedCopy: 'Cleaned copy: ',
+  second: 'Second check', secondDesc: 'The cleaned copy.', checked: 'Checked',
+  secondScan: 'The cleaning engine scanned the cleaned copy again in your browser.'
 };
 var BUTTON = T.button;
 var SUPPORTED = T.supported;
@@ -182,6 +194,33 @@ function groupsOf(meta) {
   return { groups: groups, total: list.length };
 }
 
+function itemLine(it) { return (asText(it.name) || T.value) + ': ' + truncate(it.value); }
+
+// One row per category found before cleaning: "Removed" when all its items are gone, otherwise
+// "Still there" with only the items left. Items that appear only in the cleaned copy (rare) are listed
+// under their own category in the same "Still there" style. The second-check row comes last.
+function resultRows(C, before, diff) {
+  var rows = [];
+  var leftGroups = C.byCategory(diff.left);
+  var addedGroups = C.byCategory(diff.added);
+  function find(groups, name) {
+    for (var i = 0; i < groups.length; i++) if (groups[i].name.toLowerCase() === name.toLowerCase()) return groups[i].items;
+    return [];
+  }
+  C.byCategory(before).forEach(function (g) {
+    var name = g.name || T.other;
+    var left = find(leftGroups, g.name);
+    rows.push(left.length ? row(name, '', 'fail', T.stillThere, left.map(itemLine))
+                          : row(name, '', 'pass', T.removed, g.items.map(itemLine)));
+  });
+  addedGroups.forEach(function (g) {
+    rows.push(row(g.name || T.other, T.onlyAfter, 'fail', T.stillThere, g.items.map(itemLine)));
+  });
+  if (!before.length && !diff.added.length) rows.push(row(T.metadata, T.metadataDesc, 'pass', T.none, [T.noMeta]));
+  rows.push(row(T.second, T.secondDesc, diff.left.length + diff.added.length ? 'fail' : 'pass', T.checked, [T.secondScan]));
+  return rows;
+}
+
 async function inspect(file) {
   var mine = ++seq;
   reset();
@@ -262,7 +301,8 @@ async function inspect(file) {
     setStatus(T.noneSummary(type.toUpperCase()), 'ok');
   }
   show(rows);
-  current = { file: file, bytes: bytes, type: type };
+  var beforeList = (res && res.metadata && res.metadata.metadata_found) || [];
+  current = { file: file, bytes: bytes, type: type, before: Array.isArray(beforeList) ? beforeList : [] };
   cleanBtn.hidden = false;
   cleanBtn.disabled = false;
   cleanBtn.textContent = BUTTON;
@@ -304,15 +344,24 @@ async function runClean() {
   }
 
   var left = (res.verification && res.verification.metadata_found) || [];
+  if (!Array.isArray(left)) left = [];
+  if (job !== current) return; // another file was chosen meanwhile; its table is on screen now
+  var C = window.CLEANDIFF;
+  var diff = C.compare(job.before, left);
+  var nRemoved = diff.removed.length;
+  var fileRow = row(T.file, T.fileDesc, 'info', T.info, [asText(job.file.name), job.type.toUpperCase() + ', ' + fmtSize(job.file.size),
+    T.cleanedCopy + cleanName(job.file.name) + ', ' + fmtSize(cleaned.length)]);
+  show([fileRow].concat(resultRows(C, job.before, diff)));
+  var prefix = nRemoved ? T.removedN(nRemoved) : '';
   if (!left.length) {
-    setStatus(T.clean, 'ok');
+    setStatus(prefix + T.clean, 'ok');
   } else {
     var names = left.map(function (it) {
       var cat = asText(it && it.category);
       var nm = asText(it && it.name) || T.value.toLowerCase();
       return (cat ? cat + ' / ' : '') + nm;
     });
-    setStatus(T.left(left.length, names.join(T.listSep)), 'warn');
+    setStatus(prefix + T.left(left.length, names.join(T.listSep)), 'warn');
   }
   cleanBtn.disabled = false;
   cleanBtn.textContent = BUTTON;
