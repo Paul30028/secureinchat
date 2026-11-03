@@ -36,7 +36,7 @@
 | D-G16 | 隐私快速检查(只打开系统设置：删除广告 ID、精确位置、应用权限) | `feature/G16` | 已审查集成:文案改得不夸大，去掉一个未公开的 Intent;模拟器加 5c 步;CI run 41643910622 全绿。待 Paul 合并 |
 | D-C9b | 自写 DocumentSavePlugin，备份导出在真机能保存 | `feature/C10` | 已审查集成(271 个测试通过;顺手修了一个原有的阅后即焚测试抖动)。APK 由 CI 构建，真机验证归 K4 |
 | D-G17 | 扫描已装 App 内嵌的追踪 SDK(TrackerDb.byClassName;写「含有」不写「在用」) | `feature/G17`(从 G16 分出) | 规格已发 DeepSeek |
-| D-W18 | 照片/文件清理工具：清理后列出删掉了哪些字段，并自动重新检查一遍(来自用户痛点调研) | `feature/W18` | 进行中(守护会话直接写，不走 DeepSeek,11-03 16:58 UTC) |
+| D-W18 | 照片/文件清理工具：清理后列出删掉了哪些字段，并自动重新检查一遍(来自用户痛点调研) | `feature/W18` | 待审查(守护会话直接写，未走 DeepSeek):1501960。新模块 cleandiff.js + 两个清理工具清理后逐类显示「已删除/仍然存在」和「再次检查」行;PNG/WebP 不做逐项声明。cleandiff 单元测试 11 项(做过变异检查),tools2/mrpage/zhphoto/zhfile 加了断言;22 组页面测试 + 20 个 node 测试全过。未合并 next、未上线 |
 
 ## Claude 云端会话自己的任务
 
