@@ -542,6 +542,30 @@ def main():
     find_anywhere(lambda s: "Blocked today: 0 · last 7 days: 0" in s, "history not cleared")
     snap("history-cleared")
     print("ok: Clear block history resets the row")
+
+    # 5c. G16: the privacy checkup shows three rows. Each row has either a working button or a
+    # "Search Settings" hint, never both. A button must leave Guardian, and Back must return.
+    nodes = find_anywhere(lambda s: all(x in s for x in (
+        "Privacy checkup", "Delete your advertising ID", "Precise location", "Review app permissions")),
+        "privacy checkup rows missing")
+    s = joined(nodes)
+    if ("Open ad settings" in s) == ('Search Settings for "Ads"' in s):
+        fail("ad row must show exactly one of button / search hint", nodes)
+    b = button(nodes, "Open app settings") or button(nodes, "Open ad settings")
+    if b:
+        tap(b)
+        time.sleep(3)
+        top = sh("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'", check=False)
+        if PKG + "/" in top:
+            fail("privacy button did not leave Guardian: " + top.strip()[:200], nodes)
+        sh("input keyevent 4")
+        time.sleep(2)
+        top = sh("dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity'", check=False)
+        if PKG + "/" not in top:
+            fail("Back did not return to Guardian: " + top.strip()[:200])
+        print("ok: privacy checkup button opens system settings and Back returns")
+    else:
+        print("ok: privacy checkup rows shown (no button resolvable on this image)")
     scroll_top()
 
     # 6. Start again, stop from the notification
