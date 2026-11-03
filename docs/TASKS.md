@@ -1,6 +1,7 @@
 # 任务分派板(项目经理:Claude 云端会话;Paul 2026-11-03 授权)
 
 **怎么用这块板**
+- Claude Code 只能推 `claude/charming-galileo-vdrqio`:每个新任务把它重置到该任务的基线分支再强推;报告写在 `docs/reports/`,做完直接领下一项，不用等。
 - 每个任务一个分支，分支名写在表里;只在自己的分支上改代码，避免互相冲突。
 - 开始做:把「状态」改成「进行中(谁，日期)」，提交到 `next`(只改这个文件，小提交;冲突就 rebase)。
 - 做完:状态改成「待审查」,写上分支和提交号、测试结果。不要自己合并到 `feature/guardian`、`feature/chat`、`main`——合并等 Paul。
@@ -20,10 +21,11 @@
 
 | # | 任务 | 分支 | 状态 | 要点 |
 |---|---|---|---|---|
-| K1 | **Guardian 真机测试** | 不改代码;问题记到 `docs/device-test-guardian.md`(在 `next` 上) | 待做 | 在 Paul 手机上装 `feature/G13` 的 debug APK(`cd guardian && ./gradlew assembleDebug`)。逐项测：启动/停止、拦截 doubleclick.net、放行 example.com、三档切换(sentry.io 只在严格档被拦)、暂停 5 分钟、自定义拦截/放行、导入导出、Always-on、Quick Settings 磁贴、拦截次数历史和清除、耗电(运行 1 小时看系统电池页)、和 Private DNS 同时开时的提示。每项写「通过/不通过 + 现象 + 手机型号和 Android 版本」。这是项目最大的缺口 |
-| K2 | **G18 第 2 部分：加密 DNS 接入 App** | `feature/G18`(core 已完成：DotClient、DotProviders) | 待做 | `Socket()` → `VpnService.protect(socket)` → `SSLSocketFactory.getDefault().createSocket(sock, host, 853, true)`,`SSLParameters.endpointIdentificationAlgorithm = "HTTPS"`。设置项：关闭(默认)/ Quad9 / Cloudflare，存在 UserRulesStore。开启时所有转发走 DotClient;**连不上就失败，绝不回退明文 DNS**,状态行显示「Encrypted DNS: Quad9 — connected / unreachable」(中英文)。DoT 查询要在后台线程，不能卡 tun 读循环。测试:core 已有 DotClientTest;模拟器流程加一步：选 Quad9 后 example.com 能解析、日志 ALLOW;真机上再测一次(K1 的同一台手机)。文案只说「加密 DNS 让网络运营商看不到你查了哪些网站」，不做翻墙宣传 |
-| K3 | **C10-A:聊天 App 本地数据用硬件密钥保护** | `feature/C10`(聊天线，读那边的 CLAUDE.md) | 待做 | 方案见 `drop/deepseek/c10/design.txt` 和 CLAUDE.md:自写 `KeystorePlugin.java`(AES-GCM 硬件密钥，StrongBox 优先、失败回退 TEE，记录实际级别);JS 侧新主密钥(可导出 → 包裹 → 丢弃原始字节 → 导入为不可导出);双密钥 keyring + 后台全量迁移(断电安全);M1 **不绑定用户认证**;密钥失效时提示「本机数据无法解密，请从备份恢复」并引导到备份页;Web 端保持现状并写明保护级别较低。README 和「我的」页如实写：防「拷走数据目录离线解密」，不防「已解锁设备上的在线提取」。要有迁移测试(中途中断、新旧条目混合)和真机验证 |
-| K4 | **聊天 App 真机测试** | 不改代码;记到 `docs/device-test-chat.md`(聊天线 `feature/C10`) | K3 之后 | 两台手机(或手机 + 模拟器):建群、扫码加群、文字/图片/语音/文件、一对一通话、阅后即焚、应用锁和指纹、截屏保护、备份导出与恢复(C9b 合入后)、断网重连 |
+| K1 | **Guardian 真机测试** | 不改代码;问题记到 `docs/device-test-guardian.md`(在 `next` 上) | 改由 Paul 做(Code 会话没有手机和 SDK) | 在 Paul 手机上装 `feature/G13` 的 debug APK(`cd guardian && ./gradlew assembleDebug`)。逐项测：启动/停止、拦截 doubleclick.net、放行 example.com、三档切换(sentry.io 只在严格档被拦)、暂停 5 分钟、自定义拦截/放行、导入导出、Always-on、Quick Settings 磁贴、拦截次数历史和清除、耗电(运行 1 小时看系统电池页)、和 Private DNS 同时开时的提示。每项写「通过/不通过 + 现象 + 手机型号和 Android 版本」。这是项目最大的缺口 |
+| K2 | **G18 第 2 部分：加密 DNS 接入 App** | `feature/G18`(core 已完成：DotClient、DotProviders) | 完成(Code,1e6d667);已合到 `feature/G18b`,CI 41646471550 | `Socket()` → `VpnService.protect(socket)` → `SSLSocketFactory.getDefault().createSocket(sock, host, 853, true)`,`SSLParameters.endpointIdentificationAlgorithm = "HTTPS"`。设置项：关闭(默认)/ Quad9 / Cloudflare，存在 UserRulesStore。开启时所有转发走 DotClient;**连不上就失败，绝不回退明文 DNS**,状态行显示「Encrypted DNS: Quad9 — connected / unreachable」(中英文)。DoT 查询要在后台线程，不能卡 tun 读循环。测试:core 已有 DotClientTest;模拟器流程加一步：选 Quad9 后 example.com 能解析、日志 ALLOW;真机上再测一次(K1 的同一台手机)。文案只说「加密 DNS 让网络运营商看不到你查了哪些网站」，不做翻墙宣传 |
+| K3 | **C10-A:聊天 App 本地数据用硬件密钥保护** | `feature/C10`(聊天线，读那边的 CLAUDE.md) | **下一项**(Code,见 `docs/reports/2026-11-03-planner-reply.md`) | 方案见 `drop/deepseek/c10/design.txt` 和 CLAUDE.md:自写 `KeystorePlugin.java`(AES-GCM 硬件密钥，StrongBox 优先、失败回退 TEE，记录实际级别);JS 侧新主密钥(可导出 → 包裹 → 丢弃原始字节 → 导入为不可导出);双密钥 keyring + 后台全量迁移(断电安全);M1 **不绑定用户认证**;密钥失效时提示「本机数据无法解密，请从备份恢复」并引导到备份页;Web 端保持现状并写明保护级别较低。README 和「我的」页如实写：防「拷走数据目录离线解密」，不防「已解锁设备上的在线提取」。要有迁移测试(中途中断、新旧条目混合)和真机验证 |
+| K4 | **聊天 App 真机测试** | 不改代码;记到 `docs/device-test-chat.md`(聊天线 `feature/C10`) | 改由 Paul 做 |
+| K5 | **Exodus 宽正则不显示公司名(G15b)** | 基线 `feature/G18b` | K3 之后(Code) | 两台手机(或手机 + 模拟器):建群、扫码加群、文字/图片/语音/文件、一对一通话、阅后即焚、应用锁和指纹、截屏保护、备份导出与恢复(C9b 合入后)、断网重连 |
 
 ## DeepSeek 的任务(Claude 云端会话负责发规格、收答复、审查集成)
 
