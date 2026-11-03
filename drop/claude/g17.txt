@@ -1,0 +1,136 @@
+G17 spec: on-device scan of installed apps for embedded tracker SDKs (Guardian)
+Author: Claude (project R&D lead). Branch: feature/G17 (from feature/G16). Reply in Chinese prose, code in English comments like the existing files.
+
+WHY
+Exodus Privacy finds tracker SDKs by reading the class names inside an APK's DEX files and matching them against
+known prefixes. We already bundle the Exodus data (G15, assets/trackers-exodus.tsv, ODbL) and TrackerDb keeps each
+tracker's codeSignatures. G17 does the same scan on the phone, offline: "which of my apps contain which tracker SDKs".
+Nothing leaves the device. Paul has authorised the QUERY_ALL_PACKAGES permission for this.
+
+HONESTY RULES (non-negotiable)
+- Containing a tracker's code does not mean it is running or sending data. Every result says "contains", never
+  "uses" or "sends". EN: "Contains code from 3 trackers". ZH: "含有 3 个追踪 SDK 的代码". Never "在用", "正在追踪".
+- One fixed explanatory line under the results (EN/ZH): "Found by matching class names with the Exodus Privacy list.
+  Code that is present may be inactive." / "按 Exodus Privacy 的类名清单比对得出。含有代码不代表它在运行。"
+- No scores, grades, colours meaning "dangerous", or invented numbers.
+- No network calls, nothing written to disk, nothing in logcat about which apps are installed.
+
+DELIVERABLES (new files in full; edits to existing files as anchor blocks: "replace from <exact anchor line> to
+<exact anchor line>" with the full replacement, like you did for G16)
+
+1. core/src/main/kotlin/org/secureinchat/guardian/dns/DexClassNames.kt  (pure Kotlin, no Android imports)
+   object DexClassNames {
+     /** Class names ("com.foo.Bar") from the type_ids of one DEX file. Bounds-checked: malformed input returns
+         whatever was read so far and never throws. Array types ("[L...;") and primitives are skipped. */
+     fun parse(dex: ByteArray, limit: Int = 200_000): List<String>
+   }
+   DEX layout (little-endian): magic "dex\n" + 3 version digits + "\0" (accept 035..041, reject others → empty).
+   header: string_ids_size @0x38, string_ids_off @0x3C, type_ids_size @0x40, type_ids_off @0x44.
+   type_id = u32 index into string_ids; string_id = u32 offset of string_data; string_data = uleb128 utf16 length,
+   then MUTF-8 bytes up to a 0 byte. Only descriptors of the form "L...;" become class names: strip L and ;,
+   '/' → '.'. MUTF-8 decoding: ASCII fast path; for non-ASCII use a correct MUTF-8 decoder (2- and 3-byte forms,
+   0xC0 0x80 = U+0000). Every offset/size checked against dex.size before reading; uleb128 max 5 bytes;
+   at most `limit` names.
+
+2. core/src/main/kotlin/org/secureinchat/guardian/dns/TrackerScan.kt
+   class TrackerScan(db: TrackerDb) {
+     /** Trackers whose code signature is a prefix of any of [classNames]. Same matching rule as
+         TrackerDb.byClassName (plain startsWith), but fast: an index keyed by the first two dot-separated
+         segments of each signature ("com.facebook" for "com.facebook.ads."); signatures with fewer than two
+         segments go in a small fallback list checked for every name. Result sorted by tracker id. */
+     fun match(classNames: Iterable<String>): List<Tracker>
+   }
+   TrackerDb needs a public read-only accessor for this: add `val all: List<Tracker>` (anchor edit).
+   Performance target: 60,000 class names × 432 trackers in under 300 ms on a desktop JVM (print the time in the
+   test). Stop checking a tracker once it has matched.
+
+3. core/src/test/kotlin/org/secureinchat/guardian/dns/DexClassNamesTest.kt and TrackerScanTest.kt
+   Same style as TrackerDbTest (t()/eq(), println("XTest: N passed")). Required groups:
+   - Build a minimal valid DEX in the test (a helper that writes header + string_ids + string_data + type_ids for a
+     given list of descriptors) and check the names come back, including one non-ASCII name and one array type
+     that must be skipped.
+   - Bad magic, unsupported version, every truncation length of a valid file (0..size), offsets pointing past the
+     end, a huge type_ids_size: no throw, and never a name that was not in the input.
+   - 5,000 random byte arrays (fixed seed), and 5,000 random single-byte mutations of the valid file: no throw.
+   - TrackerScan agrees with a brute-force reference (for each name, TrackerDb.byClassName-style loop over all
+     signatures) on 2,000 random names drawn from real signatures plus noise, using the real
+     app/src/main/assets/trackers-exodus.tsv (same path rule as TrackerDbTest).
+   - Signature edge cases: "com.databerries." does not match "com.databerries" or "com.databerriesx";
+     a one-segment signature (if you construct one) still matches.
+
+4. app/src/main/kotlin/org/secureinchat/guardian/AppScanner.kt  (Android)
+   - Lists installed packages with PackageManager.getInstalledApplications(0) (API 33+: the ApplicationInfoFlags
+     overload). Default: skip FLAG_SYSTEM apps unless FLAG_UPDATED_SYSTEM_APP; skip Guardian itself.
+     A boolean parameter includes system apps.
+   - For each app: open sourceDir and every splitSourceDirs entry with java.util.zip.ZipFile; for entries named
+     classes.dex, classes2.dex … (regex ^classes\d*\.dex$), read the entry (skip one larger than 64 MiB; stop an
+     app after 256 MiB total) and feed DexClassNames.parse into one collection, then TrackerScan.match.
+     An app whose files cannot be read (SecurityException, IOException, ZipException) gets status "could not be
+     read" — shown, not hidden, not counted as "no trackers".
+   - Runs on one background thread (a plain Thread or a single-thread Executor; no coroutines library). Reports
+     progress (done/total) and each finished app to the UI thread via a Handler on the main Looper. Cancellable:
+     a volatile flag checked between apps and between DEX entries; Activity onDestroy cancels.
+   - Loads the tracker DB itself from assets on that background thread (TrackerDb.parse of
+     "trackers-exodus.tsv"); does not depend on the VPN service having started.
+   - Results live only in memory (a field of the scanner / activity). No SharedPreferences, no files, no Log.*
+     calls with package names or labels.
+   - App label: pm.getApplicationLabel(info).toString().
+
+5. MainActivity edits (anchor blocks)
+   New block after the G16 privacy checkup rows and before "// A little slack at the bottom..." line:
+   - Heading "Apps with tracker code" / "含有追踪代码的 App".
+   - One sentence: "Guardian can look inside your installed apps for code from known trackers. This runs on your
+     phone and sends nothing." / "Guardian 可以检查已安装的 App 里有没有已知追踪 SDK 的代码。检查在手机上进行，不发送任何内容。"
+   - Button "Scan apps" / "检查 App"; while running it reads "Stop (12/87)" / "停止(12/87)" and stops the scan.
+   - CheckBox "Include system apps" / "包括系统 App" (default off).
+   - Results list, rebuilt when a scan finishes or every 10 apps during the scan: apps with at least one tracker
+     first, sorted by count descending then label; each row = label (14sp) + one line
+     "Contains code from N trackers: A, B, C" (list up to 5 names, then "and K more" / "等 K 个") (12sp).
+     Tapping a row opens ACTION_APPLICATION_DETAILS_SETTINGS for that package (resolveActivity-gated, like G16).
+     Then one summary line: "Scanned 87 apps · 31 with tracker code · 2 could not be read" /
+     "已检查 87 个 App · 31 个含有追踪代码 · 2 个无法读取". Apps with zero trackers are not listed one by one.
+   - The fixed explanatory line from HONESTY RULES, then nothing else.
+   - The Exodus attribution link (G15) already exists at the bottom; leave it.
+
+6. AndroidManifest.xml: add <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+   tools:ignore="QueryAllPackagesPermission" /> with an XML comment: "G17: on-device tracker-SDK scan of
+   installed apps; nothing leaves the phone. Guardian is distributed outside Google Play; on Play this permission
+   needs a declaration." Give it as an anchor block after the POST_NOTIFICATIONS line.
+
+7. tests/policy_check.py: add QUERY_ALL_PACKAGES to `allowed`. Add a rule: AppScanner.kt, DexClassNames.kt and
+   TrackerScan.kt must not contain "Socket", "URL(", "HttpURLConnection", "Log.", "SharedPreferences",
+   "FileOutputStream", "openFileOutput". Anchor blocks.
+
+8. tests/emulator_flow.py: suggest a step (I will place it): scroll to "Scan apps", tap, wait up to 120 s for
+   "Scanned " in the summary line with N ≥ 1; check "Include system apps", scan again, print the summary (no
+   assertion on the count, emulator images differ); check no crash. Use the existing helpers (find_anywhere,
+   button, tap, scroll_find).
+
+CONSTRAINTS
+- No third-party dependencies. Kotlin standard library + Android SDK only.
+- GPL-3.0-or-later SPDX header on every new file (first line exactly
+  "// SPDX-License-Identifier: GPL-3.0-or-later").
+- Do not touch the VPN service, DNS code, or blocklists.
+- If anything in this spec is wrong for the platform (e.g. reading another app's base.apk is not allowed on some
+  API level), say so plainly and give the fix; do not silently change requirements.
+- Output order: DexClassNames.kt, TrackerScan.kt, TrackerDb anchor block, the two tests, AppScanner.kt,
+  MainActivity anchor blocks, manifest block, policy_check blocks, emulator suggestion, then a short list of what
+  you are unsure about.
+
+CONTEXT EXCERPTS (current code)
+- TrackerDb (core): data class Tracker(id, name, categories, website, networkRegex: Regex?, codeSignatures:
+  List<String>); class TrackerDb private constructor(private val trackers: List<Tracker>) with size, withNetwork,
+  byDomain(name), byClassName(className) { for t in trackers, for sig in t.codeSignatures: if sig not empty and
+  className.startsWith(sig) return t }, companion parse(tsv).
+  Anchor for adding `all`: the line "    val withNetwork: Int get() = networkTrackers.size"
+- MainActivity: helpers txt(en, zh), `pad`, `small`, `root: LinearLayout`; G16 rows end with
+            fallbackEn = "Search Settings for \"Apps\"",
+            fallbackZh = "在系统设置里搜索\"应用\""
+        )
+
+        // A little slack at the bottom so the last row is not glued to the scroll edge.
+  firstResolvable(candidates: List<Intent>): Intent? exists (G16). onDestroy may or may not exist: if it does not,
+  add one in a separate anchor block after "    private fun registerPdnsCallback() {" ... say which.
+- Manifest anchor: the line
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+- policy_check allowed set line begins: "    allowed = {'android.permission.INTERNET', "
