@@ -12,7 +12,7 @@ Paul 的隐私保护项目。使命：保护个人隐私这项基本人权。三
 | Guardian(安卓本机 DNS 拦截器) | `guardian/`(`core/` 纯 Kotlin，`app/` 安卓) | VpnService 本地 DNS 过滤，GPL-3.0-or-later |
 | 聊天 App 邀群密聊 Next | `feature/chat` 系列分支(另一条线) | React + Capacitor + Python 中继，AGPL-3.0-or-later(分支 `feature/chat-license`) |
 
-当前进度和下一步:`docs/ENGINEERING_STATUS.md`。
+当前进度和下一步:`docs/ENGINEERING_STATUS.md`。**分给你的任务在 `docs/TASKS.md`——开工前先读，按表里的顺序做，并在表里更新状态。**
 
 ## 铁规则(不能违反)
 
