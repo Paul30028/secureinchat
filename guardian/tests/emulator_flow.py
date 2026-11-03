@@ -237,11 +237,15 @@ def launch():
 
 
 def start_from_app():
+    # The status line is at the top; earlier steps (G13 level switch) may have left the page scrolled down.
+    scroll_top()
     nodes = wait_ui(lambda s: "Status: " in s, "main screen did not appear")
     b = button(nodes, "Start")
     if not b:
         fail("no Start button", nodes)
     tap(b)
+    time.sleep(1)
+    scroll_top()
     nodes = wait_ui(lambda s: "Status: Running" in s, "status did not change to Running")
     end = time.time() + 15
     while time.time() < end and not service_running():
@@ -310,8 +314,12 @@ def main():
     print(f"guardian: {ALLOWED} -> {addr}")
     if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{ALLOWED} should resolve to a real address through Guardian, got {addr}: {out}")
-    nodes = wait_ui(lambda s: f"ALLOW {ALLOWED}" in s and re.search(r"Answered: [1-9]", s),
-                    f"log does not show ALLOW {ALLOWED} with an answered query")
+    # The real address already proves Guardian forwarded the query (it is the only DNS path while the VPN is
+    # up). The on-screen log keeps only the last 10 lines and the emulator's own Google traffic can push the
+    # line out within seconds, so the log line is a soft check; the answered counter is the hard one.
+    nodes = wait_ui(lambda s: re.search(r"Answered: [1-9]", s), "no answered query counted")
+    if f"ALLOW {ALLOWED}" not in joined(nodes):
+        print(f"note: ALLOW {ALLOWED} already scrolled out of the 10-line log (background traffic)")
     snap("block-and-allow")
     print(f"ok: {ALLOWED} forwarded and answered")
 
@@ -524,6 +532,49 @@ def main():
     scroll_top()
     nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after cancelling the export picker")
     print("ok: Export opens the document picker")
+
+    # 4f. G13 blocking strength. sentry.io is in HaGeZi Pro only: not in Light, not in Multi, and not in
+    # blocklist-extra.txt (which loads on every level; scorecardresearch.com is there, so it is no test).
+    # Subdomains are blocked by label-suffix matching; each step uses a fresh subdomain because netd caches.
+    STRICT_ONLY = "sentry.io"
+
+    def pick_level(prefix):
+        scroll_top()
+        nodes = scroll_find(lambda s: prefix in s, f"no '{prefix}' option")
+        for t, d, b, c in nodes:
+            if c.endswith("RadioButton") and t.startswith(prefix) and b:
+                tap(b)
+                break
+        else:
+            fail(f"no radio button starting with '{prefix}'", nodes)
+        time.sleep(1)
+        # isLoading shows "Loading list…" in the status line; Running means the new list is in place.
+        wait_ui(lambda s: "Status: Running" in s and "Loading list" not in s,
+                f"still loading after choosing {prefix}", timeout=90)
+
+    # Judge by the DNS answer, not the 10-line log (background traffic pushes lines out): a blocked
+    # name always gets the block address; a forwarded one gets a real address or no answer (NXDOMAIN).
+    BLOCK_ADDRS = ("0.0.0.0", "127.0.0.1", "::")
+    addr, out = resolve("g13a." + STRICT_ONLY, tries=2)
+    if addr in BLOCK_ADDRS:
+        fail(f"Light blocked g13a.{STRICT_ONLY} ({addr}); it is in Pro only")
+    print(f"ok: Light forwards {STRICT_ONLY} ({addr})")
+
+    pick_level("Strict")
+    addr, out = resolve("g13b." + STRICT_ONLY)
+    if addr not in BLOCK_ADDRS:
+        fail(f"Strict did not block g13b.{STRICT_ONLY}: {addr} {out[-200:]}")
+    find_anywhere(lambda s: f"Rule: {STRICT_ONLY} (built-in list)" in s,
+                  f"no 'Blocked most often' row with Rule: {STRICT_ONLY}")
+    snap("level-strict")
+    print(f"ok: Strict blocks {STRICT_ONLY}")
+
+    pick_level("Light")
+    addr, out = resolve("g13c." + STRICT_ONLY, tries=2)
+    if addr in BLOCK_ADDRS:
+        fail(f"back on Light, g13c.{STRICT_ONLY} still blocked ({addr})")
+    print("ok: back to Light")
+    scroll_top()
 
     # 5. Stop from the app
     b = button(nodes, "Stop")

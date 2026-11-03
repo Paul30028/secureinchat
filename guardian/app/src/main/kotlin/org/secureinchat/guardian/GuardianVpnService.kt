@@ -426,7 +426,6 @@ class GuardianVpnService : VpnService() {
         private const val STATS_FLUSH_MS = 60_000L
         private const val CHANNEL_ID = "guardian_vpn"
         private const val NOTIF_ID = 1
-        private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")
         private val rulesLock = Any()
 
         @Volatile var isRunning: Boolean = false
@@ -472,17 +471,51 @@ class GuardianVpnService : VpnService() {
         fun trackerDb(): TrackerDb? = trackerDbCache
 
         // The bundled lists never change while the app runs, so parse them once per process.
+        // G13: the three tier files are disjoint (light has entries multi does not, and vice versa),
+        // so the tier chooses which file is loaded; blocklist-extra.txt is always added on top.
+        private fun hageziAsset(level: String): String = when (level) {
+            "normal" -> "blocklist-hagezi-normal.txt"
+            "pro" -> "blocklist-hagezi-pro.txt"
+            else -> "blocklist-hagezi-light.txt"
+        }
+
+        private fun parseTier(ctx: Context, level: String): Blocklist {
+            val assets = listOf(hageziAsset(level), "blocklist-extra.txt")
+            val text = assets.joinToString("\n") { name ->
+                ctx.assets.open(name).use { it.bufferedReader().readText() }
+            }
+            return Blocklist.parse(text)
+        }
+
+        // Cached by tier: switching tiers throws away the previous list's memory instead of
+        // holding two (or three) at once. A miss for tier X evicts whatever was cached.
         @Volatile private var baseCache: Blocklist? = null
+        @Volatile private var baseCacheLevel: String = ""
 
         private fun loadBlocklistStatic(ctx: Context): Blocklist {
-            baseCache?.let { return it }
+            val level = UserRulesStore.level(ctx)
+            baseCache?.let { if (baseCacheLevel == level) return it }
             return try {
-                val text = LIST_ASSETS.joinToString("\n") { name ->
-                    ctx.assets.open(name).use { it.bufferedReader().readText() }
+                parseTier(ctx, level).also {
+                    baseCache = it
+                    baseCacheLevel = level
                 }
-                Blocklist.parse(text).also { baseCache = it }
-            } catch (_: Throwable) {
-                Blocklist.parse("")
+            } catch (e: Throwable) {
+                // G13: a missing or corrupt tier file must not take the app down. Fall back to light
+                // and log a single line (logcat only, nothing on disk); the current cache - if any -
+                // is reused so in-flight queries keep a working blocklist.
+                android.util.Log.w(
+                    "Guardian",
+                    "level $level failed to load (${e.javaClass.simpleName}: ${e.message}); falling back to light"
+                )
+                try {
+                    parseTier(ctx, "light").also {
+                        baseCache = it
+                        baseCacheLevel = "light"
+                    }
+                } catch (_: Throwable) {
+                    baseCache ?: Blocklist.parse("")
+                }
             }
         }
 
@@ -508,6 +541,35 @@ class GuardianVpnService : VpnService() {
                     } catch (_: Throwable) {}
                 }
             }.apply { name = "guardian-rules" }.start()
+        }
+
+        // G13: switch the blocking tier while the VPN is running. The tier itself is already saved
+        // by the caller (UserRulesStore.setLevel), so this only reloads the asset and swaps the
+        // active handler's blocklist. When the VPN is not running (or is mid-start, when
+        // activeHandler is still null), there is nothing to swap; the saved tier will be picked up
+        // by the next startVpnBackground.
+        //
+        // isLoading is reused so the UI can keep showing "Loading list…" during the reload, the same
+        // way it does during a fresh start. On a bad tier file the reload falls back inside
+        // loadBlocklistStatic and the flag still resets in the finally block.
+        fun applyLevel(ctx: Context) {
+            val h = activeHandler ?: return
+            isLoading = true
+            Thread {
+                synchronized(rulesLock) {
+                    try {
+                        val base = loadBlocklistStatic(ctx)
+                        // Only swap if the same handler is still the active one. A Stop during the
+                        // reload sets activeHandler = null; a concurrent restart installs a new one.
+                        if (activeHandler === h) {
+                            h.blocklist = applyUserRulesTo(base, ctx)
+                        }
+                    } catch (_: Throwable) {
+                    } finally {
+                        isLoading = false
+                    }
+                }
+            }.apply { name = "guardian-level" }.start()
         }
     }
 }
