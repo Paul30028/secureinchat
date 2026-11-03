@@ -1,0 +1,359 @@
+<<<FULL
+guardian/app/src/main/kotlin/org/secureinchat/guardian/MainActivity.kt — 锚点+替换片段
+
+(1) buildUi 中插入隐私检查区块(在「清除拦截记录」按钮之后、Always-on 区块之前)
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+        // G12: clears the durable block history. No confirmation dialog: it is a small counter, and
+        // the result is immediately visible in the "Blocked today" row above.
+        root.addView(Button(this).apply {
+            text = txt("Clear block history", "清除拦截记录")
+            textSize = 12f
+            setOnClickListener { onClearHistoryClicked() }
+        })
+
+        // A little slack at the bottom so the last row is not glued to the scroll edge.
+        // --- Always-on VPN (G9) ---------------------------------------------
+
+替换为:
+
+text
+Copy
+Download
+        // G12: clears the durable block history. No confirmation dialog: it is a small counter, and
+        // the result is immediately visible in the "Blocked today" row above.
+        root.addView(Button(this).apply {
+            text = txt("Clear block history", "清除拦截记录")
+            textSize = 12f
+            setOnClickListener { onClearHistoryClicked() }
+        })
+
+        // --- Privacy checkup (G16) -------------------------------------------
+        // Three quick checks, each of which opens a system settings screen. This block reads and
+        // changes nothing: every button is only shown if its intent actually resolves (checked with
+        // resolveActivity), so the app never shows a control that would do nothing.
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("Privacy checkup", "隐私快速检查")
+            setPadding(0, pad, 0, pad / 4)
+        })
+        addPrivacyRow(
+            parent = root,
+            pad = pad,
+            titleEn = "Delete your advertising ID",
+            titleZh = "删除广告 ID",
+            descEn = "Apps use the advertising ID to link your activity across apps. Deleting it makes them receive zeros.",
+            descZh = "广告 ID 让各个 App 把你的行为串起来；删除后 App 拿到的是一串 0。",
+            candidates = listOf(
+                Intent("com.google.android.gms.settings.ADS_PRIVACY"),
+                Intent(Settings.ACTION_PRIVACY_SETTINGS)
+            ),
+            buttonEn = "Open ad settings",
+            buttonZh = "打开广告设置",
+            fallbackEn = "Search Settings for \"Ads\"",
+            fallbackZh = "在系统设置里搜索\"广告\""
+        )
+        // API 31 added a dedicated "location scope" screen; on older platforms only the broader
+        // location-source screen exists. Both are tried in order, with resolveActivity filtering.
+        val locationCandidates = ArrayList<Intent>(2)
+        if (Build.VERSION.SDK_INT >= 31) {
+            locationCandidates.add(Intent("android.settings.LOCATION_SCOPE_SETTINGS"))
+        }
+        locationCandidates.add(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+        addPrivacyRow(
+            parent = root,
+            pad = pad,
+            titleEn = "Precise location",
+            titleZh = "精确位置",
+            descEn = "Apps with precise location can share your position to within a few metres; most need only approximate.",
+            descZh = "有精确位置权限的 App 能把你的位置精确到几米，多数只需要大致位置。",
+            candidates = locationCandidates,
+            buttonEn = "Open location settings",
+            buttonZh = "打开位置设置",
+            fallbackEn = "Search Settings for \"Location\"",
+            fallbackZh = "在系统设置里搜索\"位置\""
+        )
+        addPrivacyRow(
+            parent = root,
+            pad = pad,
+            titleEn = "Auto-revoke unused apps",
+            titleZh = "未使用 App 自动撤销权限",
+            descEn = "Android can remove permissions from apps you have not used for months.",
+            descZh = "长期不用的 App，系统可以自动收回权限。",
+            candidates = listOf(Intent(Settings.ACTION_APPLICATION_SETTINGS)),
+            buttonEn = "Open app settings",
+            buttonZh = "打开应用设置",
+            fallbackEn = "Search Settings for \"Apps\"",
+            fallbackZh = "在系统设置里搜索\"应用\""
+        )
+
+        // A little slack at the bottom so the last row is not glued to the scroll edge.
+        // --- Always-on VPN (G9) ---------------------------------------------
+
+(2) 新增 firstResolvable / addPrivacyRow(放在 onClearHistoryClicked 之后)
+
+锚点(原文逐字,唯一):
+
+text
+Copy
+Download
+    // G12: wipe the durable block history. The in-session "Blocked: N" counter above keeps its
+    // value; only the "Blocked today / last 7 days" row reads from StatsStore and will show 0.
+    private fun onClearHistoryClicked() {
+        StatsStore.clear(this)
+        historySignature = ""
+        uiHandler.post { refreshUi() }
+    }
+
+替换为:
+
+text
+Copy
+Download
+    // G12: wipe the durable block history. The in-session "Blocked: N" counter above keeps its
+    // value; only the "Blocked today / last 7 days" row reads from StatsStore and will show 0.
+    private fun onClearHistoryClicked() {
+        StatsStore.clear(this)
+        historySignature = ""
+        uiHandler.post { refreshUi() }
+    }
+
+    // G16: return the first candidate intent the system can actually handle, or null. resolveActivity
+    // covers both cases that make a settings screen unreachable: the API level is too low, or the
+    // OEM removed that screen. Wrapped in try/catch because a malformed action string would make
+    // resolveActivity throw on some old platforms.
+    private fun firstResolvable(candidates: List<Intent>): Intent? {
+        for (i in candidates) {
+            try {
+                if (i.resolveActivity(packageManager) != null) return i
+            } catch (_: Throwable) {}
+        }
+        return null
+    }
+
+    // G16: one privacy row is a title, a one-sentence explanation, and either a button that opens
+    // the first resolvable settings screen or (if none resolve) a plain hint telling the user where
+    // to look in Settings. A row with an unreachable screen still shows its explanation; only the
+    // button is hidden, so the checkup never lies about what it can do.
+    private fun addPrivacyRow(
+        parent: LinearLayout,
+        pad: Int,
+        titleEn: String,
+        titleZh: String,
+        descEn: String,
+        descZh: String,
+        candidates: List<Intent>,
+        buttonEn: String,
+        buttonZh: String,
+        fallbackEn: String,
+        fallbackZh: String
+    ) {
+        parent.addView(TextView(this).apply {
+            textSize = 14f
+            text = txt(titleEn, titleZh)
+            setPadding(0, pad, 0, pad / 4)
+        })
+        parent.addView(TextView(this).apply {
+            textSize = 12f
+            text = txt(descEn, descZh)
+        })
+        val target = firstResolvable(candidates)
+        if (target != null) {
+            parent.addView(Button(this).apply {
+                text = txt(buttonEn, buttonZh)
+                textSize = 12f
+                setOnClickListener {
+                    try { startActivity(target) } catch (_: ActivityNotFoundException) {}
+                }
+            })
+        } else {
+            parent.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt(fallbackEn, fallbackZh)
+                setPadding(0, pad / 4, 0, 0)
+            })
+        }
+    }
+
+没有新增权限、没有新增依赖。All three buttons only call startActivity(Intent); no data is read or written. If GMS is absent on the emulator, row 1 falls back to Settings.ACTION_PRIVACY_SETTINGS; if that also does not exist (API < 31 AOSP image), the button is hidden and the "Search Settings for Ads" hint appears instead.
+
+模拟器测试建议
+
+三行标题存在:English locale 下断言界面上出现 "Delete your advertising ID"、"Precise location"、"Auto-revoke unused apps" 三段文字(可以用 uiautomator dump 或 UI Automator 的 textContains)。分区标题 "Privacy checkup" 也一并断言。
+
+第 1 个按钮跳转:用文字 "Open ad settings" 找按钮(English locale)。Google APIs 镜像上有 GMS,com.google.android.gms.settings.ADS_PRIVACY 会解析成功,点击后前台会切到 Google Play services 的 com.google.android.gms 的 Ads 页面。断言:
+
+adb shell dumpsys activity activities | grep -E 'mResumedActivity|topResumedActivity' 里的包名不是 org.secureinchat.guardian。
+
+不硬编码具体包名。GMS 版本不同,前台 Activity 可能是 com.google.android.gms/.ads.settings.AdsSettingsActivity,也可能是别的;只断言"不是 Guardian"。
+
+返回:adb shell input keyevent 4(返回键)。再查 dumpsys activity activities,前台 Activity 应是 org.secureinchat.guardian/.MainActivity。
+
+回退路径(可选,针对 AOSP 无 GMS 镜像):同一个按钮在无 GMS 镜像上会走 Settings.ACTION_PRIVACY_SETTINGS,前台变成 com.android.settings;如果连这个也没有(API < 31 的 AOSP 镜像),按钮不出现、"Search Settings for \"Ads\"" 出现。建议测试用条件判断:如果 "Open ad settings" 存在就断言 "Search Settings for \"Ads\"" 不存在,反之亦然,避免在两种镜像上都要维护两套断言。
+
+按钮 resolveActivity 为 null 时不应出现按钮:可以额外增加一条检查 —— 在已知没有 GMS 的 AOSP 镜像(API 29)上,断言界面上不存在 "Open ad settings" 按钮,但 "Delete your advertising ID" 标题仍在。
+
+一个我没有把握、需要你在真机核实的点:com.google.android.gms.settings.ADS_PRIVACY 是 Google 未公开文档化的 intent,在部分 GMS 版本上可能被标为 exported=false 或需要额外权限,导致 resolveActivity 返回 null。代码在这种情况下会自动落到 Settings.ACTION_PRIVACY_SETTINGS,不会崩溃、也不会显示假按钮,但界面上用户看到的是隐私设置页而不是广告设置页。如果真机上发现这个行为,可以考虑是否需要在按下后弹一句提示告诉用户广告设置在哪里;我没有主动加,因为那会引入额外的 UI 分支,而你要求的是"打不开的不显示按钮"。
+FULL>>>
+<<<CODE 0
+        // G12: clears the durable block history. No confirmation dialog: it is a small counter, and
+        // the result is immediately visible in the "Blocked today" row above.
+        root.addView(Button(this).apply {
+            text = txt("Clear block history", "清除拦截记录")
+            textSize = 12f
+            setOnClickListener { onClearHistoryClicked() }
+        })
+
+        // A little slack at the bottom so the last row is not glued to the scroll edge.
+        // --- Always-on VPN (G9) ---------------------------------------------
+CODE>>>
+<<<CODE 1
+        // G12: clears the durable block history. No confirmation dialog: it is a small counter, and
+        // the result is immediately visible in the "Blocked today" row above.
+        root.addView(Button(this).apply {
+            text = txt("Clear block history", "清除拦截记录")
+            textSize = 12f
+            setOnClickListener { onClearHistoryClicked() }
+        })
+
+        // --- Privacy checkup (G16) -------------------------------------------
+        // Three quick checks, each of which opens a system settings screen. This block reads and
+        // changes nothing: every button is only shown if its intent actually resolves (checked with
+        // resolveActivity), so the app never shows a control that would do nothing.
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("Privacy checkup", "隐私快速检查")
+            setPadding(0, pad, 0, pad / 4)
+        })
+        addPrivacyRow(
+            parent = root,
+            pad = pad,
+            titleEn = "Delete your advertising ID",
+            titleZh = "删除广告 ID",
+            descEn = "Apps use the advertising ID to link your activity across apps. Deleting it makes them receive zeros.",
+            descZh = "广告 ID 让各个 App 把你的行为串起来；删除后 App 拿到的是一串 0。",
+            candidates = listOf(
+                Intent("com.google.android.gms.settings.ADS_PRIVACY"),
+                Intent(Settings.ACTION_PRIVACY_SETTINGS)
+            ),
+            buttonEn = "Open ad settings",
+            buttonZh = "打开广告设置",
+            fallbackEn = "Search Settings for \"Ads\"",
+            fallbackZh = "在系统设置里搜索\"广告\""
+        )
+        // API 31 added a dedicated "location scope" screen; on older platforms only the broader
+        // location-source screen exists. Both are tried in order, with resolveActivity filtering.
+        val locationCandidates = ArrayList<Intent>(2)
+        if (Build.VERSION.SDK_INT >= 31) {
+            locationCandidates.add(Intent("android.settings.LOCATION_SCOPE_SETTINGS"))
+        }
+        locationCandidates.add(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+        addPrivacyRow(
+            parent = root,
+            pad = pad,
+            titleEn = "Precise location",
+            titleZh = "精确位置",
+            descEn = "Apps with precise location can share your position to within a few metres; most need only approximate.",
+            descZh = "有精确位置权限的 App 能把你的位置精确到几米，多数只需要大致位置。",
+            candidates = locationCandidates,
+            buttonEn = "Open location settings",
+            buttonZh = "打开位置设置",
+            fallbackEn = "Search Settings for \"Location\"",
+            fallbackZh = "在系统设置里搜索\"位置\""
+        )
+        addPrivacyRow(
+            parent = root,
+            pad = pad,
+            titleEn = "Auto-revoke unused apps",
+            titleZh = "未使用 App 自动撤销权限",
+            descEn = "Android can remove permissions from apps you have not used for months.",
+            descZh = "长期不用的 App，系统可以自动收回权限。",
+            candidates = listOf(Intent(Settings.ACTION_APPLICATION_SETTINGS)),
+            buttonEn = "Open app settings",
+            buttonZh = "打开应用设置",
+            fallbackEn = "Search Settings for \"Apps\"",
+            fallbackZh = "在系统设置里搜索\"应用\""
+        )
+
+        // A little slack at the bottom so the last row is not glued to the scroll edge.
+        // --- Always-on VPN (G9) ---------------------------------------------
+CODE>>>
+<<<CODE 2
+    // G12: wipe the durable block history. The in-session "Blocked: N" counter above keeps its
+    // value; only the "Blocked today / last 7 days" row reads from StatsStore and will show 0.
+    private fun onClearHistoryClicked() {
+        StatsStore.clear(this)
+        historySignature = ""
+        uiHandler.post { refreshUi() }
+    }
+CODE>>>
+<<<CODE 3
+    // G12: wipe the durable block history. The in-session "Blocked: N" counter above keeps its
+    // value; only the "Blocked today / last 7 days" row reads from StatsStore and will show 0.
+    private fun onClearHistoryClicked() {
+        StatsStore.clear(this)
+        historySignature = ""
+        uiHandler.post { refreshUi() }
+    }
+
+    // G16: return the first candidate intent the system can actually handle, or null. resolveActivity
+    // covers both cases that make a settings screen unreachable: the API level is too low, or the
+    // OEM removed that screen. Wrapped in try/catch because a malformed action string would make
+    // resolveActivity throw on some old platforms.
+    private fun firstResolvable(candidates: List<Intent>): Intent? {
+        for (i in candidates) {
+            try {
+                if (i.resolveActivity(packageManager) != null) return i
+            } catch (_: Throwable) {}
+        }
+        return null
+    }
+
+    // G16: one privacy row is a title, a one-sentence explanation, and either a button that opens
+    // the first resolvable settings screen or (if none resolve) a plain hint telling the user where
+    // to look in Settings. A row with an unreachable screen still shows its explanation; only the
+    // button is hidden, so the checkup never lies about what it can do.
+    private fun addPrivacyRow(
+        parent: LinearLayout,
+        pad: Int,
+        titleEn: String,
+        titleZh: String,
+        descEn: String,
+        descZh: String,
+        candidates: List<Intent>,
+        buttonEn: String,
+        buttonZh: String,
+        fallbackEn: String,
+        fallbackZh: String
+    ) {
+        parent.addView(TextView(this).apply {
+            textSize = 14f
+            text = txt(titleEn, titleZh)
+            setPadding(0, pad, 0, pad / 4)
+        })
+        parent.addView(TextView(this).apply {
+            textSize = 12f
+            text = txt(descEn, descZh)
+        })
+        val target = firstResolvable(candidates)
+        if (target != null) {
+            parent.addView(Button(this).apply {
+                text = txt(buttonEn, buttonZh)
+                textSize = 12f
+                setOnClickListener {
+                    try { startActivity(target) } catch (_: ActivityNotFoundException) {}
+                }
+            })
+        } else {
+            parent.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt(fallbackEn, fallbackZh)
+                setPadding(0, pad / 4, 0, 0)
+            })
+        }
+    }
+CODE>>>
