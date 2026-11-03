@@ -325,6 +325,9 @@ def main():
     nodes = find_anywhere(lambda s: dom_row.search(s) and rule_builtin in s,
                           f"'Blocked most often' row lacks '{rule_builtin}'")
     print(f"ok: row shows '{rule_builtin}'")
+    # G15: the same row names the tracker company from the bundled Exodus data (ODbL).
+    find_anywhere(lambda s: "Tracker: Google DoubleClick" in s, "no 'Tracker: Google DoubleClick' line under the doubleclick.net row")
+    print("ok: row shows 'Tracker: Google DoubleClick'")
     b = button_on_row(nodes, "Allow", f"{BLOCKED} (")
     if not b:
         # The row may sit at the bottom edge with its button cut off; scroll a little and look again.

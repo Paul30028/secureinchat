@@ -39,6 +39,8 @@ import org.secureinchat.guardian.dns.Blocklist
 import org.secureinchat.guardian.dns.LogEntry
 import org.secureinchat.guardian.dns.QueryHandler
 import org.secureinchat.guardian.dns.RulesText
+import org.secureinchat.guardian.dns.Tracker
+import org.secureinchat.guardian.dns.TrackerDb
 
 class MainActivity : Activity() {
 
@@ -343,6 +345,20 @@ class MainActivity : Activity() {
         }
         root.addView(alwaysOnError)
 
+        // G15: attribution for the Exodus tracker data (ODbL v1.0 / DbCL v1.0). The link opens in
+        // the user's browser via ACTION_VIEW; Guardian itself makes no network call here.
+        root.addView(TextView(this).apply {
+            textSize = 10f
+            setTextColor(0xFF0088CC.toInt())
+            text = txt("Tracker names: Exodus Privacy (ODbL)", "追踪者名称来自 Exodus Privacy(ODbL)")
+            setPadding(0, pad / 2, 0, 0)
+            setOnClickListener {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://exodus-privacy.eu.org/")))
+                } catch (_: ActivityNotFoundException) {}
+            }
+        })
+
         root.addView(View(this).apply { minimumHeight = small })
 
         setContentView(ScrollView(this).apply { addView(root) })
@@ -639,6 +655,8 @@ class MainActivity : Activity() {
     private fun renderLog(entries: List<LogEntry>) {
         val sb = SpannableStringBuilder()
         val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        // G15: only the visible 10 lines get a tracker lookup, and byDomain caches misses too.
+        val trackerDb = GuardianVpnService.trackerDb()
         // Last 10 only: a glance at what is happening; the per-domain view below is what people act on.
         for (e in entries.take(10)) {
             val start = sb.length
@@ -652,6 +670,13 @@ class MainActivity : Activity() {
                 .append(e.name).append(" (type ").append(e.qtype.toString()).append(")")
             // G14: blocked because the answer's CNAME pointed at a listed tracker.
             e.via?.let { sb.append(txt(" → really $it", " → 实际指向 $it")) }
+            // G15: " · InMobi" when the blocked domain (or, when set, the CNAME target) is a
+            // known tracker. Same suffix in both languages: the company name is not translated.
+            if (e.blocked) {
+                val domain = e.via ?: e.name
+                val tracker = trackerDb?.byDomain(domain)
+                if (tracker != null) sb.append(" · ").append(tracker.name)
+            }
             sb.append('\n')
             if (e.blocked) {
                 sb.setSpan(
@@ -673,6 +698,9 @@ class MainActivity : Activity() {
     // query reaching the VPN comes from that service's uid (1051 on the emulator), not from the app.
     private fun renderAppList(h: QueryHandler?) {
         val top = h?.tally?.snapshot(1)?.firstOrNull()?.topBlocked ?: emptyList()
+        // G15: looked up once per rebuild for the few visible rows only; byDomain is LRU-cached,
+        // so repeated rebuilds do not re-scan the tracker regexes.
+        val trackerDb = GuardianVpnService.trackerDb()
         // G11: the rule behind each row, worked out now from the live rules (the log does not store
         // it). It is part of the signature so a rule change (Allow, Block, import) rebuilds the rows
         // once the background rules thread has swapped the list, not only when counts change.
@@ -720,6 +748,16 @@ class MainActivity : Activity() {
                 if (secondary != null) setTextColor(secondary)
                 text = ruleLine(rules[i])
             })
+            // G15: company and categories from the Exodus DB. Omitted when the domain does not
+            // match any tracker (or the DB failed to load), never shown as a placeholder.
+            val tracker = trackerDb?.byDomain(d.first)
+            if (tracker != null) {
+                texts.addView(TextView(this).apply {
+                    textSize = 11f
+                    if (secondary != null) setTextColor(secondary)
+                    text = trackerLine(tracker)
+                })
+            }
             val allowBtn = Button(this).apply {
                 text = txt("Allow", "放行")
                 textSize = 12f
@@ -750,6 +788,31 @@ class MainActivity : Activity() {
         Blocklist.RuleSource.USER_BLOCK -> txt("Rule: ${m.rule} (blocked by you)", "规则:${m.rule}(你拦截的)")
         Blocklist.RuleSource.USER_ALLOW -> txt("Now allowed by you: ${m.rule}", "现已被你放行:${m.rule}")
         Blocklist.RuleSource.BUILTIN_ALLOW -> txt("Now allowed by the built-in list: ${m.rule}", "现已被内置名单放行:${m.rule}")
+    }
+
+    // G15: "Tracker: InMobi · Advertisement" / "追踪者:InMobi · 广告". A tracker with no categories
+    // shows just the name, since the Exodus DB has a few rows without any (e.g. Google DoubleClick).
+    private fun trackerLine(t: Tracker): String {
+        val name = t.name
+        if (t.categories.isEmpty()) return txt("Tracker: $name", "追踪者:$name")
+        val joined = if (Locale.getDefault().language == "zh") {
+            t.categories.joinToString("、") { catLabel(it) }
+        } else {
+            t.categories.joinToString(", ") { catLabel(it) }
+        }
+        return txt("Tracker: $name · $joined", "追踪者:$name · $joined")
+    }
+
+    // The Exodus category names are a fixed short list. Unknown values are passed through
+    // unchanged rather than dropped, so a future data update never hides information.
+    private fun catLabel(cat: String): String = when (cat) {
+        "Advertisement" -> txt("Advertisement", "广告")
+        "Analytics" -> txt("Analytics", "分析")
+        "Location" -> txt("Location", "位置")
+        "Profiling" -> txt("Profiling", "用户画像")
+        "Identification" -> txt("Identification", "身份识别")
+        "Crash reporting" -> txt("Crash reporting", "崩溃报告")
+        else -> cat
     }
 
     /** The theme's secondary text colour, or null to keep the default colour. */
