@@ -237,11 +237,15 @@ def launch():
 
 
 def start_from_app():
+    # The status line is at the top; earlier steps (G13 level switch) may have left the page scrolled down.
+    scroll_top()
     nodes = wait_ui(lambda s: "Status: " in s, "main screen did not appear")
     b = button(nodes, "Start")
     if not b:
         fail("no Start button", nodes)
     tap(b)
+    time.sleep(1)
+    scroll_top()
     nodes = wait_ui(lambda s: "Status: Running" in s, "status did not change to Running")
     end = time.time() + 15
     while time.time() < end and not service_running():
