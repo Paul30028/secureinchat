@@ -43,7 +43,7 @@
 | # | 任务 | 状态 |
 |---|---|---|
 | C-G13 | G13 CI 收尾 | 完成:run 41639990376 全绿，等 Paul 合并 |
-| C-REL | 中继成员资格校验的设计(OTF 第一个里程碑) | 待做 |
+| C-REL | 中继成员资格校验的设计(OTF 第一个里程碑) | 待审查(轮班 11-03):设计草案 `docs/protocol/RELAY_ADMISSION_DESIGN.md`,分支 `feature/C-REL` 2e2fb9b(基于 feature/chat,只加文档，没写代码)。第 9 节有 4 个要 Paul 决定的问题;中继现有 129 项测试作为基线全过 |
 | C-OTF | OTF 申请：等 Paul 注册账号和两句真实信息 | 等 Paul |
 
 ## 已合并 / 已上线(2026-11-03 晚，Paul 授权)
