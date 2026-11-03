@@ -29,10 +29,10 @@
 
 | # | 任务 | 分支 | 状态 |
 |---|---|---|---|
-| D-G15 | 拦截记录显示追踪公司(Exodus 数据) | `feature/G15` | 已审查集成(TrackerDbTest 9 组，真实数据 doubleclick.net → Google DoubleClick);CI run 41642601120 |
-| D-G16 | 隐私快速检查(只打开系统设置：删除广告 ID、精确位置、未用 App 撤权) | `feature/G16` | DeepSeek 在写 |
-| D-C9b | 自写 DocumentSavePlugin，备份导出在真机能保存 | `feature/C10` | DeepSeek 在写 |
-| D-G17 | 扫描已装 App 内嵌的追踪 SDK(TrackerDb.byClassName;写「含有」不写「在用」) | `feature/G17` | G15 合并后发规格 |
+| D-G15 | 拦截记录显示追踪公司(Exodus 数据) | `feature/G15` | 已审查集成;修了两处模拟器测试的时序问题(放行按钮坐标过期、自定义拦截生效要等几秒),等 CI 41645491723 |
+| D-G16 | 隐私快速检查(只打开系统设置：删除广告 ID、精确位置、应用权限) | `feature/G16` | 已审查集成:文案改得不夸大，去掉一个未公开的 Intent;模拟器加 5c 步;CI run 41643910622 全绿。待 Paul 合并 |
+| D-C9b | 自写 DocumentSavePlugin，备份导出在真机能保存 | `feature/C10` | 已审查集成(271 个测试通过;顺手修了一个原有的阅后即焚测试抖动)。APK 由 CI 构建，真机验证归 K4 |
+| D-G17 | 扫描已装 App 内嵌的追踪 SDK(TrackerDb.byClassName;写「含有」不写「在用」) | `feature/G17`(从 G16 分出) | 规格已发 DeepSeek |
 | D-W18 | 照片/文件清理工具：清理后列出删掉了哪些字段，并自动重新检查一遍(来自用户痛点调研) | `feature/W18` | 待发规格 |
 
 ## Claude 云端会话自己的任务
