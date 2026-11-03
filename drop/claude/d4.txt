@@ -1,0 +1,1786 @@
+任务 D4(网站改版设计):把整站改成你之前做的 #6「夺回你的数字控制权」和 #7「你的本地数字隐私保险箱」那种简单明了的版面。
+
+背景:Paul 看了你在「极限低成本方案评估」会话里做的 12 版首页,认为现在的网站版面太复杂,选了 #6 和 #7(两版源码附在后面)。由你负责设计,我负责把关和接入构建。网站今天刚上线了新一版内容:7 个中文工具页、网络请求面板、中文工具索引等,所有测试通过。
+
+要保留的版面元素:
+- 来自 #7:顶部白色导航条(左 logo、中间链接、右侧深色胶囊按钮);浅灰白背景 #F8FAFC;居中大标题,其中一个关键词用蓝色 #2563EB;标题上方一枚绿色小徽章「在你的设备上完成」;一句话副标题;下面一排大的白色圆角卡片(图标 + 标题 + 两行说明 + 蓝色「打开 →」链接)。
+- 来自 #6:四步横条「检测 → 防护 → 净化 → 核对」,每步一张小卡片,彩色圆形图标。
+- 字体:系统无衬线字体栈(-apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif),标题粗体、字距略紧。不用网络字体。
+
+必须去掉的(铁规则):
+- 深色状态条和所有虚构数字(VPS $8.50/月、捐赠 +$15.20、已处理 12,405 个文件、100% Operational)。网站只放真实数据。
+- 网站没有的功能:端侧 AI 脱敏、水印溯源、系统加固脚本、Web 雷达、Join App 等。卡片只放下面列出的真实工具。
+- 外部 CDN(Tailwind CDN、unpkg 图标库)。网站的 CSP 是 script-src 'self'、style-src 'self':不能有内联 <style>、内联 style="" 属性、内联脚本、事件属性。所有样式写进一个 CSS 文件。图标用内联 SVG(stroke 线条风格,24×24 视口,直接写进 HTML),不要 <i class="ph ...">。
+- 中文页不放 IP 泄露测试、VPN 相关链接(铁规则);英文页可以。联盟链接必须标注「(affiliate link)」/「（联盟链接）」。
+
+真实工具(标签照抄,不要改说法):
+本地处理(什么都不发送):照片元数据清理 /tools/photo-metadata-remover/、文件元数据清理 /tools/file-metadata-remover/、文本脱敏 /tools/text-redactor/、链接检查器 /tools/link-checker/、浏览器特征检查 /tools/browser-fingerprint-test/
+本地清单:账号安全自查 /tools/account-checkup/、手机号隐私自查 /tools/phone-checkup/
+有限联网:密码检查 /tools/password-checker/(只发送 SHA-1 哈希前 5 位)
+需要联网:浏览器隐私报告 /tools/privacy-report/、IP 泄露测试、WebRTC 泄露测试、IPv6 泄露测试、网站健康检查
+中文页已有中文版的工具:照片、文件、脱敏、链接检查、账号自查、手机号自查、密码检查(链接在 /zh/tools/... 下);其他中文页链英文页。
+
+四步横条建议(你可以改措辞,不能改事实):检测(浏览器隐私报告/浏览器特征检查)→ 防护(账号安全自查、手机号隐私自查、密码检查)→ 净化(照片、文件元数据清理,文本脱敏)→ 核对(链接检查器;清理后工具会再扫一遍)。
+
+需要你给:
+1. src/design-v4/v4.css:一个完整的 CSS 文件,做两件事:
+   a. 「换肤层」:覆盖现有设计变量(附件里有 home.css 和 subpages.css 的 :root 变量),把全站颜色、字体、圆角、卡片、按钮、导航条、页脚换成 #6/#7 风格。这个文件会加载在所有页面的最后,所以只需覆盖,不要重写布局。只改颜色/字体/圆角/阴影/间距这类视觉属性,避免把现有页面挤坏。
+   b. 新首页的组件样式,类名一律以 v4- 开头。
+   同时支持 390 宽手机:卡片单列,四步横条变成竖排,导航收起(现有导航已有手机菜单,保留它的行为)。
+2. src/home/en.html 和 src/home/zh.html:完整的新首页(附件里是现在的两页,保留 <head> 里的 meta、canonical、hreflang、JSON-LD、CSS 引用和页脚里的法律/联盟披露链接;把 <main> 改成新版面)。首页内容:徽章 + 大标题 + 副标题 + 两个按钮(主:开始隐私体检 /checkup/(中文 /zh/checkup/);次:浏览全部工具)→ 四步横条 → 6 张工具卡(本地工具优先)→ 一句诚实说明(工具的局限、标签含义,链 /principles/)→ 加密通信一小段(链 /messaging/,中文页链也指向它)。英文标题建议「See what you give away. Then switch it off.」可保留或改写成同样直白的一句,蓝色关键词任选一个词。
+3. 不写进度百分比;任何你不确定的事实留空并标注,我会核对。
+
+我会做:接入构建(所有页面加载 v4.css)、桌面和 390 宽截图把关、跑全站测试,然后给 Paul 看效果图,他同意后再上线。
+
+=== 当前 src/home/en.html ===
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#F7F5EF">
+  <meta name="description" content="Practical privacy tools and guides. Check your browser privacy, protect sensitive information, and learn what your devices and online services can access.">
+  <title>SecureInChat — Practical Privacy Tools</title>
+  <link rel="stylesheet" href="/assets/css/home.css">
+  <link rel="stylesheet" href="/assets/css/checkup.css">
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="SecureInChat home">
+        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3"/>
+          <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="34" cy="11" r="3" fill="#C6A15B"/>
+        </svg>
+        <span class="brand-copy">
+          <span class="brand-name">SecureInChat</span>
+          <span class="brand-tagline">Better tools. A more private internet.</span>
+        </span>
+      </a>
+
+      <nav class="desktop-navigation" aria-label="Main navigation">
+        <a href="/tools/">Tools</a>
+        <a href="/blog/">Guides</a>
+        <a href="/checkup/">Privacy checkup</a>
+        <a href="/messaging/">Messaging</a>
+        <a href="/mission/">Our mission</a>
+      </nav>
+
+      <div class="header-actions">
+        <a class="language-link" href="/zh/" lang="zh">中文</a>
+        <a class="language-link" href="/ja/" lang="ja">日本語</a>
+        <a class="button button--small button--primary" href="/checkup/">Privacy checkup</a>
+      </div>
+
+      <details class="mobile-navigation">
+        <summary aria-label="Open navigation">
+          <svg viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </summary>
+        <nav aria-label="Mobile navigation">
+          <a href="/tools/">Privacy tools</a>
+          <a href="/blog/">Guides</a>
+          <a href="/checkup/">Privacy checkup</a>
+          <a href="/messaging/">Messaging</a>
+          <a href="/mission/">Our mission</a>
+          <a href="/principles/">Privacy principles</a>
+          <a href="/zh/" lang="zh">中文</a>
+          <a href="/ja/" lang="ja">日本語</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero-section" aria-labelledby="hero-title">
+      <figure class="hero-background">
+        <img src="/assets/img/secureinchat-hero.png" width="2560" height="1100" alt="Mountain lake at golden hour with a laptop and smartphone showing illustrative privacy dashboards" fetchpriority="high" decoding="async">
+      </figure>
+
+      <div class="hero-annotation">
+        <p>Protect your privacy. Keep important conversations to yourself.</p>
+        <div class="hero-badges">
+          <div class="hero-badge">
+            <span class="hero-badge-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect x="7" y="14" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 14V10a5 5 0 0 1 10 0v4M16 19v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>End-to-end<br>encryption</span>
+          </div>
+          <div class="hero-badge">
+            <span class="hero-badge-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="25" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 10 9 21M18 10l5 11M10 24h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>Blind relay</span>
+          </div>
+          <div class="hero-badge">
+            <span class="hero-badge-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="21" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m17 14-10 10v4h4v-4h4v-4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            </span>
+            <span>Local keys</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="container hero-layout">
+        <div class="hero-copy">
+          <h1 id="hero-title">See what you give away. Then switch it off.</h1>
+          <p class="hero-description">Find out what your browser reveals, protect sensitive information, and learn practical ways to reduce unwanted tracking.</p>
+          <div class="hero-actions">
+            <a class="button button--primary" href="/tools/privacy-report/">Run the privacy report <span aria-hidden="true">→</span></a>
+            <a class="button button--secondary" href="/tools/">Explore privacy tools</a>
+          </div>
+          <p class="availability-note">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span>Privacy tools are available now</span>
+            <span class="availability-separator" aria-hidden="true">·</span>
+            <a href="/messaging/">Chat client in development</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section tools-section" id="privacy-tools">
+      <div class="container">
+        <div class="section-heading section-heading--split">
+          <div>
+            <h2>Practical privacy tools</h2>
+            <p>Start with one small step. No installation required for these browser tools.</p>
+          </div>
+          <a class="text-link" href="/tools/">View all 12 tools <span aria-hidden="true">→</span></a>
+        </div>
+
+
+        <aside class="checkup-home-entry" aria-labelledby="home-checkup-title">
+          <span class="checkup-home-entry-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 3 27 7v8c0 7-4 11-11 14C9 26 5 22 5 15V7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m10 16 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div><h3 id="home-checkup-title">Not sure where to start? Take a privacy checkup.</h3><p>Choose an IP, URL, phone-number or account check, with clear notes about local processing and network lookups.</p></div>
+          <a class="button button--primary" href="/checkup/">Start privacy checkup <span aria-hidden="true">→</span></a>
+        </aside>
+
+        <div class="tool-layout">
+          <article class="tool-card">
+            <div class="tool-card-heading">
+              <span class="tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M16 24 12 28a6 6 0 0 1-8-9l7-7a6 6 0 0 1 9 1M24 16l4-4a6 6 0 0 1 8 9l-7 7a6 6 0 0 1-9-1M14 26l12-12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+              </span>
+              <div class="tool-title-group"><h3>Link Checker</h3><span class="fact-tag">Local processing</span></div>
+            </div>
+            <p>Review suspicious links and tracking parameters before opening them.</p>
+            <div class="tool-meta"><span class="meta-tag">Tracking parameters</span><span class="meta-tag">Suspicious links</span></div>
+            <a class="tool-action" href="/tools/link-checker/">Check a link <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="tool-card">
+            <div class="tool-card-heading">
+              <span class="tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="30" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.3"/><circle cx="14" cy="14" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="m8 29 9-9 5 5 4-4 6 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <div class="tool-title-group"><h3>Photo Metadata Remover</h3><span class="fact-tag">Local processing</span></div>
+            </div>
+            <p>Inspect and remove supported metadata from your photos.</p>
+            <div class="tool-meta"><span class="meta-tag">EXIF data</span><span class="meta-tag">Location data</span></div>
+            <a class="tool-action" href="/tools/photo-metadata-remover/">Clean a photo <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="tool-card">
+            <div class="tool-card-heading">
+              <span class="tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M9 5H25L32 12V35H9Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M25 5V12H32M14 19H27M14 24H27M14 29H23" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+              </span>
+              <div class="tool-title-group"><h3>Text Redactor</h3><span class="fact-tag">Local processing</span></div>
+            </div>
+            <p>Remove sensitive details before sharing text with others or AI tools.</p>
+            <div class="tool-meta"><span class="meta-tag">Personal info</span><span class="meta-tag">Documents</span></div>
+            <a class="tool-action" href="/tools/text-redactor/">Redact text <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="tool-card">
+            <div class="tool-card-heading">
+              <span class="tool-icon" aria-hidden="true">
+                <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 33 9V19C33 28 27 33 20 37 13 33 7 28 7 19V9Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="20" cy="19" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 14v-3M24 23l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </span>
+              <div class="tool-title-group"><h3>IP Leak Test</h3><span class="fact-tag fact-tag--network">Requires network lookup</span></div>
+            </div>
+            <p>Check supported network and browser leak risks.</p>
+            <div class="tool-meta"><span class="meta-tag">IP address</span><span class="meta-tag">WebRTC / DNS</span></div>
+            <a class="tool-action" href="/tools/ip-leak-test/">Run the test <span aria-hidden="true">→</span></a>
+          </article>
+        </div>
+        <p class="tools-disclosure">The browser privacy report checks 12 items. Some connection checks use external lookup services. See <a href="/principles/">our data-flow principles</a> for details.</p>
+      </div>
+    </section>
+
+    <section class="section guides-section" id="guides">
+      <div class="container">
+        <div class="section-heading section-heading--split">
+          <div>
+            <h2>Understand the risk. Choose your next step.</h2>
+            <p>Guides organised around real privacy concerns, not just technical terms.</p>
+          </div>
+          <a class="text-link" href="/blog/">Browse all guides <span aria-hidden="true">→</span></a>
+        </div>
+
+        <div class="guides-layout">
+          <div class="guide-categories">
+            <a class="guide-category" href="/blog/">
+              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M7 23a7 7 0 0 1 0-14 9 9 0 0 1 17-2 7 7 0 0 1 2 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m13 19-4 4 4 4M19 19l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <h3>Network &amp; VPN leaks</h3>
+              <span class="guide-count">6 guides <span aria-hidden="true">→</span></span>
+            </a>
+            <a class="guide-category" href="/blog/">
+              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 4v24M16 10C10 3 5 8 7 13c-5 5 0 11 7 8M16 10c6-7 11-2 9 3 5 5 0 11-7 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 14h3M19 14h3M10 19h3M19 19h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <h3>AI &amp; privacy</h3>
+              <span class="guide-count">6 guides <span aria-hidden="true">→</span></span>
+            </a>
+            <a class="guide-category" href="/blog/">
+              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="10" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 27c0-6 4-9 10-9s10 3 10 9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+              <h3>Accounts &amp; phones</h3>
+              <span class="guide-count">5 guides <span aria-hidden="true">→</span></span>
+            </a>
+            <a class="guide-category" href="/blog/">
+              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><ellipse cx="16" cy="7" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7v18c0 2 4 4 10 4s10-2 10-4V7M6 13c0 2 4 4 10 4s10-2 10-4M6 19c0 2 4 4 10 4s10-2 10-4" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
+              <h3>Data &amp; tracking</h3>
+              <span class="guide-count">3 guides <span aria-hidden="true">→</span></span>
+            </a>
+          </div>
+
+          <article class="featured-guide">
+            <img src="/assets/img/secureinchat-guide-lake.png" width="1400" height="800" alt="A quiet alpine lake and forested mountains at golden hour" loading="lazy" decoding="async">
+            <div class="featured-guide-content">
+              <p class="featured-guide-label">Featured guide</p>
+              <h3>What Data Brokers Know About You</h3>
+              <p>Learn how personal information is gathered, combined and traded.</p>
+              <a class="button button--light" href="/blog/what-data-brokers-know-about-you/">Read the guide <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+        </div>
+        <p class="guide-extra">Also covered: <a href="/blog/">Offline communication · 1 guide</a> <span aria-hidden="true">·</span> <a href="/blog/">Blind relay · 1 guide</a></p>
+      </div>
+    </section>
+
+    <section class="architecture-section" id="architecture">
+      <div class="container architecture-layout">
+        <div class="architecture-copy">
+          <h2>See where your data goes.</h2>
+          <p>For supported tools, processing happens on your device. Some checks use external lookup services; the chat client's relay is a separate messaging path.</p>
+          <a class="button button--outline-light" href="/messaging/">Understand our architecture <span aria-hidden="true">→</span></a>
+        </div>
+
+        <div class="data-flow" aria-label="Separate data paths for messaging and selected privacy tools">
+          <div class="flow-step">
+            <svg viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="7" width="40" height="27" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 41H32M24 34V41" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <h3>Your device</h3><p>Local processing</p>
+          </div>
+          <svg class="flow-arrow" viewBox="0 0 40 20" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M2 10H35M28 3L35 10 28 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="flow-step">
+            <svg viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="m24 5 19 10-19 10L5 15Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m5 23 19 10 19-10M5 31l19 10 19-10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            <h3>Messaging relay</h3><p>Forwards encrypted data</p>
+          </div>
+          <svg class="flow-arrow" viewBox="0 0 40 20" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M2 10H35M28 3L35 10 28 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="flow-step">
+            <svg viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="19" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="24" cy="24" rx="9" ry="19" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 17H42M6 31H42" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+            <h3>Lookup services</h3><p>Only for some tools</p>
+          </div>
+        </div>
+
+        <div class="architecture-note">
+          <span class="architecture-note-symbol" aria-hidden="true">✓</span>
+          <p>The diagram groups separate paths, not one continuous request. Selected tools may contact ipify, ipwho.is or Pwned Passwords directly. See <a href="/principles/">Principles</a> for tool-by-tool data flows and limitations.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section messaging-section" id="messaging">
+      <div class="container messaging-layout">
+        <div class="messaging-image">
+          <img src="/assets/img/secureinchat-messaging.png" width="1000" height="800" alt="Concept illustration of a phone for the SecureInChat client, which is in development and not yet released" loading="lazy" decoding="async">
+        </div>
+
+        <div class="messaging-copy">
+          <p class="eyebrow-text">A separate product in development</p>
+          <h2>Private messaging takes careful work.</h2>
+          <p>The chat client is being developed separately from the privacy tools. It has no announced release date.</p>
+
+          <div class="roadmap" aria-label="Development progress">
+            <div class="roadmap-item roadmap-item--done"><span class="roadmap-indicator" aria-hidden="true">✓</span><h3>Architecture design</h3><p>Completed</p></div>
+            <div class="roadmap-item roadmap-item--done"><span class="roadmap-indicator" aria-hidden="true">✓</span><h3>Relay diagnostics</h3><p>Available to test</p></div>
+            <div class="roadmap-item roadmap-item--progress"><span class="roadmap-indicator" aria-hidden="true">•</span><h3>Client development</h3><p>In progress</p></div>
+            <div class="roadmap-item roadmap-item--pending"><span class="roadmap-indicator" aria-hidden="true">—</span><h3>Public release</h3><p>No date announced</p></div>
+          </div>
+        </div>
+
+        <aside class="next-steps" aria-labelledby="next-steps-title">
+          <h3 id="next-steps-title">What can you do now?</h3>
+          <ul>
+            <li><span class="check-mark" aria-hidden="true">✓</span><span>Use existing privacy tools <a href="/tools/">/tools/</a></span></li>
+            <li><span class="check-mark" aria-hidden="true">✓</span><span>Read the guides <a href="/blog/">/blog/</a></span></li>
+            <li><span class="check-mark" aria-hidden="true">✓</span><span>Test the online relay <a href="/messaging/">/messaging/</a></span></li>
+          </ul>
+          <a class="button button--primary" href="/messaging/">View development status <span aria-hidden="true">→</span></a>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-main">
+        <a class="brand brand--footer" href="/" aria-label="SecureInChat home">
+          <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="34" cy="11" r="3" fill="#E5C989"/></svg>
+          <span class="brand-copy"><span class="brand-name">SecureInChat</span><span class="brand-tagline">Better tools. A more private internet.</span></span>
+        </a>
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a href="/mission/">Mission</a><a href="/principles/">Principles</a><a href="/privacy/">Privacy</a><a href="/principles/#labels">Status labels</a><a href="/sponsor/">Sponsorship &amp; affiliate disclosure</a><a href="/contact/">Contact</a>
+        </nav>
+        <div class="footer-language" aria-label="Language"><a href="/zh/" lang="zh">中文</a><a href="/ja/" lang="ja">日本語</a></div>
+      </div>
+      <div class="footer-bottom"><p>© 2026 SecureInChat. All rights reserved.</p><p>Privacy-conscious by design. Clear about limitations.</p></div>
+    </div>
+  </footer>
+</body>
+</html>
+
+=== 当前 src/home/zh.html ===
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#F7F5EF">
+  <meta name="description" content="实用的个人隐私保护工具与指南。检查浏览器隐私、保护敏感信息，了解设备和网络服务能够获取哪些信息。">
+  <title>SecureInChat — 实用隐私保护工具</title>
+  <link rel="stylesheet" href="/assets/css/home.css">
+  <link rel="stylesheet" href="/assets/css/checkup.css">
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳至正文</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/zh/" aria-label="SecureInChat 首页">
+        <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3"/>
+          <path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="34" cy="11" r="3" fill="#C6A15B"/>
+        </svg>
+        <span class="brand-copy">
+          <span class="brand-name">SecureInChat</span>
+          <span class="brand-tagline">更实用的工具，更私密的互联网</span>
+        </span>
+      </a>
+
+      <nav class="desktop-navigation" aria-label="主导航">
+        <a href="/zh/tools/">隐私工具</a>
+        <a href="/blog/">使用指南</a>
+        <a href="/zh/checkup/">隐私体检</a>
+        <a href="/messaging/">加密通信</a>
+        <a href="/mission/">我们的使命</a>
+      </nav>
+
+      <div class="header-actions">
+        <a class="language-link" href="/" lang="en">EN</a>
+        <a class="language-link" href="/ja/" lang="ja">日本語</a>
+        <a class="button button--small button--primary" href="/zh/checkup/">隐私体检</a>
+      </div>
+
+      <details class="mobile-navigation">
+        <summary aria-label="打开导航菜单">
+          <svg viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </summary>
+        <nav aria-label="移动端导航">
+          <a href="/zh/tools/">隐私工具</a>
+          <a href="/blog/">使用指南</a>
+          <a href="/zh/checkup/">隐私体检</a>
+          <a href="/messaging/">加密通信</a>
+          <a href="/mission/">我们的使命</a>
+          <a href="/principles/">隐私原则</a>
+          <a href="/" lang="en">English</a>
+          <a href="/ja/" lang="ja">日本語</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero-section" aria-labelledby="hero-title">
+      <figure class="hero-background">
+        <img src="/assets/img/secureinchat-hero.png" width="2560" height="1100" alt="金色晨光中的山间湖泊、笔记本电脑和手机，示意隐私工具及安全通信" fetchpriority="high" decoding="async">
+      </figure>
+
+      <div class="hero-annotation">
+        <p>保护隐私，让重要的对话只属于你。</p>
+        <div class="hero-badges">
+          <div class="hero-badge">
+            <span class="hero-badge-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect x="7" y="14" width="18" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 14V10a5 5 0 0 1 10 0v4M16 19v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>端到端加密</span>
+          </div>
+          <div class="hero-badge">
+            <span class="hero-badge-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="7" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="25" cy="24" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 10 9 21M18 10l5 11M10 24h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span>盲中继</span>
+          </div>
+          <div class="hero-badge">
+            <span class="hero-badge-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="21" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m17 14-10 10v4h4v-4h4v-4h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            </span>
+            <span>本地密钥</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="container hero-layout">
+        <div class="hero-copy">
+          <h1 id="hero-title">看看你正在泄露什么。然后把它关掉。</h1>
+          <p class="hero-description">了解浏览器会暴露哪些信息，保护敏感内容，学习如何减少不必要的追踪。</p>
+          <div class="hero-actions">
+            <a class="button button--primary" href="/tools/privacy-report/">运行隐私报告 <span aria-hidden="true">→</span></a>
+            <a class="button button--secondary" href="/zh/tools/">浏览隐私工具</a>
+          </div>
+          <p class="availability-note">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span>隐私工具已开放使用</span>
+            <span class="availability-separator" aria-hidden="true">·</span>
+            <a href="/messaging/">聊天客户端正在开发中</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section tools-section" id="privacy-tools">
+      <div class="container">
+        <div class="section-heading section-heading--split">
+          <div>
+            <h2>实用的隐私工具</h2>
+            <p>从一个小步骤开始。这些浏览器工具无需安装独立软件。</p>
+          </div>
+          <a class="text-link" href="/zh/tools/">查看全部隐私工具 <span aria-hidden="true">→</span></a>
+        </div>
+
+
+        <aside class="checkup-home-entry" aria-labelledby="home-checkup-title">
+          <span class="checkup-home-entry-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 3 27 7v8c0 7-4 11-11 14C9 26 5 22 5 15V7Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m10 16 4 4 8-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div><h3 id="home-checkup-title">不知道从哪里开始？做一次隐私体检。</h3><p>从网址、手机号或账号安全自查开始，了解哪些步骤在本地完成、哪些检查需要联网。</p></div>
+          <a class="button button--primary" href="/zh/checkup/">开始隐私体检 <span aria-hidden="true">→</span></a>
+        </aside>
+
+        <div class="tool-layout">
+          <article class="tool-card">
+            <div class="tool-card-heading">
+              <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2.3"/><path d="M8 33c0-7 4-11 12-11s12 4 12 11Z" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/></svg></span>
+              <div class="tool-title-group"><h3>账号安全自查</h3><span class="fact-tag">本地处理</span></div>
+            </div>
+            <p>检查常见的账号安全风险，获取实际可行的改进建议。</p>
+            <div class="tool-meta"><span class="meta-tag">登录安全</span><span class="meta-tag">账号恢复</span></div>
+            <a class="tool-action" href="/zh/tools/account-checkup/">立即检查 <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="tool-card">
+            <div class="tool-card-heading">
+              <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="6" width="30" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.3"/><circle cx="14" cy="14" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="m8 29 9-9 5 5 4-4 6 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <div class="tool-title-group"><h3>照片元数据清理</h3><span class="fact-tag">本地处理</span></div>
+            </div>
+            <p>查看并移除照片中受支持的元数据。</p>
+            <div class="tool-meta"><span class="meta-tag">EXIF 信息</span><span class="meta-tag">位置数据</span></div>
+            <a class="tool-action" href="/zh/tools/photo-metadata-remover/">清理照片 <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="tool-card">
+            <div class="tool-card-heading">
+              <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M9 5H25L32 12V35H9Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M25 5V12H32M14 19H27M14 24H27M14 29H23" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+              <div class="tool-title-group"><h3>文本脱敏</h3><span class="fact-tag">本地处理</span></div>
+            </div>
+            <p>分享文本或提交给 AI 之前，移除敏感信息。</p>
+            <div class="tool-meta"><span class="meta-tag">个人信息</span><span class="meta-tag">文档内容</span></div>
+            <a class="tool-action" href="/zh/tools/text-redactor/">脱敏文本 <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="tool-card">
+            <div class="tool-card-heading">
+              <span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M16 24 12 28a6 6 0 0 1-8-9l7-7a6 6 0 0 1 9 1M24 16l4-4a6 6 0 0 1 8 9l-7 7a6 6 0 0 1-9-1M14 26l12-12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span>
+              <div class="tool-title-group"><h3>可疑链接检查</h3><span class="fact-tag">本地处理</span></div>
+            </div>
+            <p>打开链接之前，检查可疑网址与跟踪参数。</p>
+            <div class="tool-meta"><span class="meta-tag">跟踪参数</span><span class="meta-tag">可疑网址</span></div>
+            <a class="tool-action" href="/zh/tools/link-checker/">立即检查 <span aria-hidden="true">→</span></a>
+          </article>
+        </div>
+        <p class="tools-disclosure">浏览器隐私报告包含 12 项检查，部分连接检查会使用外部查询服务。请在<a href="/principles/">隐私原则</a>中查看相关数据流说明。</p>
+      </div>
+    </section>
+
+    <section class="section guides-section" id="guides">
+      <div class="container">
+        <div class="section-heading section-heading--split">
+          <div>
+            <h2>了解风险，找到适合自己的做法</h2>
+            <p>按照真实的隐私问题分类，而不只是罗列技术术语。</p>
+          </div>
+          <a class="text-link" href="/blog/">浏览全部指南 <span aria-hidden="true">→</span></a>
+        </div>
+
+        <div class="guides-layout">
+          <div class="guide-categories">
+            <a class="guide-category" href="/blog/">
+              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M5 17a7 7 0 0 1 7-7 7 7 0 0 1 13-2 6 6 0 0 1 1 12M8 23h16M12 19v8M20 19v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <h3>断网通信与中继</h3><span class="guide-count">2 篇指南 <span aria-hidden="true">→</span></span>
+            </a>
+            <a class="guide-category" href="/blog/">
+              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 4v24M16 10C10 3 5 8 7 13c-5 5 0 11 7 8M16 10c6-7 11-2 9 3 5 5 0 11-7 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10 14h3M19 14h3M10 19h3M19 19h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+              <h3>AI 与隐私</h3><span class="guide-count">6 篇指南 <span aria-hidden="true">→</span></span>
+            </a>
+            <a class="guide-category" href="/blog/">
+              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="10" r="5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 27c0-6 4-9 10-9s10 3 10 9Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+              <h3>账号与手机</h3><span class="guide-count">5 篇指南 <span aria-hidden="true">→</span></span>
+            </a>
+            <a class="guide-category" href="/blog/">
+              <span class="guide-icon" aria-hidden="true"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><ellipse cx="16" cy="7" rx="10" ry="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 7v18c0 2 4 4 10 4s10-2 10-4V7M6 13c0 2 4 4 10 4s10-2 10-4M6 19c0 2 4 4 10 4s10-2 10-4" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
+              <h3>数据与追踪</h3><span class="guide-count">3 篇指南 <span aria-hidden="true">→</span></span>
+            </a>
+          </div>
+
+          <article class="featured-guide">
+            <img src="/assets/img/secureinchat-guide-lake.png" width="1400" height="800" alt="金色晨光中的山间湖泊与森林" loading="lazy" decoding="async">
+            <div class="featured-guide-content">
+              <p class="featured-guide-label">精选指南</p>
+              <h3>数据经纪商知道你多少信息？</h3>
+              <p>了解个人信息如何被收集、关联和交易。</p>
+              <a class="button button--light" href="/blog/what-data-brokers-know-about-you/">阅读指南 <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="architecture-section" id="architecture">
+      <div class="container architecture-layout">
+        <div class="architecture-copy">
+          <h2>看清你的数据去了哪里。</h2>
+          <p>在工具支持的情况下，优先在本地处理数据。部分检查需要外部查询服务；聊天客户端的中继属于独立的通信路径。</p>
+          <a class="button button--outline-light" href="/messaging/">了解我们的架构 <span aria-hidden="true">→</span></a>
+        </div>
+
+        <div class="data-flow" aria-label="通信中继与部分隐私工具的独立数据路径">
+          <div class="flow-step">
+            <svg viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="7" width="40" height="27" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 41H32M24 34V41" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <h3>你的设备</h3><p>本地处理</p>
+          </div>
+          <svg class="flow-arrow" viewBox="0 0 40 20" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M2 10H35M28 3L35 10 28 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="flow-step">
+            <svg viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="m24 5 19 10-19 10L5 15Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m5 23 19 10 19-10M5 31l19 10 19-10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            <h3>通信中继</h3><p>转发加密数据</p>
+          </div>
+          <svg class="flow-arrow" viewBox="0 0 40 20" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path d="M2 10H35M28 3L35 10 28 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="flow-step">
+            <svg viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="19" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="24" cy="24" rx="9" ry="19" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 17H42M6 31H42" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+            <h3>外部查询服务</h3><p>仅部分工具需要</p>
+          </div>
+        </div>
+
+        <div class="architecture-note">
+          <span class="architecture-note-symbol" aria-hidden="true">✓</span>
+          <p>图中展示的是不同类型的数据路径，并非每次请求都会依次经过所有节点。部分工具会直接查询 ipify、ipwho.is 或 Pwned Passwords。各工具的数据流与局限请查看<a href="/principles/">隐私原则</a>。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section messaging-section" id="messaging">
+      <div class="container messaging-layout">
+        <div class="messaging-image">
+          <img src="/assets/img/secureinchat-messaging.png" width="1000" height="800" alt="SecureInChat 手机客户端概念示意图；客户端仍在开发中，尚未发布" loading="lazy" decoding="async">
+        </div>
+
+        <div class="messaging-copy">
+          <p class="eyebrow-text">独立开发中的产品</p>
+          <h2>私密通信，需要认真打磨。</h2>
+          <p>聊天客户端与现有隐私工具分开开发，目前没有公布正式发布日期。</p>
+          <div class="roadmap" aria-label="开发进度">
+            <div class="roadmap-item roadmap-item--done"><span class="roadmap-indicator" aria-hidden="true">✓</span><h3>架构设计</h3><p>已完成</p></div>
+            <div class="roadmap-item roadmap-item--done"><span class="roadmap-indicator" aria-hidden="true">✓</span><h3>中继测试</h3><p>可在线检测</p></div>
+            <div class="roadmap-item roadmap-item--progress"><span class="roadmap-indicator" aria-hidden="true">•</span><h3>客户端开发</h3><p>进行中</p></div>
+            <div class="roadmap-item roadmap-item--pending"><span class="roadmap-indicator" aria-hidden="true">—</span><h3>正式发布</h3><p>日期未定</p></div>
+          </div>
+        </div>
+
+        <aside class="next-steps" aria-labelledby="next-steps-title">
+          <h3 id="next-steps-title">你现在可以做什么？</h3>
+          <ul>
+            <li><span class="check-mark" aria-hidden="true">✓</span><span>使用现有的隐私工具 <a href="/zh/tools/">/zh/tools/</a></span></li>
+            <li><span class="check-mark" aria-hidden="true">✓</span><span>阅读使用指南 <a href="/blog/">/blog/</a></span></li>
+            <li><span class="check-mark" aria-hidden="true">✓</span><span>测试在线中继 <a href="/messaging/">/messaging/</a></span></li>
+          </ul>
+          <a class="button button--primary" href="/messaging/">查看开发进度 <span aria-hidden="true">→</span></a>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-main">
+        <a class="brand brand--footer" href="/zh/" aria-label="SecureInChat 首页">
+          <svg class="brand-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M24 3 42 10V23C42 34 34 41 24 45 14 41 6 34 6 23V10Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M15 24 21 30 34 17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="34" cy="11" r="3" fill="#E5C989"/></svg>
+          <span class="brand-copy"><span class="brand-name">SecureInChat</span><span class="brand-tagline">更实用的工具，更私密的互联网</span></span>
+        </a>
+        <nav class="footer-links" aria-label="页脚导航">
+          <a href="/mission/">使命</a><a href="/principles/">原则</a><a href="/privacy/">隐私</a><a href="/principles/#labels">状态标签</a><a href="/sponsor/">赞助与联盟披露</a><a href="/contact/">联系</a>
+        </nav>
+        <div class="footer-language" aria-label="语言"><a href="/" lang="en">English</a><a href="/ja/" lang="ja">日本語</a></div>
+      </div>
+      <div class="footer-bottom"><p>© 2026 SecureInChat。保留所有权利。</p><p>重视隐私，明确说明局限。</p></div>
+    </div>
+  </footer>
+</body>
+</html>
+
+=== src/home/home.css(前 140 行:变量和导航) ===
+/* SecureInChat homepage design system. Light theme only. */
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("/assets/fonts/atkinson-next-400.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("/assets/fonts/atkinson-next-600.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("/assets/fonts/atkinson-next-800.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Noto Serif";
+  /* Keep this URL aligned with the site's existing self-hosted subset file. */
+  src: url("/assets/fonts/noto-serif-subset.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --color-canvas: #F7F5EF;
+  --color-surface: #FFFFFF;
+  --color-surface-soft: #E7E9E2;
+  --color-surface-muted: #EEF0EC;
+  --color-text: #20312B;
+  --color-text-muted: #4F5D56;
+  --color-text-subtle: #596760;
+  --color-brand: #173D32;
+  --color-brand-hover: #102F28;
+  --color-on-brand: #FFFFFF;
+  --color-accent: #C6A15B;
+  --color-accent-text: #79551B;
+  --color-border: #D2D8D0;
+  --color-border-control: #6D7D72;
+  --color-success-text: #17633B;
+  --color-success-bg: #E8F4EC;
+  --color-warning-text: #7A4B00;
+  --color-warning-bg: #FFF3D6;
+  --color-danger-text: #9B2424;
+  --color-danger-bg: #FCEBEA;
+  --color-info-text: #155A83;
+  --color-info-bg: #E8F3FA;
+  --color-neutral-text: #4F5D56;
+  --color-neutral-bg: #EEF0EC;
+  --color-panel-dark: #173D32;
+  --color-footer-bg: #0B241F;
+  --color-dark-text: #F7F5EF;
+  --color-dark-text-muted: #D1DDD6;
+  --color-dark-accent: #E5C989;
+  --color-dark-border: #40594F;
+  --font-sans: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  --font-serif: "Noto Serif", Georgia, serif;
+  --font-mono: ui-monospace, "Cascadia Code", monospace;
+  --font-size-xs: .75rem;
+  --font-size-sm: .875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-hero: clamp(2.75rem, 4.3vw, 3.75rem);
+  --font-size-hero-mobile: clamp(2.25rem, 8vw, 3rem);
+  --font-weight-regular: 400;
+  --font-weight-medium: 600;
+  --font-weight-bold: 800;
+  --line-height-tight: 1.1;
+  --line-height-heading: 1.25;
+  --line-height-body: 1.6;
+  --space-0: 0;
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --radius-sm: .375rem;
+  --radius-md: .5rem;
+  --radius-lg: .75rem;
+  --radius-xl: 1rem;
+  --radius-pill: 999px;
+  --shadow-card: 0 2px 8px rgb(23 61 50 / 6%);
+  --shadow-raised: 0 4px 14px rgb(23 61 50 / 9%);
+  --container-width: 75rem;
+  --page-gutter: clamp(1.25rem, 3vw, 2rem);
+  --header-height: 4.25rem;
+  --motion-fast: 150ms;
+  --motion-normal: 220ms;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+  color-scheme: light;
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: var(--line-height-body);
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+body { min-width: 320px; margin: 0; background: var(--color-canvas); color: var(--color-text); }
+img, svg { display: block; }
+img { max-width: 100%; height: auto; }
+button, input, textarea, select { font: inherit; }
+a { color: var(--color-brand); text-decoration-thickness: .08em; text-underline-offset: .17em; }
+:where(a:hover) { color: var(--color-brand-hover); }
+a:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 4px;
+}
+h1, h2, h3, h4, p, figure, dl { margin-top: 0; }
+h1, h2, h3, h4 { color: var(--color-brand); line-height: var(--line-height-heading); }
+h1, h2 { font-family: var(--font-serif), Georgia, serif; font-weight: 650; letter-spacing: -.035em; }
+h1 { margin-bottom: var(--space-5); font-size: var(--font-size-hero); line-height: var(--line-height-tight); }
+h2 { margin-bottom: var(--space-3); font-size: clamp(1.75rem, 2.8vw, 2.3rem); }
+h3 { margin-bottom: var(--space-2); font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); }
+p { margin-bottom: var(--space-4); }
+p:last-child { margin-bottom: 0; }
+.container { width: min(calc(100% - 2 * var(--page-gutter)), var(--container-width)); margin-inline: auto; }
+.section { padding-block: var(--space-12); }
+
+=== src/subpages/subpages.css(前 60 行) ===
+/* SecureInChat secondary/tertiary pages v2.
+   Load after /assets/css/home.css. No inline styles, remote assets, or icon fonts.
+   Visual direction: editorial, exact, restrained; illustrations are original local SVGs. */
+
+:root {
+  --sp-reading: 46rem;
+  --sp-wide: 75rem;
+  --sp-sidebar: 16rem;
+  --sp-gutter: clamp(1.25rem, 3vw, 2rem);
+  --sp-section: clamp(2.75rem, 5vw, 4.75rem);
+  --sp-panel: clamp(1.1rem, 2.4vw, 1.7rem);
+  --sp-rule: 1px solid var(--color-border, #D2D8D0);
+  --sp-paper: #FBFAF6;
+  --sp-paper-deep: #F0F0E8;
+  --sp-green-mid: #335D4D;
+  --sp-gold-line: #79551B;
+}
+
+/* Shared structure */
+.subpage-main { min-height: 60vh; }
+.subpage-shell { width: min(calc(100% - 2 * var(--sp-gutter)), var(--sp-wide)); margin-inline: auto; }
+.subpage-section { padding-block: var(--sp-section); }
+.subpage-section + .subpage-section { border-top: 1px solid rgb(23 61 50 / 8%); }
+.subpage-main img { display: block; max-width: 100%; }
+.subpage-main svg { flex-shrink: 0; }
+
+.breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem .7rem; margin: 0 0 1.2rem; color: var(--color-text-muted); font-size: .8125rem; line-height: 1.55; }
+.breadcrumbs a { color: var(--color-text-muted); text-decoration: none; }
+.breadcrumbs a:hover { color: var(--color-brand); text-decoration: underline; text-underline-offset: .2em; }
+.breadcrumbs [aria-current="page"] { color: var(--color-text); }
+.breadcrumb-separator { color: #87968B; }
+
+.page-intro { position: relative; padding-block: clamp(2.5rem, 5vw, 4.5rem); background: var(--color-canvas); border-bottom: 1px solid rgb(23 61 50 / 8%); }
+.page-intro-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, .58fr); gap: clamp(2.25rem, 5vw, 4.75rem); align-items: end; }
+.page-intro-copy { min-width: 0; max-width: 57rem; }
+.page-title { max-width: 19ch; margin: 0 0 1.05rem; color: var(--color-brand); font-family: var(--font-serif), Georgia, serif; font-size: clamp(2.45rem, 4.6vw, 3.75rem); font-weight: 650; letter-spacing: -.04em; line-height: 1.08; text-wrap: balance; }
+.page-lead { max-width: 48rem; margin: 0; color: var(--color-text-muted); font-size: clamp(1.02rem, 1.5vw, 1.16rem); line-height: 1.7; }
+.page-intro-note { position: relative; padding: 1.25rem 1.35rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.page-intro-note::before { position: absolute; top: 1rem; bottom: 1rem; left: 0; width: 2px; background: var(--color-accent-text); content: ""; }
+.page-intro-note h2 { margin: 0 0 .55rem; padding-left: .3rem; font-family: var(--font-sans); font-size: 1rem; font-weight: 800; letter-spacing: 0; }
+.page-intro-note p { margin: 0; padding-left: .3rem; color: var(--color-text-muted); font-size: .9rem; line-height: 1.65; }
+.page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-top: 1.55rem; }
+.page-rule-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 1rem 2rem; margin-bottom: 1.45rem; }
+.page-rule-heading h2 { margin: 0 0 .4rem; font-family: var(--font-serif), Georgia, serif; font-size: clamp(1.7rem, 2.7vw, 2.25rem); letter-spacing: -.03em; }
+.page-rule-heading p { max-width: 45rem; margin: 0; color: var(--color-text-muted); font-size: .95rem; line-height: 1.65; }
+.section-deck { max-width: 45rem; margin: -.45rem 0 1.5rem; color: var(--color-text-muted); font-size: .95rem; line-height: 1.65; }
+
+/* Original line-art figure treatment: illustrations are the page's visual hook. */
+.editorial-figure { min-width: 0; margin: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: var(--sp-paper); }
+.editorial-figure img { width: 100%; height: auto; }
+.editorial-figure figcaption { padding: .7rem 1rem; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: .8rem; line-height: 1.5; }
+.diagram-frame { overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-xl); background: var(--sp-paper); }
+.diagram-frame img { width: 100%; height: auto; }
+.diagram-caption { display: flex; flex-wrap: wrap; align-items: start; gap: .55rem .8rem; padding: .85rem 1.15rem; border-top: 1px solid var(--color-border); color: var(--color-text-muted); font-size: .82rem; line-height: 1.6; }
+.diagram-caption strong { color: var(--color-brand); font-weight: 700; }
+.diagram-caption .caption-mark { color: var(--sp-gold-line); }
+
+/* Reusable factual status labels. */
+.state-list, .meta-list { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem .55rem; margin: .8rem 0 0; padding: 0; list-style: none; }
+.state-label { display: inline-flex; width: fit-content; align-items: center; gap: .35rem; padding: .28rem .62rem; border: 1px solid #C6DCCB; border-radius: var(--radius-pill); background: var(--color-success-bg); color: var(--color-success-text); font-size: .78rem; font-weight: 600; line-height: 1.35; }
+
+=== 你的原型 #6 ===
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureInChat - 你的数字隐私人权防线</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body { font-family: 'Inter', 'Noto Sans JP', -apple-system, sans-serif; background-color: #F8FAFC; scroll-behavior: smooth; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .view-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.1); }
+        
+        .redacted { background-color: #0f172a; color: #0f172a; user-select: none; border-radius: 2px; padding: 0 4px; }
+        .pseudo-tag { background-color: #DBEAFE; color: #1D4ED8; border-radius: 4px; padding: 0 4px; font-size: 0.85em; font-weight: bold; border: 1px solid #BFDBFE; }
+        
+        .lang-btn { @apply text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors px-2 py-1 rounded cursor-pointer; }
+        .lang-btn.active { @apply text-blue-600 bg-blue-50; }
+        
+        /* 雷达扫描动画 */
+        .radar-circle { position: absolute; border: 2px solid #3B82F6; border-radius: 50%; opacity: 0; animation: ping 3s cubic-bezier(0, 0, 0.2, 1) infinite; }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col min-h-screen">
+
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('view-home')">
+                <div class="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center text-white shadow-inner">
+                    <i class="ph ph-shield-check text-xl"></i>
+                </div>
+                <span class="font-bold text-xl tracking-tight text-slate-900">SecureInChat</span>
+            </div>
+            
+            <div class="hidden md:flex gap-6 text-sm font-medium text-slate-600 items-center">
+                <a href="#" onclick="switchView('view-home')" class="hover:text-blue-600 transition-colors">Home</a>
+                <a href="#" onclick="switchView('view-radar')" class="hover:text-blue-600 transition-colors">Fingerprint Radar</a>
+                <a href="#" onclick="switchView('view-defense')" class="hover:text-blue-600 transition-colors">OS Defense</a>
+                <a href="#" class="hover:bg-green-100 transition-colors flex items-center gap-1.5 font-mono text-[11px] font-bold bg-green-50 text-green-700 border border-green-200 px-2.5 py-1.5 rounded-md shadow-sm">
+                    <i class="ph ph-github-logo text-sm"></i> Open Source
+                </a>
+            </div>
+            
+            <button onclick="switchView('view-waitlist')" class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-5 py-2 rounded-full transition-colors flex items-center gap-2">
+                Join Secure Chat <i class="ph ph-arrow-right"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <main class="flex-grow">
+        
+        <!-- ================= 1. 首页：四步闭环 ================= -->
+        <section id="view-home" class="view-section active max-w-6xl mx-auto px-6 py-12 md:py-20">
+            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+                <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-xs font-bold font-mono border border-blue-200">
+                    <i class="ph-fill ph-fingerprint text-lg"></i> Privacy is a Human Right
+                </div>
+                <h1 class="text-4xl md:text-6xl font-bold text-slate-900 tracking-tight leading-tight">
+                    夺回你的数字<span class="text-blue-600">控制权。</span>
+                </h1>
+                <p class="text-lg text-slate-600">从指纹追踪到文件残留，建立事前防御、事中脱敏、事后校验的完整隐私闭环。</p>
+            </div>
+
+            <!-- 闭环流程图 -->
+            <div class="grid md:grid-cols-4 gap-4 mb-20 relative">
+                <!-- 连线装饰 -->
+                <div class="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 -translate-y-1/2 z-0"></div>
+
+                <!-- Step 1 -->
+                <div onclick="switchView('view-radar')" class="bg-white p-5 rounded-2xl border border-blue-200 shadow-sm hover-lift cursor-pointer relative z-10 group text-center">
+                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"><i class="ph ph-radar text-2xl"></i></div>
+                    <div class="text-xs font-bold text-blue-600 mb-1">STEP 1 / 检测</div>
+                    <h3 class="font-bold text-slate-900 mb-1">隐私雷达</h3>
+                    <p class="text-xs text-slate-500">查看你的浏览器暴露了多少指纹。</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div onclick="switchView('view-defense')" class="bg-white p-5 rounded-2xl border border-green-200 shadow-sm hover-lift cursor-pointer relative z-10 group text-center">
+                    <div class="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"><i class="ph ph-desktop text-2xl"></i></div>
+                    <div class="text-xs font-bold text-green-600 mb-1">STEP 2 / 防御</div>
+                    <h3 class="font-bold text-slate-900 mb-1">系统加固</h3>
+                    <p class="text-xs text-slate-500">一键生成脚本，关闭 OS 遥测。</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div onclick="switchView('view-cleaner')" class="bg-white p-5 rounded-2xl border border-orange-200 shadow-sm hover-lift cursor-pointer relative z-10 group text-center">
+                    <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"><i class="ph ph-eraser text-2xl"></i></div>
+                    <div class="text-xs font-bold text-orange-600 mb-1">STEP 3 / 净化</div>
+                    <h3 class="font-bold text-slate-900 mb-1">内容脱敏</h3>
+                    <p class="text-xs text-slate-500">全格式文件清理与 AI 智能打码。</p>
+                </div>
+
+                <!-- Step 4 -->
+                <div onclick="switchView('view-watermark')" class="bg-white p-5 rounded-2xl border border-indigo-200 shadow-sm hover-lift cursor-pointer relative z-10 group text-center">
+                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform"><i class="ph ph-fingerprint text-2xl"></i></div>
+                    <div class="text-xs font-bold text-indigo-600 mb-1">STEP 4 / 保护</div>
+                    <h3 class="font-bold text-slate-900 mb-1">防伪与溯源</h3>
+                    <p class="text-xs text-slate-500">零宽盲水印与 SHA-256 校验。</p>
+                </div>
+            </div>
+
+            <!-- 极客风透明账单面板 -->
+            <div class="bg-slate-900 text-white p-6 rounded-2xl font-mono text-sm shadow-lg relative overflow-hidden">
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-400 via-slate-900 to-black"></div>
+                <div class="flex flex-col md:flex-row gap-4 items-center justify-between relative z-10">
+                    <div class="flex items-center gap-4">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span>Status: <strong class="text-green-400">No Server Tracking</strong></span>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div><span class="text-slate-400">VPS Cost:</span> <span class="text-white font-bold">$8.50 / mo</span></div>
+                        <div><span class="text-slate-400">Donations:</span> <span class="text-blue-400 font-bold">+$15.20</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 2. 隐私雷达 (真实 API 指纹检测) ================= -->
+        <section id="view-radar" class="view-section max-w-4xl mx-auto px-6 py-12">
+            <button onclick="switchView('view-home')" class="text-slate-500 hover:text-slate-900 mb-6 flex items-center gap-1 text-sm font-medium"><i class="ph ph-arrow-left"></i> 返回闭环</button>
+            <div class="mb-8 text-center">
+                <h2 class="text-3xl font-bold text-slate-900">浏览器指纹雷达</h2>
+                <p class="text-slate-600 mt-2">网站不需要 Cookie，仅凭你的设备特征就能精准追踪你。</p>
+            </div>
+
+            <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center relative overflow-hidden">
+                <div class="w-32 h-32 mx-auto relative mb-6 flex items-center justify-center">
+                    <div class="radar-circle w-full h-full"></div>
+                    <div class="radar-circle w-2/3 h-2/3" style="animation-delay: 1s;"></div>
+                    <div class="radar-circle w-1/3 h-1/3" style="animation-delay: 2s;"></div>
+                    <i class="ph ph-fingerprint text-5xl text-blue-600 relative z-10"></i>
+                </div>
+                
+                <h3 class="text-xl font-bold text-slate-900 mb-2">正在扫描你的设备特征...</h3>
+                
+                <div id="radar-results" class="hidden mt-8 text-left max-w-lg mx-auto bg-slate-50 border border-slate-200 rounded-xl p-6">
+                    <div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">屏幕分辨率:</span> <span id="fp-screen" class="font-mono font-bold"></span></div>
+                    <div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">系统语言:</span> <span id="fp-lang" class="font-mono font-bold"></span></div>
+                    <div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">时区:</span> <span id="fp-tz" class="font-mono font-bold"></span></div>
+                    <div class="flex justify-between border-b pb-2 mb-2"><span class="text-slate-500">CPU 核心:</span> <span id="fp-cpu" class="font-mono font-bold"></span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Canvas 指纹:</span> <span class="font-mono font-bold text-red-600">已泄露</span></div>
+
+                    <div class="mt-6 bg-red-100 text-red-800 p-4 rounded-lg text-sm text-center">
+                        <p class="mb-2">基于以上特征，你的唯一指纹 ID 是：</p>
+                        <div id="fp-hash" class="font-mono text-lg font-bold bg-white py-2 rounded border border-red-200 select-all"></div>
+                        <p class="mt-3 text-xs opacity-80">在百万用户中，你被精准追踪的概率为 99.9%。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 3. 系统加固 (脚本生成) ================= -->
+        <section id="view-defense" class="view-section max-w-4xl mx-auto px-6 py-12">
+            <button onclick="switchView('view-home')" class="text-slate-500 hover:text-slate-900 mb-6 flex items-center gap-1 text-sm font-medium"><i class="ph ph-arrow-left"></i> 返回闭环</button>
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900">系统遥测拦截器</h2>
+                <p class="text-slate-600 mt-2">借鉴 privacy.sexy 理念，生成关闭 OS 后台追踪的脚本。</p>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                <div class="flex gap-2 mb-4">
+                    <button onclick="genScript('win')" class="flex-1 bg-blue-50 text-blue-700 border border-blue-200 font-bold py-2 rounded-lg hover:bg-blue-100 transition">Windows 10/11</button>
+                    <button onclick="genScript('mac')" class="flex-1 bg-slate-100 text-slate-700 border border-slate-300 font-bold py-2 rounded-lg hover:bg-slate-200 transition">macOS</button>
+                </div>
+                
+                <p class="text-sm text-slate-500 mb-3">复制以下脚本，在管理员权限下运行。这将禁用诊断数据、广告 ID 等后门。</p>
+                
+                <div class="relative">
+                    <pre id="script-box" class="bg-slate-900 text-green-400 font-mono text-xs p-4 rounded-xl overflow-x-auto h-64 border border-slate-700">请选择系统生成脚本...</pre>
+                    <button onclick="copyScript()" class="absolute top-2 right-2 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-xs transition">复制脚本</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 4. 内容净化器 (文件+AI脱敏) ================= -->
+        <section id="view-cleaner" class="view-section max-w-6xl mx-auto px-6 py-12">
+            <button onclick="switchView('view-home')" class="text-slate-500 hover:text-slate-900 mb-6 flex items-center gap-1 text-sm font-medium"><i class="ph ph-arrow-left"></i> 返回闭环</button>
+            <div class="mb-8 flex items-end justify-between">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-900">全格式内容净化与脱敏</h2>
+                    <p class="text-slate-600 mt-2">深度剥离文件元数据，或对文本、图片进行 AI 识别脱敏。</p>
+                </div>
+                <div class="bg-slate-900 text-green-400 font-mono text-xs px-3 py-1.5 rounded-lg flex items-center gap-2 border border-slate-700">
+                    <i class="ph ph-wifi-slash text-lg"></i> Local only
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- 全格式文件净化 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2"><i class="ph ph-file-dashed text-blue-500"></i> 深度文件净化 (WASM)</h3>
+                    <div onclick="simulateFileParse()" class="upload-zone border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-50 relative overflow-hidden flex-grow flex flex-col justify-center min-h-[200px]">
+                        <div id="file-progress" class="absolute bottom-0 left-0 h-1 bg-blue-500 transition-all duration-300 w-0"></div>
+                        <i id="file-icon" class="ph ph-file-arrow-up text-4xl text-slate-400 mb-3"></i>
+                        <p id="file-text" class="text-sm font-medium text-slate-700">拖拽 PDF/Office/图片 至此</p>
+                    </div>
+                </div>
+
+                <!-- AI 智能脱敏 (文本版简略展示) -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col">
+                    <h3 class="font-bold text-slate-900 mb-4 flex items-center gap-2"><i class="ph ph-brain text-orange-500"></i> AI 智能脱敏</h3>
+                    <textarea id="ai-text" class="w-full flex-grow border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-orange-500 resize-none mb-3">你好，我是张三，我的地址是北京市朝阳区某某路1号，手机号是 13812345678。</textarea>
+                    <button onclick="runAI()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition">运行本地 AI 假名替换</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 5. 水印与校验 ================= -->
+        <section id="view-watermark" class="view-section max-w-5xl mx-auto px-6 py-12">
+            <button onclick="switchView('view-home')" class="text-slate-500 hover:text-slate-900 mb-6 flex items-center gap-1 text-sm font-medium"><i class="ph ph-arrow-left"></i> 返回闭环</button>
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900">水印溯源与哈希校验</h2>
+                <p class="text-slate-600 mt-2">保护原创，验证完整性。</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- 盲水印 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-lg mb-4"><i class="ph ph-fingerprint text-indigo-500"></i> 零宽字符盲水印</h3>
+                    <input type="text" id="wmKey" placeholder="输入标识 (如: @my_name)" class="w-full border border-slate-300 rounded-xl px-4 py-2 text-sm mb-3">
+                    <textarea id="wmText" class="w-full h-24 border border-slate-300 rounded-xl p-3 text-sm mb-3" placeholder="粘贴原创段落..."></textarea>
+                    <div class="flex gap-2 mb-3">
+                        <button onclick="embedWM()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition">嵌入</button>
+                        <button onclick="extractWM()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium py-2 rounded-lg text-sm transition">提取</button>
+                    </div>
+                    <div id="wmResult" class="hidden text-xs bg-slate-50 p-2 rounded text-slate-700 font-mono break-all"></div>
+                </div>
+
+                <!-- 哈希校验 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-lg mb-4"><i class="ph ph-shield-check text-blue-500"></i> SHA-256 校验</h3>
+                    <div onclick="document.getElementById('hashFileInput').click()" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:bg-slate-50 transition mb-4">
+                        <p class="text-sm font-medium text-slate-700">点击选择文件计算指纹</p>
+                        <input type="file" id="hashFileInput" class="hidden" onchange="calcHash(this.files[0])">
+                    </div>
+                    <div id="hashResult" class="hidden">
+                        <div id="hashValue" class="text-xs font-mono bg-blue-50 text-blue-800 p-3 rounded break-all select-all"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 6. 候补表单 ================= -->
+        <section id="view-waitlist" class="view-section max-w-xl mx-auto px-6 py-20 text-center">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">体验终极隐私通讯</h2>
+            <p class="text-slate-600 mb-8">你的日常聊天，同样需要端到端加密。无需手机号，不留痕迹。</p>
+            <form onsubmit="event.preventDefault(); alert('感谢加入 SecureInChat 候补名单！');" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <input type="email" required placeholder="you@example.com" class="w-full border border-slate-300 rounded-xl px-4 py-3 mb-4 text-sm focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors">提交候补申请</button>
+            </form>
+        </section>
+
+    </main>
+
+    <script>
+        // --- 1. 路由 ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            window.scrollTo(0, 0);
+            
+            if (viewId === 'view-radar') startRadar();
+        }
+
+        // --- 2. 隐私雷达 (真实特征提取) ---
+        function startRadar() {
+            const resultArea = document.getElementById('radar-results');
+            resultArea.classList.add('hidden');
+            
+            setTimeout(() => {
+                // 真实获取浏览器特征
+                document.getElementById('fp-screen').innerText = `${window.screen.width}x${window.screen.height}`;
+                document.getElementById('fp-lang').innerText = navigator.language;
+                document.getElementById('fp-tz').innerText = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                document.getElementById('fp-cpu').innerText = navigator.hardwareConcurrency || '未知';
+                
+                // 模拟生成一个基于特征的 Hash
+                const rawFp = navigator.userAgent + window.screen.width + Intl.DateTimeFormat().resolvedOptions().timeZone;
+                let hash = 0;
+                for (let i = 0; i < rawFp.length; i++) {
+                    hash = ((hash << 5) - hash) + rawFp.charCodeAt(i);
+                    hash |= 0;
+                }
+                document.getElementById('fp-hash').innerText = Math.abs(hash).toString(16).padEnd(12, 'a').toUpperCase();
+                
+                resultArea.classList.remove('hidden');
+            }, 2000);
+        }
+
+        // --- 3. 系统加固脚本生成 ---
+        function genScript(os) {
+            const winScript = `# Windows 10/11 遥测拦截脚本 (管理员权限运行)
+Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection" -Name "AllowTelemetry" -Type DWord -Value 0
+Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo" -Name "Enabled" -Value 0
+Set-Service -Name DiagTrack -StartupType Disabled
+Stop-Service -Name DiagTrack -Force
+Write-Host "系统遥测已成功禁用。" -ForegroundColor Green`;
+            
+            const macScript = `#!/bin/bash
+# macOS 遥测拦截脚本 (需 sudo 运行)
+echo "禁用 Siri 诊断与数据共享..."
+sudo defaults write /Library/Preferences/com.apple.SubmitDiagInfo AutoSubmit -bool false
+sudo defaults write /Library/Preferences/com.apple.SubmitDiagInfo AutoSubmitVersion -int 0
+echo "清理广告标识符..."
+sudo defaults write /Library/Preferences/com.apple.AdLib allowApplePersonalizedAdvertising -bool false
+echo "重启相关服务以生效..."
+sudo killall -HUP mDNSResponder
+echo "完成！"`;
+
+            const box = document.getElementById('script-box');
+            box.innerText = os === 'win' ? winScript : macScript;
+            box.classList.add('text-blue-300');
+        }
+
+        function copyScript() {
+            const text = document.getElementById('script-box').innerText;
+            if(text.includes('请选择')) return alert('请先选择系统生成脚本');
+            navigator.clipboard.writeText(text).then(() => alert('脚本已复制，请妥善保存。'));
+        }
+
+        // --- 4. 文件净化与 AI 脱敏 ---
+        function simulateFileParse() {
+            const progress = document.getElementById('file-progress');
+            const icon = document.getElementById('file-icon');
+            const text = document.getElementById('file-text');
+            
+            progress.style.width = '0%';
+            text.innerText = "正在通过 WASM 解析底层结构...";
+            icon.className = 'ph ph-spinner-gap text-4xl text-blue-500 animate-spin mb-3';
+
+            let w = 0;
+            const int = setInterval(() => {
+                w += 10;
+                progress.style.width = w + '%';
+                if(w >= 100) {
+                    clearInterval(int);
+                    icon.className = 'ph ph-check-circle text-4xl text-green-500 mb-3';
+                    text.innerText = "深度清理完成 (无残留)";
+                }
+            }, 100);
+        }
+
+        function runAI() {
+            const textarea = document.getElementById('ai-text');
+            let text = textarea.value;
+            
+            // 模拟 AI 识别逻辑
+            text = text.replace('张三', '<span class="pseudo-tag">[姓名]</span>');
+            text = text.replace('北京市朝阳区某某路1号', '<span class="pseudo-tag">[地址]</span>');
+            text = text.replace('13812345678', '<span class="pseudo-tag">[电话]</span>');
+            
+            textarea.innerHTML = text;
+            textarea.style.color = '#475569';
+        }
+
+        // --- 5. 零宽盲水印 ---
+        function embedWM() {
+            const key = document.getElementById('wmKey').value;
+            const text = document.getElementById('wmText').value;
+            if(!key || !text) return alert('请输入内容');
+            
+            let binaryKey = '';
+            for (let i = 0; i < key.length; i++) binaryKey += key.charCodeAt(i).toString(2).padStart(8, '0');
+            let watermark = '';
+            for (let i = 0; i < binaryKey.length; i++) watermark += binaryKey[i] === '0' ? '\u200B' : '\u200C';
+
+            document.getElementById('wmResult').classList.remove('hidden');
+            document.getElementById('wmResult').innerText = text + watermark;
+            alert('水印已嵌入下方文本，请复制。');
+        }
+
+        function extractWM() {
+            const text = document.getElementById('wmResult').innerText;
+            if(!text) return;
+            let binaryKey = '';
+            for (let i = 0; i < text.length; i++) {
+                if (text[i] === '\u200B') binaryKey += '0';
+                if (text[i] === '\u200C') binaryKey += '1';
+            }
+            if(!binaryKey) return alert('未检测到水印');
+            let key = '';
+            for (let i = 0; i < binaryKey.length; i += 8) key += String.fromCharCode(parseInt(binaryKey.slice(i, i + 8), 2));
+            alert('提取到作者水印：' + key);
+        }
+
+        // --- 6. 哈希校验 ---
+        async function calcHash(file) {
+            if(!file) return;
+            const arrayBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            document.getElementById('hashResult').classList.remove('hidden');
+            document.getElementById('hashValue').innerText = hashHex;
+        }
+    </script>
+</body>
+</html>
+=== 你的原型 #7 ===
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureInChat - 数字隐私瑞士军刀</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body { font-family: 'Inter', 'Noto Sans JP', -apple-system, sans-serif; background-color: #F8FAFC; scroll-behavior: smooth; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .view-section { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.1); }
+        .upload-zone:hover { border-color: #3B82F6; background-color: #EFF6FF; }
+        
+        /* 物理黑块遮挡 */
+        .redacted { background-color: #0f172a; color: #0f172a; user-select: none; border-radius: 2px; padding: 0 4px; }
+        /* AI 假名标签 */
+        .pseudo-tag { background-color: #DBEAFE; color: #1D4ED8; border-radius: 4px; padding: 0 4px; font-size: 0.85em; font-weight: bold; border: 1px solid #BFDBFE; }
+        /* 端侧 AI 高亮实体 */
+        .ai-highlight { background-color: #FEF08A; color: #854D0E; border-bottom: 2px solid #EAB308; padding: 0 2px; border-radius: 2px; cursor: pointer; transition: all 0.2s; }
+        .ai-highlight:hover { background-color: #FDE047; }
+        
+        .lang-btn { @apply text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors px-2 py-1 rounded cursor-pointer; }
+        .lang-btn.active { @apply text-blue-600 bg-blue-50; }
+        
+        /* 截图拖拽遮挡工具的画布样式 */
+        #screenshot-canvas-container { position: relative; display: inline-block; max-width: 100%; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        #screenshot-canvas { display: block; max-width: 100%; cursor: crosshair; }
+        .ai-face-box { position: absolute; border: 2px dashed #3B82F6; background: rgba(59, 130, 246, 0.2); border-radius: 4px; display: none; pointer-events: none; z-index: 10; }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col min-h-screen">
+
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('view-home')">
+                <div class="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center text-white shadow-inner">
+                    <i class="ph ph-shield-check text-xl"></i>
+                </div>
+                <span class="font-bold text-xl tracking-tight text-slate-900">SecureInChat</span>
+            </div>
+            
+            <div class="hidden md:flex gap-5 text-sm font-medium text-slate-600 items-center">
+                <a href="#" onclick="switchView('view-home')" class="hover:text-blue-600 transition-colors">Tool Hub</a>
+                <a href="#" onclick="switchView('view-file')" class="hover:text-blue-600 transition-colors">File Sanitizer</a>
+                <a href="#" onclick="switchView('view-redact')" class="hover:text-blue-600 transition-colors">AI Redactor</a>
+                <a href="#" onclick="switchView('view-watermark')" class="hover:text-blue-600 transition-colors">Watermark</a>
+                <a href="#" class="hover:bg-green-100 transition-colors flex items-center gap-1.5 font-mono text-[11px] font-bold bg-green-50 text-green-700 border border-green-200 px-2.5 py-1.5 rounded-md shadow-sm">
+                    <i class="ph ph-github-logo text-sm"></i> Audit Source
+                </a>
+                <div class="flex items-center gap-1 border-l border-slate-200 pl-3 ml-1">
+                    <button onclick="setLanguage('zh')" id="btn-zh" class="lang-btn active">中</button>
+                    <button onclick="setLanguage('en')" id="btn-en" class="lang-btn">EN</button>
+                    <button onclick="setLanguage('ja')" id="btn-ja" class="lang-btn">日</button>
+                </div>
+            </div>
+            
+            <button onclick="switchView('view-waitlist')" class="bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2 rounded-full transition-colors flex items-center gap-2">
+                Join App <i class="ph ph-arrow-right"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <main class="flex-grow">
+        
+        <!-- ================= 1. 首页工具台 ================= -->
+        <section id="view-home" class="view-section active max-w-6xl mx-auto px-6 py-12 md:py-20">
+            <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+                <div class="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-1.5 rounded-full text-xs font-bold font-mono border border-green-200 mb-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    100% Local Processing. Zero Server Upload.
+                </div>
+                <h1 class="text-4xl md:text-6xl font-bold text-slate-900 tracking-tight leading-tight">
+                    你的本地数字隐私<span class="text-blue-600">保险箱。</span>
+                </h1>
+                <p class="text-lg text-slate-600">全格式文件净化、端侧 AI 自动脱敏、防抄袭隐形水印。<br>所有处理均在您的浏览器内完成。</p>
+            </div>
+
+            <!-- 三大防区入口 -->
+            <div class="grid md:grid-cols-3 gap-6 mb-16">
+                <!-- 防区 1：文件净化 -->
+                <div onclick="switchView('view-file')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift cursor-pointer group flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><i class="ph ph-file-dashed text-2xl"></i></div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">全格式隐私净化</h3>
+                        <p class="text-slate-600 text-sm mb-4">深度解析图片、PDF、Word、视频，彻底剥离隐藏的 GPS、作者、修订记录和 AI 指纹。</p>
+                    </div>
+                    <div class="flex items-center text-blue-600 text-sm font-semibold gap-1">进入防区 <i class="ph ph-arrow-right group-hover:translate-x-1 transition-transform"></i></div>
+                </div>
+                <!-- 防区 2：智能脱敏 -->
+                <div onclick="switchView('view-redact')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift cursor-pointer group flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><i class="ph ph-brain text-2xl"></i></div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">端侧 AI 智能脱敏</h3>
+                        <p class="text-slate-600 text-sm mb-4">基于本地运行的轻量模型，自动识别文本/图片中的人名、地址、人脸，支持假名替换与物理烧录。</p>
+                    </div>
+                    <div class="flex items-center text-orange-600 text-sm font-semibold gap-1">进入防区 <i class="ph ph-arrow-right group-hover:translate-x-1 transition-transform"></i></div>
+                </div>
+                <!-- 防区 3：水印与校验 -->
+                <div onclick="switchView('view-watermark')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover-lift cursor-pointer group flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><i class="ph ph-fingerprint text-2xl"></i></div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">水印溯源与校验</h3>
+                        <p class="text-slate-600 text-sm mb-4">生成基于零宽字符的隐形盲水印防盗版，或使用 SHA-256 校验文件是否被篡改。</p>
+                    </div>
+                    <div class="flex items-center text-indigo-600 text-sm font-semibold gap-1">进入防区 <i class="ph ph-arrow-right group-hover:translate-x-1 transition-transform"></i></div>
+                </div>
+            </div>
+
+            <!-- 极客风透明账单面板 -->
+            <div class="border-t border-slate-200 pt-12 mb-16">
+                <div class="flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-900 text-white p-6 rounded-2xl font-mono text-sm shadow-lg relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-400 via-slate-900 to-black"></div>
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span>Status: <strong class="text-green-400">100% Operational</strong></span>
+                    </div>
+                    <div class="flex items-center gap-6 relative z-10">
+                        <div><span class="text-slate-400">VPS Cost:</span> <span class="text-white font-bold">$8.50 / mo</span></div>
+                        <div><span class="text-slate-400">Donations:</span> <span class="text-blue-400 font-bold">+$15.20</span></div>
+                        <div><span class="text-slate-400">Processed:</span> <span class="text-white font-bold">12,405 files</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 赞助商模块 (保持精简) -->
+            <div class="border-t border-slate-200 pt-8">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 opacity-80 hover:opacity-100 transition-opacity">
+                    <a href="#" class="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 hover:shadow-sm">
+                        <i class="ph-fill ph-shield-check text-blue-500 text-xl"></i><span class="text-xs font-bold text-slate-700">Mullvad VPN</span>
+                    </a>
+                    <a href="#" class="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 hover:shadow-sm">
+                        <i class="ph-fill ph-key text-teal-500 text-xl"></i><span class="text-xs font-bold text-slate-700">Bitwarden</span>
+                    </a>
+                    <a href="#" class="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 hover:shadow-sm">
+                        <i class="ph-fill ph-envelope-simple text-indigo-500 text-xl"></i><span class="text-xs font-bold text-slate-700">ProtonMail</span>
+                    </a>
+                    <a href="#" class="bg-white border border-slate-200 rounded-xl p-3 flex items-center gap-3 hover:shadow-sm">
+                        <i class="ph-fill ph-usb text-purple-500 text-xl"></i><span class="text-xs font-bold text-slate-700">YubiKey</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 2. 全格式文件净化器 ================= -->
+        <section id="view-file" class="view-section max-w-5xl mx-auto px-6 py-12">
+            <button onclick="switchView('view-home')" class="text-slate-500 hover:text-slate-900 mb-6 flex items-center gap-1 text-sm font-medium"><i class="ph ph-arrow-left"></i> 返回工具台</button>
+            <div class="mb-8 flex items-end justify-between">
+                <div>
+                    <h2 class="text-3xl font-bold text-slate-900">全格式隐私净化器</h2>
+                    <p class="text-slate-600 mt-2">基于 Rust + WebAssembly 的深度元数据清理，支持图片、PDF、Office 等 116 种格式。</p>
+                </div>
+                <div class="bg-slate-900 text-green-400 font-mono text-xs px-3 py-1.5 rounded-lg flex items-center gap-2 border border-slate-700">
+                    <i class="ph ph-wifi-slash text-lg"></i> <span>Outbound: <strong id="net-watchdog">0</strong></span>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="md:col-span-1 space-y-4">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                        <div onclick="simulateFileParse()" class="upload-zone border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer transition-colors bg-slate-50 relative overflow-hidden">
+                            <div id="file-progress" class="absolute bottom-0 left-0 h-1 bg-blue-500 transition-all duration-300 w-0"></div>
+                            <i id="file-icon" class="ph ph-file-arrow-up text-4xl text-slate-400 mb-3"></i>
+                            <p id="file-text" class="text-sm font-medium text-slate-700">拖拽任意文件至此</p>
+                            <p class="text-xs text-slate-400 mt-2 font-mono">WASM Engine Ready</p>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50 rounded-xl p-4 border border-blue-100 flex items-start gap-3">
+                        <i class="ph-fill ph-info text-blue-600 text-xl mt-0.5"></i>
+                        <div><h4 class="text-sm font-bold text-blue-800">深度净化</h4><p class="text-xs text-blue-700 mt-1">不仅去 EXIF，还能清理 PDF 隐藏文字层、Word 修订历史。</p></div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-2" id="file-result-area" style="display: none;">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-900 text-lg text-red-600 flex items-center gap-2 mb-4 border-b pb-2"><i class="ph-fill ph-warning-circle"></i> 隐私体检报告</h3>
+                        <div class="space-y-3 mb-6">
+                            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                                <div class="text-sm font-bold text-red-800"><i class="ph-fill ph-map-pin"></i> 发现 GPS 位置信息</div>
+                                <span class="text-xs font-mono bg-white px-2 py-1 rounded text-red-600">东京都 35.6895° N</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                                <div class="text-sm font-bold text-orange-800"><i class="ph-fill ph-user"></i> 发现隐藏作者信息</div>
+                                <span class="text-xs font-mono bg-white px-2 py-1 rounded text-orange-600">iPhone 14 Pro (Zhang San)</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                <div class="text-sm font-bold text-yellow-800"><i class="ph-fill ph-clock-counter-clockwise"></i> 发现未清除的修订记录</div>
+                                <span class="text-xs font-mono bg-white px-2 py-1 rounded text-yellow-600">3 次编辑历史</span>
+                            </div>
+                        </div>
+                        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+                            <i class="ph ph-eraser"></i> 深度净化并下载安全副本
+                        </button>
+                        <p class="text-center text-xs text-slate-400 mt-3">采用原子覆盖操作，确保无任何底层数据残留。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 3. 端侧 AI 智能脱敏 (文本+图片) ================= -->
+        <section id="view-redact" class="view-section max-w-6xl mx-auto px-6 py-12">
+            <button onclick="switchView('view-home')" class="text-slate-500 hover:text-slate-900 mb-6 flex items-center gap-1 text-sm font-medium"><i class="ph ph-arrow-left"></i> 返回工具台</button>
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900">端侧 AI 智能脱敏</h2>
+                <p class="text-slate-600 mt-2">模型完全下载至本地运行，自动识别人名、地址、人脸，不上传任何数据。</p>
+            </div>
+
+            <!-- 切换栏 -->
+            <div class="flex border-b border-slate-200 mb-6">
+                <button onclick="switchRedactTab('text')" id="tab-btn-text" class="px-6 py-3 font-bold text-orange-600 border-b-2 border-orange-600">文本脱敏</button>
+                <button onclick="switchRedactTab('image')" id="tab-btn-image" class="px-6 py-3 font-medium text-slate-500 hover:text-slate-800">截图/人脸遮挡</button>
+            </div>
+
+            <!-- 文本脱敏区 -->
+            <div id="redact-content-text" class="grid md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="text-sm font-semibold text-slate-700">原始文本</label>
+                        <button onclick="runLocalAI()" class="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded border border-indigo-200 flex items-center gap-1 hover:bg-indigo-100 transition"><i class="ph ph-cpu"></i> 运行本地 AI 检测</button>
+                    </div>
+                    <textarea id="rawText" class="w-full h-64 border border-slate-300 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none mb-4">你好，我是张三，我的地址是北京市朝阳区某某路1号，手机号是 13812345678。请帮我总结一下这份报告。</textarea>
+                    
+                    <div class="flex bg-slate-100 p-1 rounded-xl mb-4">
+                        <button onclick="setRedactMode('ai')" id="btn-mode-ai" class="flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow text-orange-600 transition-all flex items-center justify-center gap-1"><i class="ph ph-brain"></i> 智能假名</button>
+                        <button onclick="setRedactMode('black')" id="btn-mode-black" class="flex-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-all flex items-center justify-center gap-1"><i class="ph ph-eye-slash"></i> 物理黑块</button>
+                    </div>
+                    <button onclick="redactText()" class="mt-auto bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
+                        <i class="ph ph-magic-wand text-lg"></i> 一键脱敏
+                    </button>
+                </div>
+                
+                <div class="bg-slate-900 rounded-2xl p-6 border border-slate-800 shadow-sm flex flex-col text-white">
+                    <label class="text-sm font-semibold text-slate-300 mb-2">脱敏结果</label>
+                    <div id="redactedResult" class="w-full h-64 bg-slate-800 rounded-xl p-4 text-sm overflow-y-auto mb-4 font-mono leading-relaxed">
+                        <span class="text-slate-500">等待操作...</span>
+                    </div>
+                    <button onclick="alert('安全文本已复制！')" class="mt-auto bg-white hover:bg-slate-100 text-slate-900 font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2"><i class="ph ph-copy text-lg"></i> 复制安全文本</button>
+                </div>
+            </div>
+
+            <!-- 图片脱敏区 -->
+            <div id="redact-content-image" class="hidden">
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm max-w-3xl mx-auto text-center">
+                    <div id="img-upload-area" class="upload-zone border-2 border-dashed border-slate-300 rounded-xl p-10 cursor-pointer transition-colors bg-slate-50 mb-6">
+                        <i class="ph ph-image text-5xl text-slate-400 mb-4"></i>
+                        <p class="text-sm font-medium text-slate-700">点击模拟上传包含人脸的截图</p>
+                    </div>
+                    
+                    <div id="img-workspace" class="hidden relative inline-block">
+                        <!-- 模拟的人脸检测框 -->
+                        <div class="ai-face-box" style="top: 20%; left: 30%; width: 25%; height: 35%;"></div>
+                        <canvas id="screenshot-canvas" class="rounded-lg shadow-md max-w-full"></canvas>
+                        <div class="mt-4 flex justify-center gap-4">
+                            <button onclick="downloadScreenshot()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors">下载遮挡图</button>
+                            <button onclick="resetScreenshot()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 px-6 rounded-lg transition-colors">重新上传</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 4. 水印溯源与校验 ================= -->
+        <section id="view-watermark" class="view-section max-w-5xl mx-auto px-6 py-12">
+            <button onclick="switchView('view-home')" class="text-slate-500 hover:text-slate-900 mb-6 flex items-center gap-1 text-sm font-medium"><i class="ph ph-arrow-left"></i> 返回工具台</button>
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900">水印溯源与校验</h2>
+                <p class="text-slate-600 mt-2">保护原创内容，或验证文件完整性。</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- 隐形盲水印 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-lg mb-4 flex items-center gap-2"><i class="ph ph-fingerprint text-indigo-500"></i> 零宽字符盲水印</h3>
+                    <p class="text-xs text-slate-500 mb-4">在文本中嵌入不可见的作者信息。复制到任何平台，水印依然存在，可随时提取证明原创。</p>
+                    <input type="text" id="wmKey" placeholder="输入你的标识 (如: @my_username)" class="w-full border border-slate-300 rounded-xl px-4 py-2 text-sm mb-3">
+                    <textarea id="wmText" class="w-full h-24 border border-slate-300 rounded-xl p-3 text-sm mb-3" placeholder="粘贴你的原创段落..."></textarea>
+                    <div class="flex gap-2">
+                        <button onclick="embedWatermark()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition-colors">嵌入水印</button>
+                        <button onclick="extractWatermark()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium py-2 rounded-lg text-sm transition-colors">提取水印</button>
+                    </div>
+                    <div id="wmResult" class="mt-3 text-xs bg-slate-50 p-2 rounded text-slate-700 font-mono break-all hidden"></div>
+                </div>
+
+                <!-- 哈希校验 -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-900 text-lg mb-4 flex items-center gap-2"><i class="ph ph-shield-check text-blue-500"></i> 文件 SHA-256 校验</h3>
+                    <p class="text-xs text-slate-500 mb-4">计算文件的唯一指纹。如果指纹变了，说明文件被篡改。</p>
+                    <div onclick="document.getElementById('hashFileInput').click()" class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center cursor-pointer hover:bg-slate-50 transition-colors mb-4">
+                        <p class="text-sm font-medium text-slate-700">点击选择文件</p>
+                        <input type="file" id="hashFileInput" class="hidden" onchange="calcHash(this.files[0])">
+                    </div>
+                    <div id="hashResult" class="hidden">
+                        <label class="text-xs font-bold text-slate-500">SHA-256:</label>
+                        <div id="hashValue" class="text-xs font-mono bg-blue-50 text-blue-800 p-3 rounded mt-1 break-all select-all"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= 5. 候补表单 ================= -->
+        <section id="view-waitlist" class="view-section max-w-xl mx-auto px-6 py-20 text-center">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">加入 SecureInChat 内测</h2>
+            <p class="text-slate-600 mb-8">体验无需手机号、端到端加密的轻量级通讯工具。</p>
+            <form onsubmit="event.preventDefault(); alert('感谢加入！');" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <input type="email" required placeholder="you@example.com" class="w-full border border-slate-300 rounded-xl px-4 py-3 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl transition-colors">提交申请</button>
+            </form>
+        </section>
+
+    </main>
+
+    <script>
+        // --- 1. 导航与 Tab ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+        function switchRedactTab(tab) {
+            document.getElementById('redact-content-text').classList.toggle('hidden', tab !== 'text');
+            document.getElementById('redact-content-image').classList.toggle('hidden', tab !== 'image');
+            document.getElementById('tab-btn-text').className = tab === 'text' ? 'px-6 py-3 font-bold text-orange-600 border-b-2 border-orange-600' : 'px-6 py-3 font-medium text-slate-500 hover:text-slate-800';
+            document.getElementById('tab-btn-image').className = tab === 'image' ? 'px-6 py-3 font-bold text-orange-600 border-b-2 border-orange-600' : 'px-6 py-3 font-medium text-slate-500 hover:text-slate-800';
+        }
+
+        // --- 2. 全格式文件净化 (模拟) ---
+        function simulateFileParse() {
+            const progress = document.getElementById('file-progress');
+            const icon = document.getElementById('file-icon');
+            const text = document.getElementById('file-text');
+            const result = document.getElementById('file-result-area');
+            
+            progress.style.width = '0%';
+            text.innerText = "正在通过 WASM 解析底层结构...";
+            icon.className = 'ph ph-spinner-gap text-4xl text-blue-500 animate-spin mb-3';
+
+            let w = 0;
+            const int = setInterval(() => {
+                w += 10;
+                progress.style.width = w + '%';
+                if(w >= 100) {
+                    clearInterval(int);
+                    icon.className = 'ph ph-check-circle text-4xl text-green-500 mb-3';
+                    text.innerText = "解析完成";
+                    result.style.display = 'block';
+                }
+            }, 100);
+        }
+
+        // --- 3. 端侧 AI 文本脱敏 ---
+        let redactMode = 'ai';
+        let aiHasRun = false;
+
+        function runLocalAI() {
+            const textarea = document.getElementById('rawText');
+            const btn = event.target;
+            btn.innerHTML = '<i class="ph ph-spinner-gap animate-spin"></i> 识别中...';
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i class="ph ph-check-circle"></i> 识别成功 (3处)';
+                btn.classList.replace('bg-indigo-50', 'bg-green-50');
+                btn.classList.replace('text-indigo-600', 'text-green-600');
+                btn.classList.replace('border-indigo-200', 'border-green-200');
+                aiHasRun = true;
+                // 模拟 AI 标出了高亮实体
+                textarea.value = "你好，我是张三，我的地址是北京市朝阳区某某路1号，手机号是 13812345678。请帮我总结一下这份报告。";
+            }, 1500);
+        }
+
+        function setRedactMode(mode) {
+            redactMode = mode;
+            document.getElementById('btn-mode-ai').className = mode === 'ai' ? "flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow text-orange-600 transition-all flex items-center justify-center gap-1" : "flex-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-all flex items-center justify-center gap-1";
+            document.getElementById('btn-mode-black').className = mode === 'black' ? "flex-1 py-2 text-sm font-bold rounded-lg bg-white shadow text-slate-900 transition-all flex items-center justify-center gap-1" : "flex-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-all flex items-center justify-center gap-1";
+            if(aiHasRun) redactText();
+        }
+
+        function redactText() {
+            if(!aiHasRun) return alert('请先运行本地 AI 检测');
+            const raw = document.getElementById('rawText').value;
+            let html = raw;
+            
+            // 模拟 AI 识别到的人名、地址、电话
+            const entities = [
+                { word: '张三', type: '姓名' },
+                { word: '北京市朝阳区某某路1号', type: '地址' },
+                { word: '13812345678', type: '电话' }
+            ];
+
+            entities.forEach(ent => {
+                if(redactMode === 'ai') {
+                    html = html.replace(ent.word, `<span class="pseudo-tag">[${ent.type}]</span>`);
+                } else {
+                    html = html.replace(ent.word, `<span class="redacted">${ent.word}</span>`);
+                }
+            });
+            document.getElementById('redactedResult').innerHTML = html;
+        }
+
+        // --- 4. 图片脱敏 (包含 AI 人脸检测模拟) ---
+        const scrCanvas = document.getElementById('screenshot-canvas');
+        const scrCtx = scrCanvas.getContext('2d');
+        let imgElement = new Image();
+        let isDrawing = false, startX = 0, startY = 0;
+
+        document.getElementById('img-upload-area').addEventListener('click', () => {
+            imgElement.src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=600'; // 模拟人脸图片
+            imgElement.onload = () => {
+                scrCanvas.width = imgElement.width;
+                scrCanvas.height = imgElement.height;
+                scrCtx.drawImage(imgElement, 0, 0);
+                document.getElementById('img-upload-area').classList.add('hidden');
+                document.getElementById('img-workspace').classList.remove('hidden');
+                
+                // 显示模拟的 AI 人脸检测框
+                const faceBox = document.querySelector('.ai-face-box');
+                faceBox.style.display = 'block';
+                setTimeout(() => {
+                    // 2秒后自动把 AI 框住的地方烧录成黑块
+                    scrCtx.fillStyle = '#0f172a';
+                    scrCtx.fillRect(scrCanvas.width * 0.3, scrCanvas.height * 0.2, scrCanvas.width * 0.25, scrCanvas.height * 0.35);
+                    faceBox.style.display = 'none';
+                }, 2000);
+            };
+        });
+
+        scrCanvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const rect = scrCanvas.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+        });
+
+        scrCanvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const rect = scrCanvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            scrCtx.clearRect(0, 0, scrCanvas.width, scrCanvas.height);
+            scrCtx.drawImage(imgElement, 0, 0);
+            scrCtx.fillStyle = '#0f172a';
+            scrCtx.fillRect(startX, startY, currentX - startX, currentY - startY);
+        });
+
+        scrCanvas.addEventListener('mouseup', () => { isDrawing = false; });
+        scrCanvas.addEventListener('mouseleave', () => { isDrawing = false; });
+
+        function downloadScreenshot() {
+            const link = document.createElement('a');
+            link.download = 'redacted.png';
+            link.href = scrCanvas.toDataURL();
+            link.click();
+        }
+        function resetScreenshot() {
+            document.getElementById('img-workspace').classList.add('hidden');
+            document.getElementById('img-upload-area').classList.remove('hidden');
+        }
+
+        // --- 5. 零宽字符盲水印 (真实实现) ---
+        function embedWatermark() {
+            const key = document.getElementById('wmKey').value;
+            const text = document.getElementById('wmText').value;
+            if(!key || !text) return alert('请输入标识和文本');
+
+            // 将 key 转为二进制，并映射为 零宽字符 (U+200B 表示 0, U+200C 表示 1)
+            let binaryKey = '';
+            for (let i = 0; i < key.length; i++) {
+                binaryKey += key.charCodeAt(i).toString(2).padStart(8, '0');
+            }
+            let watermark = '';
+            for (let i = 0; i < binaryKey.length; i++) {
+                watermark += binaryKey[i] === '0' ? '\u200B' : '\u200C';
+            }
+
+            const result = text + watermark;
+            document.getElementById('wmResult').classList.remove('hidden');
+            document.getElementById('wmResult').innerText = result;
+            alert('水印已嵌入下方文本中，请直接复制。');
+        }
+
+        function extractWatermark() {
+            const text = document.getElementById('wmResult').innerText;
+            if(!text) return alert('没有可提取的文本');
+            
+            let binaryKey = '';
+            for (let i = 0; i < text.length; i++) {
+                if (text[i] === '\u200B') binaryKey += '0';
+                if (text[i] === '\u200C') binaryKey += '1';
+            }
+            
+            if(!binaryKey) return alert('未检测到水印');
+            
+            let key = '';
+            for (let i = 0; i < binaryKey.length; i += 8) {
+                const byte = binaryKey.slice(i, i + 8);
+                key += String.fromCharCode(parseInt(byte, 2));
+            }
+            alert('提取到水印内容：' + key);
+        }
+
+        // --- 6. 文件哈希校验 (真实实现) ---
+        async function calcHash(file) {
+            if(!file) return;
+            const arrayBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            document.getElementById('hashResult').classList.remove('hidden');
+            document.getElementById('hashValue').innerText = hashHex;
+        }
+    </script>
+</body>
+</html>
