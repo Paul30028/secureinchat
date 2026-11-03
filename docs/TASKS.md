@@ -29,7 +29,7 @@
 
 | # | 任务 | 分支 | 状态 |
 |---|---|---|---|
-| D-G15 | 拦截记录显示追踪公司(Exodus 数据) | `feature/G15` | 答复已收，Claude 审查中 |
+| D-G15 | 拦截记录显示追踪公司(Exodus 数据) | `feature/G15` | 已审查集成(TrackerDbTest 9 组，真实数据 doubleclick.net → Google DoubleClick);CI run 41642601120 |
 | D-G16 | 隐私快速检查(只打开系统设置：删除广告 ID、精确位置、未用 App 撤权) | `feature/G16` | DeepSeek 在写 |
 | D-C9b | 自写 DocumentSavePlugin，备份导出在真机能保存 | `feature/C10` | DeepSeek 在写 |
 | D-G17 | 扫描已装 App 内嵌的追踪 SDK(TrackerDb.byClassName;写「含有」不写「在用」) | `feature/G17` | G15 合并后发规格 |
@@ -39,6 +39,6 @@
 
 | # | 任务 | 状态 |
 |---|---|---|
-| C-G13 | G13 CI 收尾(三处测试问题已修，run 41639990376) | 进行中 |
+| C-G13 | G13 CI 收尾 | 完成:run 41639990376 全绿，等 Paul 合并 |
 | C-REL | 中继成员资格校验的设计(OTF 第一个里程碑) | 待做 |
 | C-OTF | OTF 申请：等 Paul 注册账号和两句真实信息 | 等 Paul |
