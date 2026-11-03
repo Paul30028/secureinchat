@@ -1,28 +1,113 @@
-import { getOrCreatePersistentAeadKey, BrowserKeystore, randomUUID } from "@secureinchat/crypto-core";
-import { EncryptedKeyValueStore, IndexedDbStorageBackend } from "@secureinchat/secure-storage";
+import {
+  BrowserKeystore,
+  deletePersistentEntry,
+  getOrCreatePersistentAeadKey,
+  getPersistentAeadKeyIfExists,
+  getPersistentBytes,
+  putPersistentBytes,
+  randomUUID,
+} from "@secureinchat/crypto-core";
+import {
+  EncryptedKeyValueStore,
+  IndexedDbStorageBackend,
+  finishLegacyMigration,
+  openMasterKeys,
+  resetMasterKeys,
+  type MasterKeyProtection,
+  type MasterKeyRecords,
+} from "@secureinchat/secure-storage";
+import { nativeHardwareKeyWrapper } from "./hardwareKeystore";
 
 /**
- * Web 端的设备身份/存储实现。不是 Android 硬件 Keystore（真机版本需要一个原生
- * Capacitor 插件），但也不再是"每次刷新页面都换一个新身份"的内存态替身：
+ * 设备身份和本机加密存储。
+ *
+ * 主密钥（加密群密钥、消息等）：
+ * - Android 原生（C10-A）：由 Android Keystore 的硬件密钥包裹，落盘的只有包裹后的字节，
+ *   见 secure-storage 的 masterKeyProvider.ts。从旧版本升级时，旧主密钥保留到后台迁移完成。
+ * - Web 端：不可导出的 CryptoKey 直接存 IndexedDB（原来的做法），保护级别较低。
+ *
  * - `BrowserKeystore` 用不可导出的 Web Crypto 密钥，密钥对象直接存 IndexedDB，
- *   同一个 alias 刷新页面后还是同一把密钥
+ *   同一个 alias 刷新页面后还是同一把密钥（设备签名密钥；硬件化是后续里程碑）
  * - `IndexedDbStorageBackend` 让加密后的群密钥也能跨刷新保留
- * - `getOrCreatePersistentAeadKey` 让"用来加密那些群密钥的主密钥"本身也不会
- *   每次刷新就换掉——这是最初这几块接起来时漏掉的一环：主密钥不持久化的话，
- *   落盘的密文下次读不出来，等于白存
  */
+/** 旧做法的主密钥（CryptoKey 直接落盘）；Web 端一直用它，Android 上迁移完成后删除 */
 const MASTER_KEY_ALIAS = "device-identity:master-key";
+/** C10-A：被硬件密钥包裹后的主密钥（字节） */
+const WRAPPED_MASTER_KEY_ALIAS = "device-identity:master-key:hw-v1";
+
+/**
+ * 不经过加密层、直接存在同一个库里的明文设置。主密钥解不开、用户选择重新开始时保留它们，
+ * 其余条目（全是旧主密钥加密的密文）删除。新增明文设置时要加到这里——
+ * deviceIdentity.test.ts 会扫描源码检查。
+ */
+export const PLAINTEXT_SETTING_KEYS: ReadonlySet<string> = new Set([
+  "device-identity:device-id",
+  "applock:v1",
+  "biometricunlock:v1",
+  "screensecurity:v1",
+  "settings:relay-url",
+  "profile:nickname",
+  "admin:unlocked",
+]);
+
+const records: MasterKeyRecords = {
+  getWrapped: () => getPersistentBytes(WRAPPED_MASTER_KEY_ALIAS),
+  putWrapped: (b) => putPersistentBytes(WRAPPED_MASTER_KEY_ALIAS, b),
+  deleteWrapped: () => deletePersistentEntry(WRAPPED_MASTER_KEY_ALIAS),
+  getLegacy: () => getPersistentAeadKeyIfExists(MASTER_KEY_ALIAS),
+  deleteLegacy: () => deletePersistentEntry(MASTER_KEY_ALIAS),
+  getOrCreateSoftwareKey: () => getOrCreatePersistentAeadKey(MASTER_KEY_ALIAS),
+};
 
 let storePromise: Promise<EncryptedKeyValueStore> | null = null;
+let protection: MasterKeyProtection | null = null;
 
+/**
+ * 主密钥解不开时 reject 一个 MasterKeyUnavailableError（不会悄悄换新密钥）。
+ * 界面据此引导「清空本机数据并从备份恢复」，见 resetLocalEncryptedData()。
+ */
 export function getDeviceStore(): Promise<EncryptedKeyValueStore> {
   if (!storePromise) {
-    storePromise = getOrCreatePersistentAeadKey(MASTER_KEY_ALIAS).then((masterKey) => {
-      const backend = new IndexedDbStorageBackend();
-      return new EncryptedKeyValueStore(backend, masterKey);
+    const p = (async () => {
+      const keys = await openMasterKeys(nativeHardwareKeyWrapper(), records);
+      protection = keys.protection;
+      const store = new EncryptedKeyValueStore(new IndexedDbStorageBackend(), keys.current, keys.legacy);
+      if (store.hasLegacyKey) {
+        // 后台迁移，不挡启动。失败时旧密钥保留，下次启动再来（重复执行是安全的）。
+        setTimeout(() => {
+          void finishLegacyMigration(store, records).catch(() => undefined);
+        }, 0);
+      }
+      return store;
+    })();
+    storePromise = p;
+    // 失败的结果不缓存：用户点「重试」时重新打开
+    p.catch(() => {
+      if (storePromise === p) storePromise = null;
     });
   }
   return storePromise;
+}
+
+/** 本机数据的保护级别（打开存储之后才知道）；还没打开时为 null。 */
+export function getMasterKeyProtection(): MasterKeyProtection | null {
+  return protection;
+}
+
+/**
+ * 主密钥解不开时，用户确认后调用：删除已经无法解开的密文（保留明文设置）、
+ * 删掉主密钥记录和硬件密钥，下一次 getDeviceStore() 用新密钥重新开始。
+ * 之后可以从备份恢复群和消息。
+ */
+export async function resetLocalEncryptedData(): Promise<void> {
+  await resetMasterKeys(
+    nativeHardwareKeyWrapper(),
+    records,
+    new IndexedDbStorageBackend(),
+    PLAINTEXT_SETTING_KEYS
+  );
+  storePromise = null;
+  protection = null;
 }
 
 export interface DeviceIdentity {
@@ -70,4 +155,5 @@ export function getDeviceIdentity(): Promise<DeviceIdentity> {
 export function __resetForTests(): void {
   storePromise = null;
   identityPromise = null;
+  protection = null;
 }

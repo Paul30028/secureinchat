@@ -4,6 +4,7 @@ import { TodayScreen, type TodayContent } from "./TodayScreen";
 import { registerTap, INITIAL_TAP_STATE, type TapState } from "../adminAccess";
 import { formatListTime } from "../timeFormat";
 import { APP_VERSION } from "../version";
+import type { MasterKeyProtection } from "@secureinchat/secure-storage";
 
 export interface GroupListItem {
   groupId: string;
@@ -11,6 +12,24 @@ export interface GroupListItem {
   unread: number;
   onlineCount: number;
   lastMessage?: { preview: string; sentAtMs: number } | undefined;
+}
+
+/**
+ * C10-A：如实说明本机数据受什么保护、不防什么。不往高里说。
+ * API 31 以下系统分不出 StrongBox 和 TEE，都报 tee（只会少说，不会多说）。
+ */
+export function protectionText(p: MasterKeyProtection): string {
+  const limit = "不防：在已解锁的手机上，以本应用身份运行的程序（例如手机被 root 后）直接读取。";
+  if (p === "strongbox") {
+    return `硬件密钥保护（StrongBox 安全芯片）。拷走应用数据目录也解不开群和消息。${limit}`;
+  }
+  if (p === "tee") {
+    return `硬件密钥保护（手机的安全硬件）。拷走应用数据目录也解不开群和消息。${limit}`;
+  }
+  if (p === "software") {
+    return `系统密钥库保护，但这台手机没有安全硬件，保护较弱：有办法读取系统密钥库的人可以解开。${limit}`;
+  }
+  return "没有硬件密钥保护：加密密钥和数据都在本机存储里，拿到存储内容的人可以解开。网页版和不支持系统密钥库的设备都是这样。";
 }
 
 export interface MessageListScreenProps {
@@ -48,6 +67,8 @@ export interface MessageListScreenProps {
   lockEnabled?: boolean | undefined;
   /** 打开「备份与恢复」页面。不传就不显示这一行 */
   onOpenBackup?: (() => void) | undefined;
+  /** C10-A：本机数据的保护级别；null/undefined = 还不知道，不显示 */
+  dataProtection?: MasterKeyProtection | null | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -76,6 +97,7 @@ export function MessageListScreen({
   onToggleBiometric,
   lockEnabled,
   onOpenBackup,
+  dataProtection,
 }: MessageListScreenProps) {
   // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
   // 而不是像通用 IM 那样落在会话列表。
@@ -244,6 +266,21 @@ export function MessageListScreen({
                 <div style={{ fontSize: 14, color: colors.textPrimary }}>备份与恢复</div>
                 <div style={{ fontSize: 11, color: "#9A9A94" }}>导出加密备份文件，换手机时恢复群和聊天记录</div>
               </button>
+            ) : null}
+
+            {dataProtection ? (
+              <div
+                data-testid="data-protection"
+                style={{
+                  marginTop: 8,
+                  border: `0.5px solid ${colors.sageMint}`,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                }}
+              >
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>本机数据保护</div>
+                <div style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7 }}>{protectionText(dataProtection)}</div>
+              </div>
             ) : null}
 
             <button

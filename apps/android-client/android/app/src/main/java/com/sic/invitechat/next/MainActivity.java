@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ScreenSecurityPlugin.class);
         registerPlugin(BiometricPlugin.class);
         registerPlugin(DocumentSavePlugin.class);
+        registerPlugin(KeystorePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

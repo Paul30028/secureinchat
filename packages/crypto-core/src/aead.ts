@@ -47,6 +47,23 @@ export async function importAeadKeyRaw(rawKey: Uint8Array): Promise<CryptoKey> {
   return subtle.importKey("raw", rawKey as BufferSource, { name: AEAD_ALGO }, true, ["encrypt", "decrypt"]);
 }
 
+/** C10-A：32 字节随机主密钥材料（只在内存里短暂存在，包裹后立刻清零） */
+export function randomAeadKeyBytes(): Uint8Array {
+  return getRandomBytes(KEY_LENGTH_BITS / 8);
+}
+
+/**
+ * C10-A：把原始字节导入成**不可导出**的 AES-256-GCM 密钥。日常加解密用这个句柄，
+ * JS 拿不回原始字节；原始字节由调用方在导入后清零。
+ */
+export async function importAeadKeyRawNonExtractable(rawKey: Uint8Array): Promise<CryptoKey> {
+  if (rawKey.byteLength !== KEY_LENGTH_BITS / 8) {
+    throw new Error(`AES-256-GCM 密钥必须是 ${KEY_LENGTH_BITS / 8} 字节，实际为 ${rawKey.byteLength}`);
+  }
+  const subtle = getSubtle();
+  return subtle.importKey("raw", rawKey as BufferSource, { name: AEAD_ALGO }, false, ["encrypt", "decrypt"]);
+}
+
 export async function exportAeadKeyRaw(key: CryptoKey): Promise<Uint8Array> {
   const subtle = getSubtle();
   const raw = await subtle.exportKey("raw", key);

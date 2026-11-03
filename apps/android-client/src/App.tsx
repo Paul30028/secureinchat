@@ -81,7 +81,14 @@ import {
   type CallStateInfo,
   type ConferenceState,
 } from "@secureinchat/webrtc";
-import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
+import {
+  getDeviceStore,
+  getDeviceIdentity,
+  getMasterKeyProtection,
+  resetLocalEncryptedData,
+} from "./deviceIdentity";
+import { MasterKeyUnavailableError, type MasterKeyProtection } from "@secureinchat/secure-storage";
+import { KeyUnavailableScreen } from "./screens/KeyUnavailableScreen";
 import { randomUUID, signAnnouncement, verifyAnnouncement } from "@secureinchat/crypto-core";
 import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
 import { ServerSettingsScreen } from "./screens/ServerSettingsScreen";
@@ -230,6 +237,27 @@ export function App() {
 
   useEffect(() => {
     void checkCryptoStorage().then(setCapability);
+  }, []);
+
+  // C10-A：本机主密钥能不能打开。解不开时单独一屏说明，不让后面的每一步以看不懂的方式失败。
+  const [keyProblem, setKeyProblem] = useState<MasterKeyUnavailableError | null>(null);
+  const [dataProtection, setDataProtection] = useState<MasterKeyProtection | null>(null);
+  async function probeMasterKey(): Promise<boolean> {
+    try {
+      await getDeviceStore();
+      setKeyProblem(null);
+      setDataProtection(getMasterKeyProtection());
+      return true;
+    } catch (err) {
+      if (err instanceof MasterKeyUnavailableError) {
+        setKeyProblem(err);
+        return false;
+      }
+      throw err;
+    }
+  }
+  useEffect(() => {
+    void probeMasterKey().catch(() => undefined);
   }, []);
   const [showLockSetup, setShowLockSetup] = useState(false);
 
@@ -1572,6 +1600,23 @@ export function App() {
       />
     );
   }
+  if (keyProblem) {
+    return (
+      <KeyUnavailableScreen
+        kind={keyProblem.kind}
+        detail={keyProblem.message}
+        onRetry={async () => {
+          // 重试成功：其余启动步骤之前读存储失败了，重新加载一次最简单可靠
+          if (await probeMasterKey()) window.location.reload();
+        }}
+        onResetAndRestore={async () => {
+          await resetLocalEncryptedData();
+          await probeMasterKey();
+          setScreen({ name: "backup" });
+        }}
+      />
+    );
+  }
   if (showLockSetup) {
     return (
       <LockScreen
@@ -1874,6 +1919,7 @@ export function App() {
         onToggleBiometric={biometricSupported ? handleToggleBiometric : undefined}
         lockEnabled={lockEnabled}
         onOpenBackup={() => setScreen({ name: "backup" })}
+        dataProtection={dataProtection}
       />
     );
   }
