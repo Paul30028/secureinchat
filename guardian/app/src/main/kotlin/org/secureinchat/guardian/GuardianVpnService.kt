@@ -24,6 +24,7 @@ import org.secureinchat.guardian.dns.Action
 import org.secureinchat.guardian.dns.Blocklist
 import org.secureinchat.guardian.dns.BlockMode
 import org.secureinchat.guardian.dns.QueryHandler
+import org.secureinchat.guardian.dns.TrackerDb
 
 class GuardianVpnService : VpnService() {
 
@@ -121,6 +122,10 @@ class GuardianVpnService : VpnService() {
     private fun startVpnBackground(gen: Int) {
         try {
             val blocklist = loadBlocklist()
+            // G15: load the Exodus tracker database once per process, on the same background
+            // thread as the blocklist. Failure is non-fatal: trackerDb() then returns null and
+            // the UI simply does not show company names.
+            loadTrackerDb(applicationContext)
             val effective = applyUserRulesTo(blocklist, applicationContext)
             // No uid lookup: on Android 10+ every query reaching the VPN is sent by the system DNS
             // service, so getConnectionOwnerUid names that service, not the app (seen in the emulator flow).
@@ -444,6 +449,27 @@ class GuardianVpnService : VpnService() {
         fun refreshAlwaysOn() {
             instance?.readAlwaysOn()
         }
+
+        // G15: Exodus tracker database, loaded once per process on the same thread as the blocklist.
+        // trackerDbLoaded covers both success and failure so a bad/missing asset is not retried on
+        // every start; trackerDb() returns whatever the one attempt produced (a TrackerDb or null).
+        @Volatile private var trackerDbCache: TrackerDb? = null
+        @Volatile private var trackerDbLoaded: Boolean = false
+
+        private fun loadTrackerDb(ctx: Context) {
+            if (trackerDbLoaded) return
+            trackerDbLoaded = true
+            trackerDbCache = try {
+                val text = ctx.assets.open("trackers-exodus.tsv")
+                    .use { it.bufferedReader().readText() }
+                TrackerDb.parse(text)
+            } catch (_: Throwable) {
+                null
+            }
+        }
+
+        /** Exodus tracker DB, or null if it failed to load. Cheap; safe to call from the UI thread. */
+        fun trackerDb(): TrackerDb? = trackerDbCache
 
         // The bundled lists never change while the app runs, so parse them once per process.
         @Volatile private var baseCache: Blocklist? = null
