@@ -166,5 +166,39 @@ fun main() {
         )
     }
 
+    // G15b: rows that only say "any subdomain of one domain" do not name a tracker.
+    t("broad regex detection") {
+        check(TrackerDb.isBroadRegex("\\.google\\.com"))
+        check(TrackerDb.isBroadRegex("\\.facebook\\.com|\\.fb\\.com"))
+        check(!TrackerDb.isBroadRegex("doubleclick\\.net"))                  // the tracker's own domain, no leading dot
+        check(!TrackerDb.isBroadRegex("ads\\.bigco\\.com"))                 // a specific host
+        check(!TrackerDb.isBroadRegex("\\.bigco\\.com|ads\\.other\\.com"))   // mixed: something specific remains
+        check(!TrackerDb.isBroadRegex("\\.(bigco)\\.com"))                  // groups are never treated as broad
+        check(!TrackerDb.isBroadRegex(""))
+    }
+
+    t("byDomain skips broad rows but keeps their other data") {
+        val tsv = "1\tBigCo Ads\tAdvertisement\thttp://bigco.com\t\\.bigco\\.com\tcom.bigco.ads.\n" +
+            "2\tBigCo Metrics\tAnalytics\thttp://bigco.com\tmetrics\\.bigco\\.com\t"
+        val db = TrackerDb.parse(tsv)
+        eq(db.byDomain("mail.bigco.com"), null)
+        eq(db.byDomain("metrics.bigco.com")?.id, 2)   // a specific row under the same domain still matches
+        eq(db.byClassName("com.bigco.ads.Banner")?.id, 1) // code signatures are unaffected (G17)
+        eq(db.broadCount, 1)
+        eq(db.withNetwork, 2)
+    }
+
+    t("real data: Google and Facebook first-party names get no tracker label") {
+        val db = TrackerDb.parse(Files.readString(Paths.get("app/src/main/assets/trackers-exodus.tsv")))
+        eq(db.byDomain("mail.google.com"), null)
+        eq(db.byDomain("www.google.com"), null)
+        eq(db.byDomain("graph.facebook.com"), null)
+        eq(db.byDomain("doubleclick.net")?.name, "Google DoubleClick")
+        eq(db.byDomain("stats.g.doubleclick.net")?.name, "Google DoubleClick")
+        eq(db.byDomain("pagead2.googlesyndication.com")?.name, "Google AdMob")
+        check(db.broadCount in 1..30) { "broadCount ${db.broadCount}" }
+        println("real tsv: ${db.broadCount} broad rows skipped by byDomain")
+    }
+
     println("TrackerDbTest: $tn passed")
 }

@@ -8,6 +8,11 @@ package org.secureinchat.guardian.dns
  * a valid Java regex: in both cases the tracker has no network face and byDomain will never return
  * it. [codeSignatures] are class-name prefixes; the G17 scanner matches an installed app's DEX
  * class names against them, so they are kept verbatim (with or without a trailing dot).
+ *
+ * [broad] (G15b): the network regex only says "any subdomain of one registrable domain", e.g.
+ * `\.google\.com` (filed under Google Ads) or `\.facebook\.com`. Most names under such a domain are
+ * the company's own services (mail, login, maps), so naming a tracker for them would mislead;
+ * byDomain skips these rows. The code signatures are unaffected (G17 still uses them).
  */
 data class Tracker(
     val id: Int,
@@ -15,7 +20,8 @@ data class Tracker(
     val categories: List<String>,
     val website: String,
     val networkRegex: Regex?,
-    val codeSignatures: List<String>
+    val codeSignatures: List<String>,
+    val broad: Boolean = false
 )
 
 /**
@@ -32,12 +38,18 @@ data class Tracker(
 class TrackerDb private constructor(
     private val trackers: List<Tracker>
 ) {
-    /** Trackers with a working network regex, sorted by id so the first hit is the smallest id. */
+    /**
+     * Trackers byDomain may return: a working network regex that is not [Tracker.broad], sorted by id
+     * so the first hit is the smallest id.
+     */
     private val networkTrackers: List<Tracker> =
-        trackers.filter { it.networkRegex != null }.sortedBy { it.id }
+        trackers.filter { it.networkRegex != null && !it.broad }.sortedBy { it.id }
 
     val size: Int get() = trackers.size
-    val withNetwork: Int get() = networkTrackers.size
+    /** Rows with a working network regex, broad ones included. */
+    val withNetwork: Int = trackers.count { it.networkRegex != null }
+    /** Rows whose network regex is only "any subdomain of one domain"; byDomain skips them. */
+    val broadCount: Int = trackers.count { it.broad }
 
     /**
      * LRU of byDomain results, misses included. A domain is looked up for every visible log line
@@ -89,6 +101,19 @@ class TrackerDb private constructor(
         private const val CACHE_INITIAL = 128
         private const val EXPECTED_COLS = 6
 
+        /** One alternative of the form `\.<label>\.<tld>`: any subdomain of one registrable domain. */
+        private val BROAD_ALTERNATIVE = Regex("""^\\\.[a-z0-9-]+\\\.[a-z]{2,}$""")
+
+        /**
+         * True when every `|` alternative of [regex] is a [BROAD_ALTERNATIVE] (so the row says nothing
+         * more specific than "somewhere under this domain"). A regex with groups is never split, and is
+         * not treated as broad.
+         */
+        fun isBroadRegex(regex: String): Boolean {
+            if (regex.isEmpty() || regex.contains('(')) return false
+            return regex.split('|').all { BROAD_ALTERNATIVE.matches(it) }
+        }
+
         /**
          * Parses a TSV as produced by tools/update_trackers.py. Comment lines start with '#';
          * blank lines are ignored. A row with fewer than 6 tab-separated columns is dropped; a
@@ -115,7 +140,7 @@ class TrackerDb private constructor(
                 val sigsRaw = parts[5]
                 val sigs = if (sigsRaw.isEmpty()) emptyList()
                 else sigsRaw.split('|').filter { it.isNotEmpty() }
-                list.add(Tracker(id, name, cats, website, rx, sigs))
+                list.add(Tracker(id, name, cats, website, rx, sigs, broad = rx != null && isBroadRegex(regexRaw)))
             }
             return TrackerDb(list.sortedBy { it.id })
         }
