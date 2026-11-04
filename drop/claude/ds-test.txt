@@ -1,0 +1,12 @@
+# Pipeline test: translate five UI strings into Spanish
+
+Translate the following Chinese UI strings of the SecureInChat app into neutral Latin American Spanish.
+Keep them short (buttons and labels). Output only a JSON object mapping each key to its Spanish text.
+
+{
+  "deviceSafety.title": "设备安全",
+  "travel.title": "空手过境",
+  "travel.button": "删除选中的群",
+  "compromised.title": "这台手机曾离开过我",
+  "compromised.confirm": "清除这台手机上的全部数据"
+}
