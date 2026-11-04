@@ -57,7 +57,7 @@ export const POSTS = [
     <p>The card works best when you go through it together once, rather than handing it over. Write your own name and number on the blank lines, so the person knows who to call before sending money.</p>
 
     <h2>Outside the United States</h2>
-    <p>The four signs and the "hang up and call back" step apply anywhere. The reporting lines on the card are US only; we have not added other countries because we have only listed bodies whose official pages we could check. A local bank or the police can tell you where to report.</p>
+    <p>The four signs and the "hang up and call back" step apply anywhere. The reporting lines on the card are US only; we have not added other countries because we have only listed bodies whose official pages we could check. A local bank or the police can tell you where to report. A <a href="/zh/scam-warning-card/" hreflang="zh-CN" lang="zh-CN">Chinese version of the card</a> (in Chinese) lists the official reporting lines for mainland China.</p>
 
     <h2>What we have not tested</h2>
     <p>We have checked that the page prints as a single card in Chromium; other browsers and printers are untested and may split it across two pages. Phone numbers and hours are copied from the official pages as of 3 November 2026 and can change.</p>

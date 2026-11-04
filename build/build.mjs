@@ -4,6 +4,7 @@ import path from 'node:path';
 import { POSTS } from './posts.mjs';
 import { PRODUCTS, validateProduct, productBody, shopIndexBody } from './shop.mjs';
 import { infoPage, articlePage, mapTags, shell as kitShell } from './subshell.mjs';
+import { ZH_SCAM_CARD } from './zh-scamcard.mjs';
 import { toolPage, scopeLegacyCss } from './toolshell.mjs';
 import { SECURITY_TXT, SECURITY, TESTING, THREAT_MODEL } from './trust.mjs';
 import { MISSION, MISSION_SHORT, LAYERS, layerBody, layerTags, protectIndexBody, SITUATIONS, situationBody, startIndexBody } from './protect.mjs';
@@ -705,6 +706,13 @@ write('testing/index.html', docPage({ slug: 'testing', title: 'How we test', des
 write('messaging/threat-model/index.html', docPage({ slug: 'messaging/threat-model', title: 'Messenger threat model', desc: 'What the SecureInChat messenger is designed to protect, from whom, what the relay can still see, and what it cannot protect against.', body: THREAT_MODEL, current: 'messaging' }));
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT, current: 'about' }));
 
+// M3 (Chinese): printable scam warning card with mainland China reporting lines. /zh/blog/ does not exist yet,
+// so it lives at /zh/scam-warning-card/ on the Chinese info layout.
+{
+  const C = ZH_SCAM_CARD; const title = `${C.title} | SecureInChat`;
+  write(C.path.slice(1) + 'index.html', infoPage({ lang: 'zh', title, desc: C.desc, canonical: C.path, headExtra: headExtra({ canonical: C.path, title, desc: C.desc }), crumbs: [['/zh/', '首页'], [C.path, C.title]], body: C.body }).replace(/href="\/zh\/blog\/"/g, 'href="/blog/"'));
+}
+
 // /guides/, /refund/ and /terms/ removed 2026-10-22 (owner decision: AI build guides do not belong on this site).
 write('_redirects', ['/guides /blog/ 301', '/guides/ /blog/ 301', '/guides/* /blog/ 301', '/refund/ / 301', '/terms/ / 301', ''].join('\n'));
 
@@ -1064,12 +1072,12 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], [ZH_SCAM_CARD.path, 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${urls.map(([u]) => { const post = POSTS.find((p) => u === `/blog/${p.slug}/`); return `  <url>\n    <loc>${SITE}${u}</loc>\n${post ? `    <lastmod>${post.date}</lastmod>\n` : ''}  </url>`; }).join('\n')}
+${urls.map(([u]) => { const post = POSTS.find((p) => u === `/blog/${p.slug}/`); const lm = post ? post.date : u === ZH_SCAM_CARD.path ? ZH_SCAM_CARD.date : ''; return `  <url>\n    <loc>${SITE}${u}</loc>\n${lm ? `    <lastmod>${lm}</lastmod>\n` : ''}  </url>`; }).join('\n')}
 </urlset>
 `);
 write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
@@ -1080,7 +1088,7 @@ const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflar
 // so a per-page exception under /tools/* is not possible; it is set for the whole /tools/ section.
 const TOOLS_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', ZH_SCAM_CARD.path, '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 
