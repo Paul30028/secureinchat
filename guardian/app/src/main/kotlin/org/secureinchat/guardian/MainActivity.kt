@@ -141,6 +141,7 @@ class MainActivity : Activity() {
             isFillViewport = true
             setBackgroundColor(ui.p.background)
             addView(root)
+            padForSystemBars(this)
         })
     }
 
@@ -158,6 +159,7 @@ class MainActivity : Activity() {
         }
         frame.addView(content)
         frame.addView(buildBottomBar())
+        padForSystemBars(frame)
         setContentView(frame)
         selectTab(current.coerceIn(0, tabs.lastIndex))
     }
@@ -225,6 +227,22 @@ class MainActivity : Activity() {
             barViews[j].isSelected = selected
         }
         refreshUi()
+    }
+
+    /**
+     * Target SDK 35+ draws edge to edge on Android 15+: content goes under the status bar and the
+     * gesture/navigation bar. Pad the root by the system bars so the title and the bottom tabs stay
+     * reachable (framework insets API).
+     */
+    private fun padForSystemBars(v: View) {
+        // Before Android 15 this app's window is not edge to edge, so the system already insets it.
+        if (Build.VERSION.SDK_INT < 35) return
+        v.setOnApplyWindowInsetsListener { view, insets ->
+            val bars = insets.getInsets(android.view.WindowInsets.Type.systemBars() or android.view.WindowInsets.Type.displayCutout())
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+        v.requestApplyInsets()
     }
 
     /** Shows a small count on the Check tab while there are safety alerts. */
