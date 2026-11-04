@@ -442,7 +442,9 @@ def main():
     print(f"guardian paused: {probe3} -> {addr}")
     if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{probe3} should resolve for real while paused, got {addr}: {out}")
-    wait_ui(lambda s: f"PAUSE {probe3}" in s, f"log does not show PAUSE {probe3}")
+    # Since G20 the safety alert card sits above the log and can push it below the fold: scroll to it.
+    find_anywhere(lambda s: f"PAUSE {probe3}" in s, f"log does not show PAUSE {probe3}", timeout=30)
+    scroll_top()
     nodes = dump()
     b = button(nodes, "Resume")
     if not b:
