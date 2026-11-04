@@ -62,14 +62,14 @@
 | R1 | 一键清除本机数据(设置里，二次确认，写明不可恢复) | Code(K7 之后) | `feature/R1` | 待做 |
 | R2 | 新群默认开启消息定时消失(功能已有，改默认值和模板默认时长) | Code(随 K7) | `feature/R2` | 待做 |
 | R3 | 「能防什么、不能防什么」页，中英西三语 | Claude 云端 | `feature/R3` | 待做 |
-| R4 | 中继和 Caddy 不记 IP:核实日志配置，改部署文档和隐私说明 | Claude 云端 | `feature/R4` | 待做 |
+| R4 | 中继和 Caddy 不记 IP:核实日志配置，改部署文档和隐私说明 | Claude 云端 | `feature/R4` | 代码已改(限流键改为加盐哈希、过期清除，83221c1);`docs/deployment/NO_IP_LOGS.md`。**等 Paul 在服务器上**查 Caddyfile、改 coturn 日志 |
 | R5 | 密文大小分档填充 | = D-C12 | `feature/C12` | 待发规格 |
 | R6 | 自建中继一键部署(Docker Compose + 文档)+ 客户端切换中继 | Claude 云端(文档、Compose);Code(客户端) | `feature/R6` | 待做 |
 | R8 | 发布签名、SHA-256 校验和、可复现构建，申请 F-Droid | Claude 云端调研;Paul 持有签名密钥 | — | 待做 |
 | P1a–c | **包 1 设备安全**：群数据彻底清除(修复退群残留群密钥和管理员身份)、空手过境、「这台手机曾离开过我」全部清除;顺带修复「PIN 输错次数用尽的清除被打开的连接挡住、实际没删」 | Claude 云端 | `feature/P1` | **已合并 feature/chat**(ac7976e;Paul 11-04 批准)。原:fd19345 起;聊天线全部测试 + 中继 129 项通过，CI 绿;APK 构建见 Actions) |
 | P1d | 每个群一个独立设备身份(新群专属 deviceId 和签名密钥，老群不变) | Claude 云端(DeepSeek 答复因浏览器剪贴板不可靠未取回，改为直接写) | `feature/P1` | **已合并 feature/chat**(ac7976e)。3c85db4;全部测试通过)。**C10-A 注意**:KeystorePort 新增 `deleteKeyPair`，原生 Keystore 插件也要实现 |
 | W21 | 网站「资金」页：捐助渠道(配置了才显示)、钱花在哪里、认养中继规则 | Claude 云端 | `feature/W21` | **已合并 next**(Paul 11-04 批准;同时合入 W19 标志 A) |
-| I18N | 三语翻译(中/英/西)：翻译层 + 设备安全页(I18N-1，已合并 feature/chat);25 个界面交给 DeepSeek API 批量翻译(I18N-2，分支 `feature/I18N-2`);ChatScreen 和 App.tsx 之后单独做 | DeepSeek(API)写，Claude 审查 | `feature/I18N-2` | 进行中 |
+| I18N | 三语翻译(中/英/西):I18N-1 翻译层 + 设备安全页;I18N-2 25 个界面;I18N-3 App.tsx + ChatScreen(DeepSeek API,编辑块格式)+ 设置里的语言切换(跟随系统/中文/English/Español,只存本机) | DeepSeek(API)写，Claude 审查 | `feature/I18N-3` | **已合并 feature/chat**(7bc27cb,CI 绿)。英文 App 名统一为 "Invite-only Chat"(待 Paul 定) |
 | R10 | 界面改用逻辑属性，为从右到左语言做准备 | Code(随 K6) | 同 K6 | 待做 |
 
 ## 已合并 / 已上线(2026-11-03 晚，Paul 授权)
