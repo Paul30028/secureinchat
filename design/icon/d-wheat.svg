@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
-<rect width="108" height="108" fill="#123B3A"/>
-<path d="M54 30v52" stroke="#E3A23B" stroke-width="3" stroke-linecap="round"/>
-<ellipse cx="54" cy="29" rx="3.2" ry="6" fill="#E3A23B"/><ellipse cx="47.0" cy="38.0" rx="3.4" ry="6" transform="rotate(-30 47.0 38.0)" fill="#E3A23B"/><ellipse cx="47.0" cy="47.0" rx="3.4" ry="6" transform="rotate(-30 47.0 47.0)" fill="#E3A23B"/><ellipse cx="47.0" cy="56.0" rx="3.4" ry="6" transform="rotate(-30 47.0 56.0)" fill="#E3A23B"/><ellipse cx="47.0" cy="65.0" rx="3.4" ry="6" transform="rotate(-30 47.0 65.0)" fill="#E3A23B"/><ellipse cx="61.0" cy="38.0" rx="3.4" ry="6" transform="rotate(30 61.0 38.0)" fill="#E3A23B"/><ellipse cx="61.0" cy="47.0" rx="3.4" ry="6" transform="rotate(30 61.0 47.0)" fill="#E3A23B"/><ellipse cx="61.0" cy="56.0" rx="3.4" ry="6" transform="rotate(30 61.0 56.0)" fill="#E3A23B"/><ellipse cx="61.0" cy="65.0" rx="3.4" ry="6" transform="rotate(30 61.0 65.0)" fill="#E3A23B"/>
-<path d="M54 80c-7-1-12-5-15-10M54 80c7-1 12-5 15-10" fill="none" stroke="#F4EFE4" stroke-width="2.6" stroke-linecap="round"/>
-</svg>

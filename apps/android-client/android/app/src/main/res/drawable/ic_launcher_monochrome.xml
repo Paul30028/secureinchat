@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed icon layer (Android 13+): one opaque shape, the dots are cut out. Source: design/icon/mark-mono.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:scaleX="0.86" android:scaleY="0.86" android:translateX="7.56" android:translateY="3.69">
+        <path android:fillColor="#000000" android:fillType="evenOdd" android:pathData="M54,24c9,6 18,8 28,8v20c0,17 -12,28 -28,33l-12,8v-11C32,77 26,66 26,52V32c10,0 19,-2 28,-8zM39,53a4,4 0 1,0 8,0a4,4 0 1,0 -8,0zM50,53a4,4 0 1,0 8,0a4,4 0 1,0 -8,0zM61,53a4,4 0 1,0 8,0a4,4 0 1,0 -8,0z"/>
+    </group>
+</vector>
