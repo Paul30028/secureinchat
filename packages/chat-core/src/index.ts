@@ -17,3 +17,5 @@ export * from "./mentions";
 export * from "./disappearing";
 export * from "./backup";
 export * from "./groupPurge";
+export * from "./groupId";
+export * from "./groupIdentity";

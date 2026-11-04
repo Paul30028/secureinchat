@@ -2,6 +2,9 @@ import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
 import { loadJoinedGroups, removeGroup, saveJoinedGroups } from "./groupStore";
 import { storageKeyForGroupMessages } from "./messageStore";
 import { storageKeyForDevices } from "./knownDevices";
+import { storageKeyForGroupIdentity } from "./groupIdentity";
+import { assertValidGroupId } from "./groupId";
+export { InvalidGroupIdError } from "./groupId";
 
 /**
  * 把一个群在本机留下的东西删干净（包 1 / P1a）。
@@ -34,13 +37,6 @@ export interface PurgeReport {
   remainingKeys: string[];
 }
 
-export class InvalidGroupIdError extends Error {
-  constructor() {
-    super("groupId 不能为空，也不能包含冒号");
-    this.name = "InvalidGroupIdError";
-  }
-}
-
 function belongsToGroup(key: string, groupId: string): boolean {
   // 所有群作用域的键都是 "<前缀>:<gid>" 或 "<前缀>:<gid>:<后缀>" 的形式
   return key.split(":").includes(groupId);
@@ -50,13 +46,15 @@ export async function purgeGroupLocalData(
   store: EncryptedKeyValueStore,
   groupId: string
 ): Promise<PurgeReport> {
-  if (!groupId || groupId.includes(":")) throw new InvalidGroupIdError();
+  assertValidGroupId(groupId);
 
   const existing = new Set(await store.listKeys());
   const targets = [
     // 1. 秘密先删：群密钥、管理员身份
     ...[...existing].filter((k) => k.startsWith(epochKeyPrefix(groupId))).sort(),
     storageKeyForAdminKey(groupId),
+    // 群专属身份的 deviceId；签名密钥在 Keystore 里，由调用方用 forgetGroupIdentity 删除
+    storageKeyForGroupIdentity(groupId),
     // 2. 内容
     storageKeyForGroupMessages(groupId),
     storageKeyForDevices(groupId),

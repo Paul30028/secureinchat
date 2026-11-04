@@ -100,6 +100,16 @@ export class BrowserKeystore implements KeystorePort {
     return pair;
   }
 
+  async deleteKeyPair(alias: string): Promise<void> {
+    const db = await this.getDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).delete(alias);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error(`删除 alias=${alias} 失败`));
+    });
+  }
+
   async generateDeviceKeyPair(alias: string): Promise<string> {
     const existing = await this.loadPair(alias);
     if (existing) return alias; // 已存在就复用，不覆盖——设备身份要保持稳定

@@ -15,6 +15,8 @@ export interface GroupSession {
   groupId: string;
   groupName: string;
   client: RelayClient;
+  /** 本机在这个群里用的 deviceId。新群是群专属身份，老群是全机身份（见 chat-core groupIdentity） */
+  myDeviceId: string;
   messages: DisplayMessage[];
   connectionStatus: ConnectionStatus;
   pendingCount: number;

@@ -10,6 +10,8 @@ import {
   buildInviteForGroup,
   loadKnownDevices,
   purgeGroupLocalData,
+  getOrCreateGroupIdentity,
+  forgetGroupIdentity,
   renameGroup,
   saveKnownDevices,
   markDeviceSeen,
@@ -196,7 +198,6 @@ export function App() {
   const isAutoReconnectRef = useRef(false);
   // 从聊天页返回时要落在消息 tab，而不是默认的公告 tab
   const cameFromChatRef = useRef(false);
-  const myDeviceIdRef = useRef("");
   /** 每个群一条写入链，避免设备名单的读改写互相覆盖 */
   const deviceWriteChainRef = useRef<Map<string, Promise<void>>>(new Map());
   // 公告音频的分片和公告本身谁先到都有可能，两边各记一份等对上
@@ -686,8 +687,18 @@ export function App() {
   async function connectToGroup(parsed: ParsedInvite, groupName: string, keepScreen = false): Promise<void> {
     const store = await getDeviceStore();
     const { epochKey, groupId, epoch } = await joinGroupFromInvite(parsed, store);
-    const identity = await getDeviceIdentity();
-    myDeviceIdRef.current = identity.deviceId;
+    // 新加入或新建的群用群专属身份（包 1 / P1d）；已经在用全机身份的老群保持不变，
+    // 否则群友和中继会突然看到一台「新设备」。
+    const previous = (await loadJoinedGroups(store)).find((g) => g.groupId === groupId);
+    const identityScope: "device" | "group" = previous ? (previous.identityScope ?? "device") : "group";
+    const deviceIdentity = await getDeviceIdentity();
+    const identity =
+      identityScope === "group"
+        ? {
+            ...(await getOrCreateGroupIdentity(store, deviceIdentity.keystore, groupId)),
+            keystore: deviceIdentity.keystore,
+          }
+        : deviceIdentity;
 
     const client = new RelayClient(relayUrl, {
       deviceId: identity.deviceId,
@@ -973,7 +984,7 @@ export function App() {
       });
 
       // 已经在同一个会议里就去建连接
-      connectToConferencePeer(frame.fromDeviceId, frame.conferenceId);
+      connectToConferencePeer(frame.fromDeviceId, frame.conferenceId, identity.deviceId);
     });
 
     client.onPeersChange((onlinePeers) => {
@@ -1005,6 +1016,7 @@ export function App() {
       today: {},
       knownDevices,
       lastReadAtMs: Date.now(),
+      myDeviceId: identity.deviceId,
     };
 
     // 记住这个群，下次启动自动重连
@@ -1018,6 +1030,7 @@ export function App() {
         : {}),
       joinedAtMs: Date.now(),
       lastReadAtMs: Date.now(),
+      identityScope,
     });
     await saveJoinedGroups(store, groups);
 
@@ -1375,14 +1388,14 @@ export function App() {
    * 谁主动发 offer 由 shouldInitiateTo 决定（deviceId 字典序），两边必须一致，
    * 否则会同时发 offer 撞车。
    */
-  function connectToConferencePeer(peerDeviceId: string, conferenceId: string) {
+  function connectToConferencePeer(peerDeviceId: string, conferenceId: string, myDeviceId: string) {
     const factory = callFactoryRef.current;
     if (!factory) return;
 
     const session = factory(`${conferenceId}:${peerDeviceId}`, peerDeviceId, "voice");
     conferenceSessionsRef.current.set(peerDeviceId, session);
 
-    if (shouldInitiateTo(myDeviceIdRef.current, peerDeviceId)) {
+    if (shouldInitiateTo(myDeviceId, peerDeviceId)) {
       setConference((prev) => (prev ? updateParticipant(prev, peerDeviceId, { state: "connecting" }) : prev));
       void session.startOutgoing();
     }
@@ -1492,6 +1505,8 @@ export function App() {
     // 排在消息保存队列里，避免一条正在写的消息在删除之后又落盘。
     await saverRef.current.enqueue(groupId, async () => {
       const report = await purgeGroupLocalData(store, groupId);
+      // 群专属身份的签名密钥在 Keystore 里，存储清除管不到，单独删
+      await forgetGroupIdentity(store, (await getDeviceIdentity()).keystore, groupId);
       if (report.remainingKeys.length > 0) console.warn("退群后仍有未清除的键", report.remainingKeys);
     });
     setDisappearAfterByGroup((prev) => {
@@ -1755,7 +1770,7 @@ export function App() {
         groupName={s?.groupName ?? ""}
         devices={s?.knownDevices ?? []}
         onlineNow={s?.onlinePeers ?? []}
-        myDeviceId={screen.name === "devices" ? myDeviceIdRef.current : ""}
+        myDeviceId={s?.myDeviceId ?? ""}
         onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
       />
     );
@@ -1947,7 +1962,7 @@ export function App() {
       myNickname={nickname}
       memberNames={active.knownDevices.map((d) => d.displayName)}
       knownDevices={active.knownDevices}
-      myDeviceId={myDeviceIdRef.current}
+      myDeviceId={active.myDeviceId}
       onBack={() => {
         setReplyTarget(null);
         // 从聊天返回应该看到消息列表，而不是默认的公告 tab

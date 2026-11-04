@@ -33,6 +33,11 @@ export interface JoinedGroup {
    * 消息里自带的 expiresInMs 处理。老记录没有这个字段，按关闭处理。
    */
   disappearAfterMs?: number | undefined;
+  /**
+   * 这个群用哪个设备身份连接中继。缺省或 "device" = 老群，用全机身份；
+   * "group" = 用这个群专属的身份（见 groupIdentity.ts）。
+   */
+  identityScope?: "device" | "group" | undefined;
 }
 
 export async function loadJoinedGroups(store: EncryptedKeyValueStore): Promise<JoinedGroup[]> {
@@ -61,7 +66,13 @@ export function upsertGroup(groups: JoinedGroup[], group: JoinedGroup): JoinedGr
   if (!existing) return [...groups, group];
   return groups.map((g) =>
     g.groupId === group.groupId
-      ? { ...group, joinedAtMs: existing.joinedAtMs, lastReadAtMs: existing.lastReadAtMs }
+      ? {
+          ...group,
+          joinedAtMs: existing.joinedAtMs,
+          lastReadAtMs: existing.lastReadAtMs,
+          // 身份范围在加入时就定了：重新扫邀请不能把老群变成新群，也不能反过来
+          identityScope: existing.identityScope,
+        }
       : g
   );
 }
