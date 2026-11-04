@@ -48,6 +48,8 @@ export interface MessageListScreenProps {
   lockEnabled?: boolean | undefined;
   /** 打开「备份与恢复」页面。不传就不显示这一行 */
   onOpenBackup?: (() => void) | undefined;
+  /** 设备安全：空手过境、手机失守后全部清除 */
+  onOpenDeviceSafety?: (() => void) | undefined;
 }
 
 /** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
@@ -76,6 +78,7 @@ export function MessageListScreen({
   onToggleBiometric,
   lockEnabled,
   onOpenBackup,
+  onOpenDeviceSafety,
 }: MessageListScreenProps) {
   // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
   // 而不是像通用 IM 那样落在会话列表。
@@ -243,6 +246,25 @@ export function MessageListScreen({
               >
                 <div style={{ fontSize: 14, color: colors.textPrimary }}>备份与恢复</div>
                 <div style={{ fontSize: 11, color: "#9A9A94" }}>导出加密备份文件，换手机时恢复群和聊天记录</div>
+              </button>
+            ) : null}
+
+            {onOpenDeviceSafety ? (
+              <button
+                onClick={onOpenDeviceSafety}
+                style={{
+                  minHeight: touchTarget.minDp,
+                  marginTop: 8,
+                  textAlign: "left",
+                  background: "transparent",
+                  border: `0.5px solid ${colors.sageMint}`,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>设备安全</div>
+                <div style={{ fontSize: 11, color: "#9A9A94" }}>空手过境；手机被扣留或拿走过时清除全部数据</div>
               </button>
             ) : null}
 

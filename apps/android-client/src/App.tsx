@@ -9,9 +9,8 @@ import {
   rotateGroupKey,
   buildInviteForGroup,
   loadKnownDevices,
-  removeGroup,
+  purgeGroupLocalData,
   renameGroup,
-  clearMessages,
   saveKnownDevices,
   markDeviceSeen,
   forgetAllDevices,
@@ -63,10 +62,10 @@ import { EditProfileScreen } from "./screens/EditProfileScreen";
 import { GroupSettingsScreen, disappearLabel } from "./screens/GroupSettingsScreen";
 import { GroupInviteScreen } from "./screens/GroupInviteScreen";
 import { BackupScreen } from "./screens/BackupScreen";
-import { isLockEnabled, disableLock } from "./appLock";
+import { isLockEnabled } from "./appLock";
 import { checkCryptoStorage, type CapabilityResult } from "./capabilityCheck";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
-import { saveAdminKey, loadAdminKey } from "./adminKeys";
+import { saveAdminKey, loadAdminKey, isGroupAdmin } from "./adminKeys";
 import { CallScreen } from "./screens/CallScreen";
 import {
   CallSession,
@@ -85,6 +84,8 @@ import { getDeviceStore, getDeviceIdentity } from "./deviceIdentity";
 import { randomUUID, signAnnouncement, verifyAnnouncement } from "@secureinchat/crypto-core";
 import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
 import { ServerSettingsScreen } from "./screens/ServerSettingsScreen";
+import { DeviceSafetyScreen, type SafetyGroup } from "./screens/DeviceSafetyScreen";
+import { wipeAllLocalData } from "./wipe";
 import { MessageSearchScreen } from "./screens/MessageSearchScreen";
 import { loadSavedRelayUrl } from "./relayUrlSetting";
 import { ProfileSetupScreen } from "./screens/ProfileSetupScreen";
@@ -130,6 +131,7 @@ type Screen =
   | { name: "groupSettings"; groupId: string; from: "chat" | "list" }
   | { name: "groupInvite"; groupId: string; from: "chat" | "list" }
   | { name: "backup" }
+  | { name: "deviceSafety" }
   | {
       name: "invite";
       invite: InviteInfo;
@@ -186,6 +188,7 @@ export function App() {
   // 会话不放在 screen 里——导航到别的页面（比如去加入另一个群）不该断开
   // 已经连上的群。之前放在 screen 里时，回启动页会把所有连接一起丢掉。
   const [sessions, setSessions] = useState<GroupSessions>({});
+  const [safetyGroups, setSafetyGroups] = useState<SafetyGroup[]>([]);
   // setSessions 是异步的，而"这是不是第一个群"要在下一次 connect 前就准确——
   // 用 ref 镜像一份当前值供同步判断
   const sessionsRef = useRef<GroupSessions>({});
@@ -1484,10 +1487,13 @@ export function App() {
     sessions[groupId]?.client.close();
 
     const store = await getDeviceStore();
-    await saveJoinedGroups(store, removeGroup(await loadJoinedGroups(store), groupId));
     mediaCacheRef.current.forget(groupId);
-    await saverRef.current.enqueue(groupId, () => clearMessages(store, groupId));
-    await saveKnownDevices(store, groupId, []);
+    // 删干净：群密钥（所有 epoch）、管理员身份、消息、设备名单、群列表条目。
+    // 排在消息保存队列里，避免一条正在写的消息在删除之后又落盘。
+    await saverRef.current.enqueue(groupId, async () => {
+      const report = await purgeGroupLocalData(store, groupId);
+      if (report.remainingKeys.length > 0) console.warn("退群后仍有未清除的键", report.remainingKeys);
+    });
     setDisappearAfterByGroup((prev) => {
       const next = { ...prev };
       delete next[groupId];
@@ -1560,11 +1566,8 @@ export function App() {
           setLockEnabledState(false);
           setBiometricEnabled(false);
           void (async () => {
-            await disableLock();
-            indexedDB.deleteDatabase("secureinchat-storage");
-            indexedDB.deleteDatabase("secureinchat-keystore");
-            indexedDB.deleteDatabase("secureinchat-master-key");
-            indexedDB.deleteDatabase("secureinchat-admin-keys");
+            await wipeAllLocalData();
+            window.location.reload();
           })();
         }}
         biometricEnabled={biometricSupported && biometricEnabled}
@@ -1698,6 +1701,38 @@ export function App() {
         }}
         // 回到群设置，并带回当初进入群设置的来源，返回键的行为保持一致
         onBack={() => setScreen({ name: "groupSettings", groupId: screen.groupId, from: screen.from })}
+      />
+    );
+  }
+
+  async function openDeviceSafety(): Promise<void> {
+    const list = await Promise.all(
+      Object.values(sessionsRef.current).map(async (s) => ({
+        groupId: s.groupId,
+        groupName: s.groupName,
+        isAdmin: await isGroupAdmin(s.groupId),
+      }))
+    );
+    setSafetyGroups(list);
+    setScreen({ name: "deviceSafety" });
+  }
+
+  if (screen.name === "deviceSafety") {
+    return (
+      <DeviceSafetyScreen
+        groups={safetyGroups}
+        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onPurgeGroups={async (ids) => {
+          for (const id of ids) await handleLeaveGroup(id);
+          setSafetyGroups((prev) => prev.filter((g) => !ids.includes(g.groupId)));
+          return ids.length;
+        }}
+        onWipeAll={async () => {
+          for (const s of Object.values(sessionsRef.current)) s.client.close();
+          const result = await wipeAllLocalData();
+          if (result.failed.length > 0) throw new Error(result.failed.join(", "));
+          window.location.reload();
+        }}
       />
     );
   }
@@ -1874,6 +1909,7 @@ export function App() {
         onToggleBiometric={biometricSupported ? handleToggleBiometric : undefined}
         lockEnabled={lockEnabled}
         onOpenBackup={() => setScreen({ name: "backup" })}
+        onOpenDeviceSafety={() => void openDeviceSafety()}
       />
     );
   }
