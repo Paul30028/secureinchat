@@ -449,6 +449,39 @@ def main():
     goto("Protect")
     wait_ui(lambda s: "1 safety alert" in s, "Protect tab does not show the safety alert card")
     print("ok: Protect tab shows the safety alert card")
+
+    # Screenshots for review (U2): each tab in English; on API 33+ also in Chinese (per-app language)
+    # and in dark mode. Taken now, while blocks and a safety alert give the screens real content.
+    # Not a check: a problem here is reported and the functional steps go on.
+    try:
+        for tab in ("Protect", "Activity", "Check", "Settings"):
+            goto(tab)
+            snap(f"tab-{tab.lower()}-en")
+        if api >= 33:
+            sh(f"cmd locale set-app-locales {PKG} --locales zh-CN", check=False)
+            time.sleep(3)
+            launch()
+            for en, zh in (("Protect", "保护"), ("Activity", "记录"), ("Check", "检查"), ("Settings", "设置")):
+                goto(zh)
+                snap(f"tab-{en.lower()}-zh")
+            sh("cmd uimode night yes", check=False)
+            time.sleep(3)
+            launch()
+            goto("保护")
+            snap("tab-protect-zh-dark")
+            goto("设置")
+            snap("tab-settings-zh-dark")
+            sh("cmd uimode night no", check=False)
+            sh(f"cmd locale set-app-locales {PKG} --locales en-US", check=False)
+            time.sleep(3)
+            launch()
+            print("ok: screenshots in English, Chinese and dark mode")
+    except SystemExit as e:
+        print(f"note: screenshots incomplete ({e})")
+        sh("cmd uimode night no", check=False)
+        sh(f"cmd locale set-app-locales {PKG} --locales en-US", check=False)
+        time.sleep(3)
+        launch()
     goto("Activity")
 
     # 4b. "Blocked most often" list and the user's allowlist (G3b): allow doubleclick.net from its row,
