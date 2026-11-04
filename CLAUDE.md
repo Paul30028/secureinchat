@@ -56,6 +56,8 @@ Kotlin 编译器 2.0.21:https://github.com/JetBrains/kotlin/releases/download/v2
 
 ## 和 DeepSeek 协作(可选)
 
+**DeepSeek API 通道(2026-11-04 起，优先用)**:把规格推到任意分支的 `drop/claude/<任务>.txt`，GitHub Actions(`.github/workflows/deepseek.yml` + `scripts/deepseek_ask.py`)会调用 DeepSeek API，把答复提交到同一分支的 `drop/deepseek/<任务>/roundN.txt`(附 token 用量)。密钥是仓库 secret `DEEPSEEK_API_KEY`(Paul 管理)。不再用浏览器复制粘贴，省 Claude 的 token。浏览器流程只在 API 不可用时备用。
+
 Claude 是项目经理和研发负责人:写规格、审查、测试、集成。DeepSeek 按规格写代码，经浏览器(Claude in Chrome)对话:
 1. 规格写到 `drop/claude/<任务>.txt`(附当前源码)，推到分支，用 raw 链接复制全文粘进 DeepSeek(会变成附件)。
 2. DeepSeek 的答复整段搬到 GitHub 新文件 `drop/deepseek/<任务>/roundN.txt`,拉下来拆分应用(长文件只要「锚点逐字 → 替换」片段，DeepSeek 返回整文件时会删掉注释)。
