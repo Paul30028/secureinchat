@@ -1,0 +1,105 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>Guardian checkup mockup</title><style>
+  :root {
+    --bg: #f6f7f4; --surface: #ffffff; --surface2: #eef1ec; --ink: #1c1f1b; --ink2: #5b6158;
+    --line: #dfe3dc; --accent: #2f6b4f; --accent-ink: #ffffff; --accent-soft: #dcebe2; --warn: #b3261e;
+    font-family: "Roboto", "WenQuanYi Zen Hei", "IPAGothic", sans-serif;
+  }
+  body { margin: 0; padding: 28px; background: #d9ddd5; color: var(--ink); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .note { font-size: 13px; color: #444; margin: 0 0 20px; }
+  .row { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+  .phone { width: 340px; height: 720px; background: var(--bg); border-radius: 28px; overflow: hidden;
+           box-shadow: 0 0 0 8px #222; position: relative; color: var(--ink); display: flex; flex-direction: column; }
+  .cap { width: 340px; text-align: center; font-size: 13px; color: #333; margin-top: 14px; }
+  .status { height: 24px; font-size: 11px; color: var(--ink2); display: flex; justify-content: space-between; padding: 6px 18px 0; }
+  .top { padding: 10px 20px 6px; font-size: 22px; font-weight: 600; }
+  .content { flex: 1; padding: 6px 16px 0; overflow: hidden; }
+  .card { background: var(--surface); border-radius: 20px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--line); }
+  .hero { text-align: center; padding: 22px 16px 18px; }
+  .shield { width: 84px; height: 84px; border-radius: 50%; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .hero .state { font-size: 22px; font-weight: 600; }
+  .hero .sub { font-size: 13px; color: var(--ink2); margin: 6px 0 16px; line-height: 1.5; }
+  .btn { display: block; width: 100%; border: 0; border-radius: 24px; height: 48px; font-size: 15px; font-weight: 600; font-family: inherit; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.text { background: transparent; color: var(--accent); height: 40px; margin-top: 4px; }
+  .stats { display: flex; gap: 12px; margin-bottom: 12px; }
+  .stat { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; }
+  .stat b { font-size: 22px; display: block; }
+  .stat span { font-size: 12px; color: var(--ink2); }
+  .sec { font-size: 13px; color: var(--ink2); margin: 4px 4px 8px; display: flex; justify-content: space-between; }
+  .sec a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .item:last-child { border-bottom: 0; }
+  .item .dot { width: 32px; height: 32px; border-radius: 10px; background: var(--surface2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .item .t { flex: 1; min-width: 0; }
+  .item .t div:first-child { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .t div:last-child { font-size: 12px; color: var(--ink2); margin-top: 2px; }
+  .item .act { font-size: 13px; color: var(--accent); font-weight: 600; }
+  .item .n { font-size: 13px; color: var(--ink2); }
+  .seg { display: flex; background: var(--surface2); border-radius: 20px; padding: 3px; margin-bottom: 12px; }
+  .seg div { flex: 1; text-align: center; font-size: 13px; padding: 7px 0; border-radius: 17px; color: var(--ink2); }
+  .seg .on { background: var(--surface); color: var(--ink); font-weight: 600; }
+  .muted { font-size: 12px; color: var(--ink2); line-height: 1.6; margin: 4px 4px 10px; }
+  .chk .title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .chk .desc { font-size: 12.5px; color: var(--ink2); line-height: 1.55; margin-bottom: 10px; }
+  .chk .open { font-size: 14px; color: var(--accent); font-weight: 600; }
+  .set { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .set:last-child { border-bottom: 0; }
+  .set .v { color: var(--ink2); font-size: 13px; }
+  .grp { font-size: 12px; color: var(--accent); font-weight: 600; margin: 8px 4px 6px; }
+  .card.list { padding: 2px 16px; }
+  .nav { height: 64px; background: var(--surface); border-top: 1px solid var(--line); display: flex; }
+  .nav div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--ink2); gap: 3px; }
+  .nav .on { color: var(--ink); font-weight: 600; }
+  .nav .pill { width: 52px; height: 26px; border-radius: 13px; display: flex; align-items: center; justify-content: center; }
+  .nav .on .pill { background: var(--accent-soft); }
+  .tag { position: absolute; top: 34px; right: 14px; font-size: 10px; background: #fff3c4; color: #6b5300; padding: 2px 6px; border-radius: 6px; }
+  .small .phone { width: 300px; height: 470px; }
+  .small .cap { width: 300px; }
+  .dark { --bg:#121512; --surface:#1c201c; --surface2:#262b26; --ink:#e3e7e0; --ink2:#a5ad9f; --line:#2f352e; --accent:#8fd1ae; --accent-ink:#0b2a1b; --accent-soft:#25402f; }
+</style><style>
+.warn{border-color:#f0c7c3;background:#fff6f5}
+.warn .title{color:#b3261e}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin:2px 4px 2px 0}
+.b-red{background:#fde2df;color:#8c1d18}.b-yel{background:#fff1c7;color:#6b5300}.b-grey{background:#eef1ec;color:#5b6158}
+.search{background:var(--surface);border:1px solid var(--line);border-radius:24px;height:42px;display:flex;align-items:center;padding:0 16px;color:var(--ink2);font-size:14px;margin-bottom:12px}
+.sum{display:flex;gap:10px;margin-bottom:12px}.sum div{flex:1;border-radius:16px;padding:10px 12px;font-size:12px}
+.sum b{display:block;font-size:20px}
+.lock{background:#1f2a24;color:#e8efe9}.lock .clock{font-size:52px;text-align:center;margin:40px 0 4px;font-weight:300}
+.lock .date{text-align:center;font-size:13px;opacity:.8;margin-bottom:30px}
+.notif{background:rgba(255,255,255,.12);border-radius:18px;padding:12px 14px;margin:0 14px 10px;font-size:13px;line-height:1.5}
+.notif .h{font-size:11px;opacity:.75;margin-bottom:3px}
+.notif b{font-size:14px}
+.steps{font-size:13px;line-height:1.7;padding-left:18px;margin:6px 0}
+</style></head><body>
+<h1>Guardian 应用体检与动态告警(示意图)</h1>
+<p class="note">App 名称用「某某」代替;数字是示意数据。所有能力只用安卓框架 API;跟踪软件特征来自 Echap(CC-BY)。</p>
+<div class="row"><div><div class="phone"><div class="status"><span>11:13</span><span>▮▮▮ 56%</span></div><div class="top">应用体检</div><div class="content">
+<div class="search">🔍&nbsp; 搜索应用</div>
+<div class="sum"><div style="background:#fde2df;color:#8c1d18"><b>2</b>可能被监控</div><div style="background:#fff1c7;color:#6b5300"><b>4</b>可能不必要</div><div style="background:#eef1ec;color:#5b6158"><b>63</b>已检查的 App</div></div>
+<div class="card chk warn"><div class="title">能读取屏幕内容的 App · 1</div><div class="desc">「某某输入法」开启了无障碍服务：它能看到屏幕上的所有文字，包括聊天和密码。不是你自己开的就要注意。</div><div class="open">查看 ›</div></div>
+<div class="card chk warn"><div class="title">设备管理员 · 1</div><div class="desc">「某某助手」可以锁屏、擦除数据，并阻止自己被卸载。</div><div class="open">查看 ›</div></div>
+<div class="card chk"><div class="title">30 天没用，仍有敏感权限 · 4</div><div class="desc">例如「某旅行 App」：后台位置、麦克风。</div><div class="open">查看 ›</div></div>
+</div><div class="nav"><div class=""><span class="pill">🛡</span>保护</div><div class=""><span class="pill">☰</span>记录</div><div class="on"><span class="pill">✓</span>检查</div><div class=""><span class="pill">⚙</span>设置</div></div></div><div class="cap">① 体检总览：先看最危险的，再看不必要的</div></div><div><div class="phone"><div class="status"><span>11:13</span><span>▮▮▮ 56%</span></div><div class="top" style="font-size:18px">‹ 某旅行 App</div><div class="content">
+<div class="card"><div style="font-size:13px;color:var(--ink2);margin-bottom:6px">为什么列出它</div>
+<span class="badge b-yel">47 天没打开</span><span class="badge b-yel">后台位置</span><span class="badge b-yel">麦克风</span></div>
+<div class="sec"><span>已授予的敏感权限</span></div>
+<div class="card list"><div class="set"><span>位置(包括后台)</span><span class="v">始终允许</span></div><div class="set"><span>麦克风</span><span class="v">允许</span></div><div class="set"><span>通讯录</span><span class="v">允许</span></div></div>
+<div class="sec"><span>含有的追踪库(Exodus)</span></div>
+<div class="card list"><div class="set"><span>Google Firebase Analytics</span><span class="v">分析</span></div><div class="set"><span>Facebook Login</span><span class="v">身份识别</span></div></div>
+<button class="btn primary">打开它的权限设置</button><button class="btn text">卸载</button>
+<p class="muted" style="text-align:center">Guardian 不会替你改任何设置。</p>
+</div><div class="nav"><div class=""><span class="pill">🛡</span>保护</div><div class=""><span class="pill">☰</span>记录</div><div class="on"><span class="pill">✓</span>检查</div><div class=""><span class="pill">⚙</span>设置</div></div></div><div class="cap">② 详情：摆事实、给理由、一键去处理</div></div><div><div class="phone lock"><div class="status" style="color:#cfd8d1"><span></span><span>▮▮▮ 56%</span></div>
+<div class="clock">11:13</div><div class="date">11月4日 星期三</div>
+<div class="notif"><div class="h">Guardian · 现在</div><b>Guardian 有一条安全提醒</b><br>解锁后查看</div>
+<div style="text-align:center;font-size:12px;opacity:.7;margin:18px 0 10px">↓ 解锁后展开</div>
+<div class="notif"><div class="h">Guardian · 现在</div><b>有 App 连接了已知跟踪软件的服务器</b><br>没有替你拦截，以免惊动安装它的人。点开看怎么安全处理。</div>
+<div class="notif"><div class="h">Guardian · 2 小时前</div><b>「某某输入法」刚获得读取屏幕内容的能力</b><br>不是你自己开的，请检查。</div>
+</div><div class="cap">③ 动态告警：锁屏上不露内容，解锁后才看到详情</div></div><div><div class="phone"><div class="status"><span>11:13</span><span>▮▮▮ 56%</span></div><div class="top" style="font-size:18px">‹ 如果你担心被监控</div><div class="content">
+<div class="card"><div style="font-weight:600;margin-bottom:4px">先确保安全</div>
+<ol class="steps"><li>如果担心对方发现，先不要删除可疑 App。</li><li>先截图保存证据。</li><li>找可信的人或专业机构一起规划。</li></ol></div>
+<div class="card"><div style="font-weight:600;margin-bottom:4px">Guardian 做不到的</div>
+<div class="muted" style="margin:0">查不出高级间谍软件。没发现问题，不代表一定没有被监控。</div></div>
+<div class="card list"><div class="set"><span>跟踪软件受害者指引</span><span class="v">stopstalkerware.org ›</span></div><div class="set"><span>数字安全求助热线</span><span class="v">Access Now ›</span></div></div>
+<p class="muted">链接用系统浏览器打开;Guardian 自己不联网。</p>
+</div><div class="nav"><div class=""><span class="pill">🛡</span>保护</div><div class=""><span class="pill">☰</span>记录</div><div class="on"><span class="pill">✓</span>检查</div><div class=""><span class="pill">⚙</span>设置</div></div></div><div class="cap">④ 指引：先讲安全，再讲做不到的</div></div></div></body></html>
