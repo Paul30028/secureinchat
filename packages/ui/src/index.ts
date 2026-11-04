@@ -10,3 +10,4 @@ export * from "./components/InviteInfoCard";
 export * from "./components/CopyableCode";
 export * from "./components/InviteShareCard";
 export * from "./components/Icons";
+export * from "./strings";

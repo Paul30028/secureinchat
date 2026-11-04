@@ -2,6 +2,7 @@ import { colors, radii, touchTarget } from "../tokens";
 import { Avatar } from "./Avatar";
 import { Button } from "./Button";
 import { Card } from "./Card";
+import { uiText } from "../strings";
 
 export interface ValidInviteInfo {
   status: "valid";
@@ -31,12 +32,12 @@ export interface InviteInfoCardProps {
   isConfirming?: boolean | undefined;
 }
 
-const INVALID_REASON_LABEL: Record<InvalidInviteInfo["reason"], string> = {
-  expired: "该邀请已过期或已被撤销，请联系邀请人获取新的邀请。",
-  revoked: "该邀请已被撤销，请联系邀请人获取新的邀请。",
-  exhausted: "该邀请的可用次数已用尽，请联系邀请人获取新的邀请。",
-  malformed: "邀请码格式不正确，请检查后重新输入。",
-};
+const INVALID_REASON_KEY = {
+  expired: "inviteExpired",
+  revoked: "inviteRevoked",
+  exhausted: "inviteExhausted",
+  malformed: "inviteMalformed",
+} as const satisfies Record<InvalidInviteInfo["reason"], string>;
 
 /** 邀请验证卡片。有效/失效两种状态互斥——失效状态下不渲染"确认加入"按钮，
  *  避免用户点了却收到一个必然失败的请求。 */
@@ -54,9 +55,9 @@ export function InviteInfoCard({ invite, onConfirm, isConfirming }: InviteInfoCa
             padding: "8px 0",
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 500, color: colors.textPrimary }}>邀请已失效</span>
+          <span style={{ fontSize: 15, fontWeight: 500, color: colors.textPrimary }}>{uiText("inviteInvalidTitle")}</span>
           <span style={{ fontSize: 13, color: "#8A8A82", lineHeight: 1.6 }}>
-            {INVALID_REASON_LABEL[invite.reason]}
+            {uiText(INVALID_REASON_KEY[invite.reason])}
           </span>
         </div>
       </Card>
@@ -69,7 +70,8 @@ export function InviteInfoCard({ invite, onConfirm, isConfirming }: InviteInfoCa
         <Avatar name={invite.groupName} size="large" />
         <span style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary }}>{invite.groupName}</span>
         <span style={{ fontSize: 13, color: "#8A8A82" }}>
-          {invite.memberCount !== undefined ? `${invite.memberCount}人 · ` : ""}邀请制加密群聊
+          {invite.memberCount !== undefined ? uiText("inviteMemberCount", { count: invite.memberCount }) : ""}
+          {uiText("inviteKind")}
         </span>
 
         <div
@@ -84,7 +86,7 @@ export function InviteInfoCard({ invite, onConfirm, isConfirming }: InviteInfoCa
           }}
         >
           {invite.inviterName ? (
-            <span style={{ fontSize: 13, color: "#8A8A82" }}>邀请人：{invite.inviterName}</span>
+            <span style={{ fontSize: 13, color: "#8A8A82" }}>{uiText("inviteInviter", { name: invite.inviterName })}</span>
           ) : null}
           <span
             style={{
@@ -96,7 +98,8 @@ export function InviteInfoCard({ invite, onConfirm, isConfirming }: InviteInfoCa
               alignSelf: "flex-start",
             }}
           >
-            邀请有效，可加入{invite.expiryLabel ? ` · ${invite.expiryLabel}` : ""}
+            {uiText("inviteValid")}
+            {invite.expiryLabel ? ` · ${invite.expiryLabel}` : ""}
           </span>
         </div>
 
@@ -106,7 +109,7 @@ export function InviteInfoCard({ invite, onConfirm, isConfirming }: InviteInfoCa
           disabled={isConfirming}
           style={{ width: "100%", minHeight: touchTarget.minDp, marginTop: 12 }}
         >
-          {isConfirming ? "正在加入..." : "确认加入"}
+          {isConfirming ? uiText("inviteJoining") : uiText("inviteConfirm")}
         </Button>
       </div>
     </Card>

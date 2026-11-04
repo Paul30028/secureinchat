@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { colors, touchTarget, Button, Avatar } from "@secureinchat/ui";
 import { validateNickname, NICKNAME_MAX_LENGTH } from "../profile";
+import { t } from "../i18n";
 
 export interface ProfileSetupScreenProps {
   onDone: (nickname: string) => Promise<void>;
@@ -29,7 +30,7 @@ export function ProfileSetupScreen({ onDone }: ProfileSetupScreenProps) {
       await onDone(nickname.trim());
     } catch {
       setIsSaving(false);
-      setError("保存失败，请重试");
+      setError(t("common.saveFailed"));
     }
   }
 
@@ -48,12 +49,12 @@ export function ProfileSetupScreen({ onDone }: ProfileSetupScreenProps) {
     >
       <Avatar name={nickname || "?"} size="large" />
       <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "8px 0 0" }}>
-        设置你的昵称
+        {t("profile.setupTitle")}
       </h1>
       <p style={{ fontSize: 12, color: "#8A8A82", textAlign: "center", lineHeight: 1.7, margin: 0 }}>
-        群里的其他人会看到这个名字。只需要设置一次，
+        {t("profile.setupNote1")}
         <br />
-        以后加入别的群聊不用重复填写。
+        {t("profile.setupNote2")}
       </p>
 
       <div style={{ width: "100%", maxWidth: 320, marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -64,8 +65,8 @@ export function ProfileSetupScreen({ onDone }: ProfileSetupScreenProps) {
             setNickname(e.target.value);
             setError(null);
           }}
-          placeholder="例如：李阳"
-          aria-label="昵称输入框"
+          placeholder={t("profile.placeholder")}
+          aria-label={t("profile.input")}
           maxLength={NICKNAME_MAX_LENGTH}
           style={{
             minHeight: touchTarget.minDp,
@@ -90,7 +91,7 @@ export function ProfileSetupScreen({ onDone }: ProfileSetupScreenProps) {
         ) : null}
 
         <Button variant="primary" onClick={handleDone} disabled={isSaving || nickname.trim().length === 0}>
-          {isSaving ? "保存中..." : "完成设置"}
+          {isSaving ? t("common.saving") : t("profile.done")}
         </Button>
       </div>
     </div>

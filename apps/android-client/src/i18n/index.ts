@@ -13,6 +13,7 @@
  * 能力自检）也要出文字。界面通过 useLocale() 订阅，切换语言时整棵树重渲染。
  */
 import { useSyncExternalStore } from "react";
+import { setUiStrings, UI_STRINGS_ZH, type UiStringKey, type UiStrings } from "@secureinchat/ui";
 import { zh, type MessageKey } from "./zh";
 import { en } from "./en";
 import { es } from "./es";
@@ -94,6 +95,7 @@ export function setLocale(locale: Locale): void {
   if (locale === current) return;
   current = locale;
   if (typeof document !== "undefined") document.documentElement.lang = BCP47[locale];
+  syncUiStrings();
   for (const l of listeners) l();
 }
 
@@ -149,6 +151,15 @@ export function t(key: MessageKey, params?: Params): string {
 
 export function formatNumber(n: number): string {
   return new Intl.NumberFormat(BCP47[current]).format(n);
+}
+
+/** ui 包组件自带的文字（底部导航、输入框、邀请卡片等）跟着当前语言换 */
+function syncUiStrings(): void {
+  const strings = {} as UiStrings;
+  for (const key of Object.keys(UI_STRINGS_ZH) as UiStringKey[]) {
+    strings[key] = t(`ui.${key}`);
+  }
+  setUiStrings(strings);
 }
 
 /** 测试用：让「缺键回退」能在不改真实词典的前提下测 */

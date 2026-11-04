@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { t } from "../i18n";
 import { colors, touchTarget, Button } from "@secureinchat/ui";
 import { validateRelayUrl, saveRelayUrl, loadSavedRelayUrl, clearSavedRelayUrl } from "../relayUrlSetting";
 
@@ -47,7 +48,7 @@ export function ServerSettingsScreen({ defaultUrl, onSaved, onBack }: ServerSett
     <div style={{ minHeight: "100vh", background: colors.ivory, padding: 24 }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("common.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -59,12 +60,12 @@ export function ServerSettingsScreen({ defaultUrl, onSaved, onBack }: ServerSett
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("common.backArrow")}
       </button>
 
-      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 8px" }}>服务器设置</h1>
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 8px" }}>{t("me.server")}</h1>
       <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "0 0 16px" }}>
-        填写你们团队的中继服务器地址。改完保存后，下次连接就会用新地址，不需要重新安装应用。
+        {t("server.intro")}
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -77,7 +78,7 @@ export function ServerSettingsScreen({ defaultUrl, onSaved, onBack }: ServerSett
             setSavedNotice(false);
           }}
           placeholder="wss://ws.example.com"
-          aria-label="中继服务器地址输入框"
+          aria-label={t("server.input")}
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
@@ -101,21 +102,20 @@ export function ServerSettingsScreen({ defaultUrl, onSaved, onBack }: ServerSett
         ) : null}
         {savedNotice ? (
           <p role="status" style={{ color: colors.deepInkGreen, fontSize: 12, margin: 0 }}>
-            已保存
+            {t("common.saved")}
           </p>
         ) : null}
 
         <Button variant="primary" onClick={handleSave}>
-          保存
+          {t("common.save")}
         </Button>
         <Button variant="secondary" onClick={handleReset}>
-          恢复默认（{defaultUrl}）
+          {t("server.reset", { url: defaultUrl })}
         </Button>
       </div>
 
       <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, marginTop: 20 }}>
-        提示：如果这个页面是通过 https:// 打开的，服务器地址必须用 wss://，
-        浏览器会拦截不加密的 ws:// 连接。
+        {t("server.httpsNote")}
       </p>
     </div>
   );

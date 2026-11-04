@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { colors, touchTarget } from "../tokens";
 import { Button } from "./Button";
+import { uiText } from "../strings";
 
 export interface ComposerProps {
   onSend: (text: string) => void;
@@ -25,7 +26,7 @@ export interface ComposerProps {
 export function Composer({
   onSend,
   onStartVoice,
-  placeholder = "输入消息...",
+  placeholder = uiText("composerPlaceholder"),
   value,
   onChange,
   disabled,
@@ -81,7 +82,7 @@ export function Composer({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        aria-label="消息输入框"
+        aria-label={uiText("composerInput")}
         style={{
           flex: "1 1 0",
           // flex 子项默认 min-width:auto，输入框会以内容宽度为下限、
@@ -103,7 +104,7 @@ export function Composer({
           variant="primary"
           onClick={onStartVoice}
           disabled={disabled}
-          aria-label="录制语音"
+          aria-label={uiText("composerRecord")}
           style={{ minWidth: touchTarget.minDp, flexShrink: 0, padding: 0 }}
         >
           🎤
@@ -115,7 +116,7 @@ export function Composer({
           disabled={disabled || isEmpty}
           style={{ minWidth: touchTarget.minDp, flexShrink: 0 }}
         >
-          发送
+          {uiText("composerSend")}
         </Button>
       )}
     </form>

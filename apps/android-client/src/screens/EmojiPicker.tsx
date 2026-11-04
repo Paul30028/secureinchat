@@ -1,4 +1,5 @@
 import { colors, touchTarget } from "@secureinchat/ui";
+import { t } from "../i18n";
 
 /**
  * 表情面板。
@@ -9,17 +10,17 @@ import { colors, touchTarget } from "@secureinchat/ui";
  * 表情就是普通字符，跟着消息一起加密发送，中继看到的还是密文。
  */
 
-const EMOJI_ROWS: { label: string; items: string[] }[] = [
+const EMOJI_ROWS: { label: "emoji.frequent" | "emoji.mood" | "emoji.daily"; items: string[] }[] = [
   {
-    label: "常用",
+    label: "emoji.frequent",
     items: ["😊", "😄", "🥹", "😭", "😅", "🤝", "🙏", "❤️", "👍", "👌", "🎉", "✨", "🌿", "☀️"],
   },
   {
-    label: "心情",
+    label: "emoji.mood",
     items: ["😌", "🤗", "😇", "🥰", "😴", "🤔", "😮", "😢", "😰", "😤", "🫶", "💪", "🕊️", "🌈"],
   },
   {
-    label: "日常",
+    label: "emoji.daily",
     items: ["🍚", "☕", "🎵", "📖", "🏠", "🚗", "⏰", "📅", "☔", "❄️", "🌙", "⭐", "🔥", "🎂"],
   },
 ];
@@ -32,7 +33,7 @@ export function EmojiPicker({ onPick }: EmojiPickerProps) {
   return (
     <div
       role="listbox"
-      aria-label="选择表情"
+      aria-label={t("emoji.label")}
       style={{
         maxHeight: 200,
         overflowY: "auto",
@@ -42,14 +43,14 @@ export function EmojiPicker({ onPick }: EmojiPickerProps) {
     >
       {EMOJI_ROWS.map((row) => (
         <div key={row.label} style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 11, color: "#9A9A94", marginBottom: 4 }}>{row.label}</div>
+          <div style={{ fontSize: 11, color: "#9A9A94", marginBottom: 4 }}>{t(row.label)}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
             {row.items.map((emoji) => (
               <button
                 key={emoji}
                 role="option"
                 aria-selected={false}
-                aria-label={`表情 ${emoji}`}
+                aria-label={t("emoji.item", { emoji })}
                 onClick={() => onPick(emoji)}
                 style={{
                   minWidth: touchTarget.minDp,

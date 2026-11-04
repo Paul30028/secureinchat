@@ -64,9 +64,14 @@ function encodeRecoveryCode(jwk: JsonWebKey): string {
   return RECOVERY_PREFIX + toBase64Url(json);
 }
 
+/** 机器可读的原因：界面按它显示当前语言的文字，message 是中文说明 */
+export type AdminRecoveryErrorCode = "not-recovery-code" | "malformed" | "invalid";
+
 export class AdminRecoveryError extends Error {
-  constructor(message: string) {
+  readonly code: AdminRecoveryErrorCode;
+  constructor(message: string, code: AdminRecoveryErrorCode) {
     super(message);
+    this.code = code;
     this.name = "AdminRecoveryError";
   }
 }
@@ -86,13 +91,13 @@ export function adminKeyToPortableCode(recoveryCode: string): string {
 export async function restoreAdminKeyFromRecoveryCode(code: string): Promise<AdminKeyPair> {
   const trimmed = code.trim();
   if (!trimmed.startsWith(RECOVERY_PREFIX)) {
-    throw new AdminRecoveryError("这不是管理员恢复码");
+    throw new AdminRecoveryError("这不是管理员恢复码", "not-recovery-code");
   }
   let jwk: JsonWebKey;
   try {
     jwk = JSON.parse(new TextDecoder().decode(fromBase64Url(trimmed.slice(RECOVERY_PREFIX.length)))) as JsonWebKey;
   } catch {
-    throw new AdminRecoveryError("恢复码格式不正确，请检查是否抄写完整");
+    throw new AdminRecoveryError("恢复码格式不正确，请检查是否抄写完整", "malformed");
   }
   try {
     const privateKey = await crypto.subtle.importKey("jwk", { ...jwk, key_ops: ["sign"] }, ALGO, false, ["sign"]);
@@ -106,7 +111,7 @@ export async function restoreAdminKeyFromRecoveryCode(code: string): Promise<Adm
     raw.set(y, 33);
     return { privateKey, publicKeyRawB64Url: toBase64Url(raw) };
   } catch {
-    throw new AdminRecoveryError("恢复码无效");
+    throw new AdminRecoveryError("恢复码无效", "invalid");
   }
 }
 

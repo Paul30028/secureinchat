@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { colors, touchTarget, Button, Avatar } from "@secureinchat/ui";
 import { validatePin, tryUnlock, enableLock, MAX_ATTEMPTS } from "../appLock";
+import { t } from "../i18n";
 
 export interface LockScreenProps {
   mode: "unlock" | "setup";
@@ -89,7 +90,7 @@ export function LockScreen({
           return;
         }
         if (pin !== confirmPin) {
-          setError("两次输入的密码不一致");
+          setError(t("backup.passwordMismatch"));
           return;
         }
         await enableLock(pin);
@@ -106,9 +107,9 @@ export function LockScreen({
       setAttemptsLeft(result.attemptsLeft);
       if (result.attemptsLeft === 0) {
         onAttemptsExhausted?.();
-        setError("尝试次数已用尽");
+        setError(t("lock.exhausted"));
       } else {
-        setError(`密码不正确，还可以尝试 ${result.attemptsLeft} 次`);
+        setError(t("lock.wrongPin", { count: result.attemptsLeft }));
       }
     } finally {
       setBusy(false);
@@ -132,13 +133,13 @@ export function LockScreen({
     >
       <Avatar name="secureinchat" size="large" />
       <div style={{ fontSize: 16, fontWeight: 500, color: colors.textPrimary }}>
-        {mode === "setup" ? "设置应用密码" : "输入应用密码"}
+        {mode === "setup" ? t("lock.setupTitle") : t("lock.unlockTitle")}
       </div>
       {mode === "setup" ? (
         <p style={{ fontSize: 12, color: "#8A8A82", textAlign: "center", lineHeight: 1.7, margin: 0 }}>
-          手机被别人拿到时，需要这个密码才能打开。
+          {t("lock.setupNote1")}
           <br />
-          忘记密码只能清除数据重来，没有找回方式。
+          {t("lock.setupNote2")}
         </p>
       ) : null}
 
@@ -151,7 +152,7 @@ export function LockScreen({
             setPin(e.target.value);
             setError(null);
           }}
-          aria-label={mode === "setup" ? "设置密码输入框" : "应用密码输入框"}
+          aria-label={mode === "setup" ? t("lock.setupInput") : t("lock.unlockInput")}
           placeholder="••••"
           style={inputStyle}
         />
@@ -164,8 +165,8 @@ export function LockScreen({
               setConfirmPin(e.target.value);
               setError(null);
             }}
-            aria-label="再次输入密码"
-            placeholder="再输一次"
+            aria-label={t("lock.repeatInput")}
+            placeholder={t("backup.passwordRepeatPlaceholder")}
             style={inputStyle}
           />
         ) : null}
@@ -177,12 +178,12 @@ export function LockScreen({
         ) : null}
         {attemptsLeft !== null && attemptsLeft > 0 && attemptsLeft <= 3 && !error ? (
           <p style={{ color: colors.wheatGold, fontSize: 12, margin: 0, textAlign: "center" }}>
-            还可以尝试 {attemptsLeft} 次
+            {t("lock.attemptsLeft", { count: attemptsLeft })}
           </p>
         ) : null}
 
         <Button variant="primary" onClick={() => void handleSubmit()} disabled={busy || pin.length === 0}>
-          {mode === "setup" ? "启用" : "解锁"}
+          {mode === "setup" ? t("lock.enable") : t("lock.unlock")}
         </Button>
 
         {showBiometricButton ? (
@@ -199,7 +200,7 @@ export function LockScreen({
               cursor: biometricBusy ? "default" : "pointer",
             }}
           >
-            用指纹解锁
+            {t("lock.biometric")}
           </button>
         ) : null}
 
@@ -216,14 +217,14 @@ export function LockScreen({
               cursor: "pointer",
             }}
           >
-            取消
+            {t("common.cancel")}
           </button>
         ) : null}
       </div>
 
       {mode === "unlock" ? (
         <p style={{ fontSize: 11, color: "#9A9A94", textAlign: "center", marginTop: 12 }}>
-          连续输错 {MAX_ATTEMPTS} 次将清除本机数据
+          {t("lock.wipeWarning", { count: MAX_ATTEMPTS })}
         </p>
       ) : null}
     </div>

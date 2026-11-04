@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { colors, touchTarget } from "@secureinchat/ui";
+import { t } from "../i18n";
 
 export interface QrScanScreenProps {
   /** 扫到内容就回调，由调用方决定是不是有效邀请码 */
@@ -39,7 +40,7 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
         tick();
       } catch {
         // 权限被拒、没有摄像头、或者非安全上下文——都说清楚并留一条退路
-        setError("无法使用摄像头。请检查相机权限，或返回后手动粘贴邀请码。");
+        setError(t("qr.cameraFailed"));
       }
     }
 
@@ -77,7 +78,7 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
     <div style={{ minHeight: "100%", background: colors.ivory, display: "flex", flexDirection: "column" }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("common.back")}
         style={{
           alignSelf: "flex-start",
           background: "transparent",
@@ -90,7 +91,7 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("common.backArrow")}
       </button>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "0 24px" }}>
@@ -104,7 +105,7 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
               ref={videoRef}
               playsInline
               muted
-              aria-label="扫码取景框"
+              aria-label={t("qr.viewfinder")}
               style={{
                 width: "100%",
                 maxWidth: 320,
@@ -115,7 +116,7 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
               }}
             />
             <p style={{ fontSize: 13, color: "#8A8A82", marginTop: 16, textAlign: "center" }}>
-              对准对方的邀请二维码
+              {t("qr.hint")}
             </p>
           </>
         )}

@@ -1,4 +1,5 @@
 import { colors, radii } from "@secureinchat/ui";
+import { t } from "../i18n";
 
 export interface MediaContent {
   mediaKind: "image" | "voice" | "file";
@@ -44,7 +45,7 @@ export function MediaBubbleContent({
     return (
       <button
         onClick={() => onOpenImage?.(media)}
-        aria-label={`查看 ${media.fileName}`}
+        aria-label={t("media.view", { fileName: media.fileName })}
         style={{
           display: "block",
           padding: 0,
@@ -70,7 +71,8 @@ export function MediaBubbleContent({
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <audio controls src={media.objectUrl} style={{ width: "100%", height: 32 }} />
         <div style={{ fontSize: 10, color: subduedColor, marginTop: 4 }}>
-          语音{durationLabel ? ` · ${durationLabel}` : ""} · {formatSize(media.sizeBytes)}
+          {t("media.voice")}
+          {durationLabel ? ` · ${durationLabel}` : ""} · {formatSize(media.sizeBytes)}
         </div>
       </div>
     );
@@ -105,7 +107,7 @@ export function MediaBubbleContent({
           {media.fileName}
         </span>
         <span style={{ display: "block", fontSize: 10, color: subduedColor }}>
-          {formatSize(media.sizeBytes)} · 已加密 · 点击下载
+          {formatSize(media.sizeBytes)} · {t("media.encryptedTapToDownload")}
         </span>
       </span>
     </a>

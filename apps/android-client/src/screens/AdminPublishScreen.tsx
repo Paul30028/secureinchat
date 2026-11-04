@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { colors, touchTarget, Button } from "@secureinchat/ui";
-import { CATEGORY_ORDER, CATEGORY_META, type AnnouncementCategory } from "@secureinchat/chat-core";
+import { CATEGORY_ORDER, type AnnouncementCategory } from "@secureinchat/chat-core";
 import type { TodayContent } from "./TodayScreen";
+import { t } from "../i18n";
+import { categoryLabel, categoryPlaceholder } from "../i18n/labels";
 
 export interface AdminPublishScreenProps {
   /** 当前已发布的内容，用来预填——改一条不用重打其他几条 */
@@ -60,7 +62,7 @@ export function AdminPublishScreen({
     try {
       await onPublish(category, title.trim(), body.trim(), audioFile ?? undefined);
       setAudioFile(null);
-      setPublishedNotice(`${CATEGORY_META[category].label} 已发布`);
+      setPublishedNotice(t("publish.done", { category: categoryLabel(category) }));
     } finally {
       setIsPublishing(false);
     }
@@ -83,7 +85,7 @@ export function AdminPublishScreen({
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24, overflowY: "auto" }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("common.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -95,12 +97,12 @@ export function AdminPublishScreen({
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("common.backArrow")}
       </button>
 
-      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>发布今日内容</h1>
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>{t("publish.title")}</h1>
       <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "0 0 16px" }}>
-        发布后会立刻加密发送给群里所有人，覆盖该栏目当天的旧内容。
+        {t("publish.intro")}
       </p>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
@@ -120,7 +122,7 @@ export function AdminPublishScreen({
               boxShadow: "none",
             }}
           >
-            {CATEGORY_META[key].label}
+            {categoryLabel(key)}
           </button>
         ))}
       </div>
@@ -133,8 +135,8 @@ export function AdminPublishScreen({
             setTitle(e.target.value);
             setPublishedNotice(null);
           }}
-          placeholder={CATEGORY_META[category].placeholder}
-          aria-label="公告标题输入框"
+          placeholder={categoryPlaceholder(category)}
+          aria-label={t("publish.titleInput")}
           style={inputStyle}
         />
         <textarea
@@ -143,8 +145,8 @@ export function AdminPublishScreen({
             setBody(e.target.value);
             setPublishedNotice(null);
           }}
-          placeholder="内容"
-          aria-label="公告内容输入框"
+          placeholder={t("publish.bodyPlaceholder")}
+          aria-label={t("publish.bodyInput")}
           rows={6}
           style={{ ...inputStyle, resize: "vertical" }}
         />
@@ -205,16 +207,16 @@ export function AdminPublishScreen({
           onClick={handlePublish}
           disabled={isPublishing || (body.trim().length === 0 && !audioFile && title.trim().length === 0)}
         >
-          {isPublishing ? "发布中..." : `发布到「${CATEGORY_META[category].label}」`}
+          {isPublishing ? t("publish.publishing") : t("publish.publishTo", { category: categoryLabel(category) })}
         </Button>
       </div>
 
       <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, marginTop: 24, paddingTop: 16 }}>
-        <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>移出成员</div>
+        <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>{t("rotate.title")}</div>
         <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "0 0 10px" }}>
-          有人离开、或者手机丢失时，更换群密钥并把新邀请码只发给留下的人。
-          之后的消息拿旧密钥的人再也读不到——但他<strong style={{ fontWeight: 500 }}>已经收到的消息还在他手机上</strong>，
-          换密钥追不回来。
+          {t("rotate.noteBefore")}
+          <strong style={{ fontWeight: 500 }}>{t("rotate.noteStrong")}</strong>
+          {t("rotate.noteAfter")}
         </p>
 
         {rotateError ? (
@@ -226,7 +228,7 @@ export function AdminPublishScreen({
         {rotatedCode ? (
           <div style={{ marginBottom: 12 }}>
             <p role="status" style={{ fontSize: 12, color: colors.deepInkGreen, margin: "0 0 8px" }}>
-              已更换群密钥。把下面的新邀请码发给留下的成员，他们需要重新加入一次。
+              {t("rotate.done")}
             </p>
             <code
               style={{
@@ -246,12 +248,12 @@ export function AdminPublishScreen({
           </div>
         ) : !rotateConfirm ? (
           <Button variant="secondary" onClick={() => setRotateConfirm(true)}>
-            更换群密钥
+            {t("rotate.button")}
           </Button>
         ) : (
           <div style={{ display: "flex", gap: 8 }}>
             <Button variant="secondary" onClick={() => setRotateConfirm(false)} style={{ flex: 1 }}>
-              取消
+              {t("common.cancel")}
             </Button>
             <Button
               variant="danger"
@@ -267,13 +269,13 @@ export function AdminPublishScreen({
                   .catch((err: unknown) => {
                     // 轮换失败必须说出来——静默失败会让管理员以为已经换过了，
                     // 而实际上被移除的人还能读到新消息
-                    setRotateError(err instanceof Error ? err.message : "更换失败，请重试");
+                    setRotateError(err instanceof Error ? err.message : t("rotate.failed"));
                   })
                   .finally(() => setIsRotating(false));
               }}
               style={{ flex: 1 }}
             >
-              {isRotating ? "更换中..." : "确认更换"}
+              {isRotating ? t("rotate.rotating") : t("rotate.confirm")}
             </Button>
           </div>
         )}
@@ -292,10 +294,10 @@ export function AdminPublishScreen({
             cursor: "pointer",
           }}
         >
-          退出管理员模式
+          {t("publish.exitAdmin")}
         </button>
         <p style={{ fontSize: 10, color: "#9A9A94", lineHeight: 1.6, margin: "4px 0 0" }}>
-          说明：管理员入口只是把发布功能隐藏起来，服务端目前不校验发布权限。
+          {t("publish.adminNote")}
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { colors, InviteInfoCard, type InviteInfo } from "@secureinchat/ui";
+import { t } from "../i18n";
 
 export interface InviteScreenProps {
   invite: InviteInfo;
@@ -16,7 +17,7 @@ export function InviteScreen({ invite, onConfirm, onBack, isConfirming, errorMes
     <div style={{ minHeight: "100vh", background: colors.ivory, padding: 24 }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("common.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -28,7 +29,7 @@ export function InviteScreen({ invite, onConfirm, onBack, isConfirming, errorMes
           minHeight: 48,
         }}
       >
-        ← 返回
+        {t("common.backArrow")}
       </button>
       <InviteInfoCard invite={invite} onConfirm={onConfirm} isConfirming={isConfirming} />
       {errorMessage ? (

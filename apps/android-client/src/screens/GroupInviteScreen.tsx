@@ -1,4 +1,5 @@
 import { colors, touchTarget, InviteShareCard } from "@secureinchat/ui";
+import { t } from "../i18n";
 
 export interface GroupInviteScreenProps {
   /** 群名。加载完成前 / 找不到群时为 undefined。 */
@@ -28,7 +29,7 @@ export function GroupInviteScreen({
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24, overflowY: "auto" }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("common.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -40,12 +41,12 @@ export function GroupInviteScreen({
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("common.backArrow")}
       </button>
 
       <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 16px" }}>
         {/* 群名已经印在下面的卡片上，标题只说这一页是干什么的 */}
-        邀请新成员
+        {t("groupSettings.invite")}
       </h1>
 
       {error ? (
@@ -62,7 +63,7 @@ export function GroupInviteScreen({
           {error}
         </p>
       ) : !inviteCode || !groupName ? (
-        <p style={{ fontSize: 12, color: "#8A8A82", margin: 0 }}>正在生成邀请卡片...</p>
+        <p style={{ fontSize: 12, color: "#8A8A82", margin: 0 }}>{t("groupInvite.generating")}</p>
       ) : (
         <>
           <InviteShareCard groupName={groupName} inviteCode={inviteCode} onCopy={onCopy} />
@@ -75,8 +76,7 @@ export function GroupInviteScreen({
               marginBottom: 0,
             }}
           >
-            拿到这张卡片的人都能加入本群并读到之后的消息。只发给你信任的人。
-            要移出某人，在「群内设备」里更换群密钥，旧卡片随之失效。
+            {t("groupInvite.warning")}
           </p>
         </>
       )}

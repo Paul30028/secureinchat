@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { colors, touchTarget, Button, Avatar } from "@secureinchat/ui";
+import { t } from "../i18n";
 
 export interface JoinGroupScreenProps {
   onSubmitInviteCode: (raw: string) => void;
@@ -28,7 +29,7 @@ export function JoinGroupScreen({ onSubmitInviteCode, onCreateGroup, onBack, onS
     >
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("common.back")}
         style={{
           alignSelf: "flex-start",
           background: "transparent",
@@ -40,19 +41,19 @@ export function JoinGroupScreen({ onSubmitInviteCode, onCreateGroup, onBack, onS
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("common.backArrow")}
       </button>
-      <Avatar name="邀群密聊" size="large" />
-      <span style={{ fontSize: 20, fontWeight: 500, color: colors.deepInkGreen }}>邀群密聊</span>
-      <span style={{ fontSize: 12, color: "#8A8A82" }}>安全 · 隐私 · 专属</span>
+      <Avatar name={t("app.name")} size="large" />
+      <span style={{ fontSize: 20, fontWeight: 500, color: colors.deepInkGreen }}>{t("app.name")}</span>
+      <span style={{ fontSize: 12, color: "#8A8A82" }}>{t("join.tagline")}</span>
 
       <div style={{ width: "100%", maxWidth: 320, marginTop: 24, display: "flex", flexDirection: "column", gap: 12 }}>
         <input
           type="text"
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          placeholder="输入邀请码"
-          aria-label="邀请码输入框"
+          placeholder={t("join.codePlaceholder")}
+          aria-label={t("join.codeInput")}
           style={{
             minHeight: touchTarget.minDp,
             border: `0.5px solid ${colors.sageMint}`,
@@ -66,7 +67,7 @@ export function JoinGroupScreen({ onSubmitInviteCode, onCreateGroup, onBack, onS
         />
         {/* 扫码是主路径——小团体多半是当面加入，扫一下比手动粘贴一长串快得多 */}
         <Button variant="primary" onClick={onScanQr} style={{ width: "100%" }}>
-          扫描二维码加入
+          {t("join.scan")}
         </Button>
 
         <Button
@@ -75,10 +76,10 @@ export function JoinGroupScreen({ onSubmitInviteCode, onCreateGroup, onBack, onS
           disabled={code.trim().length === 0}
           style={{ width: "100%" }}
         >
-          用邀请码加入
+          {t("join.withCode")}
         </Button>
         <Button variant="secondary" onClick={onCreateGroup} style={{ width: "100%" }}>
-          创建群聊
+          {t("create.title")}
         </Button>
 
       </div>

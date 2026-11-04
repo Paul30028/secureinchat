@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { colors, radii, touchTarget } from "../tokens";
+import { uiText } from "../strings";
 
 export interface InviteShareCardProps {
   groupName: string;
@@ -67,10 +68,10 @@ export function InviteShareCard({ groupName, inviteCode, expiryLabel, onCopy }: 
       }}
     >
       <div style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary }}>{groupName}</div>
-      <div style={{ fontSize: 12, color: "#8A8A82" }}>邀请制加密群聊</div>
+      <div style={{ fontSize: 12, color: "#8A8A82" }}>{uiText("inviteKind")}</div>
 
       <div
-        aria-label="邀请二维码"
+        aria-label={uiText("shareQrLabel")}
         style={{
           width: 180,
           height: 180,
@@ -99,13 +100,13 @@ export function InviteShareCard({ groupName, inviteCode, expiryLabel, onCopy }: 
           />
         ) : (
           <span style={{ fontSize: 12, color: "#9A9A94", textAlign: "center" }}>
-            {qrError ? "二维码生成失败，请用下方邀请码" : "正在生成二维码..."}
+            {qrError ? uiText("shareQrFailed") : uiText("shareQrGenerating")}
           </span>
         )}
       </div>
 
       <div style={{ fontSize: 11, color: "#8A8A82", textAlign: "center", lineHeight: 1.6 }}>
-        让对方扫码，或复制下面的邀请码发给他
+        {uiText("shareHint")}
         {expiryLabel ? (
           <>
             <br />
@@ -146,11 +147,11 @@ export function InviteShareCard({ groupName, inviteCode, expiryLabel, onCopy }: 
           boxShadow: "none",
         }}
       >
-        {copied ? "已复制" : "复制邀请码"}
+        {copied ? uiText("copied") : uiText("shareCopyCode")}
       </button>
 
       <div style={{ fontSize: 10, color: "#9A9A94", textAlign: "center" }}>
-        拿到这串邀请码的人就能加入并解密群消息，请只发给要邀请的人
+        {uiText("shareWarning")}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { colors, radii, touchTarget } from "../tokens";
+import { uiText } from "../strings";
 
 export interface CopyableCodeProps {
   value: string;
@@ -60,7 +61,7 @@ export function CopyableCode({ value, label }: CopyableCodeProps) {
             flexShrink: 0,
           }}
         >
-          {copied ? "已复制" : "复制"}
+          {copied ? uiText("copied") : uiText("copy")}
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { colors, touchTarget, Button, Avatar } from "@secureinchat/ui";
 import { validateNickname, saveNickname, NICKNAME_MAX_LENGTH } from "../profile";
+import { t } from "../i18n";
 
 export interface EditProfileScreenProps {
   currentNickname: string;
@@ -33,7 +34,7 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
       await saveNickname(nickname.trim());
       onSaved(nickname.trim());
     } catch {
-      setError("保存失败，请重试");
+      setError(t("common.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -43,7 +44,7 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24 }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("common.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -55,12 +56,12 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("common.backArrow")}
       </button>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
         <Avatar name={nickname || "?"} size="large" />
-        <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: 0 }}>修改昵称</h1>
+        <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: 0 }}>{t("profile.editTitle")}</h1>
 
         <div style={{ width: "100%", maxWidth: 320, display: "flex", flexDirection: "column", gap: 10 }}>
           <input
@@ -70,7 +71,7 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
               setNickname(e.target.value);
               setError(null);
             }}
-            aria-label="昵称输入框"
+            aria-label={t("profile.input")}
             maxLength={NICKNAME_MAX_LENGTH}
             style={{
               minHeight: touchTarget.minDp,
@@ -95,11 +96,11 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
           ) : null}
 
           <Button variant="primary" onClick={() => void handleSave()} disabled={saving || nickname.trim().length === 0}>
-            {saving ? "保存中..." : "保存"}
+            {saving ? t("common.saving") : t("common.save")}
           </Button>
 
           <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, textAlign: "center", marginTop: 4 }}>
-            改名只影响之后发出的消息，已经发出去的不会变。
+            {t("profile.editNote")}
           </p>
         </div>
       </div>

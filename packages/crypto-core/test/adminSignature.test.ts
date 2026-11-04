@@ -104,12 +104,14 @@ describe("admin recovery code", () => {
 
   it("rejects a code with the wrong prefix", async () => {
     await expect(restoreAdminKeyFromRecoveryCode("SIC2.something")).rejects.toThrow(AdminRecoveryError);
+    await expect(restoreAdminKeyFromRecoveryCode("SIC2.something")).rejects.toMatchObject({ code: "not-recovery-code" });
   });
 
   it("rejects a truncated or garbled code rather than failing silently", async () => {
     const admin = await generateAdminKeyPair();
     const truncated = admin.recoveryCode.slice(0, admin.recoveryCode.length - 12);
     await expect(restoreAdminKeyFromRecoveryCode(truncated)).rejects.toThrow(AdminRecoveryError);
+    await expect(restoreAdminKeyFromRecoveryCode(truncated)).rejects.toHaveProperty("code");
   });
 
   it("tolerates surrounding whitespace from copying", async () => {

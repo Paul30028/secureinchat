@@ -1,5 +1,7 @@
 import { colors, radii } from "@secureinchat/ui";
-import { CATEGORY_ORDER, CATEGORY_META, type AnnouncementCategory } from "@secureinchat/chat-core";
+import { CATEGORY_ORDER, type AnnouncementCategory } from "@secureinchat/chat-core";
+import { BCP47, getLocale, t } from "../i18n";
+import { categoryLabel } from "../i18n/labels";
 
 export interface CategoryEntry {
   title: string;
@@ -44,7 +46,7 @@ function ColumnCard({ label, entry }: { label: string; entry?: CategoryEntry | u
             <audio
               controls
               src={entry.audioUrl}
-              aria-label="播放圣诗"
+              aria-label={t("today.playAudio")}
               style={{ width: "100%", marginTop: 10, height: 36 }}
             />
           ) : entry.audioPending ? (
@@ -52,7 +54,7 @@ function ColumnCard({ label, entry }: { label: string; entry?: CategoryEntry | u
           ) : null}
         </>
       ) : (
-        <div style={{ fontSize: 12, color: "#9A9A94", marginTop: 6 }}>今天还没有内容</div>
+        <div style={{ fontSize: 12, color: "#9A9A94", marginTop: 6 }}>{t("today.empty")}</div>
       )}
     </div>
   );
@@ -67,10 +69,12 @@ function ColumnCard({ label, entry }: { label: string; entry?: CategoryEntry | u
  *
  * 普通成员这一页是纯只读的——发布入口只有管理员解锁后才出现。
  */
-const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-
+/** 中文「11月4日 星期三」，英文「Wednesday, Nov 4」，西班牙语「miércoles, 4 nov」 */
 function todayLabel(now = new Date()): string {
-  return `${now.getMonth() + 1}月${now.getDate()}日 星期${WEEKDAYS[now.getDay()]}`;
+  const tag = BCP47[getLocale()];
+  const date = new Intl.DateTimeFormat(tag, { month: "short", day: "numeric" }).format(now);
+  const weekday = new Intl.DateTimeFormat(tag, { weekday: "long" }).format(now);
+  return t("today.date", { date, weekday });
 }
 
 export function TodayScreen({ content, isAdmin, onOpenAdmin }: TodayScreenProps) {
@@ -82,14 +86,14 @@ export function TodayScreen({ content, isAdmin, onOpenAdmin }: TodayScreenProps)
       <div style={{ fontSize: 12, color: "#8A8A82", padding: "0 2px 2px" }}>{todayLabel()}</div>
       {!hasAnything ? (
         <div style={{ textAlign: "center", padding: "32px 16px 24px" }}>
-          <div style={{ fontSize: 14, color: colors.textPrimary }}>今天还没有内容</div>
+          <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("today.empty")}</div>
           <div style={{ fontSize: 12, color: "#8A8A82", marginTop: 6 }}>
-            管理员发布后，群里所有人都会在这里看到
+            {t("today.emptyHint")}
           </div>
         </div>
       ) : (
         CATEGORY_ORDER.map((key) => (
-          <ColumnCard key={key} label={CATEGORY_META[key].label} entry={content[key]} />
+          <ColumnCard key={key} label={categoryLabel(key)} entry={content[key]} />
         ))
       )}
 
@@ -107,7 +111,7 @@ export function TodayScreen({ content, isAdmin, onOpenAdmin }: TodayScreenProps)
             cursor: "pointer",
           }}
         >
-          发布今日内容
+          {t("publish.title")}
         </button>
       ) : null}
     </div>

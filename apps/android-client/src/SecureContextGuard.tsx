@@ -1,4 +1,5 @@
 import { colors, radii } from "@secureinchat/ui";
+import { t } from "./i18n";
 
 /**
  * 浏览器的 Web Crypto（`crypto.subtle`）只在安全上下文下可用——HTTPS 或
@@ -33,15 +34,17 @@ export function InsecureContextNotice() {
         }}
       >
         <h1 style={{ fontSize: 16, fontWeight: 500, color: colors.textPrimary, margin: "0 0 12px" }}>
-          无法启用加密
+          {t("insecure.title")}
         </h1>
         <p style={{ fontSize: 13, color: "#8A8A82", lineHeight: 1.7, margin: 0 }}>
-          浏览器只在 HTTPS 或 localhost 下提供加密能力。当前地址不满足这个条件，
-          为了不在没有加密保护的情况下传输消息，应用不会启动。
+          {t("insecure.body")}
         </p>
         <p style={{ fontSize: 13, color: "#8A8A82", lineHeight: 1.7, margin: "12px 0 0" }}>
-          请改用 <code style={{ fontFamily: "monospace" }}>https://</code> 地址访问，
-          或在本机用 <code style={{ fontFamily: "monospace" }}>localhost</code> 打开。
+          {t("insecure.fixBefore")}
+          <code style={{ fontFamily: "monospace" }}>https://</code>
+          {t("insecure.fixMiddle")}
+          <code style={{ fontFamily: "monospace" }}>localhost</code>
+          {t("insecure.fixAfter")}
         </p>
       </div>
     </div>

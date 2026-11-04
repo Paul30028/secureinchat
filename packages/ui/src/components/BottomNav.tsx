@@ -1,4 +1,5 @@
 import { colors, touchTarget } from "../tokens";
+import { uiText } from "../strings";
 
 /**
  * 底部导航严格只有三项（第六节要求）：公告、消息、我的。不接受传入任意数量的 tab——
@@ -13,10 +14,10 @@ export interface BottomNavProps {
   unreadCount?: number;
 }
 
-const items: { key: BottomNavKey; label: string }[] = [
-  { key: "announcements", label: "公告" },
-  { key: "messages", label: "消息" },
-  { key: "me", label: "我的" },
+const items: { key: BottomNavKey; label: () => string }[] = [
+  { key: "announcements", label: () => uiText("navAnnouncements") },
+  { key: "messages", label: () => uiText("navMessages") },
+  { key: "me", label: () => uiText("navMe") },
 ];
 
 function TabIcon({ tabKey, active }: { tabKey: BottomNavKey; active: boolean }) {
@@ -49,7 +50,7 @@ export function BottomNav({ active, onChange, unreadCount }: BottomNavProps) {
   return (
     <nav
       role="tablist"
-      aria-label="主导航"
+      aria-label={uiText("navLabel")}
       style={{
         display: "flex",
         justifyContent: "space-around",
@@ -104,7 +105,7 @@ export function BottomNav({ active, onChange, unreadCount }: BottomNavProps) {
                 {unreadCount > 99 ? "99+" : unreadCount}
               </span>
             ) : null}
-            <span style={{ fontSize: 11, color: isActive ? colors.deepInkGreen : "#9A9A94" }}>{item.label}</span>
+            <span style={{ fontSize: 11, color: isActive ? colors.deepInkGreen : "#9A9A94" }}>{item.label()}</span>
           </button>
         );
       })}

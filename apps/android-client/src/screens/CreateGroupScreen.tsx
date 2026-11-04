@@ -3,6 +3,7 @@ import { colors, touchTarget, Button, InviteShareCard } from "@secureinchat/ui";
 import { buildSic2Invite } from "@secureinchat/protocol";
 import { randomUUID, generateAdminKeyPair } from "@secureinchat/crypto-core";
 import { copyToClipboard } from "@secureinchat/chat-core";
+import { t } from "../i18n";
 
 export interface CreateGroupScreenProps {
   /** 当前生效的中继地址，连不上时要显示出来——否则不知道它在连哪里 */
@@ -71,7 +72,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
     try {
       await onCreated({
         groupId: pendingGroupId,
-        groupName: groupName || "新群聊",
+        groupName: groupName || t("create.defaultName"),
         keyMaterialB64Url: pendingKeyMaterial,
         inviteCode,
         adminRecoveryCode: recoveryCode,
@@ -81,7 +82,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
       // 把地址一起显示出来。连不上时最需要知道的就是"它在连哪台服务器"——
       // 只说"失败了"没法判断是服务器没起、地址填错、还是网络问题。
       setErrorMessage(
-        `进入群聊失败：${err instanceof Error ? err.message : "请重试"}\n服务器：${relayUrl}`
+        t("create.enterFailed", { reason: err instanceof Error ? err.message : t("common.pleaseRetry"), server: relayUrl })
       );
     }
   }
@@ -90,7 +91,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
     <div style={{ minHeight: "100vh", background: colors.ivory, padding: 24 }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("common.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -102,10 +103,10 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
           minHeight: 48,
         }}
       >
-        ← 返回
+        {t("common.backArrow")}
       </button>
 
-      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 16px" }}>创建群聊</h1>
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 16px" }}>{t("create.title")}</h1>
 
       {!inviteCode ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -113,8 +114,8 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
             type="text"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            placeholder="群聊名称"
-            aria-label="群聊名称输入框"
+            placeholder={t("create.namePlaceholder")}
+            aria-label={t("create.nameInput")}
             style={{
               minHeight: touchTarget.minDp,
               border: `0.5px solid ${colors.sageMint}`,
@@ -127,13 +128,13 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
             }}
           />
           <Button variant="primary" onClick={() => void handleCreate()} disabled={groupName.trim().length === 0}>
-            创建群聊
+            {t("create.title")}
           </Button>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <p style={{ fontSize: 12, color: "#8A8A82", textAlign: "center" }}>
-            截图这张卡片发出去，或让对方扫码加入
+            {t("create.shareHint")}
           </p>
           {recoveryCode ? (
             <div
@@ -146,7 +147,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
             >
               <button
                 onClick={() => setRecoveryOpen((v) => !v)}
-                aria-label={recoveryOpen ? "收起管理员恢复码" : "展开管理员恢复码"}
+                aria-label={recoveryOpen ? t("create.recoveryCollapse") : t("create.recoveryExpand")}
                 style={{
                   width: "100%",
                   minHeight: touchTarget.minDp,
@@ -161,24 +162,24 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
                 }}
               >
                 <span style={{ fontSize: 14, fontWeight: 500, color: colors.textPrimary }}>
-                  管理员恢复码{recoverySaved ? " ✓" : ""}
+                  {t("create.recoveryTitle")}{recoverySaved ? " ✓" : ""}
                 </span>
-                <span style={{ fontSize: 12, color: colors.wheatGold }}>{recoveryOpen ? "收起" : "展开抄写"}</span>
+                <span style={{ fontSize: 12, color: colors.wheatGold }}>{recoveryOpen ? t("create.collapse") : t("create.expandToCopy")}</span>
               </button>
               {!recoveryOpen ? (
                 <p style={{ fontSize: 11, color: "#9A9A94", margin: "4px 0 0" }}>
-                  换手机时用来找回发布权限，建议现在抄下来
+                  {t("create.recoveryHint")}
                 </p>
               ) : null}
 
               {recoveryOpen ? (
               <>
               <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "8px 0 10px" }}>
-                只有你能发布这个群的每日内容，凭据就保存在这台手机上。
+                {t("create.recoveryNoteBefore")}
                 <strong style={{ fontWeight: 500, color: colors.textPrimary }}>
-                  换手机或手机丢失后，只有这串码能恢复
+                  {t("create.recoveryNoteStrong")}
                 </strong>
-                ，请抄下来收好。它只显示这一次。
+                {t("create.recoveryNoteAfter")}
               </p>
               <code
                 style={{
@@ -198,14 +199,14 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
               </code>
               <div style={{ display: "flex", gap: 8 }}>
                 <Button variant="secondary" onClick={() => void copyToClipboard(recoveryCode)} style={{ flex: 1 }}>
-                  复制
+                  {t("common.copy")}
                 </Button>
                 <Button
                   variant={recoverySaved ? "secondary" : "primary"}
                   onClick={() => setRecoverySaved(true)}
                   style={{ flex: 1 }}
                 >
-                  {recoverySaved ? "已保存 ✓" : "我已保存"}
+                  {recoverySaved ? t("create.savedCheck") : t("create.iSavedIt")}
                 </Button>
               </div>
               </>
@@ -214,7 +215,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
           ) : null}
 
           <InviteShareCard
-            groupName={groupName || "新群聊"}
+            groupName={groupName || t("create.defaultName")}
             inviteCode={inviteCode}
             onCopy={() => void copyToClipboard(inviteCode)}
           />
@@ -245,7 +246,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
           }}
         >
           <Button variant="primary" onClick={handleEnter} disabled={isEntering} style={{ width: "100%" }}>
-            {isEntering ? "正在进入..." : "进入群聊"}
+            {isEntering ? t("create.entering") : t("create.enter")}
           </Button>
         </div>
       ) : null}

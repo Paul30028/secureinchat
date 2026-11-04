@@ -1,4 +1,5 @@
 import { colors, touchTarget } from "@secureinchat/ui";
+import { t } from "../i18n";
 
 export interface ImageViewerProps {
   src: string;
@@ -18,7 +19,7 @@ export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
   return (
     <div
       role="dialog"
-      aria-label={`查看图片 ${fileName}`}
+      aria-label={t("image.view", { fileName })}
       onClick={onClose}
       style={{
         position: "fixed",
@@ -35,7 +36,7 @@ export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
       >
         <button
           onClick={onClose}
-          aria-label="关闭"
+          aria-label={t("common.close")}
           style={{
             minHeight: touchTarget.minDp,
             minWidth: touchTarget.minDp,
@@ -64,7 +65,7 @@ export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
         <a
           href={src}
           download={fileName}
-          aria-label="保存图片"
+          aria-label={t("image.save")}
           style={{
             minHeight: touchTarget.minDp,
             display: "flex",
@@ -75,7 +76,7 @@ export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
             textDecoration: "none",
           }}
         >
-          保存
+          {t("common.save")}
         </a>
       </div>
 
@@ -90,7 +91,7 @@ export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
       </div>
 
       <div style={{ textAlign: "center", padding: "0 0 16px", fontSize: 11, color: "rgba(235,236,229,0.5)" }}>
-        点击空白处关闭
+        {t("image.tapToClose")}
       </div>
     </div>
   );

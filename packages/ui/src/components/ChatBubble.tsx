@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { colors, radii } from "../tokens";
+import { uiText } from "../strings";
 
 export type MessageStatus = "sent" | "delivered" | "read";
 
@@ -27,11 +28,10 @@ function StatusTicks({ status }: { status: MessageStatus }) {
   );
 }
 
-const STATUS_LABEL: Record<MessageStatus, string> = {
-  sent: "已发送",
-  delivered: "已送达",
-  read: "已读",
-};
+const STATUS_KEY = { sent: "statusSent", delivered: "statusDelivered", read: "statusRead" } as const satisfies Record<
+  MessageStatus,
+  string
+>;
 
 /** 聊天气泡。不用阴影——磨砂卡片风格延伸到气泡上，靠描边和底色区分自己/对方。 */
 export function ChatBubble({ children, isOwn, timeLabel, status, senderName }: ChatBubbleProps) {
@@ -58,7 +58,7 @@ export function ChatBubble({ children, isOwn, timeLabel, status, senderName }: C
       <div style={{ display: "flex", alignItems: "center", gap: 4, margin: "4px 4px 0" }}>
         <span style={{ fontSize: 10, color: "#9A9A94" }}>{timeLabel}</span>
         {isOwn && status ? (
-          <span title={STATUS_LABEL[status]} style={{ display: "inline-flex" }}>
+          <span title={uiText(STATUS_KEY[status])} style={{ display: "inline-flex" }}>
             <StatusTicks status={status} />
           </span>
         ) : null}

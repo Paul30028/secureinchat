@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { colors, Button } from "@secureinchat/ui";
 import type { HardwareKeyErrorKind } from "@secureinchat/secure-storage";
+import { t } from "../i18n";
 
 /**
  * C10-A：本机数据存在，但保护它的主密钥解不开。
@@ -19,12 +20,12 @@ export interface KeyUnavailableScreenProps {
 
 function reasonText(kind: HardwareKeyErrorKind): string {
   if (kind === "missing") {
-    return "保护本机数据的硬件密钥不在这台手机上了。常见原因：清除过应用数据、重装过应用，或者应用数据是从另一台手机恢复过来的。";
+    return t("keyProblem.missing");
   }
   if (kind === "invalidated") {
-    return "保护本机数据的硬件密钥已被系统作废（例如系统升级或安全设置变化）。";
+    return t("keyProblem.invalidated");
   }
-  return "系统密钥库没能解开本机数据。";
+  return t("keyProblem.failed");
 }
 
 export function KeyUnavailableScreen({ kind, detail, onRetry, onResetAndRestore }: KeyUnavailableScreenProps) {
@@ -38,7 +39,7 @@ export function KeyUnavailableScreen({ kind, detail, onRetry, onResetAndRestore 
     try {
       await fn();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "操作失败，请重试");
+      setError(err instanceof Error ? err.message : t("common.actionFailed"));
     } finally {
       setBusy(false);
     }
@@ -57,35 +58,35 @@ export function KeyUnavailableScreen({ kind, detail, onRetry, onResetAndRestore 
       }}
     >
       <div role="heading" aria-level={1} style={{ fontSize: 16, fontWeight: 500, color: "#2B2B28" }}>
-        本机数据无法解密
+        {t("keyProblem.title")}
       </div>
       <div style={{ fontSize: 13, color: colors.textPrimary, lineHeight: 1.8 }}>{reasonText(kind)}</div>
       {kind === "failed" && detail ? (
         <div style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.6 }}>{detail}</div>
       ) : null}
       <div style={{ fontSize: 13, color: colors.textPrimary, lineHeight: 1.8 }}>
-        本机的群和消息已经无法解开。导出过备份的话，可以清空本机数据，再从备份恢复；没有备份，就需要重新加入各个群。
+        {t("keyProblem.body")}
       </div>
 
       {confirming ? (
         <>
           <div style={{ fontSize: 13, color: "#A33", lineHeight: 1.8 }}>
-            将删除本机所有群和消息（它们已经无法解开）。应用锁、昵称等设置会保留。确定吗？
+            {t("keyProblem.confirm")}
           </div>
           <Button variant="danger" disabled={busy} onClick={() => void run(onResetAndRestore)}>
-            确定清空，去恢复备份
+            {t("keyProblem.confirmButton")}
           </Button>
           <Button variant="secondary" disabled={busy} onClick={() => setConfirming(false)}>
-            取消
+            {t("common.cancel")}
           </Button>
         </>
       ) : (
         <>
           <Button variant="primary" disabled={busy} onClick={() => void run(onRetry)}>
-            重试
+            {t("common.retry")}
           </Button>
           <Button variant="secondary" disabled={busy} onClick={() => setConfirming(true)}>
-            清空本机数据，从备份恢复
+            {t("keyProblem.reset")}
           </Button>
         </>
       )}

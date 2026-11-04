@@ -20,6 +20,7 @@ import { ImageViewer } from "./ImageViewer";
 import { EmojiPicker } from "./EmojiPicker";
 import { GroupMembersSheet } from "./GroupMembersSheet";
 import { parseMentions, mentionsMe, mentionCandidates, activeMentionQuery, applyMention } from "@secureinchat/chat-core";
+import { t } from "../i18n";
 
 export interface DisplayMessage {
   id: string;
@@ -188,7 +189,7 @@ export function ChatScreen({
       setIsRecording(true);
     } catch {
       // 权限被拒绝 / 设备不支持——明确告诉用户，不要静默失败
-      setRecordError("无法录音，请检查麦克风权限");
+      setRecordError(t("chat.recordFailed"));
     }
   }
 
@@ -214,14 +215,14 @@ export function ChatScreen({
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
         <button
           onClick={onBack}
-          aria-label="返回"
+          aria-label={t("common.back")}
           style={{ background: "transparent", border: "none", boxShadow: "none", color: colors.deepInkGreen, cursor: "pointer" }}
         >
           ←
         </button>
         <button
           onClick={onOpenGroupSettings}
-          aria-label="群设置"
+          aria-label={t("groupSettings.title")}
           style={{
             flex: 1,
             textAlign: "left",
@@ -240,7 +241,7 @@ export function ChatScreen({
           <span
             role="button"
             tabIndex={0}
-            aria-label="查看群成员"
+            aria-label={t("chat.members")}
             onClick={(e) => {
               // 点在线人数看成员，点群名进设置——两个动作叠在同一块区域，
               // 所以这里要拦住冒泡
@@ -261,12 +262,12 @@ export function ChatScreen({
               cursor: "pointer",
             }}
           >
-            {knownPeers.length > 0 ? `${knownPeers.length} 人在线` : "群里暂时只有你在线"}
+            {knownPeers.length > 0 ? t("chat.peopleOnline", { count: knownPeers.length }) : t("group.onlyYouOnline")}
           </span>
         </button>
         <button
           onClick={onOpenSearch}
-          aria-label="搜索消息"
+          aria-label={t("chat.search")}
           style={{ ...callBtnStyle, fontSize: 16 }}
         >
           <SearchIcon />
@@ -276,15 +277,15 @@ export function ChatScreen({
         <button
           onClick={() => onStartCall("voice", knownPeers[knownPeers.length - 1]!)}
           aria-disabled={knownPeers.length === 0}
-          aria-label="语音通话"
+          aria-label={t("chat.voiceCall")}
           onClickCapture={(e) => {
             if (knownPeers.length === 0) {
               e.preventDefault();
               e.stopPropagation();
-              setCallHint("群里现在没有其他人在线，等对方打开应用后再拨");
+              setCallHint(t("chat.nobodyOnlineCall"));
             }
           }}
-          title={knownPeers.length === 0 ? "群里没有其他人在线" : "语音通话"}
+          title={knownPeers.length === 0 ? t("chat.nobodyOnline") : t("chat.voiceCall")}
           style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
         >
           <PhoneIcon />
@@ -292,14 +293,14 @@ export function ChatScreen({
         <button
           onClick={() => {
             if (knownPeers.length === 0) {
-              setCallHint("群里现在没有其他人在线，等大家打开应用后再开会议");
+              setCallHint(t("chat.nobodyOnlineConference"));
               return;
             }
             onStartConference();
           }}
-          aria-label="发起语音会议"
+          aria-label={t("chat.startConference")}
           aria-disabled={knownPeers.length === 0}
-          title={knownPeers.length === 0 ? "群里没有其他人在线" : "发起语音会议"}
+          title={knownPeers.length === 0 ? t("chat.nobodyOnline") : t("chat.startConference")}
           style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
         >
           <UsersIcon />
@@ -307,15 +308,15 @@ export function ChatScreen({
         <button
           onClick={() => onStartCall("video", knownPeers[knownPeers.length - 1]!)}
           aria-disabled={knownPeers.length === 0}
-          aria-label="视频通话"
+          aria-label={t("chat.videoCall")}
           onClickCapture={(e) => {
             if (knownPeers.length === 0) {
               e.preventDefault();
               e.stopPropagation();
-              setCallHint("群里现在没有其他人在线，等对方打开应用后再拨");
+              setCallHint(t("chat.nobodyOnlineCall"));
             }
           }}
-          title={knownPeers.length === 0 ? "群里没有其他人在线" : "视频通话"}
+          title={knownPeers.length === 0 ? t("chat.nobodyOnline") : t("chat.videoCall")}
           style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
         >
           <VideoIcon />
@@ -351,11 +352,11 @@ export function ChatScreen({
           }}
         >
           {connectionStatus === "reconnecting"
-            ? "连接已断开，正在自动重连..."
+            ? t("chat.reconnecting")
             : connectionStatus === "connecting"
-              ? "正在连接..."
-              : "已断开连接"}
-          {pendingCount ? `（${pendingCount} 条消息等待发送）` : ""}
+              ? t("call.connecting")
+              : t("chat.disconnected")}
+          {pendingCount ? t("chat.pendingCount", { count: pendingCount }) : ""}
         </div>
       ) : null}
 
@@ -363,7 +364,7 @@ export function ChatScreen({
         {announcement ? <AnnouncementCard title={announcement.title} body={announcement.body} /> : null}
 
         {messages.length === 0 && !announcement ? (
-          <p style={{ textAlign: "center", color: "#9A9A94", fontSize: 12, marginTop: 24 }}>还没有消息，说点什么吧</p>
+          <p style={{ textAlign: "center", color: "#9A9A94", fontSize: 12, marginTop: 24 }}>{t("chat.empty")}</p>
         ) : (
           messages.map((m) =>
             m.system ? (
@@ -410,7 +411,7 @@ export function ChatScreen({
                       border: 0,
                     }}
                   >
-                    定时消失
+                    {t("chat.disappearingBadge")}
                   </span>
                 ) : null}
                 {m.replyTo ? (
@@ -449,7 +450,7 @@ export function ChatScreen({
               </ChatBubble>
               {m.queued ? (
                 <div style={{ textAlign: "right", fontSize: 11, color: colors.wheatGold, marginTop: 2 }}>
-                  等待发送
+                  {t("chat.queued")}
                 </div>
               ) : null}
             </div>
@@ -459,7 +460,7 @@ export function ChatScreen({
 
         {incomingProgress?.map((p) => (
           <div key={p.fileId} style={{ fontSize: 11, color: "#9A9A94", textAlign: "center" }}>
-            正在接收 {p.fileName}（{p.receivedChunks}/{p.totalChunks}）
+            {t("chat.receiving", { fileName: p.fileName, received: p.receivedChunks, total: p.totalChunks })}
           </div>
         ))}
       </div>
