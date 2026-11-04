@@ -13,8 +13,22 @@
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
+import secrets
 import time
 from collections import deque
+
+# 每次进程启动随机生成，只在内存里，不落盘。限流需要「同一来源」的概念，
+# 但不需要知道来源是谁：用它对 IP 做 HMAC，内存里就没有原始 IP；
+# 重启后旧的标识也无法再和 IP 对上。
+_SOURCE_SALT = secrets.token_bytes(32)
+
+
+def source_fingerprint(ip: str, salt: bytes | None = None) -> str:
+    """把来源 IP 变成限流用的不透明标识（不可逆，进程内稳定）。"""
+    key = _SOURCE_SALT if salt is None else salt
+    return hmac.new(key, ip.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
 
 
 class SlidingWindowLimiter:
@@ -37,6 +51,7 @@ class SlidingWindowLimiter:
         """记录一次事件并返回是否放行。超限时不记录——否则持续冲击会让
         窗口永远填满，正常流量恢复后也解不开。"""
         now = time.monotonic() if now is None else now
+        self._sweep(now)
         bucket = self._events.setdefault(key, deque())
 
         cutoff = now - self._window
@@ -48,6 +63,17 @@ class SlidingWindowLimiter:
 
         bucket.append(now)
         return True
+
+    def _sweep(self, now: float) -> None:
+        """顺手清掉窗口里已经没有事件的来源，不让标识在内存里一直留着。
+        每个窗口最多扫一次，开销摊薄。"""
+        last = getattr(self, "_last_sweep", None)
+        if last is not None and now - last < self._window:
+            return
+        self._last_sweep = now
+        cutoff = now - self._window
+        for k in [k for k, b in self._events.items() if not b or b[-1] <= cutoff]:
+            del self._events[k]
 
     def forget(self, key: str) -> None:
         """连接断开时清掉，避免长期运行后 key 无限增长"""

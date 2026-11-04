@@ -234,3 +234,38 @@ async def test_one_device_flooding_does_not_affect_another(running_server):
 
     await alice.close()
     await bob.close()
+
+
+# —— R4：不在内存里保存原始 IP ——
+
+def test_source_fingerprint_hides_ip_and_is_stable():
+    from app.rate_limit import source_fingerprint
+
+    a = source_fingerprint("203.0.113.7")
+    assert a == source_fingerprint("203.0.113.7")
+    assert a != source_fingerprint("203.0.113.8")
+    assert "203.0.113.7" not in a
+    # 盐不同（例如重启后）标识也不同，旧标识对不上 IP
+    assert source_fingerprint("203.0.113.7", b"x" * 32) != source_fingerprint("203.0.113.7", b"y" * 32)
+
+
+def test_idle_sources_are_swept():
+    from app.rate_limit import SlidingWindowLimiter
+
+    lim = SlidingWindowLimiter(5, 10)
+    lim.allow("a", now=0)
+    lim.allow("b", now=1)
+    assert lim.active_keys() == 2
+    lim.allow("c", now=30)  # a、b 的窗口早已过去
+    assert lim.active_keys() == 1
+
+
+def test_server_source_key_never_returns_raw_ip():
+    from app.server import RelayServer
+
+    class FakeWs:
+        remote_address = ("198.51.100.23", 51515)
+
+    key = RelayServer._source_key(FakeWs())
+    assert "198.51.100.23" not in key
+    assert len(key) == 32

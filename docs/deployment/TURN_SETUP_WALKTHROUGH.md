@@ -127,7 +127,7 @@ total-quota=1200
 fingerprint
 stale-nonce=600
 
-# 日志：先开着，测通了再改成 syslog
+# 日志：先开着，测通了按 docs/deployment/NO_IP_LOGS.md 关掉(不记录 IP)
 log-file=/var/log/turnserver.log
 verbose
 EOF

@@ -19,7 +19,7 @@ from app.device_registry import DeviceRegistry
 from app.invite_registry import InviteRegistry
 from app.membership import GroupMembership
 from app.pubkey_auth import b64url_decode, verify_with_public_key
-from app.rate_limit import make_connection_limiter, make_message_limiter
+from app.rate_limit import make_connection_limiter, make_message_limiter, source_fingerprint
 from app.registry import RoomRegistry
 
 logger = logging.getLogger("secureinchat.relay")
@@ -63,7 +63,8 @@ class RelayServer:
         也不要因为拿不到地址就完全不限。"""
         remote = getattr(ws, "remote_address", None)
         if isinstance(remote, tuple) and remote:
-            return str(remote[0])
+            # 不保存原始 IP：只用加盐哈希做限流键（见 rate_limit.source_fingerprint）
+            return source_fingerprint(str(remote[0]))
         return "unknown"
 
     async def handle_connection(self, ws: ServerConnection) -> None:
