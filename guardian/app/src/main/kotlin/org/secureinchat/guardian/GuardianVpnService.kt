@@ -410,7 +410,7 @@ class GuardianVpnService : VpnService() {
         val ans = d.query(payload)
         if (ans == null) {
             dotFailedAtMs = System.currentTimeMillis()
-            dotState = DotState(d.hostname, connected = false)
+            dotState = DotState(d.hostname, connected = false, reason = d.lastError)
         } else {
             dotFailedAtMs = 0L
             if (dotState?.connected != true) dotState = DotState(d.hostname, connected = true)
@@ -588,7 +588,7 @@ class GuardianVpnService : VpnService() {
          * G18: what the encrypted DNS line shows. null while stopped or off. [connected] is null until
          * the first query after start or a provider change, then the outcome of the latest query.
          */
-        data class DotState(val hostname: String, val connected: Boolean?)
+        data class DotState(val hostname: String, val connected: Boolean?, val reason: String? = null)
 
         @Volatile var dotState: DotState? = null
             private set

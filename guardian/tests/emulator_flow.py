@@ -623,7 +623,7 @@ def main():
         print(f"guardian with Quad9 DoT: {dot_probe} -> {addr}")
         if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
             nodes = find_anywhere(lambda s: "Encrypted DNS:" in s, "no encrypted DNS status line", timeout=20)
-            status = [l for l in joined(nodes).split("\n") if l.startswith("Encrypted DNS:")]
+            status = [l for l in joined(nodes).split("\n") if l.startswith(("Encrypted DNS:", "Reason:"))]
             fail(f"{dot_probe} should resolve over DoT to Quad9, got {addr} ({out.strip()[-200:]}); "
                  f"status: {status}", nodes)
         find_anywhere(lambda s: "Encrypted DNS: Quad9, connected" in s,

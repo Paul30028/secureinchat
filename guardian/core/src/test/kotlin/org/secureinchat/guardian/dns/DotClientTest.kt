@@ -98,6 +98,31 @@ fun main() {
         c.close()
     }
 
+    dtt("lastError says why per address, and clears after a success") {
+        val dead = ServerSocket(0, 1, InetAddress.getLoopbackAddress()).let { val p = it.localPort; it.close(); InetSocketAddress(InetAddress.getLoopbackAddress(), p) }
+        val c = client(dead)
+        deq2(c.lastError, null)
+        deq2(c.query(query(6)), null)
+        val err = c.lastError ?: error("no lastError after a failure")
+        check("127.0.0.1" in err && "ConnectException" in err) { "unhelpful lastError: $err" }
+        c.close()
+        // Same client: the first connection never answers (timeout), the second does.
+        val flaky = FakeResolver { q, out, n -> if (n > 1) out.send(answerFor(q)); true }
+        val f = client(flaky.addr, readMs = 300)
+        deq2(f.query(query(7)), null)
+        check(f.lastError != null) { "no lastError after the timeout" }
+        check(f.query(query(9)) != null) { "no answer on the second connection" }
+        deq2(f.lastError, null)
+        f.close()
+    }
+
+    dtt("lastError for a resolver that accepts but never answers names the timeout") {
+        val r = FakeResolver { _, _, _ -> true }
+        val c = client(r.addr, readMs = 300)
+        deq2(c.query(query(8)), null)
+        check(c.lastError?.contains("Timeout") == true) { "lastError: ${c.lastError}" }
+    }
+
     dtt("fail closed: unreachable resolver returns null, never throws") {
         val dead = ServerSocket(0, 1, InetAddress.getLoopbackAddress()).let { val p = it.localPort; it.close(); InetSocketAddress(InetAddress.getLoopbackAddress(), p) }
         deq2(client(dead).query(query(4)), null)

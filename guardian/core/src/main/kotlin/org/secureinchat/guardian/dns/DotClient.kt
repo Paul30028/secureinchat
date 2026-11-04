@@ -46,6 +46,14 @@ class DotClient(
     @Volatile var connectionsOpened = 0
         private set
 
+    /**
+     * Why the last failed query failed, per resolver address (exception type and message), or null after
+     * a success. Shown on the status line so "cannot reach" says why. It only names the provider's own
+     * addresses and the error, never the name that was looked up.
+     */
+    @Volatile var lastError: String? = null
+        private set
+
     /** Sends a DNS message and returns the matching answer, or null if no resolver address answered. */
     fun query(payload: ByteArray): ByteArray? {
         if (payload.size < 12 || payload.size > 65535) return null
@@ -70,14 +78,16 @@ class DotClient(
                         val ans = ByteArray(len)
                         inp.readFully(ans)
                         val ansId = ((ans[0].toInt() and 0xFF) shl 8) or (ans[1].toInt() and 0xFF)
-                        if (ansId == id) return ans
+                        if (ansId == id) { lastError = null; return ans }
                     }
                     throw IOException("no answer with the query id")
-                } catch (_: IOException) {
+                } catch (e: IOException) {
                     closeLocked()
+                    if (e !is NoResolverReachable) lastError = describe(e)
                     if (attempt == 1 || !reused) return null
-                } catch (_: RuntimeException) {
+                } catch (e: RuntimeException) {
                     closeLocked()
+                    lastError = describe(e)
                     if (attempt == 1 || !reused) return null
                 }
             }
@@ -87,8 +97,16 @@ class DotClient(
 
     fun close() = synchronized(lock) { closeLocked() }
 
+    private class NoResolverReachable(cause: Exception?) : IOException("no resolver address reachable", cause)
+
+    private fun describe(e: Throwable): String {
+        val msg = e.message?.takeIf { it.isNotBlank() }
+        return if (msg == null) e.javaClass.simpleName else "${e.javaClass.simpleName}: $msg"
+    }
+
     private fun connect() {
         var last: Exception? = null
+        val errors = mutableListOf<String>()
         val deadline = System.currentTimeMillis() + connectBudgetMs
         for (addr in addresses) {
             val remaining = deadline - System.currentTimeMillis()
@@ -107,10 +125,13 @@ class DotClient(
                 return
             } catch (e: Exception) {
                 last = e
+                errors += "${addr.address?.hostAddress ?: addr.hostString}: ${describe(e)}"
                 try { raw?.close() } catch (_: Exception) {}
             }
         }
-        throw IOException("no resolver address reachable", last)
+        if (errors.isEmpty()) errors += "connect time budget used up"
+        lastError = errors.joinToString("; ").take(400)
+        throw NoResolverReachable(last)
     }
 
     private fun closeLocked() {

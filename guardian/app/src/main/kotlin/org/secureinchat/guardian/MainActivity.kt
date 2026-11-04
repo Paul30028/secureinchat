@@ -1031,7 +1031,7 @@ class MainActivity : Activity() {
             else -> txt(
                 "Encrypted DNS: cannot reach ${p.label}. Lookups fail until it can be reached (no unencrypted fallback).",
                 "加密 DNS:连不上 ${p.label}。连上之前查询会失败(不会退回不加密的 DNS)。"
-            )
+            ) + (st.reason?.let { txt("\nReason: $it", "\n原因:$it") } ?: "")
         }
         setIfChanged(dotStatusView, text)
         val red = st != null && st.connected == false && running && p != null
