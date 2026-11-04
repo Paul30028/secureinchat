@@ -882,7 +882,20 @@ def main():
             start = max(above, key=lambda b: int(re.findall(r"\d+", b)[1])) if above else texts[0]
         elif titles:
             start = titles[-1]
-        if start:
+        # API 34 shows an "Expand" button beside each notification; tap the one level with our text.
+        expand = None
+        if texts:
+            _, ty1, _, ty2 = map(int, re.findall(r"\d+", texts[0]))
+            for t, d, bb, c in nodes:
+                if d == "Expand" and bb:
+                    _, ey1, _, ey2 = map(int, re.findall(r"\d+", bb))
+                    if ey1 <= ty2 and ey2 >= ty1:
+                        expand = bb
+                        break
+        if expand:
+            tap(expand)
+            time.sleep(2)
+        elif start:
             x1, y1, x2, y2 = map(int, re.findall(r"\d+", start))
             sh(f"input swipe {(x1 + x2) // 2} {y1} {(x1 + x2) // 2} {y1 + 400} 300")
             time.sleep(2)
