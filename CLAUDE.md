@@ -6,7 +6,7 @@ Claude Code 每次会话自动读取。网站和 Guardian 在同一个仓库的�
 
 ## 铁规则
 
-1. **上线由 Paul 决定。** 不合并到 `feature/chat` 以上的分支、不发 Release、不替换生产中继(`ws.secureinchat.com`)、不上架、不删旧仓库。工作在 `feature/C<号>` 分支，推送后等 Paul。
+1. **上线由 Paul 决定。** 不发 Release、不替换生产中继(`ws.secureinchat.com`)、不上架、不删旧仓库。工作在 `feature/<号>` 分支。合并到 `feature/chat`:Paul 2026-11-04 授权 Claude 云端会话自行处理(测试全过、CI 绿才合);Claude Code 会话仍然只推自己的分支，由云端会话审查合并。
 2. **不做假功能。** 没有能力支撑的按钮不显示;平台不支持就在第一屏说清楚。
 3. **不夸大安全性。** 没有 MLS、没有独立审计、中继没有成员资格校验：不能说达到 Signal 级别。Paul 否决了「安全码」功能，不要再提。
 4. **不加第三方依赖(一个例外)。** 例外(Paul 2026-11-04 批准):为 MLS 和后量子加密可以引入**一个**开源、经过审计的加密库(候选 OpenMLS / mls-rs,编译成 WASM);加密协议不自己发明。除此之外: 需要原生能力就在 `apps/android-client/android/app/src/main/java/com/sic/invitechat/next/` 自己写 Capacitor 插件(参考 `BiometricPlugin.java`、`ScreenSecurityPlugin.java`)，并在 `MainActivity.java` 注册。
