@@ -3,28 +3,33 @@
 Status: **proposal with assets and preview. Nothing is implemented in `src/` or `public/`; nothing merged.**
 Preview: `preview.png` (full page). Brief: ChatGPT's "Homepage Visual Refinement" (relayed by Paul).
 
-## 0. Corrections to the brief
+## 0. Decisions (Claude + ChatGPT, 2026-11-04, for Paul's approval)
 
-| Brief says | Fact | Handling |
-|---|---|---|
-| "Keep the current six-layer landscape illustration" | The live homepage (main 3925729) has no illustration; the landscape exists only in the ChatGPT mood board (raster). | New self-hosted SVG `illustrations/layers-hero.svg`, proposed for the homepage below the hero and for /protect/. |
-| Six categories as in the mood board | The site's six layers are: Physical, Devices and network, Accounts and email, Communication, Offline and emergency, AI privacy (`/protect/`). The mood board's "Physical Surroundings" and "The Wider World" are wrong. | Icons and legend use the site's six. |
-| "Replace the chat-bubble/shield logo" | The shield-bubble mark is only on branch `feature/W19-brand` (not live). Live main still has the older outline shield. | Arch mark redrawn as vector; Paul confirms the switch. W19 is not merged. |
+1. Main mark: shield + speech bubble (Secure + Chat, three typing dots = In chat). Strata bands are the second brand element (illustrations, section breaks, splash). The layered arch is dropped as the main mark (kept in `explorations/layered-arch/` for reference only).
+2. Tagline: **Privacy, layer by layer.** Never "the deeper, the safer": the layers are six areas to check, not security levels.
+3. Colours: the values already live on the site and in the app (section 2). No second palette.
+4. Icons: 24 grid, 1.75 stroke, round ends; 16/20 px versions of the most used icons get their own optical adjustment.
+5. Signed announcements show four states (section 7).
+6. "What this page sends" is written per tool from the code audit (section 5) and guarded by tests that tie each request target to its sentence.
+7. Six-layer illustration: no text in the SVG; labels in an HTML legend; one icon badge per layer; the six names are the site's real six.
+8. Order: site mark + claim fixes, then icons and illustration, then Checkup, tool pages, guides, Messaging. Branches only; Paul approves each merge.
 
-## 1. Brand mark (layered arch)
+Brief corrections that still apply: the live homepage had no illustration (the landscape is new work), and the mood board's "Physical Surroundings" / "The Wider World" are not the site's layers.
+
+## 1. Brand mark (shield bubble + Strata)
 
 Files in `brand/`:
 
 | File | Use | Size rule |
 |---|---|---|
-| `mark-full.svg` | Sage outer arch, ivory middle arch, gold door with speech tail, on forest tile (rx 24/108) | 48 px and up |
-| `mark-compact.svg` | Two shapes only (ivory arch + gold door) | below 48 px |
-| `favicon.svg` | Compact mark on rounded tile, view box 16–92 | 16–32 px, header 36 px |
-| `mark-on-light.svg` | No tile; forest middle arch for ivory backgrounds | print, footer |
-| `app-foreground.svg`, `app-background.svg`, `app-monochrome.svg` | Android adaptive layers, 108 × 108; scaled 0.9 so everything, tail included, sits inside the 66 dp safe zone (x 25.6–82.4, y 23–86.9) | — |
+| `mark-compact.svg` | Shield bubble on the forest tile, mark scaled 0.86 into the 66 dp safe zone | 48–95 px, app icon, header |
+| `mark-full.svg` | Same core outline plus two translucent Strata layers around it | 96 px and up: homepage hero, splash, print, social avatar |
+| `favicon.svg` | Compact mark on rounded tile, view box 16–92 | browser fallback |
+| `favicon-32.svg` | Pixel-aligned 32 px drawing | 32 px tabs, bookmarks |
+| `favicon-16.svg` | Pixel-aligned 16 px drawing; two dots instead of three so they stay separate | 16 px tabs |
+| `app-foreground.svg`, `app-background.svg`, `app-monochrome.svg` | Android adaptive layers, 108 × 108; whole mark incl. tail inside x 31.6–79.6, y 24.3–83.6; monochrome = one opaque shape with the dots cut out | — |
 
-Meaning: concentric arches = layers of protection; the gold doorway = the person; its speech tail = conversation.
-Clear space ≥ ¼ of the mark's width. No outlines, shadows, gradients or recolouring.
+The full and compact versions share one core outline, so they read as the same mark. Clear space ≥ ¼ of the mark's width. No outlines, shadows, gradients or recolouring. App resources from these files are already on branch `feature/C11-icon` (APK build green); the site version is on `feature/W19-brand` and needs `favicon-16/32` added.
 
 ## 2. Colour (unchanged palette, named tokens)
 
@@ -75,9 +80,11 @@ Source: each tool's script on main 3925729 (`grep fetch/RTCPeerConnection/https:
 | Privacy report | yes | Same as IP leak test plus on-device fingerprint checks |
 | Website health check | yes | The address you enter goes to our server, which fetches that site's headers |
 
+Wording rule: keep three things apart. (a) Your content is not uploaded. (b) The page makes network requests (it always loads from this site; the file cleaner downloads its WASM engine). (c) Requests go to SecureInChat or to a third party. "Works on your device" never means "no network requests".
+
 Copy changes:
-- Hero lead: "…check what you expose. ~~Everything runs in your browser.~~ **Most checks run on your device, and each tool says what, if anything, it sends.**"
-- Local tools intro (en): "**These six tools work on your device. Your photos, files and text are not uploaded. The pages load from this site and make no other requests.**" (zh: 「这六个工具在你的设备上运行，照片、文件和文字不会上传。页面从本站加载，不发出其他请求。」; es to follow with the i18n work.)
+- Hero lead: "…check what you expose. ~~Everything runs in your browser.~~ **Most checks run on your device. Each tool explains what, if anything, it sends.**（中文：大多数检查在你的设备上完成。每个工具都会说明它是否发送数据，以及发送什么。）"
+- Local tools intro (en): "**These six tools work on your device. Your photos, files and text are not uploaded. Each page lists what it loads and sends.**" (zh: 「这六个工具在你的设备上运行，照片、文件和文字不会上传。每个页面都写明它加载和发送了什么。」; es to follow with the i18n work.)
 - The request-log panel (`net-log.js`) is on 4 of the 6 local tools; add it to link checker, fingerprint test and account checkup so the claim can be checked on every page.
 - Each tool page gets one "What this page sends" line taken from the table above.
 
@@ -86,4 +93,19 @@ Copy changes:
 - Strict CSP unchanged: SVGs served from `/assets/brand/`, `/assets/icons/`, `/assets/illustrations/` (same origin, `img-src 'self'`). No `style=` attributes in any SVG (checked: 0), no `<style>`, no scripts, no external references.
 - Inline icon markup uses presentation attributes only; layout via existing CSS files.
 - Existing IDs and `data-*` attributes untouched; only the brand mark, icons and new figure/legend markup change.
-- Tests to add: every page references only existing sprite ids; no SVG contains `style=`/`<script`/`http`; homepage legend has six items; tool pages carry the "sends" line.
+- Tests to add: every page references only existing sprite ids; no SVG contains `style=`/`<script`/`http`; homepage legend has six items; for each tool, the hosts found in its scripts (`fetch`, `RTCPeerConnection`, URLs) must equal the hosts named in its "What this page sends" line, so a code change without a copy change fails the build.
+
+## 7. Signed announcements (app)
+
+| State | Shown when | Badge |
+|---|---|---|
+| Verified | The client verified the ECDSA P-256 signature against the admin key from the invite; the signature covers group, column, title, body, time and audio id | gold check, "Signed by the organiser" |
+| Verification failed | A signature is present and does not verify | red, "Signature does not match. Do not trust this notice." Never falls back to a plain notice |
+| Cannot verify | No admin key for this group (old invite format) or an older notice without a signature field | grey, "Cannot check who posted this" |
+| Unsigned | No signature | no badge, plain notice styling |
+
+"Has a signature" is never shown as "verified". Key rotation and the multi-admin design (C-ADM) must keep these states correct.
+
+## 8. Concept screens
+
+Board 04 (App) is a concept for the redesign. Already true in the app today: no account or phone number, invite-only joining, end-to-end encrypted content, signed announcements verified on the device. Not built yet: group templates (hiking club, book club), English/Spanish interface, the redesigned Today cards. Marketing must not present those as current features.
