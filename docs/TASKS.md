@@ -50,7 +50,7 @@
 | C-G13 | G13 CI 收尾 | 完成:run 41639990376 全绿，等 Paul 合并 |
 | C-REL | 中继成员资格校验的设计(OTF 第一个里程碑) | 待审查(轮班 11-03):设计草案 `docs/protocol/RELAY_ADMISSION_DESIGN.md`,分支 `feature/C-REL` 2e2fb9b(基于 feature/chat,只加文档，没写代码)。第 9 节有 4 个要 Paul 决定的问题;中继现有 129 项测试作为基线全过 |
 | C-OTF | OTF 申请：等 Paul 注册账号和两句真实信息 | 等 Paul |
-| C-ADM / C-ROSTER | 多管理员授权与撤销;管理员签名的设备名单(自动校验，不用安全码) | 进行中(云端轮班，11-04 03:46 UTC):先出设计 `feature/C-ADM` |
+| C-ADM / C-ROSTER | 多管理员授权与撤销;管理员签名的设备名单(自动校验，不用安全码) | 待审查(轮班 11-04):`feature/C-ADM` 89470ac(基于 feature/C-REL)。设计 `docs/protocol/ADMIN_ROSTER_DESIGN.md`(第 9 节 5 个要 Paul 决定的问题)+ crypto-core 核心逻辑 `adminSet.ts`、`deviceRoster.ts`(主管理员签副管理员名单、防回滚;管理员签设备名单;设备签入群申请;一人一码自动批准)。**没接进 App、邀请串、中继**。新增 18 项测试，变异检查 6 处全抓到;聊天线全部 vitest + 中继 129 项通过 |
 | C-MLS | MLS 库选型(OpenMLS / mls-rs:审计、WASM 体积、老 WebView) | 等 Paul 同意「加密库例外」 |
 
 ## 已合并 / 已上线(2026-11-03 晚，Paul 授权)
