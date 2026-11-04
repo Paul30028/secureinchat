@@ -79,6 +79,11 @@ class MainActivity : Activity() {
     // the user can read it (and so the emulator flow can find it).
     private lateinit var rulesIoError: TextView
 
+    // G13: blocking strength radio group. The flag prevents the OnCheckedChangeListener from
+    // firing back to storage when refreshUi/onResume syncs the buttons from prefs.
+    private lateinit var levelGroup: RadioGroup
+    private var settingLevelProgrammatically = false
+
     private var appListSignature: String = ""
     private var blockedSignature: String = ""
     private var allowedSignature: String = ""
@@ -115,6 +120,10 @@ class MainActivity : Activity() {
         super.onResume()
         // The user may have just changed Always-on in system settings.
         GuardianVpnService.refreshAlwaysOn()
+        // G13: if the stored level changed elsewhere (or a reload fell back to light on error),
+        // bring the radio buttons back in line. Runs after onCreate, so it also covers the first
+        // frame.
+        syncLevelRadio()
         uiHandler.post(refreshTick)
     }
     override fun onPause() { super.onPause(); uiHandler.removeCallbacks(refreshTick) }
@@ -180,6 +189,42 @@ class MainActivity : Activity() {
             setOnClickListener { onPauseResumeClicked() }
         }
         root.addView(pauseBtn)
+
+        // G13: blocking strength. Radio buttons rather than a spinner: three options fit on screen
+        // and each one needs a one-line description the user can compare. The chosen tier is saved
+        // immediately; GuardianVpnService.applyLevel reloads the asset in the background if the VPN
+        // is running, otherwise it takes effect on the next start.
+        root.addView(TextView(this).apply {
+            textSize = 14f
+            text = txt("Blocking strength", "拦截强度")
+            setPadding(0, pad / 2, 0, pad / 4)
+        })
+        val levelKeys = arrayOf("light", "normal", "pro")
+        val levelLabels = arrayOf(
+            txt("Light — fewest broken sites (default)", "轻度——最少误拦(默认)"),
+            txt("Standard — more trackers blocked", "标准——拦得更多"),
+            txt(
+                "Strict — most blocked; some sites or apps may break, use Allow to fix",
+                "严格——拦得最多;个别网站或应用可能出问题,可用「放行」修复"
+            )
+        )
+        levelGroup = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
+        for (i in levelKeys.indices) {
+            levelGroup.addView(RadioButton(this).apply {
+                text = levelLabels[i]
+                textSize = 13f
+                tag = levelKeys[i]
+            })
+        }
+        levelGroup.setOnCheckedChangeListener { _, checkedId ->
+            if (settingLevelProgrammatically) return@setOnCheckedChangeListener
+            val rb = levelGroup.findViewById<RadioButton>(checkedId) ?: return@setOnCheckedChangeListener
+            val level = rb.tag as? String ?: return@setOnCheckedChangeListener
+            UserRulesStore.setLevel(this, level)
+            GuardianVpnService.applyLevel(applicationContext)
+            uiHandler.post { refreshUi() }
+        }
+        root.addView(levelGroup)
 
         statsView = TextView(this).apply {
             textSize = 14f
@@ -392,6 +437,60 @@ class MainActivity : Activity() {
         dotStatusDefaultColor = dotStatusView.currentTextColor
         root.addView(dotStatusView)
 
+        // --- Privacy checkup (G16) -------------------------------------------
+        // Three quick checks, each of which opens a system settings screen. This block reads and
+        // changes nothing: every button is only shown if its intent actually resolves (checked with
+        // resolveActivity), so the app never shows a control that would do nothing.
+        root.addView(TextView(this).apply {
+            textSize = 16f
+            text = txt("Privacy checkup", "隐私快速检查")
+            setPadding(0, pad, 0, pad / 4)
+        })
+        addPrivacyRow(
+            parent = root,
+            pad = pad,
+            titleEn = "Delete your advertising ID",
+            titleZh = "删除广告 ID",
+            descEn = "Apps use the advertising ID to link your activity across apps. On Android 12 and later, deleting it gives apps a blank ID.",
+            descZh = "广告 ID 让各个 App 把你的行为串起来；Android 12 及以上删除后，App 拿到的是空白 ID。",
+            candidates = listOf(
+                Intent("com.google.android.gms.settings.ADS_PRIVACY"),
+                Intent(Settings.ACTION_PRIVACY_SETTINGS)
+            ),
+            buttonEn = "Open ad settings",
+            buttonZh = "打开广告设置",
+            fallbackEn = "Search Settings for \"Ads\"",
+            fallbackZh = "在系统设置里搜索\"广告\""
+        )
+        // Only the documented location-settings action; per-app precise/approximate is chosen from there.
+        val locationCandidates = listOf(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+        addPrivacyRow(
+            parent = root,
+            pad = pad,
+            titleEn = "Precise location",
+            titleZh = "精确位置",
+            descEn = "Apps with precise location can know where you are to within a few metres. Many work fine with approximate location.",
+            descZh = "有精确位置权限的 App 能把你的位置精确到几米。很多 App 用大致位置就够了。",
+            candidates = locationCandidates,
+            buttonEn = "Open location settings",
+            buttonZh = "打开位置设置",
+            fallbackEn = "Search Settings for \"Location\"",
+            fallbackZh = "在系统设置里搜索\"位置\""
+        )
+        addPrivacyRow(
+            parent = root,
+            pad = pad,
+            titleEn = "Review app permissions",
+            titleZh = "检查应用权限",
+            descEn = "Open an app to see its permissions. On Android 11 and later you can also turn on removing permissions if the app is not used.",
+            descZh = "打开某个 App 可查看它的权限；Android 11 及以上还可开启「App 未使用时移除权限」。",
+            candidates = listOf(Intent(Settings.ACTION_APPLICATION_SETTINGS)),
+            buttonEn = "Open app settings",
+            buttonZh = "打开应用设置",
+            fallbackEn = "Search Settings for \"Apps\"",
+            fallbackZh = "在系统设置里搜索\"应用\""
+        )
+
         // A little slack at the bottom so the last row is not glued to the scroll edge.
         // --- Always-on VPN (G9) ---------------------------------------------
         // At the bottom so the controls people use daily keep their place.
@@ -479,6 +578,63 @@ class MainActivity : Activity() {
         StatsStore.clear(this)
         historySignature = ""
         uiHandler.post { refreshUi() }
+    }
+
+    // G16: return the first candidate intent the system can actually handle, or null. resolveActivity
+    // covers both cases that make a settings screen unreachable: the API level is too low, or the
+    // OEM removed that screen. Wrapped in try/catch because a malformed action string would make
+    // resolveActivity throw on some old platforms.
+    private fun firstResolvable(candidates: List<Intent>): Intent? {
+        for (i in candidates) {
+            try {
+                if (i.resolveActivity(packageManager) != null) return i
+            } catch (_: Throwable) {}
+        }
+        return null
+    }
+
+    // G16: one privacy row is a title, a one-sentence explanation, and either a button that opens
+    // the first resolvable settings screen or (if none resolve) a plain hint telling the user where
+    // to look in Settings. A row with an unreachable screen still shows its explanation; only the
+    // button is hidden, so the checkup never lies about what it can do.
+    private fun addPrivacyRow(
+        parent: LinearLayout,
+        pad: Int,
+        titleEn: String,
+        titleZh: String,
+        descEn: String,
+        descZh: String,
+        candidates: List<Intent>,
+        buttonEn: String,
+        buttonZh: String,
+        fallbackEn: String,
+        fallbackZh: String
+    ) {
+        parent.addView(TextView(this).apply {
+            textSize = 14f
+            text = txt(titleEn, titleZh)
+            setPadding(0, pad, 0, pad / 4)
+        })
+        parent.addView(TextView(this).apply {
+            textSize = 12f
+            text = txt(descEn, descZh)
+        })
+        val target = firstResolvable(candidates)
+        if (target != null) {
+            parent.addView(Button(this).apply {
+                text = txt(buttonEn, buttonZh)
+                textSize = 12f
+                setOnClickListener {
+                    try { startActivity(target) } catch (_: ActivityNotFoundException) {}
+                }
+            })
+        } else {
+            parent.addView(TextView(this).apply {
+                textSize = 12f
+                text = txt(fallbackEn, fallbackZh)
+                setPadding(0, pad / 4, 0, 0)
+            })
+        }
     }
 
     // ACTION_CREATE_DOCUMENT opens the system picker in "save as" mode. The app never touches the
@@ -586,6 +742,23 @@ class MainActivity : Activity() {
         appListSignature = ""
         rulesIoError.visibility = View.GONE
         uiHandler.post { refreshUi() }
+    }
+
+    // G13: make the radio buttons reflect what UserRulesStore says. Setting isChecked fires the
+    // OnCheckedChangeListener, so the flag is set for the whole loop and the listener short-circuits.
+    private fun syncLevelRadio() {
+        if (!::levelGroup.isInitialized) return
+        val level = UserRulesStore.level(this)
+        settingLevelProgrammatically = true
+        try {
+            for (i in 0 until levelGroup.childCount) {
+                val rb = levelGroup.getChildAt(i) as? RadioButton ?: continue
+                val match = (rb.tag as? String) == level
+                if (rb.isChecked != match) rb.isChecked = match
+            }
+        } finally {
+            settingLevelProgrammatically = false
+        }
     }
 
     private fun renderAlwaysOnRow() {
