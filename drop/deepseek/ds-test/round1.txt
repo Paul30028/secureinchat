@@ -1,0 +1,9 @@
+```json
+{
+  "deviceSafety.title": "Seguridad del dispositivo",
+  "travel.title": "Cruce sin dispositivos",
+  "travel.button": "Eliminar grupos seleccionados",
+  "compromised.title": "Este teléfono estuvo fuera de mi control",
+  "compromised.confirm": "Borrar todos los datos de este teléfono"
+}
+```
