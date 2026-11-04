@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Guardian UI v2 mockup</title>
+<style>
+  :root {
+    --bg: #f6f7f4; --surface: #ffffff; --surface2: #eef1ec; --ink: #1c1f1b; --ink2: #5b6158;
+    --line: #dfe3dc; --accent: #2f6b4f; --accent-ink: #ffffff; --accent-soft: #dcebe2; --warn: #b3261e;
+    font-family: "Roboto", "WenQuanYi Zen Hei", "IPAGothic", sans-serif;
+  }
+  body { margin: 0; padding: 28px; background: #d9ddd5; color: var(--ink); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .note { font-size: 13px; color: #444; margin: 0 0 20px; }
+  .row { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+  .phone { width: 340px; height: 720px; background: var(--bg); border-radius: 28px; overflow: hidden;
+           box-shadow: 0 0 0 8px #222; position: relative; color: var(--ink); display: flex; flex-direction: column; }
+  .cap { width: 340px; text-align: center; font-size: 13px; color: #333; margin-top: 14px; }
+  .status { height: 24px; font-size: 11px; color: var(--ink2); display: flex; justify-content: space-between; padding: 6px 18px 0; }
+  .top { padding: 10px 20px 6px; font-size: 22px; font-weight: 600; }
+  .content { flex: 1; padding: 6px 16px 0; overflow: hidden; }
+  .card { background: var(--surface); border-radius: 20px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--line); }
+  .hero { text-align: center; padding: 22px 16px 18px; }
+  .shield { width: 84px; height: 84px; border-radius: 50%; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .hero .state { font-size: 22px; font-weight: 600; }
+  .hero .sub { font-size: 13px; color: var(--ink2); margin: 6px 0 16px; line-height: 1.5; }
+  .btn { display: block; width: 100%; border: 0; border-radius: 24px; height: 48px; font-size: 15px; font-weight: 600; font-family: inherit; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.text { background: transparent; color: var(--accent); height: 40px; margin-top: 4px; }
+  .stats { display: flex; gap: 12px; margin-bottom: 12px; }
+  .stat { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; }
+  .stat b { font-size: 22px; display: block; }
+  .stat span { font-size: 12px; color: var(--ink2); }
+  .sec { font-size: 13px; color: var(--ink2); margin: 4px 4px 8px; display: flex; justify-content: space-between; }
+  .sec a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .item:last-child { border-bottom: 0; }
+  .item .dot { width: 32px; height: 32px; border-radius: 10px; background: var(--surface2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .item .t { flex: 1; min-width: 0; }
+  .item .t div:first-child { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .t div:last-child { font-size: 12px; color: var(--ink2); margin-top: 2px; }
+  .item .act { font-size: 13px; color: var(--accent); font-weight: 600; }
+  .item .n { font-size: 13px; color: var(--ink2); }
+  .seg { display: flex; background: var(--surface2); border-radius: 20px; padding: 3px; margin-bottom: 12px; }
+  .seg div { flex: 1; text-align: center; font-size: 13px; padding: 7px 0; border-radius: 17px; color: var(--ink2); }
+  .seg .on { background: var(--surface); color: var(--ink); font-weight: 600; }
+  .muted { font-size: 12px; color: var(--ink2); line-height: 1.6; margin: 4px 4px 10px; }
+  .chk .title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .chk .desc { font-size: 12.5px; color: var(--ink2); line-height: 1.55; margin-bottom: 10px; }
+  .chk .open { font-size: 14px; color: var(--accent); font-weight: 600; }
+  .set { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .set:last-child { border-bottom: 0; }
+  .set .v { color: var(--ink2); font-size: 13px; }
+  .grp { font-size: 12px; color: var(--accent); font-weight: 600; margin: 8px 4px 6px; }
+  .card.list { padding: 2px 16px; }
+  .nav { height: 64px; background: var(--surface); border-top: 1px solid var(--line); display: flex; }
+  .nav div { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--ink2); gap: 3px; }
+  .nav .on { color: var(--ink); font-weight: 600; }
+  .nav .pill { width: 52px; height: 26px; border-radius: 13px; display: flex; align-items: center; justify-content: center; }
+  .nav .on .pill { background: var(--accent-soft); }
+  .tag { position: absolute; top: 34px; right: 14px; font-size: 10px; background: #fff3c4; color: #6b5300; padding: 2px 6px; border-radius: 6px; }
+  .small .phone { width: 300px; height: 470px; }
+  .small .cap { width: 300px; }
+  .dark { --bg:#121512; --surface:#1c201c; --surface2:#262b26; --ink:#e3e7e0; --ink2:#a5ad9f; --line:#2f352e; --accent:#8fd1ae; --accent-ink:#0b2a1b; --accent-soft:#25402f; }
+</style>
+</head>
+<body>
+<h1>Guardian 界面 v2 方案(示意图)</h1>
+<p class="note">4 个底部标签：保护 / 记录 / 检查 / 设置。只用安卓系统自带控件即可实现(不加依赖)。数字和列表是示意数据;域名与追踪公司的对应关系按 G15b 后的真实数据。</p>
+
+<div class="row">
+  <!-- 1 保护 -->
+  <div>
+    <div class="phone">
+      <div class="status"><span>11:13</span><span>▮▮▮ 56%</span></div>
+      <div class="top">Guardian</div>
+      <div class="content">
+        <div class="card hero">
+          <div class="shield"><svg width="44" height="44" viewBox="0 0 24 24"><path fill="#2f6b4f" d="M12 2 4 5v6c0 5 3.4 9.6 8 11 4.6-1.4 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 5-5 1.4 1.4-6.4 6.4Z"/></svg></div>
+          <div class="state">保护已开启</div>
+          <div class="sub">正在拦截广告和追踪 · 标准强度</div>
+          <button class="btn primary">关闭保护</button>
+          <button class="btn text">暂停 5 分钟</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>128</b><span>今天拦截</span></div>
+          <div class="stat"><b>1,024</b><span>最近 7 天</span></div>
+        </div>
+        <div class="sec"><span>最近拦截</span><a>全部 ›</a></div>
+        <div class="card list">
+          <div class="item"><div class="dot">⛔</div><div class="t"><div>doubleclick.net</div><div>Google DoubleClick</div></div></div>
+          <div class="item"><div class="dot">⛔</div><div class="t"><div>pagead2.googlesyndication.com</div><div>Google AdMob</div></div></div>
+          <div class="item"><div class="dot">⛔</div><div class="t"><div>bat.bing.com</div><div>内置名单</div></div></div>
+        </div>
+      </div>
+      <div class="nav">
+        <div class="on"><span class="pill">🛡</span>保护</div>
+        <div><span class="pill">☰</span>记录</div>
+        <div><span class="pill">✓</span>检查</div>
+        <div><span class="pill">⚙</span>设置</div>
+      </div>
+    </div>
+    <div class="cap">① 保护：一个状态、一个主按钮</div>
+  </div>
+
+  <!-- 2 记录 -->
+  <div>
+    <div class="phone">
+      <div class="status"><span>11:13</span><span>▮▮▮ 56%</span></div>
+      <div class="top">记录</div>
+      <div class="content">
+        <div class="seg"><div class="on">拦截最多</div><div>实时</div></div>
+        <div class="card list">
+          <div class="item"><div class="t"><div>doubleclick.net</div><div>Google DoubleClick · 规则：内置名单</div></div><span class="n">42</span><span class="act">放行</span></div>
+          <div class="item"><div class="t"><div>pagead2.googlesyndication.com</div><div>Google AdMob · 内置名单</div></div><span class="n">31</span><span class="act">放行</span></div>
+          <div class="item"><div class="t"><div>app-measurement.com</div><div>规则：内置名单</div></div><span class="n">18</span><span class="act">放行</span></div>
+          <div class="item"><div class="t"><div>bat.bing.com</div><div>规则：内置名单</div></div><span class="n">9</span><span class="act">放行</span></div>
+          <div class="item"><div class="t"><div>example.org</div><div>规则：你拦截的</div></div><span class="n">2</span><span class="act">放行</span></div>
+        </div>
+        <p class="muted">「放行」后这个域名不再被拦截，可在 设置 › 我的规则 里撤销。拦截历史只按天存次数，不存域名。</p>
+        <button class="btn text" style="color:#b3261e">清除拦截次数历史</button>
+      </div>
+      <div class="nav">
+        <div><span class="pill">🛡</span>保护</div>
+        <div class="on"><span class="pill">☰</span>记录</div>
+        <div><span class="pill">✓</span>检查</div>
+        <div><span class="pill">⚙</span>设置</div>
+      </div>
+    </div>
+    <div class="cap">② 记录：处理误拦就在这里</div>
+  </div>
+
+  <!-- 3 检查 -->
+  <div>
+    <div class="phone">
+      <div class="status"><span>11:13</span><span>▮▮▮ 56%</span></div>
+      <div class="top">隐私检查</div>
+      <div class="content">
+        <p class="muted">三项系统设置，每项约 1 分钟。Guardian 只帮你打开对应的设置页，不读取你的设置。</p>
+        <div class="card chk"><div class="title">删除广告 ID</div><div class="desc">广告 ID 让各个 App 把你的行为串起来。Android 12 及以上删除后，App 拿到的是空白 ID。</div><div class="open">打开广告设置 ›</div></div>
+        <div class="card chk"><div class="title">关掉精确位置</div><div class="desc">很多 App 只需要大致位置。精确位置能定位到几米内。</div><div class="open">打开位置设置 ›</div></div>
+        <div class="card chk"><div class="title">检查应用权限</div><div class="desc">Android 11 及以上可开启「App 未使用时移除权限」。</div><div class="open">打开应用设置 ›</div></div>
+      </div>
+      <div class="nav">
+        <div><span class="pill">🛡</span>保护</div>
+        <div><span class="pill">☰</span>记录</div>
+        <div class="on"><span class="pill">✓</span>检查</div>
+        <div><span class="pill">⚙</span>设置</div>
+      </div>
+    </div>
+    <div class="cap">③ 检查：独立的一页，不和拦截混在一起</div>
+  </div>
+
+  <!-- 4 设置 -->
+  <div>
+    <div class="phone">
+      <div class="status"><span>11:13</span><span>▮▮▮ 56%</span></div>
+      <div class="top">设置</div>
+      <div class="content">
+        <div class="grp">拦截</div>
+        <div class="card list">
+          <div class="set"><span>拦截强度</span><span class="v">标准 ›</span></div>
+          <div class="set"><span>加密 DNS</span><span class="v">关闭 ›</span></div>
+          <div class="set"><span>我的规则</span><span class="v">拦截 1 · 放行 0 ›</span></div>
+        </div>
+        <div class="grp">系统</div>
+        <div class="card list">
+          <div class="set"><span>开机自动保护(始终开启的 VPN)</span><span class="v">›</span></div>
+          <div class="set"><span>语言</span><span class="v">跟随系统 ›</span></div>
+        </div>
+        <div class="grp">关于</div>
+        <div class="card list">
+          <div class="set"><span>追踪者名称来源</span><span class="v">Exodus Privacy(ODbL)›</span></div>
+          <div class="set"><span>开源许可与说明</span><span class="v">GPL-3.0 ›</span></div>
+        </div>
+        <p class="muted">只有 DNS 查询经过 Guardian，不保存浏览记录。代码主要由 AI 按书面规格编写，经测试和审查后合并。</p>
+      </div>
+      <div class="nav">
+        <div><span class="pill">🛡</span>保护</div>
+        <div><span class="pill">☰</span>记录</div>
+        <div><span class="pill">✓</span>检查</div>
+        <div class="on"><span class="pill">⚙</span>设置</div>
+      </div>
+    </div>
+    <div class="cap">④ 设置：高级选项都收在这里</div>
+  </div>
+</div>
+
+<h1 style="margin-top:34px">多语言与深色模式(主页面)</h1>
+<p class="note">德文平均比英文长约 30%，所以按钮和文字都不能用固定宽度。德文、日文为 AI 初稿，上线前需要母语者审校。</p>
+<div class="row small">
+  <div><div class="phone"><div class="status"><span>11:13</span><span>EN</span></div><div class="top">Guardian</div><div class="content">
+    <div class="card hero"><div class="shield"><svg width="44" height="44" viewBox="0 0 24 24"><path fill="#2f6b4f" d="M12 2 4 5v6c0 5 3.4 9.6 8 11 4.6-1.4 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 5-5 1.4 1.4-6.4 6.4Z"/></svg></div>
+    <div class="state">Protection on</div><div class="sub">Blocking ads and trackers · Standard</div><button class="btn primary">Turn off</button><button class="btn text">Pause 5 min</button></div></div>
+    <div class="nav"><div class="on"><span class="pill">🛡</span>Protect</div><div><span class="pill">☰</span>Activity</div><div><span class="pill">✓</span>Checkup</div><div><span class="pill">⚙</span>Settings</div></div></div>
+    <div class="cap">English</div></div>
+  <div><div class="phone"><div class="status"><span>11:13</span><span>DE</span></div><div class="top">Guardian</div><div class="content">
+    <div class="card hero"><div class="shield"><svg width="44" height="44" viewBox="0 0 24 24"><path fill="#2f6b4f" d="M12 2 4 5v6c0 5 3.4 9.6 8 11 4.6-1.4 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 5-5 1.4 1.4-6.4 6.4Z"/></svg></div>
+    <div class="state">Schutz aktiv</div><div class="sub">Werbung und Tracker werden blockiert · Standard</div><button class="btn primary">Ausschalten</button><button class="btn text">5 Min. pausieren</button></div></div>
+    <div class="nav"><div class="on"><span class="pill">🛡</span>Schutz</div><div><span class="pill">☰</span>Aktivität</div><div><span class="pill">✓</span>Check</div><div><span class="pill">⚙</span>Einstellungen</div></div></div>
+    <div class="cap">Deutsch(AI 初稿)</div></div>
+  <div><div class="phone"><div class="status"><span>11:13</span><span>JA</span></div><div class="top">Guardian</div><div class="content">
+    <div class="card hero"><div class="shield"><svg width="44" height="44" viewBox="0 0 24 24"><path fill="#2f6b4f" d="M12 2 4 5v6c0 5 3.4 9.6 8 11 4.6-1.4 8-6 8-11V5l-8-3Zm-1.2 14.2-3.5-3.5 1.4-1.4 2.1 2.1 5-5 1.4 1.4-6.4 6.4Z"/></svg></div>
+    <div class="state">保護オン</div><div class="sub">広告とトラッカーをブロック中 · 標準</div><button class="btn primary">オフにする</button><button class="btn text">5分間一時停止</button></div></div>
+    <div class="nav"><div class="on"><span class="pill">🛡</span>保護</div><div><span class="pill">☰</span>履歴</div><div><span class="pill">✓</span>チェック</div><div><span class="pill">⚙</span>設定</div></div></div>
+    <div class="cap">日本語(AI 初稿)</div></div>
+  <div class="dark"><div class="phone"><div class="status"><span>11:13</span><span>深色</span></div><div class="top">Guardian</div><div class="content">
+    <div class="card hero"><div class="shield" style="background:var(--surface2)"><svg width="44" height="44" viewBox="0 0 24 24"><path fill="none" stroke="#a5ad9f" stroke-width="1.6" d="M12 2.8 4.8 5.5v5.6c0 4.6 3.1 8.8 7.2 10.1 4.1-1.3 7.2-5.5 7.2-10.1V5.5L12 2.8Z"/></svg></div>
+    <div class="state">保护已关闭</div><div class="sub">打开后，广告和追踪会在 DNS 这一步被拦下</div><button class="btn primary">开启保护</button></div></div>
+    <div class="nav"><div class="on"><span class="pill">🛡</span>保护</div><div><span class="pill">☰</span>记录</div><div><span class="pill">✓</span>检查</div><div><span class="pill">⚙</span>设置</div></div></div>
+    <div class="cap">深色模式 · 关闭状态</div></div>
+</div>
+</body>
+</html>
