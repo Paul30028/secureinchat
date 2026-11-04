@@ -602,9 +602,14 @@ const SPONSOR = `    <h1>How SecureInChat is funded</h1>
 // Design v4 (DeepSeek layouts #6/#7, chosen by Paul 2026-10-31): one stylesheet loaded last on every
 // HTML page re-skins the whole site without rewriting each page's markup.
 const V4_LINK = '<link href="/assets/css/v4.css" rel="stylesheet"/>';
+const ICO_LINK = '<link rel="icon" href="/favicon.ico" sizes="32x32">';
 function write(rel, content) {
   if (rel.endsWith('.html') && typeof content === 'string' && content.includes('</head>') && !content.includes(V4_LINK)) {
     content = content.replace('</head>', `  ${V4_LINK}\n </head>`);
+  }
+  // Pixel-fitted 16/32 px bitmaps for tabs and bookmarks; browsers that support SVG icons use the SVG after it.
+  if (rel.endsWith('.html') && typeof content === 'string' && !content.includes(ICO_LINK)) {
+    content = content.replace(/<link[^>]*favicon\.svg[^>]*>/, (m) => `${ICO_LINK}\n  ${m}`);
   }
   const f = path.join(PUB, rel);
   fs.mkdirSync(path.dirname(f), { recursive: true });
