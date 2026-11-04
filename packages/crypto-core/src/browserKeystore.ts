@@ -32,7 +32,12 @@ function openDb(): Promise<IDBDatabase> {
         db.createObjectStore(STORE_NAME);
       }
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const db = request.result;
+      // 「全部清除」要删库：别的连接收到 versionchange 必须让路，否则 deleteDatabase 会一直被挡住
+      db.onversionchange = () => db.close();
+      resolve(db);
+    };
     request.onerror = () => reject(request.error ?? new Error("打开 IndexedDB 失败"));
   });
 }
@@ -41,7 +46,18 @@ export class BrowserKeystore implements KeystorePort {
   private dbPromise: Promise<IDBDatabase> | null = null;
 
   private getDb(): Promise<IDBDatabase> {
-    if (!this.dbPromise) this.dbPromise = openDb();
+    if (!this.dbPromise) {
+      this.dbPromise = openDb().then((db) => {
+        // 连接因删库被关闭后，下次使用重新打开，而不是拿着已关闭的连接报错
+        db.addEventListener("close", () => (this.dbPromise = null));
+        const closeOnVersionChange = db.onversionchange;
+        db.onversionchange = (ev) => {
+          this.dbPromise = null;
+          closeOnVersionChange?.call(db, ev);
+        };
+        return db;
+      });
+    }
     return this.dbPromise;
   }
 
@@ -82,6 +98,16 @@ export class BrowserKeystore implements KeystorePort {
     const pair = await this.loadPair(alias);
     if (!pair) throw new Error(`未找到别名为 ${alias} 的密钥对，先调用 generateDeviceKeyPair`);
     return pair;
+  }
+
+  async deleteKeyPair(alias: string): Promise<void> {
+    const db = await this.getDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).delete(alias);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error(`删除 alias=${alias} 失败`));
+    });
   }
 
   async generateDeviceKeyPair(alias: string): Promise<string> {

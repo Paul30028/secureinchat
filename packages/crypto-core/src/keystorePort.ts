@@ -22,6 +22,8 @@ export interface KeystorePort {
   exportPublicKeyRaw(alias: string): Promise<Uint8Array>;
   /** 是否有硬件级密钥支持（StrongBox / TEE），用于安全提示展示 */
   hasHardwareBackedKeystore(): Promise<boolean>;
+  /** 删除一个密钥对（退群、空手过境时删掉这个群专属的身份）。不存在时也正常返回。 */
+  deleteKeyPair(alias: string): Promise<void>;
 }
 
 /**
@@ -30,6 +32,10 @@ export interface KeystorePort {
  */
 export class TestOnlyInMemoryKeystore implements KeystorePort {
   private keys = new Map<string, CryptoKeyPair>();
+
+  async deleteKeyPair(alias: string): Promise<void> {
+    this.keys.delete(alias);
+  }
 
   async generateDeviceKeyPair(alias: string): Promise<string> {
     const subtle = globalThis.crypto.subtle;

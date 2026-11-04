@@ -1,5 +1,6 @@
 import { getDeviceStore } from "./deviceIdentity";
 import { restoreAdminKeyFromRecoveryCode } from "@secureinchat/crypto-core";
+import { storageKeyForAdminKey } from "@secureinchat/chat-core";
 
 /**
  * 管理员私钥的本地保管。
@@ -15,7 +16,8 @@ import { restoreAdminKeyFromRecoveryCode } from "@secureinchat/crypto-core";
  */
 
 function storageKey(groupId: string): string {
-  return `admin-key:${groupId}`;
+  // 和 chat-core 的群数据清除（purgeGroupLocalData）共用同一个键名
+  return storageKeyForAdminKey(groupId);
 }
 
 export async function saveAdminKey(groupId: string, recoveryCode: string): Promise<void> {

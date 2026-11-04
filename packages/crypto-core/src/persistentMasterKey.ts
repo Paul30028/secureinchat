@@ -17,7 +17,12 @@ function openDb(): Promise<IDBDatabase> {
         db.createObjectStore(STORE_NAME);
       }
     };
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const db = request.result;
+      // 「全部清除」要删库：别的连接收到 versionchange 必须让路，否则 deleteDatabase 会一直被挡住
+      db.onversionchange = () => db.close();
+      resolve(db);
+    };
     request.onerror = () => reject(request.error ?? new Error("打开 IndexedDB 失败"));
   });
 }

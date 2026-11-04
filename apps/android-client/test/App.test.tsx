@@ -967,6 +967,28 @@ describe("multiple groups", () => {
     });
   }
 
+  it("connects to each new group with its own device id (package 1 / P1d)", async () => {
+    await renderApp();
+    await joinNamed("g-id-a", "甲群");
+    await joinNamed("g-id-b", "乙群");
+
+    const idsByGroup = new Map<string, Set<string>>();
+    for (const ws of MockRelayWebSocket.instances) {
+      for (const raw of ws.sent) {
+        const f = JSON.parse(raw) as { type?: string; deviceId?: string; groupId?: string };
+        if ((f.type === "register_device" || f.type === "auth_response") && f.deviceId && f.groupId) {
+          if (!idsByGroup.has(f.groupId)) idsByGroup.set(f.groupId, new Set());
+          idsByGroup.get(f.groupId)!.add(f.deviceId);
+        }
+      }
+    }
+    const a = [...(idsByGroup.get("g-id-a") ?? [])];
+    const b = [...(idsByGroup.get("g-id-b") ?? [])];
+    expect(a).toHaveLength(1);
+    expect(b).toHaveLength(1);
+    expect(a[0]).not.toBe(b[0]);
+  });
+
   it("lists every joined group, not just the most recent one", async () => {
     await renderApp();
     await joinNamed("g-book", "读书会");
