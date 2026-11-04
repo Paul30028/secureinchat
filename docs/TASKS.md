@@ -51,7 +51,22 @@
 | C-REL | 中继成员资格校验的设计(OTF 第一个里程碑) | 待审查(轮班 11-03):设计草案 `docs/protocol/RELAY_ADMISSION_DESIGN.md`,分支 `feature/C-REL` 2e2fb9b(基于 feature/chat,只加文档，没写代码)。第 9 节有 4 个要 Paul 决定的问题;中继现有 129 项测试作为基线全过 |
 | C-OTF | OTF 申请：等 Paul 注册账号和两句真实信息 | 等 Paul |
 | C-ADM / C-ROSTER | 多管理员授权与撤销;管理员签名的设备名单(自动校验，不用安全码) | 待审查(轮班 11-04):`feature/C-ADM` 89470ac(基于 feature/C-REL)。设计 `docs/protocol/ADMIN_ROSTER_DESIGN.md`(第 9 节 5 个要 Paul 决定的问题)+ crypto-core 核心逻辑 `adminSet.ts`、`deviceRoster.ts`(主管理员签副管理员名单、防回滚;管理员签设备名单;设备签入群申请;一人一码自动批准)。**没接进 App、邀请串、中继**。新增 18 项测试，变异检查 6 处全抓到;聊天线全部 vitest + 中继 129 项通过 |
-| C-MLS | MLS 库选型(OpenMLS / mls-rs:审计、WASM 体积、老 WebView) | Paul 已批准一个加密库例外(2026-11-04),可以开始 |
+| C-MLS | MLS 库选型(OpenMLS / mls-rs:审计、WASM 体积、老 WebView) | **Paul 11-04 叫停**(见项目文档 ops/SHIFT_NOTES_2026-11-04-watchdog-0755.md),等他说何时继续 |
+
+## 人人可用的私密通信(Paul 2026-11-04 定方向)
+
+依据 `docs/design/PRIVACY_FOR_EVERYONE.md`(分支 `docs/privacy-for-everyone`,聊天线)。设计基准：高风险用户也能安全使用;只做隐私保护，不做规避审查。
+
+| # | 任务 | 谁 | 分支 | 状态 |
+|---|---|---|---|---|
+| R1 | 一键清除本机数据(设置里，二次确认，写明不可恢复) | Code(K7 之后) | `feature/R1` | 待做 |
+| R2 | 新群默认开启消息定时消失(功能已有，改默认值和模板默认时长) | Code(随 K7) | `feature/R2` | 待做 |
+| R3 | 「能防什么、不能防什么」页，中英西三语 | Claude 云端 | `feature/R3` | 待做 |
+| R4 | 中继和 Caddy 不记 IP:核实日志配置，改部署文档和隐私说明 | Claude 云端 | `feature/R4` | 待做 |
+| R5 | 密文大小分档填充 | = D-C12 | `feature/C12` | 待发规格 |
+| R6 | 自建中继一键部署(Docker Compose + 文档)+ 客户端切换中继 | Claude 云端(文档、Compose);Code(客户端) | `feature/R6` | 待做 |
+| R8 | 发布签名、SHA-256 校验和、可复现构建，申请 F-Droid | Claude 云端调研;Paul 持有签名密钥 | — | 待做 |
+| R10 | 界面改用逻辑属性，为从右到左语言做准备 | Code(随 K6) | 同 K6 | 待做 |
 
 ## 已合并 / 已上线(2026-11-03 晚，Paul 授权)
 
