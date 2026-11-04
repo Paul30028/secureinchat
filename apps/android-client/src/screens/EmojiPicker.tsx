@@ -1,4 +1,5 @@
 import { colors, touchTarget } from "@secureinchat/ui";
+import { useT } from "../i18n";
 
 /**
  * 表情面板。
@@ -9,17 +10,19 @@ import { colors, touchTarget } from "@secureinchat/ui";
  * 表情就是普通字符，跟着消息一起加密发送，中继看到的还是密文。
  */
 
-const EMOJI_ROWS: { label: string; items: string[] }[] = [
+type EmojiRowKey = "common" | "mood" | "daily";
+
+const EMOJI_ROWS: { labelKey: EmojiRowKey; items: string[] }[] = [
   {
-    label: "常用",
+    labelKey: "common",
     items: ["😊", "😄", "🥹", "😭", "😅", "🤝", "🙏", "❤️", "👍", "👌", "🎉", "✨", "🌿", "☀️"],
   },
   {
-    label: "心情",
+    labelKey: "mood",
     items: ["😌", "🤗", "😇", "🥰", "😴", "🤔", "😮", "😢", "😰", "😤", "🫶", "💪", "🕊️", "🌈"],
   },
   {
-    label: "日常",
+    labelKey: "daily",
     items: ["🍚", "☕", "🎵", "📖", "🏠", "🚗", "⏰", "📅", "☔", "❄️", "🌙", "⭐", "🔥", "🎂"],
   },
 ];
@@ -29,10 +32,12 @@ export interface EmojiPickerProps {
 }
 
 export function EmojiPicker({ onPick }: EmojiPickerProps) {
+  const t = useT();
+
   return (
     <div
       role="listbox"
-      aria-label="选择表情"
+      aria-label={t("emojiPicker.title")}
       style={{
         maxHeight: 200,
         overflowY: "auto",
@@ -41,15 +46,17 @@ export function EmojiPicker({ onPick }: EmojiPickerProps) {
       }}
     >
       {EMOJI_ROWS.map((row) => (
-        <div key={row.label} style={{ marginBottom: 8 }}>
-          <div style={{ fontSize: 11, color: "#9A9A94", marginBottom: 4 }}>{row.label}</div>
+        <div key={row.labelKey} style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: "#9A9A94", marginBottom: 4 }}>
+            {t(`emojiPicker.row.${row.labelKey}`)}
+          </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
             {row.items.map((emoji) => (
               <button
                 key={emoji}
                 role="option"
                 aria-selected={false}
-                aria-label={`表情 ${emoji}`}
+                aria-label={t("emojiPicker.emojiLabel", { emoji })}
                 onClick={() => onPick(emoji)}
                 style={{
                   minWidth: touchTarget.minDp,

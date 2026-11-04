@@ -1,5 +1,6 @@
 import { colors, radii } from "@secureinchat/ui";
 import { CATEGORY_ORDER, CATEGORY_META, type AnnouncementCategory } from "@secureinchat/chat-core";
+import { useT, useLocale } from "../i18n";
 
 export interface CategoryEntry {
   title: string;
@@ -20,6 +21,7 @@ export interface TodayScreenProps {
 }
 
 function ColumnCard({ label, entry }: { label: string; entry?: CategoryEntry | undefined }) {
+  const t = useT();
   return (
     <div
       style={{
@@ -44,7 +46,7 @@ function ColumnCard({ label, entry }: { label: string; entry?: CategoryEntry | u
             <audio
               controls
               src={entry.audioUrl}
-              aria-label="播放圣诗"
+              aria-label={t("today.playHymn")}
               style={{ width: "100%", marginTop: 10, height: 36 }}
             />
           ) : entry.audioPending ? (
@@ -52,7 +54,7 @@ function ColumnCard({ label, entry }: { label: string; entry?: CategoryEntry | u
           ) : null}
         </>
       ) : (
-        <div style={{ fontSize: 12, color: "#9A9A94", marginTop: 6 }}>今天还没有内容</div>
+        <div style={{ fontSize: 12, color: "#9A9A94", marginTop: 6 }}>{t("today.noContentInColumn")}</div>
       )}
     </div>
   );
@@ -67,25 +69,36 @@ function ColumnCard({ label, entry }: { label: string; entry?: CategoryEntry | u
  *
  * 普通成员这一页是纯只读的——发布入口只有管理员解锁后才出现。
  */
-const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-
-function todayLabel(now = new Date()): string {
-  return `${now.getMonth() + 1}月${now.getDate()}日 星期${WEEKDAYS[now.getDay()]}`;
-}
+const WEEKDAY_KEYS = [
+  "today.weekday.sun",
+  "today.weekday.mon",
+  "today.weekday.tue",
+  "today.weekday.wed",
+  "today.weekday.thu",
+  "today.weekday.fri",
+  "today.weekday.sat",
+] as const;
 
 export function TodayScreen({ content, isAdmin, onOpenAdmin }: TodayScreenProps) {
+  const t = useT();
+  const locale = useLocale();
   const hasAnything = CATEGORY_ORDER.some((key) => content[key]);
+
+  const now = new Date();
+  const todayLabel = t("today.date", {
+    month: new Intl.NumberFormat(locale).format(now.getMonth() + 1),
+    day: new Intl.NumberFormat(locale).format(now.getDate()),
+    weekday: t(WEEKDAY_KEYS[now.getDay()] ?? "today.weekday.sun"),
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "8px 0 16px" }}>
       {/* 日期让"今日"名副其实——没有它，昨天的内容和今天的看起来一模一样 */}
-      <div style={{ fontSize: 12, color: "#8A8A82", padding: "0 2px 2px" }}>{todayLabel()}</div>
+      <div style={{ fontSize: 12, color: "#8A8A82", padding: "0 2px 2px" }}>{todayLabel}</div>
       {!hasAnything ? (
         <div style={{ textAlign: "center", padding: "32px 16px 24px" }}>
-          <div style={{ fontSize: 14, color: colors.textPrimary }}>今天还没有内容</div>
-          <div style={{ fontSize: 12, color: "#8A8A82", marginTop: 6 }}>
-            管理员发布后，群里所有人都会在这里看到
-          </div>
+          <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("today.empty")}</div>
+          <div style={{ fontSize: 12, color: "#8A8A82", marginTop: 6 }}>{t("today.emptyHint")}</div>
         </div>
       ) : (
         CATEGORY_ORDER.map((key) => (
@@ -107,7 +120,7 @@ export function TodayScreen({ content, isAdmin, onOpenAdmin }: TodayScreenProps)
             cursor: "pointer",
           }}
         >
-          发布今日内容
+          {t("today.publish")}
         </button>
       ) : null}
     </div>

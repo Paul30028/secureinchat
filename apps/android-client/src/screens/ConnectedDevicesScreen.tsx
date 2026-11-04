@@ -1,6 +1,7 @@
 import { colors, radii, touchTarget } from "@secureinchat/ui";
 import { sortByRecency, type KnownDevice } from "@secureinchat/chat-core";
 import { formatMessageTime } from "../timeFormat";
+import { useT } from "../i18n";
 
 export interface ConnectedDevicesScreenProps {
   groupName: string;
@@ -29,13 +30,14 @@ export function ConnectedDevicesScreen({
   myDeviceId,
   onBack,
 }: ConnectedDevicesScreenProps) {
+  const t = useT();
   const sorted = sortByRecency(devices);
 
   return (
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24, overflowY: "auto" }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("connectedDevices.backAria")}
         style={{
           background: "transparent",
           border: "none",
@@ -47,19 +49,21 @@ export function ConnectedDevicesScreen({
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("connectedDevices.back")}
       </button>
 
-      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>群内设备</h1>
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>
+        {t("connectedDevices.title")}
+      </h1>
       <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "0 0 16px" }}>
-        「{groupName}」里这台手机见过的设备。发现不认识的，可以让管理员更换群密钥。
+        {t("connectedDevices.subtitle", { groupName })}
       </p>
 
       {sorted.length === 0 ? (
         <div style={{ textAlign: "center", padding: "32px 16px" }}>
-          <div style={{ fontSize: 14, color: colors.textPrimary }}>还没见到其他设备</div>
+          <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("connectedDevices.emptyTitle")}</div>
           <div style={{ fontSize: 12, color: "#8A8A82", marginTop: 6, lineHeight: 1.7 }}>
-            其他人上线或发消息之后会出现在这里
+            {t("connectedDevices.emptyHint")}
           </div>
         </div>
       ) : (
@@ -78,20 +82,27 @@ export function ConnectedDevicesScreen({
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: 14, color: colors.textPrimary }}>
-                    {d.displayName ?? `设备 ${shortId(d.deviceId)}`}
+                    {d.displayName ?? t("connectedDevices.deviceFallback", { name: shortId(d.deviceId) })}
                   </span>
                   {isMe ? (
-                    <span style={{ fontSize: 11, color: colors.deepInkGreen }}>本机</span>
+                    <span style={{ fontSize: 11, color: colors.deepInkGreen }}>
+                      {t("connectedDevices.thisDevice")}
+                    </span>
                   ) : null}
                   {isOnline ? (
-                    <span style={{ fontSize: 11, color: colors.wheatGold, marginLeft: "auto" }}>在线</span>
+                    <span style={{ fontSize: 11, color: colors.wheatGold, marginLeft: "auto" }}>
+                      {t("connectedDevices.online")}
+                    </span>
                   ) : null}
                 </div>
                 <div style={{ fontSize: 11, color: "#9A9A94", marginTop: 4, fontFamily: "monospace" }}>
                   {shortId(d.deviceId)}
                 </div>
                 <div style={{ fontSize: 11, color: "#9A9A94", marginTop: 2 }}>
-                  最近 {formatMessageTime(d.lastSeenMs)} · 首次 {formatMessageTime(d.firstSeenMs)}
+                  {t("connectedDevices.seenLine", {
+                    lastSeen: formatMessageTime(d.lastSeenMs),
+                    firstSeen: formatMessageTime(d.firstSeenMs),
+                  })}
                 </div>
               </div>
             );
@@ -100,8 +111,7 @@ export function ConnectedDevicesScreen({
       )}
 
       <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, marginTop: 20 }}>
-        这份名单是本机自己观察到的：中继不保存谁上过线的历史，所以从没和你同时在线、
-        也没发过消息的设备不会出现在这里。换新手机后需要重新积累。
+        {t("connectedDevices.footnote")}
       </p>
     </div>
   );

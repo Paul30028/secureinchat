@@ -1,4 +1,5 @@
 import { colors, radii, touchTarget } from "@secureinchat/ui";
+import { useT } from "../i18n";
 
 export type MessageAction = "copy" | "reply" | "delete";
 
@@ -19,6 +20,8 @@ export interface MessageActionSheetProps {
  * 对方也看不到了。
  */
 export function MessageActionSheet({ excerpt, canCopy, onAction, onCancel }: MessageActionSheetProps) {
+  const t = useT();
+
   const itemStyle = {
     minHeight: touchTarget.minDp,
     width: "100%",
@@ -34,7 +37,7 @@ export function MessageActionSheet({ excerpt, canCopy, onAction, onCancel }: Mes
   return (
     <div
       role="dialog"
-      aria-label="消息操作"
+      aria-label={t("messageActionSheet.dialogLabel")}
       onClick={onCancel}
       style={{
         position: "fixed",
@@ -73,24 +76,24 @@ export function MessageActionSheet({ excerpt, canCopy, onAction, onCancel }: Mes
 
         {canCopy ? (
           <button onClick={() => onAction("copy")} style={itemStyle}>
-            复制
+            {t("messageActionSheet.copy")}
           </button>
         ) : null}
         <button onClick={() => onAction("reply")} style={itemStyle}>
-          回复
+          {t("messageActionSheet.reply")}
         </button>
         <button onClick={() => onAction("delete")} style={{ ...itemStyle, color: "#A33" }}>
-          删除本机消息
+          {t("messageActionSheet.delete")}
         </button>
         <div style={{ fontSize: 11, color: "#9A9A94", textAlign: "center", padding: "2px 0 8px" }}>
-          删除只影响这台设备，对方仍然能看到
+          {t("messageActionSheet.deleteHint")}
         </div>
 
         <button
           onClick={onCancel}
           style={{ ...itemStyle, borderTop: `0.5px solid ${colors.sageMint}`, marginTop: 4, color: "#8A8A82" }}
         >
-          取消
+          {t("messageActionSheet.cancel")}
         </button>
       </div>
     </div>

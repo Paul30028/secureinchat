@@ -15,6 +15,7 @@ import {
   MAX_MESH_PARTICIPANTS,
   type IceConfiguration,
 } from "@secureinchat/webrtc";
+import { useT, useLocale } from "../i18n";
 
 export interface ConnectionDiagnosticsScreenProps {
   relayUrl: string;
@@ -39,11 +40,12 @@ function Row({ label, value, hint }: { label: string; value: string; hint?: stri
   );
 }
 
-const STATUS_LABEL: Record<ConnectionStatus, string> = {
-  connected: "已连接",
-  connecting: "连接中",
-  reconnecting: "重连中",
-  disconnected: "已断开",
+// 状态到词条键的映射。放在组件外只是键名，不调用 t。
+const STATUS_KEY: Record<ConnectionStatus, string> = {
+  connected: "connectionDiagnostics.statusConnected",
+  connecting: "connectionDiagnostics.statusConnecting",
+  reconnecting: "connectionDiagnostics.statusReconnecting",
+  disconnected: "connectionDiagnostics.statusDisconnected",
 };
 
 /**
@@ -61,6 +63,8 @@ export function ConnectionDiagnosticsScreen({
   disconnects,
   onBack,
 }: ConnectionDiagnosticsScreenProps) {
+  const t = useT();
+  const locale = useLocale();
   const [probing, setProbing] = useState(false);
   const [probeMessage, setProbeMessage] = useState<string | null>(null);
   const [probeOk, setProbeOk] = useState(false);
@@ -72,7 +76,9 @@ export function ConnectionDiagnosticsScreen({
       const result = await probeRelay(relayUrl);
       setProbeOk(result.ok);
       setProbeMessage(
-        result.ok ? `服务器正常，握手用时 ${result.elapsedMs} 毫秒` : `连接失败：${result.reason}`
+        result.ok
+          ? t("connectionDiagnostics.probeOk", { ms: result.elapsedMs })
+          : t("connectionDiagnostics.probeFail", { reason: result.reason })
       );
     } finally {
       setProbing(false);
@@ -95,14 +101,18 @@ export function ConnectionDiagnosticsScreen({
       const result = await probeIceServers(iceConfig);
       if (!result.ok) {
         setTurnOk(false);
-        setTurnMessage(`检测失败：${result.error}`);
+        setTurnMessage(t("connectionDiagnostics.turnProbeError", { error: result.error }));
         return;
       }
+      const separator = t("connectionDiagnostics.candidateSeparator");
+      const types = result.candidateTypes.join(separator);
       setTurnOk(result.sawRelayCandidate);
       setTurnMessage(
         result.sawRelayCandidate
-          ? `TURN 正常，跨运营商通话可以走中继（候选类型：${result.candidateTypes.join("、")}）`
-          : `没有拿到 relay 候选，跨运营商通话很可能打不通（候选类型：${result.candidateTypes.join("、") || "无"}）`
+          ? t("connectionDiagnostics.turnRelayOk", { types })
+          : t("connectionDiagnostics.turnRelayMissing", {
+              types: types || t("connectionDiagnostics.turnNone"),
+            })
       );
     } finally {
       setTurnProbing(false);
@@ -120,11 +130,14 @@ export function ConnectionDiagnosticsScreen({
       ? Math.round(recovered.reduce((a, d) => a + (d.recoveredAfterMs ?? 0), 0) / recovered.length / 1000)
       : null;
 
+  const numberFormat = new Intl.NumberFormat(locale);
+  const fmt = (n: number): string => numberFormat.format(n);
+
   return (
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24, overflowY: "auto" }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("connectionDiagnostics.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -136,12 +149,14 @@ export function ConnectionDiagnosticsScreen({
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("connectionDiagnostics.backArrow")}
       </button>
 
-      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>连接诊断</h1>
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>
+        {t("connectionDiagnostics.title")}
+      </h1>
       <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "0 0 12px" }}>
-        网络不稳时，这些数字能分清是连不上、还是连上了但慢。
+        {t("connectionDiagnostics.subtitle")}
       </p>
 
       <div
@@ -153,12 +168,14 @@ export function ConnectionDiagnosticsScreen({
           textAlign: "center",
         }}
       >
-        <div style={{ fontSize: 12, color: "#8A8A82" }}>当前连接质量</div>
+        <div style={{ fontSize: 12, color: "#8A8A82" }}>{t("connectionDiagnostics.currentQuality")}</div>
         <div style={{ fontSize: 22, fontWeight: 500, color: colors.deepInkGreen, margin: "4px 0" }}>
           {describeQuality(quality)}
         </div>
         <div style={{ fontSize: 12, color: "#8A8A82" }}>
-          {latency.latestMs !== null ? `最近一次往返 ${latency.latestMs} 毫秒` : "等待心跳测量..."}
+          {latency.latestMs !== null
+            ? t("connectionDiagnostics.latestRtt", { ms: fmt(latency.latestMs) })
+            : t("connectionDiagnostics.awaitingHeartbeat")}
         </div>
       </div>
 
@@ -166,7 +183,7 @@ export function ConnectionDiagnosticsScreen({
           最需要它的时候什么都不说。 */}
       <div style={{ marginBottom: 12 }}>
         <Button variant="primary" onClick={() => void runProbe()} disabled={probing} style={{ width: "100%" }}>
-          {probing ? "正在测试..." : "测试连接"}
+          {probing ? t("connectionDiagnostics.probing") : t("connectionDiagnostics.testConnection")}
         </Button>
         {probeMessage ? (
           <p
@@ -186,7 +203,7 @@ export function ConnectionDiagnosticsScreen({
 
       <div style={{ marginBottom: 12 }}>
         <Button variant="secondary" onClick={() => void runTurnProbe()} disabled={turnProbing} style={{ width: "100%" }}>
-          {turnProbing ? "正在检测通话线路..." : "检测通话线路（TURN）"}
+          {turnProbing ? t("connectionDiagnostics.turnProbing") : t("connectionDiagnostics.turnProbe")}
         </Button>
         {turnMessage ? (
           <p
@@ -204,34 +221,55 @@ export function ConnectionDiagnosticsScreen({
         ) : null}
       </div>
 
-      <Row label="服务器" value={relayUrl} />
+      <Row label={t("connectionDiagnostics.rowServer")} value={relayUrl} />
       <Row
-        label="多人会议"
-        value={mediaEncryption.supported ? "可加密（支持十几人）" : `最多 ${MAX_MESH_PARTICIPANTS} 人`}
+        label={t("connectionDiagnostics.rowGroupCall")}
+        value={
+          mediaEncryption.supported
+            ? t("connectionDiagnostics.groupCallEncrypted")
+            : t("connectionDiagnostics.groupCallMesh", { max: fmt(MAX_MESH_PARTICIPANTS) })
+        }
         hint={describeMediaEncryptionSupport(mediaEncryption)}
       />
       <Row
-        label="通话线路"
-        value={iceConfig.hasTurn ? "已配置 TURN" : "只有 STUN"}
-        hint={iceConfig.hasTurn ? undefined : "没有 TURN 时，跨运营商通话大概率打不通"}
+        label={t("connectionDiagnostics.rowCallRoute")}
+        value={
+          iceConfig.hasTurn
+            ? t("connectionDiagnostics.callRouteTurn")
+            : t("connectionDiagnostics.callRouteStunOnly")
+        }
+        hint={iceConfig.hasTurn ? undefined : t("connectionDiagnostics.callRouteStunHint")}
       />
-      <Row label="连接状态" value={STATUS_LABEL[status]} />
+      <Row label={t("connectionDiagnostics.rowConnectionStatus")} value={t(STATUS_KEY[status])} />
       <Row
-        label="消息往返延迟"
-        value={latency.averageMs !== null ? `平均 ${latency.averageMs} 毫秒` : "尚未测量"}
+        label={t("connectionDiagnostics.rowMessageRtt")}
+        value={
+          latency.averageMs !== null
+            ? t("connectionDiagnostics.rttAverage", { ms: fmt(latency.averageMs) })
+            : t("connectionDiagnostics.rttNotMeasured")
+        }
         hint={
-          latency.minMs !== null ? `最快 ${latency.minMs} / 最慢 ${latency.maxMs} 毫秒，取最近 ${latency.samples.length} 次心跳` : undefined
+          latency.minMs !== null
+            ? t("connectionDiagnostics.rttHint", {
+                min: fmt(latency.minMs),
+                max: fmt(latency.maxMs ?? 0),
+                count: fmt(latency.samples.length),
+              })
+            : undefined
         }
       />
       <Row
-        label="掉线次数"
-        value={`${disconnects.length} 次`}
-        hint={avgRecovery !== null ? `平均 ${avgRecovery} 秒后自动恢复` : "本次运行期间统计"}
+        label={t("connectionDiagnostics.rowDisconnects")}
+        value={t("connectionDiagnostics.disconnectCount", { count: fmt(disconnects.length) })}
+        hint={
+          avgRecovery !== null
+            ? t("connectionDiagnostics.disconnectRecoveryHint", { seconds: fmt(avgRecovery) })
+            : t("connectionDiagnostics.disconnectSessionHint")
+        }
       />
 
       <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, marginTop: 16 }}>
-        延迟是应用层心跳测出来的真实消息往返时间，不是首次连接耗时——首次连接慢
-        但连上之后往返快，聊天体验依然是好的。统计只覆盖本次运行，重启后清零。
+        {t("connectionDiagnostics.footnote")}
       </p>
     </div>
   );

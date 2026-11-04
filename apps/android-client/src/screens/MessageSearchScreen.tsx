@@ -3,6 +3,7 @@ import { colors, touchTarget } from "@secureinchat/ui";
 import { searchMessages } from "@secureinchat/chat-core";
 import type { DisplayMessage } from "./ChatScreen";
 import { formatMessageTime } from "../timeFormat";
+import { useT } from "../i18n";
 
 export interface MessageSearchScreenProps {
   groupName: string;
@@ -15,6 +16,7 @@ export interface MessageSearchScreenProps {
  * 服务端既搜不了也不该能搜。
  */
 export function MessageSearchScreen({ groupName, messages, onBack }: MessageSearchScreenProps) {
+  const t = useT();
   const [query, setQuery] = useState("");
 
   const searchable = useMemo(
@@ -38,7 +40,7 @@ export function MessageSearchScreen({ groupName, messages, onBack }: MessageSear
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
         <button
           onClick={onBack}
-          aria-label="返回"
+          aria-label={t("messageSearch.back")}
           style={{
             background: "transparent",
             border: "none",
@@ -54,8 +56,8 @@ export function MessageSearchScreen({ groupName, messages, onBack }: MessageSear
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={`在「${groupName}」中搜索`}
-          aria-label="搜索关键词输入框"
+          placeholder={t("messageSearch.searchPlaceholder", { groupName })}
+          aria-label={t("messageSearch.searchInputLabel")}
           autoFocus
           style={{
             flex: 1,
@@ -74,16 +76,16 @@ export function MessageSearchScreen({ groupName, messages, onBack }: MessageSear
       <div style={{ flex: 1, overflowY: "auto", padding: "0 16px 16px" }}>
         {!trimmed ? (
           <p style={{ fontSize: 12, color: "#9A9A94", textAlign: "center", marginTop: 24 }}>
-            输入关键词搜索本群的消息
+            {t("messageSearch.emptyHint")}
           </p>
         ) : hits.length === 0 ? (
           <p style={{ fontSize: 12, color: "#9A9A94", textAlign: "center", marginTop: 24 }}>
-            没有找到包含「{trimmed}」的消息
+            {t("messageSearch.noResults", { query: trimmed })}
           </p>
         ) : (
           <>
             <div style={{ fontSize: 11, color: "#9A9A94", padding: "4px 0 8px" }}>
-              找到 {hits.length} 条
+              {t("messageSearch.resultCount", { count: hits.length })}
             </div>
             {hits.map(({ message }) => (
               <div
@@ -95,12 +97,15 @@ export function MessageSearchScreen({ groupName, messages, onBack }: MessageSear
               >
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ fontSize: 12, color: colors.deepInkGreen }}>
-                    {message.isOwn ? "我" : (message.senderLabel ?? "对方")}
+                    {message.isOwn
+                      ? t("messageSearch.senderSelf")
+                      : (message.senderLabel ?? t("messageSearch.senderOther"))}
                   </span>
                   <span style={{ fontSize: 11, color: "#9A9A94" }}>{formatMessageTime(message.sentAtMs)}</span>
                 </div>
                 <div style={{ fontSize: 14, color: colors.textPrimary, wordBreak: "break-word" }}>
-                  {message.text ?? `[文件] ${message.media?.fileName ?? ""}`}
+                  {message.text ??
+                    t("messageSearch.fileText", { fileName: message.media?.fileName ?? "" })}
                 </div>
               </div>
             ))}

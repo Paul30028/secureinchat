@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { colors, touchTarget, Button, Avatar } from "@secureinchat/ui";
 import { validatePin, tryUnlock, enableLock, MAX_ATTEMPTS } from "../appLock";
+import { useT } from "../i18n";
 
 export interface LockScreenProps {
   mode: "unlock" | "setup";
@@ -45,14 +46,22 @@ export function LockScreen({
   biometricEnabled,
   onBiometricUnlock,
 }: LockScreenProps) {
+  const t = useT();
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  // 错误用键名 + 参数保存，渲染时再翻译，避免语言切换后残留旧语言的字符串。
+  const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [errorParams, setErrorParams] = useState<Record<string, string | number> | undefined>(undefined);
   const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [biometricBusy, setBiometricBusy] = useState(false);
   // 挂载时自动弹一次系统验证。用 ref 保证只触发一次，避免重新渲染反复弹。
   const biometricTriedRef = useRef(false);
+
+  function clearError() {
+    setErrorKey(null);
+    setErrorParams(undefined);
+  }
 
   async function handleBiometric() {
     if (!onBiometricUnlock || biometricBusy) return;
@@ -79,17 +88,18 @@ export function LockScreen({
   }, [biometricEnabled]);
 
   async function handleSubmit() {
-    setError(null);
+    clearError();
     setBusy(true);
     try {
       if (mode === "setup") {
         const check = validatePin(pin);
         if (!check.ok) {
-          setError(check.reason);
+          // validatePin 返回的是本地化文本，这里原样展示。
+          setErrorKey(check.reason);
           return;
         }
         if (pin !== confirmPin) {
-          setError("两次输入的密码不一致");
+          setErrorKey("lock.error.mismatch");
           return;
         }
         await enableLock(pin);
@@ -106,9 +116,10 @@ export function LockScreen({
       setAttemptsLeft(result.attemptsLeft);
       if (result.attemptsLeft === 0) {
         onAttemptsExhausted?.();
-        setError("尝试次数已用尽");
+        setErrorKey("lock.error.attemptsExhausted");
       } else {
-        setError(`密码不正确，还可以尝试 ${result.attemptsLeft} 次`);
+        setErrorKey("lock.error.wrongPin");
+        setErrorParams({ count: result.attemptsLeft });
       }
     } finally {
       setBusy(false);
@@ -116,6 +127,7 @@ export function LockScreen({
   }
 
   const showBiometricButton = mode === "unlock" && biometricEnabled === true && !!onBiometricUnlock;
+  const errorText = errorKey === null ? null : errorParams ? t(errorKey, errorParams) : t(errorKey);
 
   return (
     <div
@@ -132,13 +144,11 @@ export function LockScreen({
     >
       <Avatar name="secureinchat" size="large" />
       <div style={{ fontSize: 16, fontWeight: 500, color: colors.textPrimary }}>
-        {mode === "setup" ? "设置应用密码" : "输入应用密码"}
+        {mode === "setup" ? t("lock.title.setup") : t("lock.title.unlock")}
       </div>
       {mode === "setup" ? (
         <p style={{ fontSize: 12, color: "#8A8A82", textAlign: "center", lineHeight: 1.7, margin: 0 }}>
-          手机被别人拿到时，需要这个密码才能打开。
-          <br />
-          忘记密码只能清除数据重来，没有找回方式。
+          {t("lock.setup.hint")}
         </p>
       ) : null}
 
@@ -149,10 +159,10 @@ export function LockScreen({
           value={pin}
           onChange={(e) => {
             setPin(e.target.value);
-            setError(null);
+            clearError();
           }}
-          aria-label={mode === "setup" ? "设置密码输入框" : "应用密码输入框"}
-          placeholder="••••"
+          aria-label={mode === "setup" ? t("lock.input.aria.setup") : t("lock.input.aria.unlock")}
+          placeholder={t("lock.input.placeholder")}
           style={inputStyle}
         />
         {mode === "setup" ? (
@@ -162,27 +172,27 @@ export function LockScreen({
             value={confirmPin}
             onChange={(e) => {
               setConfirmPin(e.target.value);
-              setError(null);
+              clearError();
             }}
-            aria-label="再次输入密码"
-            placeholder="再输一次"
+            aria-label={t("lock.input.confirm.aria")}
+            placeholder={t("lock.input.confirm.placeholder")}
             style={inputStyle}
           />
         ) : null}
 
-        {error ? (
+        {errorText ? (
           <p role="alert" style={{ color: "#A33", fontSize: 12, margin: 0, textAlign: "center" }}>
-            {error}
+            {errorText}
           </p>
         ) : null}
-        {attemptsLeft !== null && attemptsLeft > 0 && attemptsLeft <= 3 && !error ? (
+        {attemptsLeft !== null && attemptsLeft > 0 && attemptsLeft <= 3 && !errorText ? (
           <p style={{ color: colors.wheatGold, fontSize: 12, margin: 0, textAlign: "center" }}>
-            还可以尝试 {attemptsLeft} 次
+            {t("lock.hint.attemptsLeft", { count: attemptsLeft })}
           </p>
         ) : null}
 
         <Button variant="primary" onClick={() => void handleSubmit()} disabled={busy || pin.length === 0}>
-          {mode === "setup" ? "启用" : "解锁"}
+          {mode === "setup" ? t("lock.button.enable") : t("lock.button.unlock")}
         </Button>
 
         {showBiometricButton ? (
@@ -199,7 +209,7 @@ export function LockScreen({
               cursor: biometricBusy ? "default" : "pointer",
             }}
           >
-            用指纹解锁
+            {t("lock.button.biometric")}
           </button>
         ) : null}
 
@@ -216,14 +226,14 @@ export function LockScreen({
               cursor: "pointer",
             }}
           >
-            取消
+            {t("lock.button.cancel")}
           </button>
         ) : null}
       </div>
 
       {mode === "unlock" ? (
         <p style={{ fontSize: 11, color: "#9A9A94", textAlign: "center", marginTop: 12 }}>
-          连续输错 {MAX_ATTEMPTS} 次将清除本机数据
+          {t("lock.footer.maxAttempts", { count: MAX_ATTEMPTS })}
         </p>
       ) : null}
     </div>

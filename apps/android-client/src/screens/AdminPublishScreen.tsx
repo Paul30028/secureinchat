@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { colors, touchTarget, Button } from "@secureinchat/ui";
 import { CATEGORY_ORDER, CATEGORY_META, type AnnouncementCategory } from "@secureinchat/chat-core";
+import { useT } from "../i18n";
 import type { TodayContent } from "./TodayScreen";
 
 export interface AdminPublishScreenProps {
@@ -20,6 +21,27 @@ export interface AdminPublishScreenProps {
   onBack: () => void;
 }
 
+// 栏目名的翻译键，组件内用 t() 取文案
+const CATEGORY_LABEL_KEYS: Record<AnnouncementCategory, string> = {
+  scripture: "adminPublish.category.scripture",
+  hymn: "adminPublish.category.hymn",
+  devotional: "adminPublish.category.devotional",
+  notice: "adminPublish.category.notice",
+};
+
+// 标题输入框占位文案的翻译键
+const CATEGORY_PLACEHOLDER_KEYS: Record<AnnouncementCategory, string> = {
+  scripture: "adminPublish.placeholder.scripture",
+  hymn: "adminPublish.placeholder.hymn",
+  devotional: "adminPublish.placeholder.devotional",
+  notice: "adminPublish.placeholder.notice",
+};
+
+/** 音频文件名过长时截断，避免撑破布局 */
+function truncateAudioName(name: string): string {
+  return name.length > 24 ? name.slice(0, 24) + "…" : name;
+}
+
 /**
  * 管理员发布页。
  *
@@ -36,6 +58,7 @@ export function AdminPublishScreen({
   onLockAdmin,
   onBack,
 }: AdminPublishScreenProps) {
+  const t = useT();
   const [category, setCategory] = useState<AnnouncementCategory>("scripture");
   const [title, setTitle] = useState(content.scripture?.title ?? "");
   const [body, setBody] = useState(content.scripture?.body ?? "");
@@ -60,7 +83,9 @@ export function AdminPublishScreen({
     try {
       await onPublish(category, title.trim(), body.trim(), audioFile ?? undefined);
       setAudioFile(null);
-      setPublishedNotice(`${CATEGORY_META[category].label} 已发布`);
+      setPublishedNotice(
+        t("adminPublish.published", { category: t(CATEGORY_LABEL_KEYS[category]) })
+      );
     } finally {
       setIsPublishing(false);
     }
@@ -83,7 +108,7 @@ export function AdminPublishScreen({
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24, overflowY: "auto" }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("adminPublish.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -95,12 +120,14 @@ export function AdminPublishScreen({
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("adminPublish.backArrow")}
       </button>
 
-      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>发布今日内容</h1>
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>
+        {t("adminPublish.title")}
+      </h1>
       <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "0 0 16px" }}>
-        发布后会立刻加密发送给群里所有人，覆盖该栏目当天的旧内容。
+        {t("adminPublish.subtitle")}
       </p>
 
       <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
@@ -120,7 +147,7 @@ export function AdminPublishScreen({
               boxShadow: "none",
             }}
           >
-            {CATEGORY_META[key].label}
+            {t(CATEGORY_LABEL_KEYS[key])}
           </button>
         ))}
       </div>
@@ -133,8 +160,8 @@ export function AdminPublishScreen({
             setTitle(e.target.value);
             setPublishedNotice(null);
           }}
-          placeholder={CATEGORY_META[category].placeholder}
-          aria-label="公告标题输入框"
+          placeholder={t(CATEGORY_PLACEHOLDER_KEYS[category])}
+          aria-label={t("adminPublish.titlePlaceholder")}
           style={inputStyle}
         />
         <textarea
@@ -143,8 +170,8 @@ export function AdminPublishScreen({
             setBody(e.target.value);
             setPublishedNotice(null);
           }}
-          placeholder="内容"
-          aria-label="公告内容输入框"
+          placeholder={t("adminPublish.bodyPlaceholder")}
+          aria-label={t("adminPublish.bodyAriaLabel")}
           rows={6}
           style={{ ...inputStyle, resize: "vertical" }}
         />
@@ -169,18 +196,20 @@ export function AdminPublishScreen({
               <input
                 type="file"
                 accept="audio/*"
-                aria-label="选择圣诗音频"
+                aria-label={t("adminPublish.audioAriaLabel")}
                 style={{ display: "none" }}
                 onChange={(e) => {
                   setAudioFile(e.target.files?.[0] ?? null);
                   setPublishedNotice(null);
                 }}
               />
-              {audioFile ? `已选择：${audioFile.name.length > 24 ? audioFile.name.slice(0, 24) + "…" : audioFile.name}` : "添加音频（可选）"}
+              {audioFile
+                ? t("adminPublish.audioSelected", { name: truncateAudioName(audioFile.name) })
+                : t("adminPublish.audioAdd")}
             </label>
             {audioFile ? (
               <div style={{ fontSize: 11, color: "#9A9A94", marginTop: 4 }}>
-                音频会和消息一样加密后发送，中继看不到内容
+                {t("adminPublish.audioEncryptedNote")}
               </div>
             ) : null}
           </div>
@@ -205,16 +234,20 @@ export function AdminPublishScreen({
           onClick={handlePublish}
           disabled={isPublishing || (body.trim().length === 0 && !audioFile && title.trim().length === 0)}
         >
-          {isPublishing ? "发布中..." : `发布到「${CATEGORY_META[category].label}」`}
+          {isPublishing
+            ? t("adminPublish.publishing")
+            : t("adminPublish.publishTo", { category: t(CATEGORY_LABEL_KEYS[category]) })}
         </Button>
       </div>
 
       <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, marginTop: 24, paddingTop: 16 }}>
-        <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>移出成员</div>
+        <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>
+          {t("adminPublish.rotateSectionTitle")}
+        </div>
         <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "0 0 10px" }}>
-          有人离开、或者手机丢失时，更换群密钥并把新邀请码只发给留下的人。
-          之后的消息拿旧密钥的人再也读不到——但他<strong style={{ fontWeight: 500 }}>已经收到的消息还在他手机上</strong>，
-          换密钥追不回来。
+          {t("adminPublish.rotateExplanation")}
+          <strong style={{ fontWeight: 500 }}>{t("adminPublish.rotateExplanationStrong")}</strong>
+          {t("adminPublish.rotateExplanationTail")}
         </p>
 
         {rotateError ? (
@@ -226,7 +259,7 @@ export function AdminPublishScreen({
         {rotatedCode ? (
           <div style={{ marginBottom: 12 }}>
             <p role="status" style={{ fontSize: 12, color: colors.deepInkGreen, margin: "0 0 8px" }}>
-              已更换群密钥。把下面的新邀请码发给留下的成员，他们需要重新加入一次。
+              {t("adminPublish.rotateSuccess")}
             </p>
             <code
               style={{
@@ -246,12 +279,12 @@ export function AdminPublishScreen({
           </div>
         ) : !rotateConfirm ? (
           <Button variant="secondary" onClick={() => setRotateConfirm(true)}>
-            更换群密钥
+            {t("adminPublish.rotateButton")}
           </Button>
         ) : (
           <div style={{ display: "flex", gap: 8 }}>
             <Button variant="secondary" onClick={() => setRotateConfirm(false)} style={{ flex: 1 }}>
-              取消
+              {t("adminPublish.cancel")}
             </Button>
             <Button
               variant="danger"
@@ -267,13 +300,13 @@ export function AdminPublishScreen({
                   .catch((err: unknown) => {
                     // 轮换失败必须说出来——静默失败会让管理员以为已经换过了，
                     // 而实际上被移除的人还能读到新消息
-                    setRotateError(err instanceof Error ? err.message : "更换失败，请重试");
+                    setRotateError(err instanceof Error ? err.message : t("adminPublish.rotateFailed"));
                   })
                   .finally(() => setIsRotating(false));
               }}
               style={{ flex: 1 }}
             >
-              {isRotating ? "更换中..." : "确认更换"}
+              {isRotating ? t("adminPublish.rotating") : t("adminPublish.confirmRotate")}
             </Button>
           </div>
         )}
@@ -292,10 +325,10 @@ export function AdminPublishScreen({
             cursor: "pointer",
           }}
         >
-          退出管理员模式
+          {t("adminPublish.lockAdmin")}
         </button>
         <p style={{ fontSize: 10, color: "#9A9A94", lineHeight: 1.6, margin: "4px 0 0" }}>
-          说明：管理员入口只是把发布功能隐藏起来，服务端目前不校验发布权限。
+          {t("adminPublish.lockAdminNote")}
         </p>
       </div>
     </div>

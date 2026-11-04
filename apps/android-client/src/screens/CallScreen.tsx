@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { colors, touchTarget } from "@secureinchat/ui";
 import { describeCallState, type CallKind, type CallStateInfo } from "@secureinchat/webrtc";
+import { useT } from "../i18n";
 
 export interface CallScreenProps {
   kind: CallKind;
@@ -66,6 +67,7 @@ export function CallScreen({
   onDismiss,
   hasTurn,
 }: CallScreenProps) {
+  const t = useT();
   const [muted, setMuted] = useState(false);
   const [cameraOn, setCameraOn] = useState(kind === "video");
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -133,7 +135,7 @@ export function CallScreen({
             ref={remoteVideoRef}
             autoPlay
             playsInline
-            aria-label="对方画面"
+            aria-label={t("call.remoteVideo")}
             style={{ width: "100%", borderRadius: 16, background: "#000" }}
           />
           <video
@@ -141,7 +143,7 @@ export function CallScreen({
             autoPlay
             playsInline
             muted
-            aria-label="本机画面"
+            aria-label={t("call.localVideo")}
             style={{ position: "absolute", right: 8, bottom: 8, width: 96, borderRadius: 10, background: "#000" }}
           />
         </div>
@@ -166,7 +168,7 @@ export function CallScreen({
 
       {/* 语音通话也需要一个音频输出节点，否则听不到对方 */}
       {!isVideo || info.state !== "connected" ? (
-        <audio ref={remoteAudioRef} autoPlay aria-label="对方语音" style={{ display: "none" }} />
+        <audio ref={remoteAudioRef} autoPlay aria-label={t("call.remoteAudio")} style={{ display: "none" }} />
       ) : null}
 
       <span style={{ fontSize: 18, fontWeight: 500, color: colors.textPrimary }}>{peerLabel}</span>
@@ -176,22 +178,22 @@ export function CallScreen({
 
       {hasTurn === false && info.state !== "connected" && info.state !== "ended" ? (
         <span style={{ fontSize: 11, color: colors.wheatGold, textAlign: "center", maxWidth: 260, lineHeight: 1.6 }}>
-          未配置 TURN 中继服务：双方处于不同运营商网络（如移动 ↔ 电信）时可能无法接通
+          {t("call.noTurnHint")}
         </span>
       ) : null}
 
       <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
         {info.state === "incoming" ? (
           <>
-            <CircleButton label="拒绝" emoji="📵" background="#C05" onClick={onReject} />
-            <CircleButton label="接听" emoji="📞" background={colors.deepInkGreen} onClick={onAccept} />
+            <CircleButton label={t("call.reject")} emoji="📵" background="#C05" onClick={onReject} />
+            <CircleButton label={t("call.accept")} emoji="📞" background={colors.deepInkGreen} onClick={onAccept} />
           </>
         ) : info.state === "ended" ? (
-          <CircleButton label="关闭" emoji="✕" background={colors.sageMint} onClick={onDismiss} />
+          <CircleButton label={t("call.dismiss")} emoji="✕" background={colors.sageMint} onClick={onDismiss} />
         ) : (
           <>
             <CircleButton
-              label={muted ? "取消静音" : "静音"}
+              label={muted ? t("call.unmute") : t("call.mute")}
               emoji={muted ? "🔇" : "🎙️"}
               background={colors.sageMint}
               onClick={() => {
@@ -202,7 +204,7 @@ export function CallScreen({
             />
             {isVideo ? (
               <CircleButton
-                label={cameraOn ? "关闭摄像头" : "开启摄像头"}
+                label={cameraOn ? t("call.cameraOff") : t("call.cameraOn")}
                 emoji={cameraOn ? "🎥" : "🚫"}
                 background={colors.sageMint}
                 onClick={() => {
@@ -212,7 +214,7 @@ export function CallScreen({
                 }}
               />
             ) : null}
-            <CircleButton label="挂断" emoji="📵" background="#C05" onClick={onHangup} />
+            <CircleButton label={t("call.hangup")} emoji="📵" background="#C05" onClick={onHangup} />
           </>
         )}
       </div>

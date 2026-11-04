@@ -1,4 +1,5 @@
 import { colors, radii } from "@secureinchat/ui";
+import { useT } from "../i18n";
 
 export interface MediaContent {
   mediaKind: "image" | "voice" | "file";
@@ -38,13 +39,14 @@ export function MediaBubbleContent({
   isOwn: boolean;
   onOpenImage?: ((media: MediaContent) => void) | undefined;
 }) {
+  const t = useT();
   const subduedColor = isOwn ? "rgba(235,236,229,0.75)" : "#8A8A82";
 
   if (media.mediaKind === "image") {
     return (
       <button
         onClick={() => onOpenImage?.(media)}
-        aria-label={`查看 ${media.fileName}`}
+        aria-label={t("mediaBubbleContent.image.openAria", { fileName: media.fileName })}
         style={{
           display: "block",
           padding: 0,
@@ -70,7 +72,12 @@ export function MediaBubbleContent({
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <audio controls src={media.objectUrl} style={{ width: "100%", height: 32 }} />
         <div style={{ fontSize: 10, color: subduedColor, marginTop: 4 }}>
-          语音{durationLabel ? ` · ${durationLabel}` : ""} · {formatSize(media.sizeBytes)}
+          {durationLabel
+            ? t("mediaBubbleContent.voice.metaWithDuration", {
+                duration: durationLabel,
+                size: formatSize(media.sizeBytes),
+              })
+            : t("mediaBubbleContent.voice.meta")}
         </div>
       </div>
     );
@@ -105,7 +112,7 @@ export function MediaBubbleContent({
           {media.fileName}
         </span>
         <span style={{ display: "block", fontSize: 10, color: subduedColor }}>
-          {formatSize(media.sizeBytes)} · 已加密 · 点击下载
+          {t("mediaBubbleContent.file.meta", { size: formatSize(media.sizeBytes) })}
         </span>
       </span>
     </a>

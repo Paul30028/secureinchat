@@ -5,6 +5,7 @@ import {
   type ConferenceState,
   type Participant,
 } from "@secureinchat/webrtc";
+import { useT } from "../i18n";
 
 export interface ConferenceScreenProps {
   state: ConferenceState;
@@ -15,18 +16,19 @@ export interface ConferenceScreenProps {
   onLeave: () => void;
 }
 
-function stateLabel(p: Participant): string {
+// 状态标签的取值键，在组件内用 t 翻译。
+function stateLabelKey(p: Participant): string {
   switch (p.state) {
     case "inviting":
-      return "邀请中";
+      return "conference.stateInviting";
     case "connecting":
-      return "接通中";
+      return "conference.stateConnecting";
     case "connected":
-      return p.muted ? "已静音" : "通话中";
+      return p.muted ? "conference.muted" : "conference.inCall";
     case "failed":
-      return "连接失败";
+      return "conference.stateFailed";
     default:
-      return "已离开";
+      return "conference.stateLeft";
   }
 }
 
@@ -48,6 +50,7 @@ export function ConferenceScreen({
   onToggleSelfMute,
   onLeave,
 }: ConferenceScreenProps) {
+  const t = useT();
   const duration = `${String(Math.floor(elapsedSec / 60)).padStart(2, "0")}:${String(elapsedSec % 60).padStart(2, "0")}`;
   const inCall = state.participants.filter((p) => p.state !== "left");
   const count = activeCount(state);
@@ -66,7 +69,7 @@ export function ConferenceScreen({
       <div style={{ textAlign: "center", marginBottom: 8 }}>
         <div style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary }}>{groupName}</div>
         <div style={{ fontSize: 12, color: "#8A8A82", marginTop: 4 }}>
-          语音会议 · {count}/{MAX_MESH_PARTICIPANTS} 人
+          {t("conference.participantCount", { count, max: MAX_MESH_PARTICIPANTS })}
         </div>
         <div style={{ fontSize: 13, color: colors.deepInkGreen, marginTop: 6 }}>{duration}</div>
       </div>
@@ -84,8 +87,10 @@ export function ConferenceScreen({
             marginBottom: 8,
           }}
         >
-          <span style={{ fontSize: 14, color: colors.textPrimary }}>{myNickname ?? "我"}</span>
-          <span style={{ fontSize: 11, color: colors.deepInkGreen }}>本机</span>
+          <span style={{ fontSize: 14, color: colors.textPrimary }}>
+            {myNickname ?? t("conference.selfNicknameFallback")}
+          </span>
+          <span style={{ fontSize: 11, color: colors.deepInkGreen }}>{t("conference.selfTag")}</span>
           <span
             style={{
               marginLeft: "auto",
@@ -93,7 +98,7 @@ export function ConferenceScreen({
               color: state.selfMuted ? "#A33" : "#8A8A82",
             }}
           >
-            {state.selfMuted ? "已静音" : "通话中"}
+            {state.selfMuted ? t("conference.muted") : t("conference.inCall")}
           </span>
         </div>
 
@@ -112,7 +117,7 @@ export function ConferenceScreen({
             }}
           >
             <span style={{ fontSize: 14, color: colors.textPrimary }}>
-              {p.displayName ?? `设备 ${shortId(p.deviceId)}`}
+              {p.displayName ?? t("conference.deviceFallback", { id: shortId(p.deviceId) })}
             </span>
             <span
               style={{
@@ -121,16 +126,16 @@ export function ConferenceScreen({
                 color: p.state === "connected" ? "#8A8A82" : colors.wheatGold,
               }}
             >
-              {stateLabel(p)}
+              {t(stateLabelKey(p))}
             </span>
           </div>
         ))}
 
         {inCall.length === 0 ? (
           <div style={{ textAlign: "center", padding: "24px 16px", fontSize: 12, color: "#9A9A94", lineHeight: 1.8 }}>
-            正在等其他人加入。
+            {t("conference.waitingTitle")}
             <br />
-            群里在线的人会看到会议邀请。
+            {t("conference.waitingHint")}
           </div>
         ) : null}
       </div>
@@ -138,7 +143,7 @@ export function ConferenceScreen({
       <div style={{ display: "flex", justifyContent: "center", gap: 24, paddingTop: 16 }}>
         <button
           onClick={onToggleSelfMute}
-          aria-label={state.selfMuted ? "取消静音" : "静音"}
+          aria-label={state.selfMuted ? t("conference.unmute") : t("conference.mute")}
           style={{
             width: 64,
             height: 64,
@@ -158,7 +163,7 @@ export function ConferenceScreen({
 
         <button
           onClick={onLeave}
-          aria-label="离开会议"
+          aria-label={t("conference.leaveAriaLabel")}
           style={{
             minHeight: touchTarget.minDp,
             width: 64,
@@ -172,12 +177,12 @@ export function ConferenceScreen({
             cursor: "pointer",
           }}
         >
-          离开
+          {t("conference.leave")}
         </button>
       </div>
 
       <p style={{ fontSize: 10, color: "#9A9A94", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-        语音只在参与者之间传输，服务器听不到。最多 {MAX_MESH_PARTICIPANTS} 人。
+        {t("conference.privacyNote", { max: MAX_MESH_PARTICIPANTS })}
       </p>
     </div>
   );

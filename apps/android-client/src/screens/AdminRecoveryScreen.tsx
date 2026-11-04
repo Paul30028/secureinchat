@@ -2,6 +2,7 @@ import { useState } from "react";
 import { colors, touchTarget, Button } from "@secureinchat/ui";
 import { restoreAdminKeyFromRecoveryCode, AdminRecoveryError } from "@secureinchat/crypto-core";
 import { saveAdminKey } from "../adminKeys";
+import { useT } from "../i18n";
 
 export interface AdminRecoveryScreenProps {
   /** 已加入的群及其管理员公钥，用来判断这串恢复码属于哪个群 */
@@ -20,6 +21,7 @@ export interface AdminRecoveryScreenProps {
  * 公钥比对就知道了。对不上就是这个码不属于你加入的任何一个群。
  */
 export function AdminRecoveryScreen({ groups, onRecovered, onBack }: AdminRecoveryScreenProps) {
+  const t = useT();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -31,13 +33,13 @@ export function AdminRecoveryScreen({ groups, onRecovered, onBack }: AdminRecove
       const restored = await restoreAdminKeyFromRecoveryCode(code);
       const match = groups.find((g) => g.adminPublicKey === restored.publicKeyRawB64Url);
       if (!match) {
-        setError("这串恢复码不属于你已加入的任何群聊。请确认抄写完整，或先加入该群。");
+        setError(t("adminRecovery.errorNoMatch"));
         return;
       }
       await saveAdminKey(match.groupId, code.trim());
       onRecovered(match.groupId, match.groupName);
     } catch (err) {
-      setError(err instanceof AdminRecoveryError ? err.message : "恢复失败，请重试");
+      setError(err instanceof AdminRecoveryError ? err.message : t("adminRecovery.errorFailed"));
     } finally {
       setIsRestoring(false);
     }
@@ -47,7 +49,7 @@ export function AdminRecoveryScreen({ groups, onRecovered, onBack }: AdminRecove
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24 }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("adminRecovery.backAria")}
         style={{
           background: "transparent",
           border: "none",
@@ -59,15 +61,14 @@ export function AdminRecoveryScreen({ groups, onRecovered, onBack }: AdminRecove
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        ← {t("adminRecovery.back")}
       </button>
 
       <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 8px" }}>
-        恢复管理员权限
+        {t("adminRecovery.title")}
       </h1>
       <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "0 0 16px" }}>
-        换了手机之后，粘贴创建群聊时保存的恢复码，就能继续发布每日内容。
-        恢复码以 SICADMIN1. 开头。
+        {t("adminRecovery.intro")}
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -77,8 +78,8 @@ export function AdminRecoveryScreen({ groups, onRecovered, onBack }: AdminRecove
             setCode(e.target.value);
             setError(null);
           }}
-          placeholder="SICADMIN1...."
-          aria-label="管理员恢复码输入框"
+          placeholder={t("adminRecovery.codePlaceholder")}
+          aria-label={t("adminRecovery.codeAria")}
           rows={4}
           autoCapitalize="none"
           autoCorrect="off"
@@ -107,12 +108,12 @@ export function AdminRecoveryScreen({ groups, onRecovered, onBack }: AdminRecove
           onClick={() => void handleRestore()}
           disabled={isRestoring || code.trim().length === 0}
         >
-          {isRestoring ? "恢复中..." : "恢复"}
+          {isRestoring ? t("adminRecovery.restoring") : t("adminRecovery.restore")}
         </Button>
       </div>
 
       <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, marginTop: 20 }}>
-        恢复码等同于管理员身份，任何拿到它的人都能以管理员名义发布内容，请妥善保管。
+        {t("adminRecovery.warning")}
       </p>
     </div>
   );

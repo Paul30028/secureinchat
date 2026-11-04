@@ -1,5 +1,6 @@
 import { colors, radii, touchTarget } from "@secureinchat/ui";
 import { sortByRecency, type KnownDevice } from "@secureinchat/chat-core";
+import { useT } from "../i18n";
 
 export interface GroupMembersSheetProps {
   devices: KnownDevice[];
@@ -27,6 +28,8 @@ export function GroupMembersSheet({
   myNickname,
   onClose,
 }: GroupMembersSheetProps) {
+  const t = useT();
+
   // 在线的排前面，其次按最近见到的时间
   const sorted = sortByRecency(devices).sort((a, b) => {
     const aOnline = onlineNow.includes(a.deviceId) ? 0 : 1;
@@ -39,7 +42,7 @@ export function GroupMembersSheet({
   return (
     <div
       role="dialog"
-      aria-label="群成员"
+      aria-label={t("groupMembersSheet.title")}
       onClick={onClose}
       style={{
         position: "fixed",
@@ -63,10 +66,12 @@ export function GroupMembersSheet({
         }}
       >
         <div style={{ fontSize: 15, fontWeight: 500, color: colors.textPrimary, marginBottom: 2 }}>
-          群成员
+          {t("groupMembersSheet.title")}
         </div>
         <div style={{ fontSize: 11, color: "#9A9A94", marginBottom: 12 }}>
-          {onlineCount > 0 ? `${onlineCount} 人在线` : "其他人都不在线"}
+          {onlineCount > 0
+            ? t("groupMembersSheet.onlineCount", { count: onlineCount })
+            : t("groupMembersSheet.noneOnline")}
         </div>
 
         {/* 自己 */}
@@ -79,8 +84,12 @@ export function GroupMembersSheet({
             borderBottom: `0.5px solid ${colors.sageMint}`,
           }}
         >
-          <span style={{ fontSize: 14, color: colors.textPrimary }}>{myNickname ?? "我"}</span>
-          <span style={{ fontSize: 11, color: colors.deepInkGreen }}>本机</span>
+          <span style={{ fontSize: 14, color: colors.textPrimary }}>
+            {myNickname ?? t("groupMembersSheet.me")}
+          </span>
+          <span style={{ fontSize: 11, color: colors.deepInkGreen }}>
+            {t("groupMembersSheet.thisDevice")}
+          </span>
         </div>
 
         {sorted
@@ -99,10 +108,13 @@ export function GroupMembersSheet({
                 }}
               >
                 <span style={{ fontSize: 14, color: colors.textPrimary }}>
-                  {d.displayName ?? `设备 ${shortId(d.deviceId)}`}
+                  {d.displayName ??
+                    t("groupMembersSheet.deviceLabel", { id: shortId(d.deviceId) })}
                 </span>
                 {d.displayName ? null : (
-                  <span style={{ fontSize: 10, color: "#9A9A94" }}>（还没发过消息）</span>
+                  <span style={{ fontSize: 10, color: "#9A9A94" }}>
+                    {t("groupMembersSheet.noMessagesYet")}
+                  </span>
                 )}
                 <span
                   style={{
@@ -111,7 +123,7 @@ export function GroupMembersSheet({
                     color: online ? colors.wheatGold : "#9A9A94",
                   }}
                 >
-                  {online ? "在线" : "不在线"}
+                  {online ? t("groupMembersSheet.online") : t("groupMembersSheet.offline")}
                 </span>
               </div>
             );
@@ -119,7 +131,7 @@ export function GroupMembersSheet({
 
         {sorted.filter((d) => d.deviceId !== myDeviceId).length === 0 ? (
           <div style={{ fontSize: 12, color: "#9A9A94", padding: "16px 0", textAlign: "center" }}>
-            还没见到其他成员。别人上线或发消息后会出现在这里。
+            {t("groupMembersSheet.empty")}
           </div>
         ) : null}
 
@@ -137,7 +149,7 @@ export function GroupMembersSheet({
             cursor: "pointer",
           }}
         >
-          关闭
+          {t("groupMembersSheet.close")}
         </button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { colors, InviteInfoCard, type InviteInfo } from "@secureinchat/ui";
+import { useT } from "../i18n";
 
 export interface InviteScreenProps {
   invite: InviteInfo;
@@ -12,11 +13,12 @@ export interface InviteScreenProps {
 /** 邀请验证页。真正的"确认加入"现在会调用 chat-core 的 joinGroupFromInvite，
  *  派生并落盘这个群的入群密钥——不再只是切个屏幕。 */
 export function InviteScreen({ invite, onConfirm, onBack, isConfirming, errorMessage }: InviteScreenProps) {
+  const t = useT();
   return (
     <div style={{ minHeight: "100vh", background: colors.ivory, padding: 24 }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("invite.backAriaLabel")}
         style={{
           background: "transparent",
           border: "none",
@@ -28,7 +30,7 @@ export function InviteScreen({ invite, onConfirm, onBack, isConfirming, errorMes
           minHeight: 48,
         }}
       >
-        ← 返回
+        ← {t("invite.back")}
       </button>
       <InviteInfoCard invite={invite} onConfirm={onConfirm} isConfirming={isConfirming} />
       {errorMessage ? (

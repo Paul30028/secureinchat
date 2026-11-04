@@ -1,4 +1,5 @@
 import { colors, touchTarget } from "@secureinchat/ui";
+import { useT } from "../i18n";
 
 export interface ImageViewerProps {
   src: string;
@@ -15,10 +16,12 @@ export interface ImageViewerProps {
  * 图片本身是解密后的本地 blob，全屏只是换个尺寸显示，没有任何额外的网络请求。
  */
 export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
+  const t = useT();
+
   return (
     <div
       role="dialog"
-      aria-label={`查看图片 ${fileName}`}
+      aria-label={t("imageViewer.dialogLabel", { fileName })}
       onClick={onClose}
       style={{
         position: "fixed",
@@ -35,7 +38,7 @@ export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
       >
         <button
           onClick={onClose}
-          aria-label="关闭"
+          aria-label={t("imageViewer.close")}
           style={{
             minHeight: touchTarget.minDp,
             minWidth: touchTarget.minDp,
@@ -64,7 +67,7 @@ export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
         <a
           href={src}
           download={fileName}
-          aria-label="保存图片"
+          aria-label={t("imageViewer.saveImage")}
           style={{
             minHeight: touchTarget.minDp,
             display: "flex",
@@ -75,7 +78,7 @@ export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
             textDecoration: "none",
           }}
         >
-          保存
+          {t("imageViewer.save")}
         </a>
       </div>
 
@@ -90,7 +93,7 @@ export function ImageViewer({ src, fileName, onClose }: ImageViewerProps) {
       </div>
 
       <div style={{ textAlign: "center", padding: "0 0 16px", fontSize: 11, color: "rgba(235,236,229,0.5)" }}>
-        点击空白处关闭
+        {t("imageViewer.tapToClose")}
       </div>
     </div>
   );

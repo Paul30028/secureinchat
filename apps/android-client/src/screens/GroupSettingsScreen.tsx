@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { colors, touchTarget, Button } from "@secureinchat/ui";
 import { DISAPPEAR_OPTIONS_MS } from "@secureinchat/chat-core";
+import { useT } from "../i18n";
+import type { Messages } from "../i18n";
 
 export interface GroupSettingsScreenProps {
   groupName: string;
@@ -16,6 +18,16 @@ export interface GroupSettingsScreenProps {
   onSetDisappearAfter?: ((ms: number) => void) | undefined;
 }
 
+type DisappearKey = `groupSettings.disappear${string}`;
+
+/** 时长到词条键的映射（与界面语言无关，不调用 t）。 */
+const DISAPPEAR_KEYS: ReadonlyArray<readonly [number, DisappearKey]> = [
+  [300_000, "groupSettings.disappear5min"],
+  [3_600_000, "groupSettings.disappear1hour"],
+  [86_400_000, "groupSettings.disappear1day"],
+  [604_800_000, "groupSettings.disappear7days"],
+];
+
 /** 把时长转成界面上显示的中文标签。 */
 export function disappearLabel(ms: number): string {
   if (ms === 300_000) return "5 分钟";
@@ -23,6 +35,14 @@ export function disappearLabel(ms: number): string {
   if (ms === 86_400_000) return "1 天";
   if (ms === 604_800_000) return "7 天";
   return "关闭";
+}
+
+/** 取时长对应的词条键，用于按当前语言渲染选项文字。 */
+function disappearKey(ms: number): DisappearKey {
+  for (const [value, key] of DISAPPEAR_KEYS) {
+    if (value === ms) return key;
+  }
+  return "groupSettings.disappearOff";
 }
 
 /**
@@ -49,6 +69,7 @@ export function GroupSettingsScreen({
   disappearAfterMs,
   onSetDisappearAfter,
 }: GroupSettingsScreenProps) {
+  const t = useT();
   const [name, setName] = useState(groupName);
   const [saving, setSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
@@ -71,7 +92,7 @@ export function GroupSettingsScreen({
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24, overflowY: "auto" }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("groupSettings.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -83,16 +104,20 @@ export function GroupSettingsScreen({
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("groupSettings.backLabel")}
       </button>
 
-      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>群设置</h1>
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 4px" }}>
+        {t("groupSettings.title")}
+      </h1>
       <p style={{ fontSize: 12, color: "#8A8A82", margin: "0 0 20px" }}>
-        {memberCount > 0 ? `${memberCount} 位成员在线` : "群里暂时只有你在线"}
+        {memberCount > 0
+          ? t("groupSettings.memberOnlineCount", { count: memberCount })
+          : t("groupSettings.onlyYouOnline")}
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div style={{ fontSize: 14, color: colors.textPrimary }}>群名称</div>
+        <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("groupSettings.groupName")}</div>
         <input
           type="text"
           value={name}
@@ -100,7 +125,7 @@ export function GroupSettingsScreen({
             setName(e.target.value);
             setSavedNotice(false);
           }}
-          aria-label="群名称输入框"
+          aria-label={t("groupSettings.groupNameInputLabel")}
           style={{
             minHeight: touchTarget.minDp,
             border: `0.5px solid ${colors.sageMint}`,
@@ -114,7 +139,7 @@ export function GroupSettingsScreen({
         />
         {savedNotice ? (
           <p role="status" style={{ fontSize: 12, color: colors.deepInkGreen, margin: 0 }}>
-            已保存
+            {t("groupSettings.saved")}
           </p>
         ) : null}
         <Button
@@ -122,10 +147,10 @@ export function GroupSettingsScreen({
           onClick={() => void handleRename()}
           disabled={saving || name.trim().length === 0 || name.trim() === groupName}
         >
-          {saving ? "保存中..." : "保存群名"}
+          {saving ? t("groupSettings.saving") : t("groupSettings.saveGroupName")}
         </Button>
         <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: 0 }}>
-          只改这台手机上显示的名字。中继不知道群叫什么，其他人那边不会跟着变。
+          {t("groupSettings.renameHint")}
         </p>
       </div>
 
@@ -145,18 +170,24 @@ export function GroupSettingsScreen({
               boxShadow: "none",
             }}
           >
-            <div style={{ fontSize: 14, color: colors.textPrimary }}>邀请新成员</div>
-            <div style={{ fontSize: 11, color: "#9A9A94" }}>重新打开邀请卡片，发给想拉进群的人</div>
+            <div style={{ fontSize: 14, color: colors.textPrimary }}>
+              {t("groupSettings.inviteMember")}
+            </div>
+            <div style={{ fontSize: 11, color: "#9A9A94" }}>
+              {t("groupSettings.inviteHint")}
+            </div>
           </button>
         </div>
       ) : null}
 
       {onSetDisappearAfter ? (
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>消息定时消失</div>
+          <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>
+            {t("groupSettings.disappearTitle")}
+          </div>
           <div
             role="group"
-            aria-label="消息定时消失"
+            aria-label={t("groupSettings.disappearTitle")}
             style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
           >
             {DISAPPEAR_OPTIONS_MS.map((ms) => {
@@ -179,33 +210,33 @@ export function GroupSettingsScreen({
                     boxShadow: "none",
                   }}
                 >
-                  {disappearLabel(ms)}
+                  {t(disappearKey(ms))}
                 </button>
               );
             })}
           </div>
           <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "10px 0 0" }}>
-            只对你之后发出的消息生效。对方用的是旧版本应用时，消息在他那边不会消失；
-            对方仍然可以截屏或拍照。
+            {t("groupSettings.disappearHint")}
           </p>
         </div>
       ) : null}
 
       <div style={{ borderTop: `0.5px solid ${colors.sageMint}`, marginTop: 28, paddingTop: 16 }}>
-        <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>退出群聊</div>
+        <div style={{ fontSize: 14, color: colors.textPrimary, marginBottom: 4 }}>
+          {t("groupSettings.leaveTitle")}
+        </div>
         <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, margin: "0 0 10px" }}>
-          这台手机上的聊天记录会一起删掉，无法恢复——中继不保存任何消息。
-          以后想回来需要重新用邀请码加入。
+          {t("groupSettings.leaveHint")}
         </p>
 
         {!confirmLeave ? (
           <Button variant="secondary" onClick={() => setConfirmLeave(true)}>
-            退出群聊
+            {t("groupSettings.leaveTitle")}
           </Button>
         ) : (
           <div style={{ display: "flex", gap: 8 }}>
             <Button variant="secondary" onClick={() => setConfirmLeave(false)} style={{ flex: 1 }}>
-              取消
+              {t("groupSettings.cancel")}
             </Button>
             <Button
               variant="danger"
@@ -216,7 +247,7 @@ export function GroupSettingsScreen({
               }}
               style={{ flex: 1 }}
             >
-              {leaving ? "退出中..." : "确认退出"}
+              {leaving ? t("groupSettings.leaving") : t("groupSettings.confirmLeave")}
             </Button>
           </div>
         )}

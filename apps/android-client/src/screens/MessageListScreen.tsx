@@ -4,6 +4,7 @@ import { TodayScreen, type TodayContent } from "./TodayScreen";
 import { registerTap, INITIAL_TAP_STATE, type TapState } from "../adminAccess";
 import { formatListTime } from "../timeFormat";
 import { APP_VERSION } from "../version";
+import { useT, useLocale } from "../i18n";
 
 export interface GroupListItem {
   groupId: string;
@@ -80,6 +81,8 @@ export function MessageListScreen({
   onOpenBackup,
   onOpenDeviceSafety,
 }: MessageListScreenProps) {
+  const t = useT();
+  const locale = useLocale();
   // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
   // 而不是像通用 IM 那样落在会话列表。
   const [activeTab, setActiveTab] = useState<BottomNavKey>(initialTab ?? "announcements");
@@ -102,7 +105,7 @@ export function MessageListScreen({
   return (
     <div style={{ minHeight: "100vh", background: colors.ivory, display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "16px 16px 8px", fontSize: 16, fontWeight: 500, color: colors.deepInkGreen }}>
-        邀群密聊
+        {t("messageList.appName")}
       </div>
 
       <div style={{ flex: 1, padding: "0 12px" }}>
@@ -110,11 +113,13 @@ export function MessageListScreen({
           <div style={{ display: "flex", flexDirection: "column" }}>
             {groups.length === 0 ? (
               <div style={{ textAlign: "center", padding: "48px 16px 24px" }}>
-                <div style={{ fontSize: 15, color: colors.textPrimary, marginBottom: 6 }}>还没有加入任何群聊</div>
+                <div style={{ fontSize: 15, color: colors.textPrimary, marginBottom: 6 }}>
+                  {t("messageList.emptyTitle")}
+                </div>
                 <div style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7 }}>
-                  这个应用只能通过邀请码加入，
+                  {t("messageList.emptyHint1")}
                   <br />
-                  没有搜索、没有好友列表、也不需要手机号。
+                  {t("messageList.emptyHint2")}
                 </div>
               </div>
             ) : null}
@@ -122,7 +127,7 @@ export function MessageListScreen({
               <div key={g.groupId}>
                 <MessageListItem
                   name={g.groupName}
-                  previewText={g.lastMessage ? g.lastMessage.preview : "还没有消息"}
+                  previewText={g.lastMessage ? g.lastMessage.preview : t("messageList.noMessages")}
                   timeLabel={g.lastMessage ? formatListTime(g.lastMessage.sentAtMs) : ""}
                   unreadCount={g.unread}
                   onClick={() => onOpenGroup(g.groupId)}
@@ -133,7 +138,9 @@ export function MessageListScreen({
                   }}
                 />
                 <div style={{ padding: "0 6px 6px 60px", fontSize: 11, color: "#9A9A94" }}>
-                  {g.onlineCount > 0 ? `${g.onlineCount} 位成员在线` : "群里暂时只有你在线"}
+                  {g.onlineCount > 0
+                    ? t("messageList.onlineCount", { count: g.onlineCount })
+                    : t("messageList.onlyYouOnline")}
                 </div>
               </div>
             ))}
@@ -151,7 +158,7 @@ export function MessageListScreen({
                 cursor: "pointer",
               }}
             >
-              + 加入或创建其他群聊
+              {t("messageList.joinOrCreate")}
             </button>
           </div>
         ) : activeTab === "announcements" ? (
@@ -170,10 +177,12 @@ export function MessageListScreen({
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: 11, color: "#9A9A94" }}>昵称</div>
-              <div style={{ fontSize: 15, color: colors.deepInkGreen }}>{nickname ?? "未设置"}</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>{t("messageList.nicknameLabel")}</div>
+              <div style={{ fontSize: 15, color: colors.deepInkGreen }}>
+                {nickname ?? t("messageList.nicknameUnset")}
+              </div>
             </button>
-            <div style={{ fontSize: 13, color: colors.textPrimary, marginTop: 8 }}>本机身份</div>
+            <div style={{ fontSize: 13, color: colors.textPrimary, marginTop: 8 }}>{t("messageList.localIdentity")}</div>
             <div style={{ fontSize: 11, color: "#8A8A82", wordBreak: "break-all", fontFamily: "monospace" }}>
               {deviceId}
             </div>
@@ -190,8 +199,8 @@ export function MessageListScreen({
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: 14, color: colors.textPrimary }}>群内设备</div>
-              <div style={{ fontSize: 11, color: "#9A9A94" }}>看看有没有不认识的设备</div>
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("messageList.groupDevicesTitle")}</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>{t("messageList.groupDevicesHint")}</div>
             </button>
 
             <button
@@ -207,8 +216,8 @@ export function MessageListScreen({
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: 14, color: colors.textPrimary }}>连接诊断</div>
-              <div style={{ fontSize: 11, color: "#9A9A94" }}>延迟、掉线次数</div>
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("messageList.diagnosticsTitle")}</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>{t("messageList.diagnosticsHint")}</div>
             </button>
 
             <button
@@ -224,7 +233,7 @@ export function MessageListScreen({
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: 14, color: colors.textPrimary }}>服务器设置</div>
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("messageList.serverSettingsTitle")}</div>
               <div style={{ fontSize: 11, color: "#9A9A94", fontFamily: "monospace", wordBreak: "break-all" }}>
                 {relayUrl}
               </div>
@@ -244,8 +253,8 @@ export function MessageListScreen({
                   cursor: "pointer",
                 }}
               >
-                <div style={{ fontSize: 14, color: colors.textPrimary }}>备份与恢复</div>
-                <div style={{ fontSize: 11, color: "#9A9A94" }}>导出加密备份文件，换手机时恢复群和聊天记录</div>
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("messageList.backupTitle")}</div>
+                <div style={{ fontSize: 11, color: "#9A9A94" }}>{t("messageList.backupHint")}</div>
               </button>
             ) : null}
 
@@ -263,8 +272,8 @@ export function MessageListScreen({
                   cursor: "pointer",
                 }}
               >
-                <div style={{ fontSize: 14, color: colors.textPrimary }}>设备安全</div>
-                <div style={{ fontSize: 11, color: "#9A9A94" }}>空手过境；手机被扣留或拿走过时清除全部数据</div>
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("messageList.deviceSafetyTitle")}</div>
+                <div style={{ fontSize: 11, color: "#9A9A94" }}>{t("messageList.deviceSafetyHint")}</div>
               </button>
             ) : null}
 
@@ -273,11 +282,11 @@ export function MessageListScreen({
                 const result = registerTap(tapState);
                 setTapState(result.state);
                 if (result.unlocked) {
-                  setTapHint("管理员入口已开启");
+                  setTapHint(t("messageList.adminUnlockedHint"));
                   onAdminUnlocked();
                 } else if (result.remaining <= 3) {
                   // 到最后三次才给提示——否则误触也会看到莫名其妙的倒数
-                  setTapHint(`还差 ${result.remaining} 次`);
+                  setTapHint(t("messageList.tapsRemainingHint", { count: result.remaining }));
                 } else {
                   setTapHint(null);
                 }
@@ -294,7 +303,12 @@ export function MessageListScreen({
                 marginTop: 12,
               }}
             >
-              版本 {APP_VERSION}
+              {t("messageList.versionLabel", {
+                version: new Intl.NumberFormat(locale, { useGrouping: false }).format(Number.parseFloat(APP_VERSION) || 0) ===
+                String(Number.parseFloat(APP_VERSION) || 0)
+                  ? APP_VERSION
+                  : APP_VERSION,
+              })}
               {tapHint ? <span style={{ marginLeft: 8, color: colors.wheatGold }}>{tapHint}</span> : null}
             </button>
 
@@ -311,8 +325,8 @@ export function MessageListScreen({
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: 14, color: colors.textPrimary }}>应用密码</div>
-              <div style={{ fontSize: 11, color: "#9A9A94" }}>打开应用前需要输入密码</div>
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("messageList.appLockTitle")}</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>{t("messageList.appLockHint")}</div>
             </button>
 
             {onToggleBiometric ? (
@@ -336,13 +350,13 @@ export function MessageListScreen({
                   cursor: "pointer",
                 }}
               >
-                <div style={{ fontSize: 14, color: colors.textPrimary }}>用指纹或面部解锁</div>
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("messageList.biometricTitle")}</div>
                 <div style={{ fontSize: 11, color: "#9A9A94" }}>
                   {!lockEnabled
-                    ? "先设置应用密码，才能开启指纹或面部解锁"
+                    ? t("messageList.biometricNeedsLock")
                     : biometricEnabled
-                      ? "已开启：指纹或面部只用于在本机解开应用锁；没有 PIN 时不能单独使用。"
-                      : "已关闭：开启后可用指纹或面部解锁应用锁，PIN 始终可用"}
+                      ? t("messageList.biometricOn")
+                      : t("messageList.biometricOff")}
                 </div>
               </button>
             ) : null}
@@ -361,11 +375,11 @@ export function MessageListScreen({
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: 14, color: colors.textPrimary }}>截屏保护</div>
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("messageList.screenSecurityTitle")}</div>
               <div style={{ fontSize: 11, color: "#9A9A94" }}>
                 {screenSecurityEnabled
-                  ? "已开启：本应用界面无法截屏或录屏，最近任务里显示空白"
-                  : "已关闭：开启后无法截图转发邀请卡片"}
+                  ? t("messageList.screenSecurityOn")
+                  : t("messageList.screenSecurityOff")}
               </div>
             </button>
             ) : null}
@@ -383,13 +397,12 @@ export function MessageListScreen({
                 cursor: "pointer",
               }}
             >
-              <div style={{ fontSize: 14, color: colors.textPrimary }}>恢复管理员权限</div>
-              <div style={{ fontSize: 11, color: "#9A9A94" }}>换手机后用恢复码找回发布权限</div>
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("messageList.adminRecoveryTitle")}</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>{t("messageList.adminRecoveryHint")}</div>
             </button>
 
             <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.6, marginTop: 8 }}>
-              设备身份、群密钥和聊天记录都加密保存在本机。清除应用数据会全部丢失，
-              且无法从服务器恢复——中继按设计不保存任何聊天内容。
+              {t("messageList.dataNotice")}
             </p>
           </div>
         )}

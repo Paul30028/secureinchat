@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { colors, touchTarget, Button, Avatar } from "@secureinchat/ui";
 import { validateNickname, saveNickname, NICKNAME_MAX_LENGTH } from "../profile";
+import { useT } from "../i18n";
 
 export interface EditProfileScreenProps {
   currentNickname: string;
@@ -18,6 +19,7 @@ export interface EditProfileScreenProps {
  * 别人那边不会追溯更新。中继不保存消息，也就没有"回去改"的可能。
  */
 export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProfileScreenProps) {
+  const t = useT();
   const [nickname, setNickname] = useState(currentNickname);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -33,7 +35,7 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
       await saveNickname(nickname.trim());
       onSaved(nickname.trim());
     } catch {
-      setError("保存失败，请重试");
+      setError(t("editProfile.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -43,7 +45,7 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24 }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("editProfile.backAriaLabel")}
         style={{
           background: "transparent",
           border: "none",
@@ -55,12 +57,12 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        ← {t("editProfile.back")}
       </button>
 
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-        <Avatar name={nickname || "?"} size="large" />
-        <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: 0 }}>修改昵称</h1>
+        <Avatar name={nickname || t("editProfile.avatarPlaceholder")} size="large" />
+        <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: 0 }}>{t("editProfile.title")}</h1>
 
         <div style={{ width: "100%", maxWidth: 320, display: "flex", flexDirection: "column", gap: 10 }}>
           <input
@@ -70,7 +72,7 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
               setNickname(e.target.value);
               setError(null);
             }}
-            aria-label="昵称输入框"
+            aria-label={t("editProfile.nicknameInputAriaLabel")}
             maxLength={NICKNAME_MAX_LENGTH}
             style={{
               minHeight: touchTarget.minDp,
@@ -85,7 +87,7 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
             }}
           />
           <div style={{ fontSize: 11, color: "#9A9A94", textAlign: "right" }}>
-            {nickname.length}/{NICKNAME_MAX_LENGTH}
+            {t("editProfile.charCount", { count: nickname.length, max: NICKNAME_MAX_LENGTH })}
           </div>
 
           {error ? (
@@ -95,11 +97,11 @@ export function EditProfileScreen({ currentNickname, onSaved, onBack }: EditProf
           ) : null}
 
           <Button variant="primary" onClick={() => void handleSave()} disabled={saving || nickname.trim().length === 0}>
-            {saving ? "保存中..." : "保存"}
+            {saving ? t("editProfile.saving") : t("editProfile.save")}
           </Button>
 
           <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, textAlign: "center", marginTop: 4 }}>
-            改名只影响之后发出的消息，已经发出去的不会变。
+            {t("editProfile.note")}
           </p>
         </div>
       </div>

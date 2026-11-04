@@ -3,6 +3,7 @@ import { colors, touchTarget, Button, InviteShareCard } from "@secureinchat/ui";
 import { buildSic2Invite } from "@secureinchat/protocol";
 import { randomUUID, generateAdminKeyPair } from "@secureinchat/crypto-core";
 import { copyToClipboard } from "@secureinchat/chat-core";
+import { useT } from "../i18n";
 
 export interface CreateGroupScreenProps {
   /** 当前生效的中继地址，连不上时要显示出来——否则不知道它在连哪里 */
@@ -34,6 +35,7 @@ function randomBase64UrlKeyMaterial(): string {
  * 等成员资格收紧之后，创建群需要额外一步向服务端登记邀请码，这里先不冒充已实现。
  */
 export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupScreenProps) {
+  const t = useT();
   const [groupName, setGroupName] = useState("");
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [pendingGroupId, setPendingGroupId] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
     try {
       await onCreated({
         groupId: pendingGroupId,
-        groupName: groupName || "新群聊",
+        groupName: groupName || t("createGroup.defaultGroupName"),
         keyMaterialB64Url: pendingKeyMaterial,
         inviteCode,
         adminRecoveryCode: recoveryCode,
@@ -81,7 +83,10 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
       // 把地址一起显示出来。连不上时最需要知道的就是"它在连哪台服务器"——
       // 只说"失败了"没法判断是服务器没起、地址填错、还是网络问题。
       setErrorMessage(
-        `进入群聊失败：${err instanceof Error ? err.message : "请重试"}\n服务器：${relayUrl}`
+        t("createGroup.enterError", {
+          reason: err instanceof Error ? err.message : t("createGroup.enterErrorFallback"),
+          relayUrl,
+        })
       );
     }
   }
@@ -90,7 +95,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
     <div style={{ minHeight: "100vh", background: colors.ivory, padding: 24 }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("createGroup.backAria")}
         style={{
           background: "transparent",
           border: "none",
@@ -102,10 +107,10 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
           minHeight: 48,
         }}
       >
-        ← 返回
+        {t("createGroup.back")}
       </button>
 
-      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 16px" }}>创建群聊</h1>
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 16px" }}>{t("createGroup.title")}</h1>
 
       {!inviteCode ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -113,8 +118,8 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
             type="text"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            placeholder="群聊名称"
-            aria-label="群聊名称输入框"
+            placeholder={t("createGroup.namePlaceholder")}
+            aria-label={t("createGroup.nameAria")}
             style={{
               minHeight: touchTarget.minDp,
               border: `0.5px solid ${colors.sageMint}`,
@@ -127,13 +132,13 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
             }}
           />
           <Button variant="primary" onClick={() => void handleCreate()} disabled={groupName.trim().length === 0}>
-            创建群聊
+            {t("createGroup.createButton")}
           </Button>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <p style={{ fontSize: 12, color: "#8A8A82", textAlign: "center" }}>
-            截图这张卡片发出去，或让对方扫码加入
+            {t("createGroup.shareHint")}
           </p>
           {recoveryCode ? (
             <div
@@ -146,7 +151,11 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
             >
               <button
                 onClick={() => setRecoveryOpen((v) => !v)}
-                aria-label={recoveryOpen ? "收起管理员恢复码" : "展开管理员恢复码"}
+                aria-label={
+                  recoveryOpen
+                    ? t("createGroup.recoveryCollapseAria")
+                    : t("createGroup.recoveryExpandAria")
+                }
                 style={{
                   width: "100%",
                   minHeight: touchTarget.minDp,
@@ -161,24 +170,28 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
                 }}
               >
                 <span style={{ fontSize: 14, fontWeight: 500, color: colors.textPrimary }}>
-                  管理员恢复码{recoverySaved ? " ✓" : ""}
+                  {t("createGroup.recoveryLabel")}{recoverySaved ? " ✓" : ""}
                 </span>
-                <span style={{ fontSize: 12, color: colors.wheatGold }}>{recoveryOpen ? "收起" : "展开抄写"}</span>
+                <span style={{ fontSize: 12, color: colors.wheatGold }}>
+                  {recoveryOpen
+                    ? t("createGroup.recoveryCollapse")
+                    : t("createGroup.recoveryExpand")}
+                </span>
               </button>
               {!recoveryOpen ? (
                 <p style={{ fontSize: 11, color: "#9A9A94", margin: "4px 0 0" }}>
-                  换手机时用来找回发布权限，建议现在抄下来
+                  {t("createGroup.recoveryShortHint")}
                 </p>
               ) : null}
 
               {recoveryOpen ? (
               <>
               <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "8px 0 10px" }}>
-                只有你能发布这个群的每日内容，凭据就保存在这台手机上。
+                {t("createGroup.recoveryExplain")}
                 <strong style={{ fontWeight: 500, color: colors.textPrimary }}>
-                  换手机或手机丢失后，只有这串码能恢复
+                  {t("createGroup.recoveryExplainStrong")}
                 </strong>
-                ，请抄下来收好。它只显示这一次。
+                {t("createGroup.recoveryExplainTail")}
               </p>
               <code
                 style={{
@@ -198,14 +211,14 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
               </code>
               <div style={{ display: "flex", gap: 8 }}>
                 <Button variant="secondary" onClick={() => void copyToClipboard(recoveryCode)} style={{ flex: 1 }}>
-                  复制
+                  {t("createGroup.recoveryCopy")}
                 </Button>
                 <Button
                   variant={recoverySaved ? "secondary" : "primary"}
                   onClick={() => setRecoverySaved(true)}
                   style={{ flex: 1 }}
                 >
-                  {recoverySaved ? "已保存 ✓" : "我已保存"}
+                  {recoverySaved ? t("createGroup.recoverySaved") : t("createGroup.recoverySave")}
                 </Button>
               </div>
               </>
@@ -214,7 +227,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
           ) : null}
 
           <InviteShareCard
-            groupName={groupName || "新群聊"}
+            groupName={groupName || t("createGroup.defaultGroupName")}
             inviteCode={inviteCode}
             onCopy={() => void copyToClipboard(inviteCode)}
           />
@@ -245,7 +258,7 @@ export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupSc
           }}
         >
           <Button variant="primary" onClick={handleEnter} disabled={isEntering} style={{ width: "100%" }}>
-            {isEntering ? "正在进入..." : "进入群聊"}
+            {isEntering ? t("createGroup.entering") : t("createGroup.enterButton")}
           </Button>
         </div>
       ) : null}

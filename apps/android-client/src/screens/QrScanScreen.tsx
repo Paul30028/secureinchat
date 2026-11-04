@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { colors, touchTarget } from "@secureinchat/ui";
+import { useT } from "../i18n";
 
 export interface QrScanScreenProps {
   /** 扫到内容就回调，由调用方决定是不是有效邀请码 */
@@ -17,6 +18,7 @@ export interface QrScanScreenProps {
  * 用 jsQR 在本地逐帧解码，画面不离开设备，也不需要任何网络。
  */
 export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
+  const t = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
         tick();
       } catch {
         // 权限被拒、没有摄像头、或者非安全上下文——都说清楚并留一条退路
-        setError("无法使用摄像头。请检查相机权限，或返回后手动粘贴邀请码。");
+        setError(t("qrScan.error.unavailable"));
       }
     }
 
@@ -71,13 +73,13 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
       cancelAnimationFrame(frame);
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, [onScanned]);
+  }, [onScanned, t]);
 
   return (
     <div style={{ minHeight: "100%", background: colors.ivory, display: "flex", flexDirection: "column" }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("qrScan.backLabel")}
         style={{
           alignSelf: "flex-start",
           background: "transparent",
@@ -90,7 +92,7 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("qrScan.backText")}
       </button>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "0 24px" }}>
@@ -104,7 +106,7 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
               ref={videoRef}
               playsInline
               muted
-              aria-label="扫码取景框"
+              aria-label={t("qrScan.videoLabel")}
               style={{
                 width: "100%",
                 maxWidth: 320,
@@ -115,7 +117,7 @@ export function QrScanScreen({ onScanned, onBack }: QrScanScreenProps) {
               }}
             />
             <p style={{ fontSize: 13, color: "#8A8A82", marginTop: 16, textAlign: "center" }}>
-              对准对方的邀请二维码
+              {t("qrScan.hint")}
             </p>
           </>
         )}
