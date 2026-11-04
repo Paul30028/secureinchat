@@ -1,5 +1,7 @@
 # 邀群密聊 Next（secureinchat）
 
+[English](README.en.md)
+
 邀请制、端到端加密群聊的独立重建。参考（只读、不修改）：
 [Paul30028/secure-invite-chat](https://github.com/Paul30028/secure-invite-chat)。
 
@@ -40,3 +42,13 @@ cd packages/crypto-core && npm install && npm test
 ```
 
 各包的测试命令见手册;CI 配置在 `.github/workflows/ci.yml` 和 `build-apk.yml`。
+
+## 许可证 / License
+
+本仓库的聊天代码（`apps/`、`packages/`、`server/`、`scripts/`、`tests/`）采用 **AGPL-3.0-or-later**，全文见 [LICENSE](LICENSE)。
+Chat code in this repository (`apps/`, `packages/`, `server/`, `scripts/`, `tests/`) is licensed AGPL-3.0-or-later; see [LICENSE](LICENSE).
+
+## 生成式 AI 使用说明 / Use of generative AI
+
+大部分代码由 AI 系统按书面规格编写，每次改动都经过编译、自动测试和审查后才合并。加密实现尚未经过独立审计。
+Most of this code was written by AI systems to written specifications; every change is compiled, tested and reviewed before it is merged. The cryptographic implementation has not yet been independently audited.
