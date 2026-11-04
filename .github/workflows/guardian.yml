@@ -37,6 +37,7 @@ jobs:
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.DailyCountsTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.CnameTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.TrackerDbTestKt
+          java -cp /tmp/g.jar org.secureinchat.guardian.dns.SpywareDbTestKt
           java -cp /tmp/g.jar org.secureinchat.guardian.dns.DotClientTestKt
       - name: Independent oracle (dnspython)
         run: |

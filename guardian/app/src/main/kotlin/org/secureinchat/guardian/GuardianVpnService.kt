@@ -34,6 +34,9 @@ import org.secureinchat.guardian.dns.BlockMode
 import org.secureinchat.guardian.dns.DotClient
 import org.secureinchat.guardian.dns.DotProvider
 import org.secureinchat.guardian.dns.QueryHandler
+import org.secureinchat.guardian.dns.SpywareDb
+import org.secureinchat.guardian.dns.SpywareKind
+import org.secureinchat.guardian.dns.SpywareWatch
 import org.secureinchat.guardian.dns.TrackerDb
 
 class GuardianVpnService : VpnService() {
@@ -144,6 +147,8 @@ class GuardianVpnService : VpnService() {
             // thread as the blocklist. Failure is non-fatal: trackerDb() then returns null and
             // the UI simply does not show company names.
             loadTrackerDb(applicationContext)
+            // G20: known stalkerware servers; same once-per-process loading as the tracker names.
+            loadSpywareWatch(applicationContext)
             val effective = applyUserRulesTo(blocklist, applicationContext)
             // No uid lookup: on Android 10+ every query reaching the VPN is sent by the system DNS
             // service, so getConnectionOwnerUid names that service, not the app (seen in the emulator flow).
@@ -374,8 +379,12 @@ class GuardianVpnService : VpnService() {
     private fun processPacket(packet: ByteArray) {
         val h = handler ?: return
         when (val act = h.handle(packet, packet.size)) {
-            is Action.Respond -> writeTun(act.packet)
+            is Action.Respond -> {
+                writeTun(act.packet)
+                checkSpyware(act.name)
+            }
             is Action.Forward -> {
+                checkSpyware(act.query.qname)
                 val exec = pool ?: return
                 try {
                     exec.execute {
@@ -454,6 +463,49 @@ class GuardianVpnService : VpnService() {
         }
     }
 
+    /**
+     * G20: alert when a lookup goes to a known stalkerware server. Alert only, never block: blocking can
+     * tell whoever installed the stalkerware that it was found, which can put the person in danger.
+     * The query itself is answered exactly as it would be without this check.
+     */
+    private fun checkSpyware(name: String) {
+        val alert = try { spywareWatch?.check(name) } catch (_: Throwable) { null } ?: return
+        try { postSpywareAlert(alert) } catch (_: Throwable) {}
+    }
+
+    private fun postSpywareAlert(alert: SpywareWatch.Alert) {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (nm.getNotificationChannel(ALERT_CHANNEL_ID) == null) {
+            nm.createNotificationChannel(
+                NotificationChannel(ALERT_CHANNEL_ID, tr("Safety alerts", "安全提醒"), NotificationManager.IMPORTANCE_HIGH)
+            )
+        }
+        val open = PendingIntent.getActivity(
+            this, 3, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val ind = alert.indicator
+        // What the lock screen shows: nothing about the app or the domain, so someone glancing at the
+        // phone (possibly the person who installed it) learns nothing.
+        val public = Notification.Builder(this, ALERT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setContentTitle(tr("Guardian has a safety alert", "Guardian 有一条安全提醒"))
+            .setContentText(tr("Unlock to see it", "解锁后查看"))
+            .build()
+        val (title, body) = spywareAlertText(ind.app, ind.kind, ind.alsoWebsite, alert.queryName)
+        val n = Notification.Builder(this, ALERT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_sys_warning)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(Notification.BigTextStyle().bigText(body))
+            .setVisibility(Notification.VISIBILITY_PRIVATE)
+            .setPublicVersion(public)
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        nm.notify(ALERT_NOTIF_BASE + (ind.domain.hashCode() and 0xFFFF), n)
+    }
+
     private fun writeTun(packet: ByteArray) {
         val out = tunOut ?: return
         synchronized(writeLock) {
@@ -511,6 +563,8 @@ class GuardianVpnService : VpnService() {
         private const val DOT_BACKOFF_MS = 10_000L
         private const val CHANNEL_ID = "guardian_vpn"
         private const val NOTIF_ID = 1
+        private const val ALERT_CHANNEL_ID = "guardian_safety_alerts"
+        private const val ALERT_NOTIF_BASE = 1000
         private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")
         private val rulesLock = Any()
 
@@ -566,6 +620,61 @@ class GuardianVpnService : VpnService() {
             } catch (_: Throwable) {
                 null
             }
+        }
+
+        // G20: Echap stalkerware C2 domains. Loaded once per process; a failed load leaves alerts off
+        // (the UI then says the list is unavailable rather than implying the phone was checked).
+        @Volatile private var spywareWatch: SpywareWatch? = null
+        @Volatile private var spywareLoaded: Boolean = false
+        @Volatile var spywareListSize: Int = 0
+            private set
+
+        private fun loadSpywareWatch(ctx: Context) {
+            if (spywareLoaded) return
+            spywareLoaded = true
+            spywareWatch = try {
+                val text = ctx.assets.open("stalkerware-echap.tsv").use { it.bufferedReader().readText() }
+                SpywareDb.parse(text).also { spywareListSize = it.size }.let { SpywareWatch(it) }
+            } catch (_: Throwable) {
+                null
+            }
+        }
+
+        /** Alerts raised in this process, newest first (memory only; gone when the process ends). */
+        fun recentSpywareAlerts(): List<SpywareWatch.Alert> = spywareWatch?.recent() ?: emptyList()
+
+        private fun tr(en: String, zh: String): String =
+            if (Locale.getDefault().language == "zh") zh else en
+
+        /** Title and body for one alert; shared by the notification and the in-app list. */
+        fun spywareAlertText(app: String, kind: SpywareKind, alsoWebsite: Boolean, queryName: String): Pair<String, String> {
+            val title = when {
+                kind == SpywareKind.WATCHWARE ->
+                    tr("An app contacted the servers of the monitoring app $app", "有 App 连接了远程监控软件「$app」的服务器")
+                alsoWebsite ->
+                    tr("This phone contacted the website or servers of the stalkerware $app", "这台手机连接了跟踪软件「$app」的网站或服务器")
+                else ->
+                    tr("An app contacted the servers of the stalkerware $app", "有 App 连接了跟踪软件「$app」的服务器")
+            }
+            val detail = when {
+                kind == SpywareKind.WATCHWARE -> tr(
+                    "Apps like this also have legitimate uses (parental control, remote work). If you did not install it yourself, take a look.",
+                    "这类软件也有正当用途(家长监控、远程办公)。如果不是你自己装的，请注意。"
+                )
+                alsoWebsite -> tr(
+                    "If you were only reading about it in a browser, you can ignore this.",
+                    "如果你只是在浏览器里查看它的网站，可以忽略。"
+                )
+                else -> tr(
+                    "Guardian cannot tell which app it was.",
+                    "Guardian 无法知道是哪个 App。"
+                )
+            }
+            val body = tr(
+                "Domain: $queryName. $detail Not blocked, so whoever installed it is not tipped off. Open Guardian to see how to handle this safely.",
+                "域名:$queryName。$detail 没有替你拦截，以免惊动安装它的人。打开 Guardian 查看怎么安全处理。"
+            )
+            return title to body
         }
 
         /** Exodus tracker DB, or null if it failed to load. Cheap; safe to call from the UI thread. */

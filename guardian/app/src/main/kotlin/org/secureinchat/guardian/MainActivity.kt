@@ -56,6 +56,8 @@ class MainActivity : Activity() {
     private lateinit var rulesView: TextView
     private lateinit var logView: TextView
     private lateinit var hintView: TextView
+    private lateinit var spywareStatusView: TextView
+    private lateinit var spywareAlertsView: TextView
     private lateinit var privacyView: TextView
     private lateinit var dotStatusView: TextView
     // G18: the stored choice, kept here so the 1 Hz refresh does not read preferences every tick.
@@ -207,6 +209,21 @@ class MainActivity : Activity() {
             setPadding(0, pad / 2, 0, 0)
         }
         root.addView(hintView)
+
+        // G20: stalkerware server alerts. The list is shown only while there are alerts; the status line
+        // always says what is being watched and what a quiet result does not mean.
+        spywareAlertsView = TextView(this).apply {
+            textSize = 13f
+            setTextColor(0xFFCC0000.toInt())
+            visibility = View.GONE
+            setPadding(0, pad / 2, 0, 0)
+        }
+        root.addView(spywareAlertsView)
+        spywareStatusView = TextView(this).apply {
+            textSize = 11f
+            setPadding(0, pad / 4, 0, 0)
+        }
+        root.addView(spywareStatusView)
 
         dotChoice = DnsSettingsStore.provider(this)
         // G18: the text depends on the encrypted DNS choice; refreshUi keeps it current.
@@ -407,6 +424,19 @@ class MainActivity : Activity() {
             setOnClickListener {
                 try {
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://exodus-privacy.eu.org/")))
+                } catch (_: ActivityNotFoundException) {}
+            }
+        })
+
+        // G20: attribution for the stalkerware indicators (CC-BY 4.0).
+        root.addView(TextView(this).apply {
+            textSize = 10f
+            setTextColor(0xFF0088CC.toInt())
+            text = txt("Stalkerware servers: Echap (CC-BY 4.0)", "跟踪软件服务器名单来自 Echap(CC-BY 4.0)")
+            setPadding(0, pad / 4, 0, 0)
+            setOnClickListener {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/AssoEchap/stalkerware-indicators")))
                 } catch (_: ActivityNotFoundException) {}
             }
         })
@@ -680,6 +710,7 @@ class MainActivity : Activity() {
         }
 
         renderHistory()
+        renderSpyware(running)
 
         if (pdnsOn.isNotEmpty()) {
             if (hintView.visibility != View.VISIBLE) hintView.visibility = View.VISIBLE
@@ -1005,6 +1036,44 @@ class MainActivity : Activity() {
         setIfChanged(dotStatusView, text)
         val red = st != null && st.connected == false && running && p != null
         dotStatusView.setTextColor(if (red) 0xFFFF4444.toInt() else dotStatusDefaultColor)
+    }
+
+    // G20: never "you are safe": a quiet list only means none of the known servers was contacted.
+    private fun renderSpyware(running: Boolean) {
+        val n = GuardianVpnService.spywareListSize
+        setIfChanged(spywareStatusView, when {
+            !running -> txt(
+                "Stalkerware server alerts work while Guardian is on.",
+                "Guardian 开启时，会在有 App 连接已知跟踪软件服务器时提醒你。"
+            )
+            n == 0 -> txt(
+                "Stalkerware server list unavailable; no alerts can be raised.",
+                "跟踪软件服务器名单不可用，无法提醒。"
+            )
+            else -> txt(
+                "Watching for $n known stalkerware servers. No alert does not mean no stalkerware: the list is incomplete, and advanced spyware can avoid Guardian.",
+                "正在留意 $n 个已知跟踪软件服务器。没有提醒不代表没有跟踪软件：名单不完整，高级间谍软件也可能绕过 Guardian。"
+            )
+        })
+        val alerts = GuardianVpnService.recentSpywareAlerts()
+        if (alerts.isEmpty()) {
+            if (spywareAlertsView.visibility != View.GONE) spywareAlertsView.visibility = View.GONE
+            return
+        }
+        val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val sb = StringBuilder(txt("Safety alerts", "安全提醒")).append('\n')
+        for (a in alerts) {
+            val (title, body) = GuardianVpnService.spywareAlertText(
+                a.indicator.app, a.indicator.kind, a.indicator.alsoWebsite, a.queryName
+            )
+            sb.append(fmt.format(Date(a.timeMs))).append("  ").append(title).append('\n').append(body).append("\n\n")
+        }
+        sb.append(txt(
+            "If you are worried about someone close to you: do not delete anything yet, save evidence (screenshots), and plan with someone you trust or a support organisation. If you fear a government or a professional attacker, treat this phone as exposed and use a different, clean device for sensitive things.",
+            "如果担心的是身边的人：先不要删除任何东西，先截图保存证据，再和可信的人或求助机构一起规划。如果担心的是政府或专业攻击者：把这台手机当作已经暴露，敏感的事改用另一台干净的设备。"
+        ))
+        if (spywareAlertsView.visibility != View.VISIBLE) spywareAlertsView.visibility = View.VISIBLE
+        setIfChanged(spywareAlertsView, sb.toString())
     }
 
     // The screen refreshes every second; setting identical text still re-lays out the view, which keeps

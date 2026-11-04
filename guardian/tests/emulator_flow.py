@@ -352,6 +352,34 @@ def main():
     snap("block-and-allow")
     print(f"ok: {ALLOWED} forwarded and answered")
 
+    # 4a2. G20 stalkerware server alert. Look up a subdomain of a listed C2 domain (a fresh name, so netd
+    #      cannot answer from cache). It does not need to resolve: the lookup reaching Guardian is enough.
+    #      Expect: a notification on the safety-alert channel, and the alert in the app. Read the test
+    #      domain from the bundled list, so the test follows data updates.
+    spy_rows = [l.split("\t") for l in (ROOT / "app/src/main/assets/stalkerware-echap.tsv").read_text().splitlines()
+                if l and not l.startswith("#")]
+    spy_domain, spy_app = next((r[0], r[1]) for r in spy_rows if r[2] == "stalkerware" and r[3] == "0")
+    spy_probe = f"g20check-{int(time.time())}.{spy_domain}"
+    try:
+        sh(f"ping -c 1 -W 2 {spy_probe}", check=False, timeout=30)
+    except subprocess.TimeoutExpired:
+        pass
+    deadline = time.time() + 30
+    notif = ""
+    while time.time() < deadline:
+        notif = sh("dumpsys notification --noredact", check=False, timeout=60)
+        if "guardian_safety_alerts" in notif and spy_app in notif:
+            break
+        time.sleep(2)
+    else:
+        fail(f"no safety-alert notification for {spy_probe} ({spy_app})")
+    print(f"ok: stalkerware alert notification for {spy_app}")
+    alert_title = f"An app contacted the servers of the stalkerware {spy_app}"
+    find_anywhere(lambda s: alert_title in s, f"app does not show '{alert_title}'")
+    snap("stalkerware-alert")
+    print("ok: stalkerware alert shown in the app")
+    scroll_top()
+
     # 4b. "Blocked most often" list and the user's allowlist (G3b): allow doubleclick.net from its row,
     #     check a not-yet-cached subdomain now resolves for real, then remove the rule again.
     # Match the list row itself ("doubleclick.net (2)"), not the log line "doubleclick.net (type 1)".
