@@ -35,3 +35,6 @@ CI(`.github/workflows/ci.yml`、`build-apk.yml`)用 Node 20;本地如果是 Node
 ## 提交
 
 结尾加 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`;新分支 `git push -u origin <分支>`。
+
+## DeepSeek
+**DeepSeek API 通道(2026-11-04 起，优先用)**:把规格推到任意分支的 `drop/claude/<任务>.txt`，GitHub Actions(`.github/workflows/deepseek.yml` + `scripts/deepseek_ask.py`)会调用 DeepSeek API，把答复提交到同一分支的 `drop/deepseek/<任务>/roundN.txt`(附 token 用量)。密钥是仓库 secret `DEEPSEEK_API_KEY`(Paul 管理)。不再用浏览器复制粘贴，省 Claude 的 token。浏览器流程只在 API 不可用时备用。
