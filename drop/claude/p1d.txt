@@ -1,0 +1,669 @@
+# 任务 P1d：每个群一个独立设备身份（SecureInChat 聊天 App，TypeScript）
+
+你是这个项目的软件工程师。请按下面的规格写代码和测试。项目经理（Claude）会审查、运行测试并集成。
+
+## 背景
+现在一台手机只有一个 deviceId 和一把 ECDSA P-256 签名密钥，用它连接所有群。中继（服务器）因此能看出「同一台手机在 A 群和 B 群」。
+目标：新加入或新建的群使用这个群专属的 deviceId 和签名密钥。一个群出事不会把这个人的其他群牵连出来。
+老群保持原样（identityScope 缺省 = "device"），不迁移。
+
+## 硬性要求
+1. 不加任何第三方依赖。只用 Web Crypto 和项目已有的包。
+2. TypeScript strict。不用 any。保留并书写中文注释，解释「为什么」。
+3. 不要修改下面没有列出的文件。不要改 App.tsx（集成由项目经理做）。
+4. 每个新函数都要有 vitest 测试。测试要能抓住错误实现（例如：两个群拿到同一个 deviceId、删除后密钥仍在）。
+5. 输出格式：每个文件给出完整路径和完整内容（新文件），或「锚点逐字 → 替换」片段（改已有文件，锚点必须逐字出现且唯一）。
+
+## 要做的事
+
+### A. crypto-core：KeystorePort 增加删除
+- `packages/crypto-core/src/keystorePort.ts`：接口 KeystorePort 增加 `deleteKeyPair(alias: string): Promise<void>`（不存在时也正常返回）。TestOnlyInMemoryKeystore 实现它。
+- `packages/crypto-core/src/browserKeystore.ts`：BrowserKeystore 实现 deleteKeyPair（IndexedDB 删除该 alias 的记录；同时清掉实例里的任何缓存）。
+- 测试：生成 → 删除 → sign 必须抛错；删除不存在的 alias 不抛错；删除一个 alias 不影响另一个。BrowserKeystore 的测试用 fake-indexeddb（`import "fake-indexeddb/auto"`，crypto-core 已有类似测试可参照，没有就在测试文件顶部导入）。
+
+### B. chat-core：群记录增加身份范围，清除时删掉群身份
+- `packages/chat-core/src/groupStore.ts`：JoinedGroup 增加可选字段
+  `identityScope?: "device" | "group" | undefined;`（注释：缺省或 "device" = 老群，用全机身份；"group" = 用这个群专属的身份）。
+  upsertGroup 更新已有群时**保留原来的 identityScope**（重新扫邀请不能把老群变成新群，也不能反过来）。补一条测试。
+- 新文件 `packages/chat-core/src/groupIdentity.ts`：
+  ```ts
+  export function storageKeyForGroupIdentity(groupId: string): string // 返回 `identity:${groupId}`
+  export function keystoreAliasForGroup(groupId: string): string      // 返回 `device-identity:signing-key:${groupId}`
+  export interface GroupIdentity { deviceId: string; keystoreAlias: string }
+  /** 幂等：已存在就返回原来的；不存在就生成 deviceId = `device-${randomUUID()}`，
+   *  存到加密存储 identity:<gid>（JSON {deviceId}），并 keystore.generateDeviceKeyPair(alias)。
+   *  先生成密钥再写存储：中途失败时，下次调用会重新生成，不会留下一个「有 id 没密钥」的身份。 */
+  export async function getOrCreateGroupIdentity(store: EncryptedKeyValueStore, keystore: KeystorePort, groupId: string): Promise<GroupIdentity>
+  /** 删除群身份：keystore.deleteKeyPair(alias) 和 store.delete(identity:<gid>)。可重复调用。 */
+  export async function forgetGroupIdentity(store: EncryptedKeyValueStore, keystore: KeystorePort, groupId: string): Promise<void>
+  ```
+  groupId 为空或含冒号时抛 InvalidGroupIdError（从 ./groupPurge 导入）。randomUUID 从 @secureinchat/crypto-core 导入。
+  在 `packages/chat-core/src/index.ts` 末尾导出。
+- `packages/chat-core/src/groupPurge.ts`：targets 里在 admin key 之后加入 `storageKeyForGroupIdentity(groupId)`（从 ./groupIdentity 导入；注意避免循环导入——如果 groupIdentity 需要 InvalidGroupIdError，就把 InvalidGroupIdError 和校验函数移到新文件 `groupId.ts`，两边都从那里导入，并从 index 导出）。groupPurge 的现有测试必须照样通过，并补一条：identity:<gid> 会被删除。
+- 测试（groupIdentity.test.ts）：两个群得到不同的 deviceId 和不同的公钥；同一个群调用两次结果相同；forget 之后再 getOrCreate 得到新的 deviceId；forget 不影响其他群；非法 groupId 抛错。用 TestOnlyInMemoryStorageBackend + generateAeadKey + TestOnlyInMemoryKeystore。
+
+## 边界（写进 groupIdentity.ts 顶部注释）
+- 这只去掉了显式标识。中继仍能看到同一个 IP 在同一时间连接多个群，按 IP 和时间关联需要网络层手段，这里不处理。
+- 昵称按群设置不在本任务范围内。
+
+## 现有源码（只读参考）
+
+===== FILE: packages/crypto-core/src/keystorePort.ts =====
+/**
+ * 私钥永远不应该以明文形式经过这一层——这个接口刻意设计成
+ * "只能要求 Keystore 做操作，拿不到私钥原始字节"。
+ *
+ * 真实实现是一个 Capacitor 原生插件（Android Keystore / 优先 StrongBox），
+ * 在 apps/android-client 里接入；本包只定义端口（interface）和一个
+ * **仅供单元测试使用**的内存实现，绝不能被打进生产 Android 构建。
+ */
+export interface KeystorePort {
+  /** 生成一个设备密钥对，返回不透明的 keyAlias，不返回私钥 */
+  generateDeviceKeyPair(alias: string): Promise<string>;
+  /** 用设备私钥对数据签名，私钥本身不出这个函数 */
+  sign(alias: string, data: Uint8Array): Promise<Uint8Array>;
+  /** 校验签名 */
+  verify(alias: string, data: Uint8Array, signature: Uint8Array): Promise<boolean>;
+  /**
+   * 导出公钥的原始字节（未压缩点格式：0x04 || X || Y，P-256 下是 65 字节）。
+   * 公钥不是秘密——这是服务端做设备认证必须要有的能力：注册/邀请环节把这个
+   * 发给服务端，之后服务端才能独立验证客户端签的 proof，不需要共享密钥。
+   * 私钥本身永远不会、也不能通过这个接口拿到。
+   */
+  exportPublicKeyRaw(alias: string): Promise<Uint8Array>;
+  /** 是否有硬件级密钥支持（StrongBox / TEE），用于安全提示展示 */
+  hasHardwareBackedKeystore(): Promise<boolean>;
+}
+
+/**
+ * ⚠️ 仅供单元测试。私钥保存在进程内存里，没有任何硬件保护。
+ * 任何非测试代码 import 这个类都是架构违规。
+ */
+export class TestOnlyInMemoryKeystore implements KeystorePort {
+  private keys = new Map<string, CryptoKeyPair>();
+
+  async generateDeviceKeyPair(alias: string): Promise<string> {
+    const subtle = globalThis.crypto.subtle;
+    const pair = await subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, false, ["sign", "verify"]);
+    this.keys.set(alias, pair);
+    return alias;
+  }
+
+  async sign(alias: string, data: Uint8Array): Promise<Uint8Array> {
+    const pair = this.requireKey(alias);
+    const subtle = globalThis.crypto.subtle;
+    const sig = await subtle.sign({ name: "ECDSA", hash: "SHA-256" }, pair.privateKey, data as BufferSource);
+    return new Uint8Array(sig);
+  }
+
+  async verify(alias: string, data: Uint8Array, signature: Uint8Array): Promise<boolean> {
+    const pair = this.requireKey(alias);
+    const subtle = globalThis.crypto.subtle;
+    return subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      pair.publicKey,
+      signature as BufferSource,
+      data as BufferSource
+    );
+  }
+
+  async exportPublicKeyRaw(alias: string): Promise<Uint8Array> {
+    const pair = this.requireKey(alias);
+    const subtle = globalThis.crypto.subtle;
+    const raw = await subtle.exportKey("raw", pair.publicKey);
+    return new Uint8Array(raw);
+  }
+
+  async hasHardwareBackedKeystore(): Promise<boolean> {
+    return false;
+  }
+
+  private requireKey(alias: string): CryptoKeyPair {
+    const pair = this.keys.get(alias);
+    if (!pair) throw new Error(`未找到别名为 ${alias} 的测试密钥对，先调用 generateDeviceKeyPair`);
+    return pair;
+  }
+}
+
+===== FILE: packages/crypto-core/src/browserKeystore.ts =====
+import type { KeystorePort } from "./keystorePort";
+
+/**
+ * Web 端的 KeystorePort 实现——不是 Android 硬件 Keystore，但比
+ * `TestOnlyInMemoryKeystore` 真实：
+ * - 私钥生成时标记 `extractable: false`，应用代码永远拿不到私钥原始字节
+ *   （连这个类自己的代码都拿不到，`sign`/`verify` 只能让 Web Crypto 内部用它）
+ * - 密钥对象（`CryptoKeyPair`）直接存进 IndexedDB——现代浏览器允许结构化克隆
+ *   不可导出的 CryptoKey，读出来的还是同一个不可导出的 CryptoKey，不会绕过
+ *   extractable 限制
+ * - 跨页面刷新保留：同一个 alias 第二次 `generateDeviceKeyPair` 不会覆盖已有
+ *   的密钥对，设备身份保持稳定（这是这次要解决的问题的核心）
+ *
+ * 真机 Android 版本仍然需要一个原生 Capacitor 插件去接 Android Keystore/
+ * StrongBox——这个类只覆盖 Web 端。
+ */
+const DB_NAME = "secureinchat-keystore";
+const DB_VERSION = 1;
+const STORE_NAME = "keypairs";
+
+interface StoredKeyPair {
+  privateKey: CryptoKey;
+  publicKey: CryptoKey;
+}
+
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    request.onsuccess = () => {
+      const db = request.result;
+      // 「全部清除」要删库：别的连接收到 versionchange 必须让路，否则 deleteDatabase 会一直被挡住
+      db.onversionchange = () => db.close();
+      resolve(db);
+    };
+    request.onerror = () => reject(request.error ?? new Error("打开 IndexedDB 失败"));
+  });
+}
+
+export class BrowserKeystore implements KeystorePort {
+  private dbPromise: Promise<IDBDatabase> | null = null;
+
+  private getDb(): Promise<IDBDatabase> {
+    if (!this.dbPromise) {
+      this.dbPromise = openDb().then((db) => {
+        // 连接因删库被关闭后，下次使用重新打开，而不是拿着已关闭的连接报错
+        db.addEventListener("close", () => (this.dbPromise = null));
+        const closeOnVersionChange = db.onversionchange;
+        db.onversionchange = (ev) => {
+          this.dbPromise = null;
+          closeOnVersionChange?.call(db, ev);
+        };
+        return db;
+      });
+    }
+    return this.dbPromise;
+  }
+
+  private async loadPair(alias: string): Promise<StoredKeyPair | undefined> {
+    const db = await this.getDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).get(alias);
+      req.onsuccess = () => resolve(req.result as StoredKeyPair | undefined);
+      req.onerror = () => reject(req.error ?? new Error(`读取 alias=${alias} 失败`));
+    });
+  }
+
+  private async storePair(alias: string, pair: StoredKeyPair): Promise<void> {
+    const db = await this.getDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      try {
+        // 存的是 CryptoKey 对象，依赖结构化克隆支持它。老版本 Android WebView
+        // 不一定支持，而且失败是在 put() 同步抛出的——不放在 try 里就绕过了
+        // 下面的 onerror，变成一个没人接的异常。
+        tx.objectStore(STORE_NAME).put(pair, alias);
+      } catch (err) {
+        reject(
+          new Error(
+            `这台设备的浏览器内核无法保存加密密钥（${err instanceof Error ? err.message : "结构化克隆失败"}）。` +
+              `请更新系统的 Android System WebView 后重试。`
+          )
+        );
+        return;
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error(`写入 alias=${alias} 失败`));
+    });
+  }
+
+  private async requirePair(alias: string): Promise<StoredKeyPair> {
+    const pair = await this.loadPair(alias);
+    if (!pair) throw new Error(`未找到别名为 ${alias} 的密钥对，先调用 generateDeviceKeyPair`);
+    return pair;
+  }
+
+  async generateDeviceKeyPair(alias: string): Promise<string> {
+    const existing = await this.loadPair(alias);
+    if (existing) return alias; // 已存在就复用，不覆盖——设备身份要保持稳定
+
+    const pair = (await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, false, [
+      "sign",
+      "verify",
+    ])) as CryptoKeyPair;
+    await this.storePair(alias, { privateKey: pair.privateKey, publicKey: pair.publicKey });
+    return alias;
+  }
+
+  async sign(alias: string, data: Uint8Array): Promise<Uint8Array> {
+    const pair = await this.requirePair(alias);
+    const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, pair.privateKey, data as BufferSource);
+    return new Uint8Array(sig);
+  }
+
+  async verify(alias: string, data: Uint8Array, signature: Uint8Array): Promise<boolean> {
+    const pair = await this.requirePair(alias);
+    return crypto.subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      pair.publicKey,
+      signature as BufferSource,
+      data as BufferSource
+    );
+  }
+
+  async exportPublicKeyRaw(alias: string): Promise<Uint8Array> {
+    const pair = await this.requirePair(alias);
+    const raw = await crypto.subtle.exportKey("raw", pair.publicKey);
+    return new Uint8Array(raw);
+  }
+
+  async hasHardwareBackedKeystore(): Promise<boolean> {
+    // Web Crypto 在大多数浏览器里不是硬件隔离的（不像 Android StrongBox/TEE）——
+    // 如实返回 false，不要让 UI 显示一个"硬件保护"的安心提示，那是假的。
+    return false;
+  }
+}
+
+===== FILE: packages/chat-core/src/groupStore.ts =====
+import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+import { DISAPPEAR_OPTIONS_MS } from "./disappearing";
+
+/**
+ * 已加入的群列表。
+ *
+ * 走加密存储：里面存着每个群的原始密钥材料，拿到它就能解密该群的全部历史消息，
+ * 敏感程度和消息本身一样。
+ */
+
+const GROUPS_KEY = "groups:joined";
+
+export interface JoinedGroup {
+  groupId: string;
+  groupName: string;
+  /** 邀请串里的原始密钥材料，重新连接时用它派生群密钥 */
+  keyMaterialB64Url: string;
+  epoch: number;
+  /**
+   * 管理员公钥，用来验证这个群的公告签名。
+   *
+   * 必须持久化：它来自邀请串，但重启后是从本地恢复群列表的，不再经过邀请串。
+   * 不存的话重连之后这个字段是 undefined，所有公告都验不过、被静默丢弃——
+   * 表现成"别人发的公告我收不到"。
+   */
+  adminPublicKeyRawB64Url?: string | undefined;
+  joinedAtMs: number;
+  /** 最后一次查看这个群的时间，用来算未读数 */
+  lastReadAtMs: number;
+  /**
+   * 本机在这个群里的「消息定时消失」时长（毫秒），0/缺省表示关闭。
+   * 每台设备、每个群独立——只影响自己之后发出的消息；收到的消息按
+   * 消息里自带的 expiresInMs 处理。老记录没有这个字段，按关闭处理。
+   */
+  disappearAfterMs?: number | undefined;
+}
+
+export async function loadJoinedGroups(store: EncryptedKeyValueStore): Promise<JoinedGroup[]> {
+  try {
+    const bytes = await store.get(GROUPS_KEY);
+    if (!bytes) return [];
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return Array.isArray(parsed) ? (parsed as JoinedGroup[]) : [];
+  } catch {
+    // 解密失败或数据损坏——当作没加过群。用户可以用邀请码重新加入，
+    // 比让应用起不来强。
+    return [];
+  }
+}
+
+export async function saveJoinedGroups(store: EncryptedKeyValueStore, groups: JoinedGroup[]): Promise<void> {
+  await store.set(GROUPS_KEY, new TextEncoder().encode(JSON.stringify(groups)));
+}
+
+/**
+ * 加入或更新一个群。同一个 groupId 重复加入不会产生两条记录——
+ * 会更新群名和密钥材料（对方可能重新生成了邀请码），但保留原来的加入时间。
+ */
+export function upsertGroup(groups: JoinedGroup[], group: JoinedGroup): JoinedGroup[] {
+  const existing = groups.find((g) => g.groupId === group.groupId);
+  if (!existing) return [...groups, group];
+  return groups.map((g) =>
+    g.groupId === group.groupId
+      ? { ...group, joinedAtMs: existing.joinedAtMs, lastReadAtMs: existing.lastReadAtMs }
+      : g
+  );
+}
+
+export function removeGroup(groups: JoinedGroup[], groupId: string): JoinedGroup[] {
+  return groups.filter((g) => g.groupId !== groupId);
+}
+
+/** 改群名。只改本机显示的名字——中继不知道群叫什么，别人那边不会跟着变。 */
+export function renameGroup(groups: JoinedGroup[], groupId: string, groupName: string): JoinedGroup[] {
+  return groups.map((g) => (g.groupId === groupId ? { ...g, groupName } : g));
+}
+
+export function markGroupRead(groups: JoinedGroup[], groupId: string, atMs = Date.now()): JoinedGroup[] {
+  return groups.map((g) => (g.groupId === groupId ? { ...g, lastReadAtMs: atMs } : g));
+}
+
+/**
+ * 设置某个群的「消息定时消失」时长。
+ * ms 不在 DISAPPEAR_OPTIONS_MS 里就原样返回——调用方传错值不该静默改存储。
+ * 0 表示关闭，把字段清掉（而不是留一个 0）。
+ */
+export function setDisappearAfter(
+  groups: JoinedGroup[],
+  groupId: string,
+  ms: number
+): JoinedGroup[] {
+  if (!(DISAPPEAR_OPTIONS_MS as readonly number[]).includes(ms)) return groups;
+  return groups.map((g) =>
+    g.groupId === groupId
+      ? { ...g, ...(ms > 0 ? { disappearAfterMs: ms } : { disappearAfterMs: undefined }) }
+      : g
+  );
+}
+
+/** 未读数 = 这个群里晚于 lastReadAtMs 且不是自己发的消息条数 */
+export function unreadCount(
+  messages: { sentAtMs: number; isOwn: boolean }[],
+  lastReadAtMs: number
+): number {
+  return messages.filter((m) => !m.isOwn && m.sentAtMs > lastReadAtMs).length;
+}
+
+===== FILE: packages/chat-core/src/groupPurge.ts =====
+import type { EncryptedKeyValueStore } from "@secureinchat/secure-storage";
+import { loadJoinedGroups, removeGroup, saveJoinedGroups } from "./groupStore";
+import { storageKeyForGroupMessages } from "./messageStore";
+import { storageKeyForDevices } from "./knownDevices";
+
+/**
+ * 把一个群在本机留下的东西删干净（包 1 / P1a）。
+ *
+ * 为什么需要它：原来的退群只删群列表、消息和设备名单，留下了
+ * `group:<gid>:epoch:<n>`（每个 epoch 的原始群密钥）和 `admin-key:<gid>`
+ * （管理员恢复码，等同管理员身份）。手机被拿去做取证时，这些就是可以拿走的东西。
+ *
+ * 退群、空手过境（P1b）都走这里。删除顺序：先删密钥，最后才把群从列表里拿掉——
+ * 中途断电的话，群还在列表里，用户能看到并且可以再删一次（本函数可重复调用）。
+ *
+ * 边界：IndexedDB 的删除是逻辑删除，数据库文件空闲页里可能残留密文；
+ * 它们由设备主密钥加密，主密钥还在时理论上可解。每群独立数据密钥（P1e）才是彻底的办法。
+ */
+
+export function storageKeyForAdminKey(groupId: string): string {
+  return `admin-key:${groupId}`;
+}
+
+/** 某个群所有 epoch 密钥的键前缀。带结尾冒号，避免 "g1" 匹配到 "g10"。 */
+export function epochKeyPrefix(groupId: string): string {
+  return `group:${groupId}:`;
+}
+
+export interface PurgeReport {
+  groupId: string;
+  /** 实际删掉的键（删除前确实存在的） */
+  deletedKeys: string[];
+  /** 删完之后，存储里仍然带这个群 id 的键。正常应为空；不为空说明有新的存储位置没登记到这里。 */
+  remainingKeys: string[];
+}
+
+export class InvalidGroupIdError extends Error {
+  constructor() {
+    super("groupId 不能为空，也不能包含冒号");
+    this.name = "InvalidGroupIdError";
+  }
+}
+
+function belongsToGroup(key: string, groupId: string): boolean {
+  // 所有群作用域的键都是 "<前缀>:<gid>" 或 "<前缀>:<gid>:<后缀>" 的形式
+  return key.split(":").includes(groupId);
+}
+
+export async function purgeGroupLocalData(
+  store: EncryptedKeyValueStore,
+  groupId: string
+): Promise<PurgeReport> {
+  if (!groupId || groupId.includes(":")) throw new InvalidGroupIdError();
+
+  const existing = new Set(await store.listKeys());
+  const targets = [
+    // 1. 秘密先删：群密钥、管理员身份
+    ...[...existing].filter((k) => k.startsWith(epochKeyPrefix(groupId))).sort(),
+    storageKeyForAdminKey(groupId),
+    // 2. 内容
+    storageKeyForGroupMessages(groupId),
+    storageKeyForDevices(groupId),
+  ];
+
+  const deletedKeys: string[] = [];
+  for (const key of targets) {
+    if (!existing.has(key)) continue;
+    await store.delete(key);
+    deletedKeys.push(key);
+  }
+
+  // 3. 最后从群列表里拿掉（群列表里有原始密钥材料）
+  const groups = await loadJoinedGroups(store);
+  if (groups.some((g) => g.groupId === groupId)) {
+    await saveJoinedGroups(store, removeGroup(groups, groupId));
+  }
+
+  const remainingKeys = (await store.listKeys()).filter((k) => belongsToGroup(k, groupId)).sort();
+  return { groupId, deletedKeys, remainingKeys };
+}
+
+===== FILE: packages/chat-core/test/groupPurge.test.ts =====
+import { describe, expect, it } from "vitest";
+import { generateAeadKey } from "@secureinchat/crypto-core";
+import { EncryptedKeyValueStore, TestOnlyInMemoryStorageBackend } from "@secureinchat/secure-storage";
+import {
+  purgeGroupLocalData,
+  storageKeyForAdminKey,
+  InvalidGroupIdError,
+} from "../src/groupPurge";
+import { loadJoinedGroups, saveJoinedGroups, type JoinedGroup } from "../src/groupStore";
+import { storageKeyForGroupMessages } from "../src/messageStore";
+import { storageKeyForDevices } from "../src/knownDevices";
+import { storageKeyForGroupEpoch } from "../src/groupJoin";
+
+async function makeStore() {
+  const backend = new TestOnlyInMemoryStorageBackend();
+  return { backend, store: new EncryptedKeyValueStore(backend, await generateAeadKey()) };
+}
+
+function group(groupId: string): JoinedGroup {
+  return { groupId, groupName: groupId, keyMaterialB64Url: "k", epoch: 2, joinedAtMs: 1, lastReadAtMs: 1 };
+}
+
+const bytes = new TextEncoder().encode("x");
+
+async function seedGroup(store: EncryptedKeyValueStore, gid: string, epochs = [0, 1, 2]) {
+  for (const e of epochs) await store.set(storageKeyForGroupEpoch(gid, e), bytes);
+  await store.set(storageKeyForAdminKey(gid), bytes);
+  await store.set(storageKeyForGroupMessages(gid), bytes);
+  await store.set(storageKeyForDevices(gid), bytes);
+}
+
+describe("purgeGroupLocalData", () => {
+  it("deletes every epoch key, the admin key, messages, devices and the list entry", async () => {
+    const { store } = await makeStore();
+    await seedGroup(store, "g1");
+    await saveJoinedGroups(store, [group("g1")]);
+
+    const report = await purgeGroupLocalData(store, "g1");
+
+    expect(report.deletedKeys).toEqual([
+      "group:g1:epoch:0",
+      "group:g1:epoch:1",
+      "group:g1:epoch:2",
+      "admin-key:g1",
+      "messages:g1",
+      "devices:g1",
+    ]);
+    expect(report.remainingKeys).toEqual([]);
+    expect(await loadJoinedGroups(store)).toEqual([]);
+    expect((await store.listKeys()).filter((k) => k.includes("g1"))).toEqual([]);
+  });
+
+  it("leaves other groups untouched, including one whose id starts with the same characters", async () => {
+    const { store } = await makeStore();
+    await seedGroup(store, "g1");
+    await seedGroup(store, "g10");
+    await saveJoinedGroups(store, [group("g1"), group("g10")]);
+
+    await purgeGroupLocalData(store, "g1");
+
+    const keys = await store.listKeys();
+    expect(keys).toContain("group:g10:epoch:0");
+    expect(keys).toContain("admin-key:g10");
+    expect(keys).toContain("messages:g10");
+    expect(keys).toContain("devices:g10");
+    expect((await loadJoinedGroups(store)).map((g) => g.groupId)).toEqual(["g10"]);
+  });
+
+  it("can run twice (resume after an interrupted purge)", async () => {
+    const { store } = await makeStore();
+    await seedGroup(store, "g1");
+    await saveJoinedGroups(store, [group("g1")]);
+    await purgeGroupLocalData(store, "g1");
+
+    const second = await purgeGroupLocalData(store, "g1");
+    expect(second.deletedKeys).toEqual([]);
+    expect(second.remainingKeys).toEqual([]);
+  });
+
+  it("finishes a group whose keys were deleted but whose list entry survived", async () => {
+    const { store } = await makeStore();
+    await saveJoinedGroups(store, [group("g1"), group("g2")]);
+
+    await purgeGroupLocalData(store, "g1");
+    expect((await loadJoinedGroups(store)).map((g) => g.groupId)).toEqual(["g2"]);
+  });
+
+  it("reports keys for the group that it does not know how to delete", async () => {
+    const { store } = await makeStore();
+    await seedGroup(store, "g1");
+    await store.set("future-feature:g1", bytes);
+
+    const report = await purgeGroupLocalData(store, "g1");
+    expect(report.remainingKeys).toEqual(["future-feature:g1"]);
+  });
+
+  it("rejects an empty id or one containing a colon", async () => {
+    const { store } = await makeStore();
+    await expect(purgeGroupLocalData(store, "")).rejects.toBeInstanceOf(InvalidGroupIdError);
+    await expect(purgeGroupLocalData(store, "a:b")).rejects.toBeInstanceOf(InvalidGroupIdError);
+  });
+});
+
+===== FILE: packages/chat-core/src/index.ts =====
+export * from "./dedup";
+export * from "./ordering";
+export * from "./offlineOutbox";
+export * from "./groupJoin";
+export * from "./relayClient";
+export * from "./messageEnvelope";
+export * from "./fileTransfer";
+export * from "./messageStore";
+export * from "./groupStore";
+export * from "./messageActions";
+export * from "./announcementCategories";
+export * from "./sendProgress";
+export * from "./keyRotation";
+export * from "./connectionStats";
+export * from "./knownDevices";
+export * from "./mentions";
+export * from "./disappearing";
+export * from "./backup";
+export * from "./groupPurge";
+
+===== FILE: apps/android-client/src/deviceIdentity.ts =====
+import { getOrCreatePersistentAeadKey, BrowserKeystore, randomUUID } from "@secureinchat/crypto-core";
+import { EncryptedKeyValueStore, IndexedDbStorageBackend } from "@secureinchat/secure-storage";
+
+/**
+ * Web 端的设备身份/存储实现。不是 Android 硬件 Keystore（真机版本需要一个原生
+ * Capacitor 插件），但也不再是"每次刷新页面都换一个新身份"的内存态替身：
+ * - `BrowserKeystore` 用不可导出的 Web Crypto 密钥，密钥对象直接存 IndexedDB，
+ *   同一个 alias 刷新页面后还是同一把密钥
+ * - `IndexedDbStorageBackend` 让加密后的群密钥也能跨刷新保留
+ * - `getOrCreatePersistentAeadKey` 让"用来加密那些群密钥的主密钥"本身也不会
+ *   每次刷新就换掉——这是最初这几块接起来时漏掉的一环：主密钥不持久化的话，
+ *   落盘的密文下次读不出来，等于白存
+ */
+const MASTER_KEY_ALIAS = "device-identity:master-key";
+
+let storePromise: Promise<EncryptedKeyValueStore> | null = null;
+
+export function getDeviceStore(): Promise<EncryptedKeyValueStore> {
+  if (!storePromise) {
+    storePromise = getOrCreatePersistentAeadKey(MASTER_KEY_ALIAS).then((masterKey) => {
+      const backend = new IndexedDbStorageBackend();
+      return new EncryptedKeyValueStore(backend, masterKey);
+    });
+  }
+  return storePromise;
+}
+
+export interface DeviceIdentity {
+  deviceId: string;
+  keystore: BrowserKeystore;
+  keystoreAlias: string;
+}
+
+const DEVICE_ID_STORAGE_KEY = "device-identity:device-id";
+const DEVICE_ID_ALIAS = "device-identity:signing-key";
+
+let identityPromise: Promise<DeviceIdentity> | null = null;
+
+export function getDeviceIdentity(): Promise<DeviceIdentity> {
+  if (!identityPromise) {
+    identityPromise = (async () => {
+      const keystore = new BrowserKeystore();
+      // deviceId 本身不是秘密，直接存在 IndexedDB 里（不经过 EncryptedKeyValueStore
+      // 加密也没关系——它只是个标识符，泄露了也不会让人拿到密钥）。
+      const backend = new IndexedDbStorageBackend();
+      let deviceId: string;
+      const existing = await backend.get(DEVICE_ID_STORAGE_KEY);
+      if (existing) {
+        deviceId = new TextDecoder().decode(existing);
+      } else {
+        deviceId = `device-${randomUUID()}`;
+        await backend.set(DEVICE_ID_STORAGE_KEY, new TextEncoder().encode(deviceId));
+      }
+      // BrowserKeystore.generateDeviceKeyPair 对同一个 alias 是幂等的（已存在就
+      // 复用），所以这里每次都"生成"也没问题——不会覆盖已有身份。
+      const keystoreAlias = await keystore.generateDeviceKeyPair(DEVICE_ID_ALIAS);
+      return { deviceId, keystore, keystoreAlias };
+    })();
+  }
+  return identityPromise;
+}
+
+/**
+ * 仅供测试：清掉模块级缓存，让下一次调用重新读一遍存储。
+ *
+ * 生产代码不该调用这个——设备身份和主密钥在一次运行内应该是稳定的。
+ * 但测试需要每个用例都是"一台全新的设备"，否则上一个测试加入的群会
+ * 出现在下一个测试的群列表里。
+ */
+export function __resetForTests(): void {
+  storePromise = null;
+  identityPromise = null;
+}
+
+===== crypto-core 现有测试文件列表 =====
+adminSignature.test.ts
+aead.test.ts
+browserKeystore.test.ts
+epoch.test.ts
+keystorePort.test.ts
+persistentMasterKey.test.ts
+randomUuid.test.ts
