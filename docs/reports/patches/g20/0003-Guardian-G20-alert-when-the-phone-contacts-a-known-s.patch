@@ -1,0 +1,1701 @@
+From 18f515f339989e84543a27ebe3ac32ad25527962 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Wed, 4 Nov 2026 09:09:53 +0000
+Subject: [PATCH 3/3] Guardian G20: alert when the phone contacts a known
+ stalkerware server
+
+Data: Echap stalkerware-indicators (CC-BY 4.0), C2 domains only (not
+vendors' marketing websites). tools/update_stalkerware.py pins the
+source commit (git ls-remote) and refuses a truncated list; 993
+domains (929 stalkerware, 64 watchware), 128 also listed as websites.
+
+Core: SpywareDb matches a listed domain or its subdomains on label
+boundaries; shared hosting platforms listed on their own are dropped
+at load (none in the data). SpywareWatch alerts once per listed domain
+per 6 h, keeps the last 20 alerts in memory only, thread safe.
+SpywareDbTest 8 groups incl. the real list. Mutations (suffix match
+without label boundary, no platform filter, no rate limit, no lock)
+each fail a test; the concurrency test was tightened until removing
+the lock failed it every run.
+
+App: every query name (blocked or forwarded) is checked; a hit posts
+a high-importance notification on a separate channel whose lock-screen
+version only says "Guardian has a safety alert". Alert only, never
+block (blocking can tip off whoever installed it). Watchware and
+website-also domains get softer wording. Main screen: alert list with
+safety advice, a standing line that no alert does not mean no
+stalkerware, and the Echap attribution.
+
+Emulator flow 4a2: look up a fresh subdomain of a listed C2 domain,
+expect the notification and the in-app alert. CI runs SpywareDbTest.
+App code not compiled locally (no Android SDK here).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Dphx7H7WfpCsybM6HswWFN
+---
+ .github/workflows/guardian.yml                |   1 +
+ guardian/README.md                            |   1 +
+ .../app/src/main/assets/stalkerware-echap.tsv | 996 ++++++++++++++++++
+ .../guardian/GuardianVpnService.kt            | 111 +-
+ .../org/secureinchat/guardian/MainActivity.kt |  69 ++
+ .../secureinchat/guardian/dns/SpywareDb.kt    | 117 ++
+ .../guardian/dns/SpywareDbTest.kt             | 116 ++
+ guardian/tests/emulator_flow.py               |  28 +
+ guardian/tools/update_stalkerware.py          |  66 ++
+ 9 files changed, 1504 insertions(+), 1 deletion(-)
+ create mode 100644 guardian/app/src/main/assets/stalkerware-echap.tsv
+ create mode 100644 guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/SpywareDb.kt
+ create mode 100644 guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/SpywareDbTest.kt
+ create mode 100644 guardian/tools/update_stalkerware.py
+
+diff --git a/.github/workflows/guardian.yml b/.github/workflows/guardian.yml
+index fafbf54..b57abea 100644
+--- a/.github/workflows/guardian.yml
++++ b/.github/workflows/guardian.yml
+@@ -37,6 +37,7 @@ jobs:
+           java -cp /tmp/g.jar org.secureinchat.guardian.dns.DailyCountsTestKt
+           java -cp /tmp/g.jar org.secureinchat.guardian.dns.CnameTestKt
+           java -cp /tmp/g.jar org.secureinchat.guardian.dns.TrackerDbTestKt
++          java -cp /tmp/g.jar org.secureinchat.guardian.dns.SpywareDbTestKt
+           java -cp /tmp/g.jar org.secureinchat.guardian.dns.DotClientTestKt
+       - name: Independent oracle (dnspython)
+         run: |
+diff --git a/guardian/README.md b/guardian/README.md
+index 959454f..9a72e64 100644
+--- a/guardian/README.md
++++ b/guardian/README.md
+@@ -25,6 +25,7 @@ Licensed GPL-3.0-or-later.
+ | CNAME uncloaking (G14) | Claude wrote this. Trackers hide behind a first-party subdomain whose CNAME points at the tracker; the query name is on no list. `DnsAnswer.cnameTargets` reads the CNAME chain of each upstream answer (compression pointers, bounds-checked, at most 16 jumps and 64 records, anything malformed is forwarded unchanged). If a target is blocked, Guardian returns its usual blocked answer and the log line reads "metrics.shop.example → really shop.tracker.example". Your allow on the query name or on the target wins; nothing is uncloaked while paused. `CnameTest` (11 groups, including 20,000 random messages and every truncation) passes; a mutation that disables the check fails it. These blocks count in the daily history but not in "Blocked most often", whose rule line is computed from the query name. |
+ | Tracker company names (G15) | DeepSeek wrote TrackerDb and the UI to Claude's spec; Claude fixed three string escapes the chat page had eaten. Bundled Exodus Privacy tracker data (ODbL v1.0 / DbCL v1.0, attributed in the app and in the asset header; 432 trackers, 260 with network signatures; `tools/update_trackers.py`). Each "Blocked most often" row gets a line such as "Tracker: Google DoubleClick · Advertisement"; blocked log lines end with the company name (for a CNAME block, the real target's company). Lookups are cached (LRU 512). `TrackerDbTest` (9 groups, including the real file: doubleclick.net → Google DoubleClick) passes; the emulator flow checks the doubleclick.net row. `TrackerDb.byClassName` is ready for G17. |
+ | Broad Exodus patterns get no company name (G15b) | Claude wrote this. Some Exodus rows only say "any subdomain of one domain" (`\.google\.com` is filed under Google Ads, seven Facebook rows use `\.facebook\.com`); most names there are the company's own services, so labelling them would mislead. A row whose every pattern has the form `\.<label>\.<tld>` is marked broad and is never used to name a blocked domain (its code signatures still serve G17). With the bundled data that is 14 rows: the 8 Google/Facebook ones, and 6 trackers' own domains (ChartBoost, Dynatrace, DOV-E, Glympse, Lenddo, Cifrasoft) that lose a label which was correct; no domain gets a wrong label. `TrackerDbTest` (15 groups: mail.google.com and graph.facebook.com get no label, doubleclick.net is still Google DoubleClick) passes; three mutations each fail it. |
++| Stalkerware server alerts (G20) | Claude wrote this. Bundled list of 993 stalkerware command-and-control domains from Echap's stalkerware-indicators (CC-BY 4.0, credited in the app; `tools/update_stalkerware.py` pins the source commit). Only C2 domains are used, not vendors' marketing websites; 128 domains that are both are worded "website or servers" with "if you were only reading about it, ignore this". When a lookup matches a listed domain or its subdomain, Guardian posts a notification whose lock-screen version says only "Guardian has a safety alert". It alerts but never blocks, so whoever installed the stalkerware is not tipped off. One alert per domain per 6 hours, memory only, nothing written to disk. The app shows the alerts, safety advice, and a standing line that no alert does not mean no stalkerware (the list is incomplete; spyware with root can avoid Guardian). It cannot tell which app made the lookup. `SpywareDbTest` (8 groups, including the real list and a check that no shared hosting platform such as firebaseio.com is listed on its own) passes; four mutations each fail it. The emulator flow looks up a listed domain and checks the notification and the in-app alert. Not tested on a real phone. |
+ | Encrypted DNS, core (G18 part 1) | Claude wrote this. `DotClient` speaks DNS over TLS (RFC 7858) to one resolver: length-framed messages over one reused connection, answer id must match the query, one reconnect on error, timeouts. It fails closed: when the resolver cannot be reached it returns nothing, and Guardian must not resend the query in clear text. `DotProviders` lists Quad9 (dns.quad9.net) and Cloudflare (one.one.one.one), from their official pages on 2026-11-01; Mullvad was left out because its public DNS ends on 2026-11-02. `policy_check.py` now allows public resolver addresses only in DotProviders.kt and forbids UDP or port 53 in the DoT client. `DotClientTest` (8 groups against a local fake resolver, including concurrency and a stale answer) passes; a mutation that drops the id check fails it. App wiring (protected socket, platform TLS with hostname check, choice in the UI, off by default) is part 2. |
+ | Encrypted DNS in the app (G18 part 2) | Claude wrote this. Choice under "Encrypted DNS": Off (default), Quad9 or Cloudflare; stored as the provider id only (`DnsSettingsStore`, held to that by `policy_check.py`). The DoT socket is protected from Guardian's own tunnel, uses the platform trust store and checks the hostname twice (TLS endpoint identification and after the handshake). If the provider cannot be reached, lookups fail and the screen says so; there is no fallback to unencrypted DNS. Emulator flow step 4g: Quad9 answers a new name and the status reads connected. Not tested on a real phone. |
+ | Real-device test | none |
+diff --git a/guardian/app/src/main/assets/stalkerware-echap.tsv b/guardian/app/src/main/assets/stalkerware-echap.tsv
+new file mode 100644
+index 0000000..9381e7c
+--- /dev/null
++++ b/guardian/app/src/main/assets/stalkerware-echap.tsv
+@@ -0,0 +1,996 @@
++# Stalkerware C2 domains: Echap stalkerware-indicators, CC-BY 4.0, https://github.com/AssoEchap/stalkerware-indicators
++# Source commit: 426156175adc84af7fbdd41486c046f9ecb40436
++# domain	app	kind	also_website
++12d60.appspot.com	Trackplus	stalkerware	0
++12d60.firebaseio.com	Trackplus	stalkerware	0
++13-5.org	Trackplus	stalkerware	0
++13-5.ru	Trackplus	stalkerware	0
++1ca43.appspot.com	TheTruthSpy	stalkerware	0
++1topspy.com	HelloSpy	stalkerware	1
++300624.com	FamiSafe	watchware	0
++4-dot-all-tracker.appspot.com	AllTracker	stalkerware	0
++6-dot-all-tracker.appspot.com	AllTracker	stalkerware	0
++6kvses.com	MobileTool	stalkerware	0
++83dd4.appspot.com	iKeyMonitor	stalkerware	0
++8916f.appspot.com	BlurSpy	stalkerware	0
++89685.firebaseio.com	Trackplus	stalkerware	0
++97.logger.mobi	EasyLogger	stalkerware	0
++a-qa3.thd.cc	mSpy	stalkerware	0
++a-spy.com	AndroidSpy	stalkerware	1
++a.hw.cab	Hoverwatch	stalkerware	0
++a.hwa.cab	Hoverwatch	stalkerware	0
++a.syncvch.com	Hoverwatch	stalkerware	0
++a.thd.cc	mSpy	stalkerware	0
++a342f.appspot.com	Unisafe	stalkerware	0
++a71f4.firebaseio.com	HighsterMobile	stalkerware	0
++absolutesoftsystem.in	AbsoluTrack	stalkerware	1
++ac480.firebaseio.com	HighsterMobile	stalkerware	0
++account.cellphone-remote-tracker.com	HelloSpy	stalkerware	0
++account.childsafetytrackerapp.com	EasyLogger	stalkerware	0
++account.logger.mobi	EasyLogger	stalkerware	0
++account.refog.com	Hoverwatch	stalkerware	0
++account.trackerplus.ru	Trackplus	stalkerware	0
++accountable2you-android.firebaseio.com	Accountable2you	watchware	0
++accountable2you.com	Accountable2you	watchware	1
++activity.kdlparentalcontrol.com	KidsLox	watchware	0
++admin.flexispy.com	FlexiSpy	stalkerware	0
++admin.kdlparentalcontrol.com	KidsLox	watchware	0
++alert.bk128.com	XNSpy	stalkerware	0
++alert.xiz4me.com	XNSpy	stalkerware	0
++ali.panspy.com	PanSpy	stalkerware	0
++all-tracker.appspot.com	AllTracker	stalkerware	0
++all-tracker.firebaseio.com	AllTracker	stalkerware	0
++alltracker.org	AllTracker	stalkerware	1
++alog.umeng.com	Cocospy	stalkerware	0
++alter757.info	mSpy	stalkerware	0
++amon.android-monitor.ru	AndroidPolice	stalkerware	1
++amon1.android-monitor.ru	AndroidPolice	stalkerware	1
++analytics.300624.com	FamiSafe	watchware	0
++analytics.trackview.net	TrackView	stalkerware	0
++and.info-taxi.info	Trackplus	stalkerware	0
++andmon.name	AndroidPolice	stalkerware	1
++android-api.umobix.com	uMobix	stalkerware	0
++android-apk.android-monitor.ru	AndroidPolice	stalkerware	1
++android-monitor.ru	AndroidPolice	stalkerware	1
++android-monitor1.android-monitor.ru	AndroidPolice	stalkerware	1
++android-police.android-monitor.ru	AndroidPolice	stalkerware	1
++android-police.ru	AndroidPolice	stalkerware	1
++android.chyldmonitor.com	OneSpy	stalkerware	0
++android.spy24.app	Spy24	stalkerware	0
++android.spytoapp.com	SpyToApp	stalkerware	0
++android.viptrack.ro	VIPTrack	stalkerware	0
++androidapk.biz	SpyKontrol	stalkerware	1
++androidlost.appspot.com	AndroidLost	stalkerware	0
++androidlost.com	AndroidLost	stalkerware	1
++androidlost.firebaseio.com	AndroidLost	stalkerware	0
++anmon.android-monitor.ru	AndroidPolice	stalkerware	1
++anmon.name	AndroidPolice	stalkerware	1
++anmon.ru	AndroidPolice	stalkerware	1
++anmon.su	AndroidPolice	stalkerware	1
++anmon1.android-monitor.ru	AndroidPolice	stalkerware	1
++antitheft-88554.firebaseio.com	AbsoluTrack	stalkerware	0
++aovivo.foxspy.com.br	EspiaoAndroid	stalkerware	0
++api-cloudfront.life360.com	Life360	watchware	0
++api-project-285519687053.firebaseio.com	TrackView	stalkerware	0
++api-project-999803017449.firebaseio.com	Cerberus	stalkerware	0
++api.accountable2you.com	Accountable2you	watchware	0
++api.awarenesstechnologies.com	WebWatcher	stalkerware	0
++api.bytepioner.com	CouplerTracker	stalkerware	0
++api.childsafetytrackerapp.com	EasyLogger	stalkerware	0
++api.clevguard.com	ClevGuard	stalkerware	0
++api.corn-cob.com	AiSpyer	stalkerware	0
++api.cp.onemonitar.com	OneSpy	stalkerware	0
++api.findmykids.org	FindMyKids	stalkerware	0
++api.flexispy.com	FlexiSpy	stalkerware	0
++api.free-spy.com	AppSpy	stalkerware	0
++api.geozilla.com	GeoZilla	watchware	0
++api.kid-control.com	KidsControl	watchware	0
++api.lifecircle.app	TrackView	stalkerware	0
++api.mobilebackup.biz	NexSpy	stalkerware	0
++api.mobilespy.at	MobileSpy	stalkerware	0
++api.mycellspy.com	MyCellSpy	stalkerware	0
++api.ogymogy.com	TheOneSpy	stalkerware	0
++api.seniorsafetyapp.com	EasyLogger	stalkerware	0
++api.snoopza.com	Snoopza	stalkerware	0
++api.spylix.com	Spylix	stalkerware	0
++api.stalkerware.app	Stalkerware	stalkerware	0
++api.thd.cc	mSpy	stalkerware	0
++api.trackview.lifecircle.app	TrackView	stalkerware	0
++api.ttspy.com	jjspy	stalkerware	0
++api.wondershare.cc	FamiSafe	watchware	0
++api007.foxspy.com.br	EspiaoAndroid	stalkerware	0
++api1.easydoc.info	MobileTrackerFree	stalkerware	0
++api3.easydoc.info	MobileTrackerFree	stalkerware	0
++apidemo.spylix.com	Spylix	stalkerware	0
++apis.zoemob.com	ZoeMob	watchware	0
++apispyhuman.com	SpyHuman	stalkerware	0
++apitest.awarenesstechnologies.com	WebWatcher	stalkerware	0
++apiv4.alter757.info	mSpy	stalkerware	0
++apk.mtf.re	MobileTrackerFree	stalkerware	0
++apk01.spytoapp.com	SpyToApp	stalkerware	0
++apk02.spytoapp.com	SpyToApp	stalkerware	0
++apk03.spytoapp.com	SpyToApp	stalkerware	0
++apk04.spytoapp.com	SpyToApp	stalkerware	0
++apk7.biz	Tracku	stalkerware	0
++apollospy.com	Reptilicus	stalkerware	1
++app-api-pro.wondershare.cc	FamiSafe	watchware	0
++app-api.phonedata.me	Cocospy	stalkerware	0
++app-api.spyzie.com	Cocospy	stalkerware	0
++app.antifurtodroid.com	AntiFurtoDroid	stalkerware	0
++app.api.spyzie.wondershare.cn	Cocospy	stalkerware	0
++app.appspy.net	AppSpy	stalkerware	1
++app.foreverspy.com	Metasploit	stalkerware	0
++app.snoopza.com	Snoopza	stalkerware	0
++app.xdspy.app	XDSpy	stalkerware	0
++app.xyspy.com	TheTruthSpy	stalkerware	0
++app2.snoopza.com	Snoopza	stalkerware	0
++appjiagu.com	Cocospy	stalkerware	0
++apprtc.appspot.com	KidsShield	stalkerware	0
++appspy-net.firebaseio.com	AppSpy	stalkerware	0
++appspy.net	AppSpy	stalkerware	1
++aps12.spyhuman.com	SpyHuman	stalkerware	0
++aps13.spyhuman.com	SpyHuman	stalkerware	0
++aps14.spyhuman.com	SpyHuman	stalkerware	0
++aps15.spyhuman.com	SpyHuman	stalkerware	0
++aps16.spyhuman.com	SpyHuman	stalkerware	0
++aps16042016.spyhuman.com	SpyHuman	stalkerware	0
++aps17.spyhuman.com	SpyHuman	stalkerware	0
++aps18data.securebackuponline.net	SpyHuman	stalkerware	0
++aps18file.securebackuponline.net	SpyHuman	stalkerware	0
++aps2.spyhuman.com	SpyHuman	stalkerware	0
++aps22.spyhuman.com	SpyHuman	stalkerware	0
++asgard-f8c53.firebaseio.com	GPSTrackerLoki	stalkerware	0
++ass.absolutesoftsystem.in	AbsoluTrack	stalkerware	1
++asset.bk128.com	XNSpy	stalkerware	0
++auto-forward.com	HighsterMobile	stalkerware	1
++autoforward-8433d.firebaseio.com	HighsterMobile	stalkerware	0
++awamisolution.com	SmartKeylogger	stalkerware	1
++awsapi.io	iKeyMonitor	stalkerware	0
++b.appjiagu.com	Cocospy	stalkerware	0
++b55y.net	mSpy	stalkerware	0
++back.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++backup-a71f4.firebaseio.com	HighsterMobile	stalkerware	0
++bark-android-media.s3.amazonaws.com	bark	stalkerware	0
++bbrp.co	mSpy	stalkerware	0
++best-spy-apps.com	Trackplus	stalkerware	0
++beta-api.logger.mobi	EasyLogger	stalkerware	0
++beta.kid-control.com	KidsControl	watchware	0
++beta.logger.mobi	EasyLogger	stalkerware	0
++beta.smstracker.com	CallSMSTracker	stalkerware	0
++bi.thd.cc	mSpy	stalkerware	0
++bincdi.6kvses.com	MobileTool	stalkerware	0
++bincdi.birxpk.com	MobileTool	stalkerware	0
++birxpk.com	MobileTool	stalkerware	0
++bk128.com	XNSpy	stalkerware	0
++blurspy.com	BlurSpy	stalkerware	1
++brilliant-flame-585.firebaseio.com	XNSpy	stalkerware	0
++brunoespiao.com	BrunoEspiao	stalkerware	0
++brunoespiao.com.br	BrunoEspiao	stalkerware	1
++brunoespiao2.s3.amazonaws.com	BrunoEspiao	stalkerware	0
++c-phone.ru	Bulgok	stalkerware	1
++c.appjiagu.com	Cocospy	stalkerware	0
++c1.panspy.com	PanSpy	stalkerware	0
++cabinet.ecohouse-eg.com	Reptilicus	stalkerware	0
++cabinet.gps-monitor.uz	Reptilicus	stalkerware	0
++cabinet.kfnm.ru	Reptilicus	stalkerware	0
++cabinet.thecybernanny.com	Reptilicus	stalkerware	0
++cabinet.vegosm.ru	Reptilicus	stalkerware	0
++cabinet.vkur.se	Reptilicus	stalkerware	0
++cabinet.vkur1.se	Reptilicus	stalkerware	0
++catwatchful-e03b8-2.firebaseio.com	CatWatchful	stalkerware	0
++catwatchful-e03b8.firebaseio.com	CatWatchful	stalkerware	0
++catwatchful.com	CatWatchful	stalkerware	1
++cell-phones-tracker.net	EasyPhoneTrack	stalkerware	0
++cell-tracker-green.firebaseio.com	TrackMyPhones	stalkerware	0
++cell-tracker-updated.firebaseio.com	TrackMyPhones	stalkerware	0
++cellmonitoring.co	PhoneSheriff	stalkerware	0
++cellphone-remote-tracker.com	HelloSpy	stalkerware	0
++cellphoneservices.info	HighsterMobile	stalkerware	1
++celltracker.mobi	EasyPhoneTrack	stalkerware	0
++celltrackernew.firebaseio.com	MobileTrackerFree	stalkerware	0
++celular007.s3.amazonaws.com	EspiaoAndroid	stalkerware	0
++cerberusapp.com	Cerberus	stalkerware	1
++clevguard.net	ClevGuard	stalkerware	1
++client.mobilefonex.com	FlexiSpy	stalkerware	0
++client.spyhide.com	HelloSpy	stalkerware	0
++client.spyhide.ir	HelloSpy	stalkerware	0
++clientreport.info	NeoSpy	stalkerware	0
++cloud.ttspy.com	jjspy	stalkerware	0
++clues.link	Tracku	stalkerware	0
++clues4.com	Tracku	stalkerware	1
++cluestr.com	Tracku	stalkerware	1
++cnapi.trackview.net	TrackView	stalkerware	0
++control-phone-a05a3.firebaseio.com	Bulgok	stalkerware	0
++copy9.com	TheTruthSpy	stalkerware	1
++copy9db.com	HelloSpy	stalkerware	0
++corn-cob.com	AiSpyer	stalkerware	0
++cp.mspyonline.com	mSpy	stalkerware	0
++cp.spystealth.com	SpyStealth	stalkerware	0
++cp.thewispy.com	TheWiSpy	stalkerware	0
++cpcalendars.spymasterpro.com	SpyMasterPro	stalkerware	0
++cpcontacts.spymasterpro.com	SpyMasterPro	stalkerware	0
++d-app-apk.com	MobileTrackerFree	stalkerware	0
++d.appjiagu.com	Cocospy	stalkerware	0
++d.corn-cob.com	AiSpyer	stalkerware	0
++d.d-app-apk.com	MobileTrackerFree	stalkerware	0
++d.tispy.net	KidsShield	stalkerware	0
++d1.panspy.com	PanSpy	stalkerware	0
++d1gslyvqtipqvi.cloudfront.net	Mrecorder	stalkerware	0
++d24lo6rmha82nf.cloudfront.net	Mrecorder	stalkerware	0
++d2nipadu1fr4ne.cloudfront.net	Spylix	stalkerware	0
++d3g4zswpacwtfb.cloudfront.net	Mrecorder	stalkerware	0
++data-api.famisafe.com	FamiSafe	watchware	0
++data-api.phonedata.me	Cocospy	stalkerware	0
++data-api.spyzie.com	Cocospy	stalkerware	0
++data-webwatcherdata-alb-1451089636.us-west-2.elb.amazonaws.com	WebWatcher	stalkerware	0
++data.api.spyzie.wondershare.cn	Cocospy	stalkerware	0
++data.qa.webwatcherdata.com	WebWatcher	stalkerware	0
++data.reptilicus.net	Reptilicus	stalkerware	0
++data.webwatcherdata.com	WebWatcher	stalkerware	0
++data240.mrec24.com	Mrecorder	stalkerware	0
++data241.mrec24.com	Mrecorder	stalkerware	0
++dc.wondershare.cc	FamiSafe	watchware	0
++ddiutilities.com	HighsterMobile	stalkerware	1
++dev.hoverwatch.com	Hoverwatch	stalkerware	0
++dev.snoopza.com	Snoopza	stalkerware	0
++dev2.refog.com	Hoverwatch	stalkerware	0
++device-ac480.appspot.com	HighsterMobile	stalkerware	0
++device-ac480.firebaseio.com	HighsterMobile	stalkerware	0
++disp2.mrec24.com	Mrecorder	stalkerware	0
++dispatcher.mrecorder.com	Mrecorder	stalkerware	0
++djp.bz	FlexiSpy	stalkerware	0
++dmw.bz	FlexiSpy	stalkerware	0
++dmw.cc	FlexiSpy	stalkerware	0
++downapk.spytoapp.com	SpyToApp	stalkerware	0
++download.webwatcherdata.com	WebWatcher	stalkerware	0
++downloads.refog.com	Hoverwatch	stalkerware	0
++droimon20.ru	AndroidPolice	stalkerware	1
++dwn.vys.me	MobiStealth	stalkerware	0
++dz7.wethnc067.xyz	MobileTool	stalkerware	0
++e-spy.app	Tracku	stalkerware	0
++e-spy.org	Tracku	stalkerware	1
++e.appjiagu.com	Cocospy	stalkerware	0
++e2c64.firebaseio.com	Reptilicus	stalkerware	0
++eaglespy.com.br	eagleSPY	stalkerware	1
++easydoc.info	MobileTrackerFree	stalkerware	0
++easyloggerbeta.azurewebsites.net	EasyLogger	stalkerware	0
++easyphonetrack.com	EasyPhoneTrack	stalkerware	1
++ecom.flexispy.com	FlexiSpy	stalkerware	0
++edlnc255s2q.s3.amazonaws.com	Trackplus	stalkerware	0
++einformatiks.com	MobiStealth	stalkerware	0
++elcore-api.azurewebsites.net	EasyLogger	stalkerware	0
++em.awsapi.io	iKeyMonitor	stalkerware	0
++emcpanel.com	iKeyMonitor	stalkerware	0
++enterprise.cerberusapp.com	Cerberus	stalkerware	1
++evt17.com	HighsterMobile	stalkerware	1
++eyezyapp.thd.cc	mSpy	stalkerware	0
++f.appjiagu.com	Cocospy	stalkerware	0
++famisafe-b6807.firebaseio.com	FamiSafe	watchware	0
++files.geozilla.com	GeoZilla	watchware	0
++find-my-phone-prod.herokuapp.com	FindMyPhone	stalkerware	0
++findmyphone.mangobird.com	FindMyPhone	stalkerware	0
++flower.snoopza.com	Snoopza	stalkerware	0
++flushdata.1topspy.com	HelloSpy	stalkerware	0
++flushdata.copy9db.com	HelloSpy	stalkerware	0
++flushdata.hellospy.com	HelloSpy	stalkerware	0
++flushdata2.hellospy.com	HelloSpy	stalkerware	0
++flushdata3.hellospy.com	HelloSpy	stalkerware	0
++flushdata4.hellospy.com	HelloSpy	stalkerware	0
++flushdata5.hellospy.com	HelloSpy	stalkerware	0
++flushdbd.maxxspy.com	HelloSpy	stalkerware	0
++fonemonitor.vip	Cocospy	stalkerware	0
++foreverspy.com	Metasploit	stalkerware	1
++freemobilespy.net	AppSpy	stalkerware	1
++freespyapp.com	KidsShield	stalkerware	1
++ftp.info-taxi.info	Trackplus	stalkerware	0
++g.appjiagu.com	Cocospy	stalkerware	0
++geozilla.autosmartins.com	GeoZilla	watchware	0
++geozillafamily-c92d0.firebaseio.com	GeoZilla	watchware	0
++geozillafamily.firebaseio.com	GeoZilla	watchware	0
++get.snoopza.com	Snoopza	stalkerware	1
++getmspy.net	mSpy	stalkerware	0
++getspylix.io	Spylix	stalkerware	0
++go.kid-control.com	KidsControl	watchware	0
++go2.kid-control.com	KidsControl	watchware	0
++gpi3.life360.com	Life360	watchware	0
++gpi4.dev.life360.com	Life360	watchware	0
++gpi4.life360.com	Life360	watchware	0
++gpsme1.kid-control.com	KidsControl	watchware	0
++guestspy.com	TheTruthSpy	stalkerware	1
++h.appjiagu.com	Cocospy	stalkerware	0
++hellospy.com	HelloSpy	stalkerware	1
++hover.watch	Hoverwatch	stalkerware	1
++hoverwatch.com	Hoverwatch	stalkerware	1
++hw.cab	Hoverwatch	stalkerware	0
++hwa.cab	Hoverwatch	stalkerware	0
++hwm.cab	Hoverwatch	stalkerware	0
++hws.icu	Hoverwatch	stalkerware	1
++hww.cab	Hoverwatch	stalkerware	0
++hz-service.thd.cc	mSpy	stalkerware	0
++hz7.thd.cc	mSpy	stalkerware	0
++hzdy.birxpk.com	MobileTool	stalkerware	0
++i.cocospy.com	Cocospy	stalkerware	0
++i.fonemonitor.co	Cocospy	stalkerware	0
++i.hoverwatch.com	Hoverwatch	stalkerware	0
++i.lf360.co	Life360	watchware	0
++i.minspy.com	Cocospy	stalkerware	0
++i.neatspy.com	Cocospy	stalkerware	0
++i.safespy.com	Cocospy	stalkerware	0
++i.spyic.com	Cocospy	stalkerware	0
++i.spyier.com	Spyier	stalkerware	0
++i.spyine.com	Cocospy	stalkerware	0
++i.spyzie.io	Cocospy	stalkerware	0
++i.teensafe.net	Cocospy	stalkerware	0
++i1.hoverwatch.com	Hoverwatch	stalkerware	0
++i10.clientreport.info	NeoSpy	stalkerware	0
++i11.clientreport.info	NeoSpy	stalkerware	0
++i12.clientreport.info	NeoSpy	stalkerware	0
++i13.clientreport.info	NeoSpy	stalkerware	0
++i6.clientreport.info	NeoSpy	stalkerware	0
++i7.clientreport.info	NeoSpy	stalkerware	0
++i8.clientreport.info	NeoSpy	stalkerware	0
++i9.clientreport.info	NeoSpy	stalkerware	0
++icloudappe.com	TheTruthSpy	stalkerware	0
++idevs.co	mSpy	stalkerware	0
++ikeymonitor.com	iKeyMonitor	stalkerware	0
++ikeymonitor.fr	iKeyMonitor	stalkerware	0
++ikm.awsapi.io	iKeyMonitor	stalkerware	0
++im.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++im.theonespy.com	TheOneSpy	stalkerware	0
++imobispy.com	SpyMasterPro	stalkerware	0
++imonitor-da8b2.firebaseio.com	iMonitorSpy	stalkerware	0
++imonitorke.com	iMonitorSpy	stalkerware	0
++imonitorsoft.cn	iMonitorSpy	stalkerware	1
++imonitorsoft.com	iMonitorSpy	stalkerware	0
++info-taxi.info	Trackplus	stalkerware	0
++inv.logger.mobi	EasyLogger	stalkerware	0
++ioi.life	AiSpyer	stalkerware	0
++ios-gw.spynger.net	Spynger	stalkerware	0
++ios.kid-control.com	KidsControl	watchware	0
++iot.geozilla.com	GeoZilla	watchware	0
++ixhtb.s9gxw8.com	MobileTool	stalkerware	0
++izapk.xyz	Tracku	stalkerware	0
++izspy-1313.firebaseio.com	Tracku	stalkerware	0
++jailbreak-gateway.thd.cc	mSpy	stalkerware	0
++jjspy.com	jjspy	stalkerware	0
++jjspy.ml	jjspy	stalkerware	0
++kaspersky-safe-kids.firebaseio.com	KasperskySafeKids	watchware	0
++key-logger-90fff.firebaseio.com	TrackMyPhones	stalkerware	0
++kidsguard-6c6a9.firebaseio.com	ClevGuard	stalkerware	0
++kidslox.firebaseio.com	KidsLox	watchware	0
++kidslox.page.link	KidsLox	watchware	0
++kidsshield.net	KidsShield	stalkerware	1
++klg.a-spy.com	AndroidSpy	stalkerware	0
++kokum.ru	Trackplus	stalkerware	0
++kuuvv.com	Cocospy	stalkerware	0
++kvshdi.birxpk.com	MobileTool	stalkerware	0
++kypler.com	mSpy	stalkerware	0
++l.servidor.in	MeuSpy	stalkerware	0
++labrador.ua	Reptilicus	stalkerware	0
++laucass.forumactif.org	Spyone	stalkerware	0
++lb.theonespy.com	TheOneSpy	stalkerware	0
++letmespy.com	LetMeSpy	stalkerware	1
++life360-com-l360safetycenter.firebaseio.com	Life360	watchware	0
++life360-dev.tile-api.com	Life360	watchware	0
++life360-location-dev.tile-api.com	Life360	watchware	0
++life360.atlassian.net	Life360	watchware	0
++life360feedback.typeform.com	Life360	watchware	0
++lifecircle-223805.firebaseio.com	TrackView	stalkerware	0
++location.family.microsoft.com	MicrosoftFamilySafe	watchware	0
++locatorprivacy.com	OneLocator	stalkerware	1
++login.quanly24h.net	KidsShield	stalkerware	0
++login.webwatcher.com	WebWatcher	stalkerware	0
++loverman.net	MobileTrackerFree	stalkerware	1
++m-media.thd.cc	mSpy	stalkerware	0
++m.a-spy.com	AndroidSpy	stalkerware	0
++m.asgardtech.ru	GPSTrackerLoki	stalkerware	0
++m.lifecircle.app	TrackView	stalkerware	0
++maglook.eu	MagMonitor	stalkerware	1
++maxxspy.com	HelloSpy	stalkerware	1
++mcloud-api.thd.cc	mSpy	stalkerware	0
++media-sync-a.copy9.com	TheTruthSpy	stalkerware	0
++media-sync-a.exactspy.com	TheTruthSpy	stalkerware	0
++media-sync-a.fonetracker.com	TheTruthSpy	stalkerware	0
++media-sync-a.ispyoo.com	TheTruthSpy	stalkerware	0
++media-sync-a.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a100.fonetracker.com	TheTruthSpy	stalkerware	0
++media-sync-a100.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a600.fonetracker.com	TheTruthSpy	stalkerware	0
++media-sync-a621.fonetracker.com	TheTruthSpy	stalkerware	0
++media-sync-a696.fonetracker.com	TheTruthSpy	stalkerware	0
++media-sync-a710.fonetracker.com	TheTruthSpy	stalkerware	0
++media-sync-a740.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a743.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a746.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a747.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a748.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a749.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a780.fonetracker.com	TheTruthSpy	stalkerware	0
++media-sync-a785.fonetracker.com	TheTruthSpy	stalkerware	0
++media-sync-a7xx.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a810.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a820.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a825.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a830.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a835.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a895.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a8xx.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a910.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a915.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a920.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a925.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a930.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a935.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a940.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a941.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a942.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a943.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a944.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a945.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a946.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync-a947.thetruthspy.com	TheTruthSpy	stalkerware	0
++media-sync.systemserviceprovider.com	TheTruthSpy	stalkerware	0
++media.thetruthspy.com	TheTruthSpy	stalkerware	0
++message-tracker-98822.firebaseio.com	TrackMyPhones	stalkerware	0
++messages01.smstracker.com	CallSMSTracker	stalkerware	0
++messages02.smstracker.com	CallSMSTracker	stalkerware	0
++mflx.biz	FlexiSpy	stalkerware	0
++mg-spyzie.oss-us-west-1.aliyuncs.com	Cocospy	stalkerware	0
++mi.thd.cc	mSpy	stalkerware	0
++microtracker-1ca43.firebaseio.com	TheTruthSpy	stalkerware	0
++mintrack.vip	Cocospy	stalkerware	0
++mlite-app.livekit.cloud	mSpy	stalkerware	0
++mlite-app.thd.cc	mSpy	stalkerware	0
++mlite-socket.thd.cc	mSpy	stalkerware	0
++mliteapp.alter757.info	mSpy	stalkerware	0
++mob-app-gw.spynger.net	Spynger	stalkerware	0
++mob.eurotrans.kz	Reptilicus	stalkerware	0
++mobi22.com	Mrecorder	stalkerware	0
++mobiispy.com	HelloSpy	stalkerware	1
++mobil-kem.com	SpyPhoneApp	stalkerware	0
++mobile-gw.thd.cc	mSpy	stalkerware	0
++mobile-tracker-data.com	MobileTrackerFree	stalkerware	0
++mobile-tracker-free.com	MobileTrackerFree	stalkerware	1
++mobileaggregator.family.microsoft.com	MicrosoftFamilySafe	watchware	0
++mobilenannylogs.com	PhoneSheriff	stalkerware	0
++mobilerecorder-1277.firebaseio.com	Mrecorder	stalkerware	0
++mobiletool.ru	MobileTool	stalkerware	1
++monitor-android.android-monitor.ru	AndroidPolice	stalkerware	1
++monitor-ultra.com	MonitorUltra	stalkerware	0
++mrec24.com	Mrecorder	stalkerware	0
++mrswd.wo87sf.com	MobileTool	stalkerware	0
++msafe.xyz	Tracku	stalkerware	0
++mspy.alter757.info	mSpy	stalkerware	0
++mspyonline.com	mSpy	stalkerware	1
++mspytrackercom.alter757.info	mSpy	stalkerware	0
++mtechn.zendesk.com	mSpy	stalkerware	0
++mtf.re	MobileTrackerFree	stalkerware	0
++mtoolapp.biz	MobileTool	stalkerware	1
++mtoolapp.net	MobileTool	stalkerware	1
++mtracker.fortess.net	WiseMo	stalkerware	0
++mxspy.com	TheTruthSpy	stalkerware	1
++my-spy-a9c92.firebaseio.com	MySpyApps	stalkerware	0
++my.a-spy.com	AndroidSpy	stalkerware	0
++my.aispyer.com	AiSpyer	stalkerware	0
++my.copy9.com	TheTruthSpy	stalkerware	0
++my.ispyoo.com	TheTruthSpy	stalkerware	0
++my.jjspy.com	jjspy	stalkerware	0
++my.kidsecured.com	mSpy	stalkerware	0
++my.mobiletool.ru	MobileTool	stalkerware	0
++my.mobispy.net	MobiSpy	stalkerware	0
++my.mrec24.com	Mrecorder	stalkerware	0
++my.mspyonline.com	mSpy	stalkerware	0
++my.mtoolapp.net	MobileTool	stalkerware	0
++my.nexspy.com	NexSpy	stalkerware	0
++my.phonsee.com	mSpy	stalkerware	0
++my.securechildren.online	mSpy	stalkerware	0
++my.snoopza.com	Snoopza	stalkerware	0
++my.spylix.com	Spylix	stalkerware	0
++my.spynger.net	Spynger	stalkerware	0
++my.spyzie.com	Cocospy	stalkerware	0
++my.thespyapp.com	TheTruthSpy	stalkerware	0
++my.thetruthspy.com	TheTruthSpy	stalkerware	0
++my2.snoopza.com	Snoopza	stalkerware	0
++myappmobile-537f7.firebaseio.com	MobileTrackerFree	stalkerware	0
++mycloud-cs10.wisemo.com	WiseMo	watchware	0
++mycloud-cs17.wisemo.com	WiseMo	watchware	0
++mycloud-cs17a.wisemo.com	WiseMo	watchware	0
++mycloud-cs5a.wisemo.com	WiseMo	watchware	0
++mycloud-cs9.wisemo.com	WiseMo	watchware	0
++mycloud.wisemo.com	WiseMo	stalkerware	0
++mycloud1.wisemo.com	WiseMo	stalkerware	0
++mydwnd.com	XNSpy	stalkerware	0
++mzpgfh.uhabq9.com	MobileTool	stalkerware	0
++n.servidor.in	MeuSpy	stalkerware	0
++n6sm2m.celltracker.io	MobileTrackerFree	stalkerware	0
++neatspy.vip	Cocospy	stalkerware	0
++nemospy.com	NemoSpy	stalkerware	1
++netspy-7b8ec.firebaseio.com	NetSpy	stalkerware	0
++new.androidlost.com	AndroidLost	stalkerware	0
++ngc77.com	HighsterMobile	stalkerware	0
++node-api.theonespy.com	TheOneSpy	stalkerware	0
++node1.theonespy.com	TheOneSpy	stalkerware	0
++node2.theonespy.com	TheOneSpy	stalkerware	0
++node3.theonespy.com	TheOneSpy	stalkerware	0
++node4.theonespy.com	TheOneSpy	stalkerware	0
++node5.theonespy.com	TheOneSpy	stalkerware	0
++nodejs.spyhuman.com	SpyHuman	stalkerware	0
++noujx.s9gxw8.com	MobileTool	stalkerware	0
++observer.back4app.io	Observer	stalkerware	0
++office.hw.cab	Hoverwatch	stalkerware	0
++ogymoggy.firebaseio.com	TheOneSpy	stalkerware	0
++olurdaolurdediler.shop	MobileTrackerFree	stalkerware	0
++onespy-in-196211.firebaseio.com	OneSpy	stalkerware	0
++onlinefundb.com	TrackingSmartphone	stalkerware	1
++package.mrec24.com	Mrecorder	stalkerware	0
++package2.mrec24.com	Mrecorder	stalkerware	0
++panel.spy24.net	Spy24	stalkerware	0
++panel24.org	Spy24	stalkerware	0
++panspy-1.oss-us-west-1.aliyuncs.com	PanSpy	stalkerware	0
++panspy.com	PanSpy	stalkerware	1
++panspy.me	PanSpy	stalkerware	0
++parent.netnanny.com	Netnanny	watchware	0
++parental-control-d4a98-default-rtdb.asia-southeast1.firebasedatabase.app	FamiShield	watchware	0
++pc.backupsoft.eu	KidsShield	stalkerware	0
++pc.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++pc.foxspy.com.br	EspiaoAndroid	stalkerware	0
++pc.freespyapp.com	KidsShield	stalkerware	1
++pc.selfspy.com	KidsShield	stalkerware	1
++pc.spykontrol.com	SpyKontrol	stalkerware	0
++pc.spyone.pl	Spyone	stalkerware	0
++pc.viptelefonprogrami.com	KidsShield	stalkerware	0
++pc1.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++pctattletale.com	pcTattletale	stalkerware	0
++pctattletalev2.s3.amazonaws.com	pcTattletale	stalkerware	0
++pgv4.com	SpyApp	stalkerware	1
++phone-backup-service.firebaseio.com	jjspy	stalkerware	0
++phonecontrolapp-e2c64.firebaseio.com	Reptilicus	stalkerware	0
++phonedata.me	Cocospy	stalkerware	0
++phonesheriff.com	PhoneSheriff	stalkerware	1
++phonespector-b2f13.firebaseio.com	HighsterMobile	stalkerware	0
++phonespector.com	HighsterMobile	stalkerware	1
++phonespying.com	TheTruthSpy	stalkerware	1
++phonetrack.com	EasyPhoneTrack	stalkerware	0
++phonetracker.com	SpyphoneMobileTracker	stalkerware	1
++phonetracker95gpsonly.firebaseio.com	SpyphoneMobileTracker	stalkerware	0
++phonetracking-dd226.firebaseio.com	SpyAdvice	stalkerware	0
++phonetracking.net	TheTruthSpy	stalkerware	1
++pi.info-taxi.info	Trackplus	stalkerware	0
++pipe.thd.cc	mSpy	stalkerware	0
++play-store-3bb64.firebaseio.com	MeuSpy	stalkerware	0
++portal.flexispy.com	FlexiSpy	stalkerware	0
++pro.logger.mobi	EasyLogger	stalkerware	0
++prog-money.android-monitor.ru	AndroidPolice	stalkerware	1
++prog-money.com	AndroidPolice	stalkerware	1
++project-323448153542050953.firebaseio.com	mSpy	stalkerware	0
++project-7991479181228723357.firebaseio.com	Mrecorder	stalkerware	0
++protocol-a.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a.exactspy.com	TheTruthSpy	stalkerware	0
++protocol-a.fonetracker.com	TheTruthSpy	stalkerware	0
++protocol-a.guestspy.com	TheTruthSpy	stalkerware	0
++protocol-a.ispyoo.com	TheTruthSpy	stalkerware	0
++protocol-a.mxspy.com	TheTruthSpy	stalkerware	0
++protocol-a.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a100.fonetracker.com	TheTruthSpy	stalkerware	0
++protocol-a100.phoneparental.com	TheTruthSpy	stalkerware	0
++protocol-a100.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a5.guestspy.com	TheTruthSpy	stalkerware	0
++protocol-a58.guestspy.com	TheTruthSpy	stalkerware	0
++protocol-a59.guestspy.com	TheTruthSpy	stalkerware	0
++protocol-a6.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a60.guestspy.com	TheTruthSpy	stalkerware	0
++protocol-a600.fonetracker.com	TheTruthSpy	stalkerware	0
++protocol-a610.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a610.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a611.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a611.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a612.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a614.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a615.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a616.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a617.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a618.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a620.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a621.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a65.guestspy.com	TheTruthSpy	stalkerware	0
++protocol-a69.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a696.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a70.guestspy.com	TheTruthSpy	stalkerware	0
++protocol-a710.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a712.fonetracker.com	TheTruthSpy	stalkerware	0
++protocol-a72.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a720.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a721.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a722.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a723.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a724.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a725.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a726.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a727.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a728.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a729.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a730.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a731.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a732.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a733.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a734.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a735.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a736.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a737.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a738.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a739.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a740.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a741.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a742.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a743.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a744.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a745.mxspy.com	TheTruthSpy	stalkerware	0
++protocol-a745.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a746.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a747.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a748.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a749.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a780.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a780.fonetracker.com	TheTruthSpy	stalkerware	0
++protocol-a780.ispyoo.com	TheTruthSpy	stalkerware	0
++protocol-a780.mxspy.com	TheTruthSpy	stalkerware	0
++protocol-a785.copy9.com	TheTruthSpy	stalkerware	0
++protocol-a785.fonetracker.com	TheTruthSpy	stalkerware	0
++protocol-a810.ispyoo.com	TheTruthSpy	stalkerware	0
++protocol-a810.mxspy.com	TheTruthSpy	stalkerware	0
++protocol-a810.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a811.ispyoo.com	TheTruthSpy	stalkerware	0
++protocol-a811.mxspy.com	TheTruthSpy	stalkerware	0
++protocol-a880.ispyoo.com	TheTruthSpy	stalkerware	0
++protocol-a89.ispyoo.com	TheTruthSpy	stalkerware	0
++protocol-a89.mxspy.com	TheTruthSpy	stalkerware	0
++protocol-a910.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a915.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a920.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a925.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a930.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a935.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a940.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a941.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a942.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a943.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a944.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a945.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a946.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-a947.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-monitor.thetruthspy.com	TheTruthSpy	stalkerware	0
++protocol-viewer-a.copy9.com	TheTruthSpy	stalkerware	0
++protocol.copy9.com	TheTruthSpy	stalkerware	0
++protocol.guestspy.com	TheTruthSpy	stalkerware	0
++protocol.inospy.com	TheTruthSpy	stalkerware	0
++protocol.ispyoo.com	TheTruthSpy	stalkerware	0
++protocol.mxspy.com	TheTruthSpy	stalkerware	0
++protocol.systemserviceprovider.com	TheTruthSpy	stalkerware	0
++protocol.thetruthspy.com	TheTruthSpy	stalkerware	0
++proxy.reptilicus.net	Reptilicus	stalkerware	0
++ps97mailer.logger.mobi	EasyLogger	stalkerware	0
++pulsesolutions-net-easy-logger.firebaseio.com	EasyLogger	stalkerware	0
++push.mobilefonex.com	FlexiSpy	stalkerware	0
++q12z.net	mSpy	stalkerware	0
++q95294fs.beget.tech	Bulgok	stalkerware	0
++quanly24h.net	KidsShield	stalkerware	0
++r.findmychilds.org	FindMyKids	watchware	0
++r.findmykids.org	FindMyKids	stalkerware	0
++rc-api.lifecircle.app	TrackView	stalkerware	0
++rcomlogin.com	WebWatcher	stalkerware	0
++realtime-spy-mobile.com	RealtimeSpy	stalkerware	1
++rec.hw.cab	Hoverwatch	stalkerware	0
++relay1.trackview.net	TrackView	stalkerware	0
++remotecommands.com	LetMeSpy	stalkerware	1
++remotesecurity-629f2.firebaseio.com	AbsoluTrack	stalkerware	0
++remotesecurityots.firebaseio.com	AbsoluTrack	stalkerware	0
++remoto.foxspy.com.br	EspiaoAndroid	stalkerware	0
++repo.mspyonline.com	mSpy	stalkerware	0
++reptilicus.net	Reptilicus	stalkerware	1
++rockalab.com	mSpy	stalkerware	0
++rp.apollospy.com	Reptilicus	stalkerware	0
++rp.dedrone.com.ua	Reptilicus	stalkerware	0
++rp.labrador.ua	Reptilicus	stalkerware	0
++rp.liquidblue.com.ua	Reptilicus	stalkerware	0
++rrspy.com	jjspy	stalkerware	0
++rtc.ttspy.com	jjspy	stalkerware	0
++runaki-support.appspot.com	ShadowSpy	stalkerware	0
++s.appjiagu.com	Cocospy	stalkerware	0
++s.kid-control.com	KidsControl	watchware	0
++s.servidor.in	MeuSpy	stalkerware	0
++s1.panspy.com	PanSpy	stalkerware	0
++s1.spylive360.com	SpyLive360	stalkerware	0
++s10.kid-control.com	KidsControl	watchware	0
++s2.spylive360.com	SpyLive360	stalkerware	0
++s3.spylive360.com	SpyLive360	stalkerware	0
++s3.thd.cc	mSpy	stalkerware	0
++s4.kid-control.com	KidsControl	watchware	0
++s5.kid-control.com	KidsControl	watchware	0
++s6.kid-control.com	KidsControl	watchware	0
++s7.kid-control.com	KidsControl	watchware	0
++s8.kid-control.com	KidsControl	watchware	0
++s9.kid-control.com	KidsControl	watchware	0
++s9gxw8.com	MobileTool	stalkerware	0
++safedriving.family.microsoft.com	MicrosoftFamilySafe	watchware	0
++safespy.vip	Cocospy	stalkerware	0
++sandbox97.childsafetytrackerapp.com	EasyLogger	stalkerware	0
++sandbox97.logger.mobi	EasyLogger	stalkerware	0
++sandbox97.seniorsafetyapp.com	EasyLogger	stalkerware	0
++sap4mobile-89685.firebaseio.com	Trackplus	stalkerware	0
++sap4mobile.com	Trackplus	stalkerware	0
++sapient-flight-837.firebaseio.com	MobileTrackerFree	stalkerware	0
++screentimelabs.appspot.com	WebWatcher	stalkerware	0
++secondclone-2d312.firebaseio.com	TheTruthSpy	stalkerware	0
++securebackuponline.net	SpyHuman	stalkerware	0
++senior-safety-189010.firebaseio.com	EasyLogger	stalkerware	0
++senseye.spymasterpro.com	SpyMasterPro	stalkerware	0
++sentry-01.thd.cc	mSpy	stalkerware	0
++sentry-02.thd.cc	mSpy	stalkerware	0
++sentry-03.thd.cc	mSpy	stalkerware	0
++sentry-04.thd.cc	mSpy	stalkerware	0
++sentry-05.thd.cc	mSpy	stalkerware	0
++sentry-06.thd.cc	mSpy	stalkerware	0
++sentry-07.thd.cc	mSpy	stalkerware	0
++sentry-product-new.bbrp.co	mSpy	stalkerware	0
++sentrypc.net	SentryPC	stalkerware	0
++server.androidmonitor.com	AndroidMonitor	stalkerware	0
++server.freeandroidspy.com	FreeAndroidSpy	stalkerware	0
++service.n.weiguanai.cn	jjspy	stalkerware	0
++service.weiguanai.cn	jjspy	stalkerware	0
++services.spytoapp.com	SpyToApp	stalkerware	0
++servicesloggermobi.azurewebsites.net	EasyLogger	stalkerware	0
++servidor.in	MeuSpy	stalkerware	0
++setup.nemospy.com	NemoSpy	stalkerware	0
++setupmail-a.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a720.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a722.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a724.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a725.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a726.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a727.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a729.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a732.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a733.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a734.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a735.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a737.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a738.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a740.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a741.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a742.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a743.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a744.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a745.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a746.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a747.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a748.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a910.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a915.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail-a920.icloudappe.com	TheTruthSpy	stalkerware	0
++setupmail.icloudappe.com	TheTruthSpy	stalkerware	0
++shadow-logs.com	ShadowSpy	stalkerware	1
++shadow-spy.com	ShadowSpy	stalkerware	1
++shadowappbundle-default-rtdb.firebaseio.com	ShadowSpy	stalkerware	0
++shadowlogspanel.firebaseio.com	ShadowSpy	stalkerware	0
++sl360-7ba65.firebaseio.com	SpyLive360	stalkerware	0
++smartback-12d60.appspot.com	Trackplus	stalkerware	0
++smartback-12d60.firebaseio.com	Trackplus	stalkerware	0
++smsandcalltracker.firebaseio.com	TrackMyPhones	stalkerware	0
++snoopza.com	Snoopza	stalkerware	1
++sp.kuuvv.com	Cocospy	stalkerware	0
++sp18022019.firebaseio.com	SpyHuman	stalkerware	0
++sparrow.wondershare.com	FamiSafe	watchware	0
++spc-runtimes.s3.amazonaws.com	SentryPC	stalkerware	0
++spy-datacenter.com	EasyPhoneTrack	stalkerware	0
++spy24.net	Spy24	stalkerware	1
++spy2mobile-bb441.firebaseio.com	Trackplus	stalkerware	0
++spy2mobile.com	Trackplus	stalkerware	1
++spyadvice.com	SpyAdvice	stalkerware	1
++spyapp-8916f.firebaseio.com	BlurSpy	stalkerware	0
++spyapp.top	Xnore	stalkerware	0
++spyaudiorecorder.firebaseio.com	TrackMyPhones	stalkerware	0
++spyera.postaffiliatepro.com	SpyEra	stalkerware	0
++spyhide.com	HelloSpy	stalkerware	1
++spyhide.ir	HelloSpy	stalkerware	1
++spyhuman-97943.firebaseio.com	SpyHuman	stalkerware	0
++spyhuman.com	SpyHuman	stalkerware	1
++spylive360.com	SpyLive360	stalkerware	1
++spylogs.com	SpyEra	stalkerware	0
++spymaster-e535b.firebaseio.com	SpyMasterPro	stalkerware	0
++spynote.us	SpyNote	stalkerware	1
++spysetup.com	FreeAndroidSpy	stalkerware	0
++spyt.co	KidsShield	stalkerware	0
++spytomobile.com	Trackplus	stalkerware	1
++spytrac-app1.s3.amazonaws.com	KidsShield	stalkerware	0
++spyzee.com	TheTruthSpy	stalkerware	0
++spyzie-a.firebaseio.com	Cocospy	stalkerware	0
++spyzie.com	Cocospy	stalkerware	1
++sse.chyldmonitor.com	OneSpy	stalkerware	0
++stage.spystealth.com	SpyStealth	stalkerware	0
++staging-all-tracker.appspot.com	AllTracker	stalkerware	0
++staging.smstracker.com	CallSMSTracker	stalkerware	0
++strapi.msafely.com	Msafely	stalkerware	0
++strapi.spyphone.cc	Msafely	stalkerware	0
++strapi.spyx.com	Msafely	stalkerware	0
++studio11-7e288.firebaseio.com	EasyPhoneTrack	stalkerware	0
++support.mtoolapp.biz	MobileTool	stalkerware	0
++support.phoneparental.com	TheTruthSpy	stalkerware	0
++sync-a.copy9.com	TheTruthSpy	stalkerware	0
++sync-a.exactspy.com	TheTruthSpy	stalkerware	0
++sync-a.fonetracker.com	TheTruthSpy	stalkerware	0
++sync-a.ispyoo.com	TheTruthSpy	stalkerware	0
++sync-a.mxspy.com	TheTruthSpy	stalkerware	0
++sync-a.thetruthspy.com	TheTruthSpy	stalkerware	0
++sync-a100.fonetracker.com	TheTruthSpy	stalkerware	0
++sync-a600.fonetracker.com	TheTruthSpy	stalkerware	0
++sync-a712.fonetracker.com	TheTruthSpy	stalkerware	0
++sync-a780.mxspy.com	TheTruthSpy	stalkerware	0
++sync-a7xx.thetruthspy.com	TheTruthSpy	stalkerware	0
++sync-a8xx.thetruthspy.com	TheTruthSpy	stalkerware	0
++sync-a925.thetruthspy.com	TheTruthSpy	stalkerware	0
++sync-a930.thetruthspy.com	TheTruthSpy	stalkerware	0
++sync-a935.thetruthspy.com	TheTruthSpy	stalkerware	0
++sync-a940.thetruthspy.com	TheTruthSpy	stalkerware	0
++sync-a941.thetruthspy.com	TheTruthSpy	stalkerware	0
++sync-a942.thetruthspy.com	TheTruthSpy	stalkerware	0
++sync.bk128.com	XNSpy	stalkerware	0
++sync.xiz4me.com	XNSpy	stalkerware	0
++tagdps.ru	Trackplus	stalkerware	0
++talklog.tools	TalkLog	stalkerware	1
++tchsrvce.com	TalkLog	stalkerware	0
++test-client.mobilefonex.com	FlexiSpy	stalkerware	0
++test.androidlost.com	AndroidLost	stalkerware	0
++test.onetouchsecurities.com	AbsoluTrack	stalkerware	0
++test.refog.com	Hoverwatch	stalkerware	0
++tfk7r22klf8vtd8g90jq8qno1tpqhmpe.apps.googleusercontent.com	Trackplus	stalkerware	0
++thd.cc	mSpy	stalkerware	0
++theodoi24h.com	KidsShield	stalkerware	0
++thetruth-db94a.firebaseio.com	TheTruthSpy	stalkerware	0
++thiefguardbd.com	AbsoluTrack	stalkerware	1
++tispy.net	KidsShield	stalkerware	1
++topzaloha.cz	NexSpy	stalkerware	0
++tr.appmia.com	AppMia	stalkerware	0
++traccar-client-app.firebaseio.com	Traccar	stalkerware	0
++traccar.org	Traccar	stalkerware	1
++trackier.vip	Cocospy	stalkerware	0
++trackine.vip	Cocospy	stalkerware	0
++tracking-smartphone.firebaseio.com	TrackingSmartphone	stalkerware	0
++tracking.mliteapp.com	mSpy	stalkerware	0
++tracking.mspyonline.com	mSpy	stalkerware	0
++trackingsmartphone.com	TrackingSmartphone	stalkerware	1
++trackji.com	Trackji	stalkerware	1
++trackmy.mobi	EasyPhoneTrack	stalkerware	0
++trackmyphones-pro.firebaseio.com	TrackMyPhones	stalkerware	0
++trackmyphones.com	TrackMyPhones	stalkerware	1
++trackpro.vip	Cocospy	stalkerware	0
++tracksp-7743c.firebaseio.com	AiSpyer	stalkerware	0
++tracksp.in	AiSpyer	stalkerware	0
++trackview.net	TrackView	stalkerware	1
++trkps.com	FlexiSpy	stalkerware	0
++true-truck-86810.firebaseio.com	XNSpy	stalkerware	0
++truewebmedia.com	pcTattletale	stalkerware	0
++tt.spystealth.com	SpyStealth	stalkerware	0
++ttjj.ga	jjspy	stalkerware	0
++ttjj.ml	jjspy	stalkerware	0
++ttjj.tk	jjspy	stalkerware	0
++ttspy.com	jjspy	stalkerware	0
++ttspy.net	jjspy	stalkerware	0
++ttspy.top	jjspy	stalkerware	0
++tun-cos-1258344701.file.myqcloud.com	Msafely	stalkerware	0
++u1.panspy.com	PanSpy	stalkerware	0
++ua.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++ua.evaspy.com	EvaSpy	stalkerware	0
++ua.tispy.net	KidsShield	stalkerware	1
++ub.evaspy.com	EvaSpy	stalkerware	0
++uc.evaspy.com	EvaSpy	stalkerware	0
++ud.evaspy.com	EvaSpy	stalkerware	0
++ue.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++ue.evaspy.com	EvaSpy	stalkerware	0
++ue.maglook.eu	MagMonitor	stalkerware	0
++uf.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++uf.evaspy.com	EvaSpy	stalkerware	0
++uf.maglook.eu	MagMonitor	stalkerware	0
++uf1.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++ug.evaspy.com	EvaSpy	stalkerware	0
++ug1c5v.birxpk.com	MobileTool	stalkerware	0
++uh.evaspy.com	EvaSpy	stalkerware	0
++ui.evaspy.com	EvaSpy	stalkerware	0
++uj.evaspy.com	EvaSpy	stalkerware	0
++uk.evaspy.com	EvaSpy	stalkerware	0
++ul.evaspy.com	EvaSpy	stalkerware	0
++um.evaspy.com	EvaSpy	stalkerware	0
++un.evaspy.com	EvaSpy	stalkerware	0
++unisafe-a342f.firebaseio.com	Unisafe	stalkerware	0
++uo.evaspy.com	EvaSpy	stalkerware	0
++up.evaspy.com	EvaSpy	stalkerware	0
++update-service-7e59f.firebaseio.com	mSpy	stalkerware	0
++upload.weiguanai.cn	jjspy	stalkerware	0
++uq.evaspy.com	EvaSpy	stalkerware	0
++ur.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++ur.evaspy.com	EvaSpy	stalkerware	0
++ur.spyone.pl	Spyone	stalkerware	0
++us-central1-api-project-285519687053.cloudfunctions.net	TrackView	stalkerware	0
++us-central1-catwatchful-e03b8.cloudfunctions.net	CatWatchful	stalkerware	0
++us.umobix.com	uMobix	stalkerware	0
++usafe-ca594.firebaseio.com	Unisafe	stalkerware	0
++usafe.ru	Unisafe	stalkerware	1
++user.ownspy.es	OwnSpy	stalkerware	0
++user.trackview.net	TrackView	stalkerware	0
++user2.trackview.net	TrackView	stalkerware	0
++users.awosoft.com	iKeyMonitor	stalkerware	0
++users.easemon.com	iKeyMonitor	stalkerware	0
++users.thephonem.com	PhoneMonitor	stalkerware	1
++v4vw4ytvo4.execute-api.us-east-2.amazonaws.com	Spyier	stalkerware	0
++video-recorder-c0419.firebaseio.com	TrackMyPhones	stalkerware	0
++viewer.snoopza.com	Snoopza	stalkerware	0
++viptelefonprogrami.com	KidsShield	stalkerware	1
++viptrack.pro	Cocospy	stalkerware	0
++virsis.net	HelloSpy	stalkerware	0
++vkur.se	Reptilicus	stalkerware	0
++vkur1.se	Reptilicus	stalkerware	0
++vys.me	MobiStealth	stalkerware	0
++waws-prod-blu-247-e7b3.eastus.cloudapp.azure.com	EasyLogger	stalkerware	0
++waws-prod-blu-247.sip.azurewebsites.windows.net	EasyLogger	stalkerware	0
++web.chyldmonitor.com	OneSpy	stalkerware	0
++webrtc.thd.cc	mSpy	stalkerware	0
++webservice.accountable2you.com	Accountable2you	watchware	0
++webservicesdb.mobiispy.com	HelloSpy	stalkerware	0
++webwatcher-child-app.firebaseio.com	WebWatcher	stalkerware	0
++webwatcherdata.com	WebWatcher	stalkerware	0
++webwatchernow.com	WebWatcher	stalkerware	0
++wethnc067.xyz	MobileTool	stalkerware	0
++where-is-my-children.firebase.io	FindMyKids	stalkerware	0
++where-is-my-children.firebaseio.com	FindMyKids	watchware	0
++wmdcommander.appspot.com	WheresMyDroid	stalkerware	1
++wppspy.tech	XNSpy	stalkerware	0
++ws.ttspy.com	jjspy	stalkerware	0
++wss.findmychilds.org	FindMyKids	watchware	0
++wss.findmykids.org	FindMyKids	stalkerware	0
++www.android-monitor.ru	AndroidPolice	stalkerware	1
++www.androidlost.com	AndroidLost	stalkerware	1
++www.apk7.biz	Tracku	stalkerware	0
++www.app-spy.com	SpyPhoneApp	stalkerware	0
++www.bark.us	bark	stalkerware	1
++www.brunoespiao.com.br	BrunoEspiao	stalkerware	0
++www.cellmonitoring.co	PhoneSheriff	stalkerware	0
++www.cerberusapp.com	Cerberus	stalkerware	1
++www.e-spy.org	Tracku	stalkerware	1
++www.einformatiks.com	MobiStealth	stalkerware	0
++www.familyorbit.com	FamilyOrbit	watchware	1
++www.familyorbit.net	FamilyOrbit	watchware	0
++www.imonitorsoft.cn	iMonitorSpy	stalkerware	1
++www.imonitorsoft.com	iMonitorSpy	stalkerware	1
++www.ioi.life	AiSpyer	stalkerware	0
++www.maglook.eu	MagMonitor	stalkerware	0
++www.msafe.xyz	Tracku	stalkerware	0
++www.mspy.com	mSpy	stalkerware	1
++www.mspyonline.com	mSpy	stalkerware	1
++www.mtoolapp.net	MobileTool	stalkerware	1
++www.mydwnd.com	XNSpy	stalkerware	0
++www.pgv4.com	SpyApp	stalkerware	0
++www.reptilicus.net	Reptilicus	stalkerware	0
++www.sentrypc.download	SentryPC	stalkerware	0
++www.sentrypc.net	SentryPC	stalkerware	0
++www.sentrypconline.com	SentryPC	stalkerware	0
++www.shadow-logs.com	ShadowSpy	stalkerware	1
++www.shadyspy.com	ShadySpy	stalkerware	1
++www.spappmonitoring.com	SpyPhoneApp	stalkerware	0
++www.spclogs.com	SentryPC	stalkerware	0
++www.spy-datacenter.com	EasyPhoneTrack	stalkerware	0
++www.spy-phone-app.com	SpyPhoneApp	stalkerware	0
++www.spyhide.com	HelloSpy	stalkerware	1
++www.spyhide.ir	HelloSpy	stalkerware	1
++www.spyzie.com	Cocospy	stalkerware	1
++www.trackmyphones.com	TrackMyPhones	stalkerware	1
++www.ttjj.tk	jjspy	stalkerware	0
++www.vys.me	MobiStealth	stalkerware	0
++www.webwatchernow.com	WebWatcher	stalkerware	0
++wx.weiguanai.cn	jjspy	stalkerware	0
++x.pgv4.com	SpyApp	stalkerware	0
++x1panel.com	MonitorUltra	stalkerware	0
++xmyevq.birxpk.com	MobileTool	stalkerware	0
++xnore.com	Xnore	stalkerware	1
++xnspy.com	XNSpy	stalkerware	1
++xpcpanel.com	MonitorUltra	stalkerware	0
++zdalnakontrola.pl	LetMeSpy	stalkerware	0
++zoemob.firebaseio.com	ZoeMob	watchware	0
+diff --git a/guardian/app/src/main/kotlin/org/secureinchat/guardian/GuardianVpnService.kt b/guardian/app/src/main/kotlin/org/secureinchat/guardian/GuardianVpnService.kt
+index 930ee77..3577800 100644
+--- a/guardian/app/src/main/kotlin/org/secureinchat/guardian/GuardianVpnService.kt
++++ b/guardian/app/src/main/kotlin/org/secureinchat/guardian/GuardianVpnService.kt
+@@ -34,6 +34,9 @@ import org.secureinchat.guardian.dns.BlockMode
+ import org.secureinchat.guardian.dns.DotClient
+ import org.secureinchat.guardian.dns.DotProvider
+ import org.secureinchat.guardian.dns.QueryHandler
++import org.secureinchat.guardian.dns.SpywareDb
++import org.secureinchat.guardian.dns.SpywareKind
++import org.secureinchat.guardian.dns.SpywareWatch
+ import org.secureinchat.guardian.dns.TrackerDb
+ 
+ class GuardianVpnService : VpnService() {
+@@ -144,6 +147,8 @@ class GuardianVpnService : VpnService() {
+             // thread as the blocklist. Failure is non-fatal: trackerDb() then returns null and
+             // the UI simply does not show company names.
+             loadTrackerDb(applicationContext)
++            // G20: known stalkerware servers; same once-per-process loading as the tracker names.
++            loadSpywareWatch(applicationContext)
+             val effective = applyUserRulesTo(blocklist, applicationContext)
+             // No uid lookup: on Android 10+ every query reaching the VPN is sent by the system DNS
+             // service, so getConnectionOwnerUid names that service, not the app (seen in the emulator flow).
+@@ -374,8 +379,12 @@ class GuardianVpnService : VpnService() {
+     private fun processPacket(packet: ByteArray) {
+         val h = handler ?: return
+         when (val act = h.handle(packet, packet.size)) {
+-            is Action.Respond -> writeTun(act.packet)
++            is Action.Respond -> {
++                writeTun(act.packet)
++                checkSpyware(act.name)
++            }
+             is Action.Forward -> {
++                checkSpyware(act.query.qname)
+                 val exec = pool ?: return
+                 try {
+                     exec.execute {
+@@ -454,6 +463,49 @@ class GuardianVpnService : VpnService() {
+         }
+     }
+ 
++    /**
++     * G20: alert when a lookup goes to a known stalkerware server. Alert only, never block: blocking can
++     * tell whoever installed the stalkerware that it was found, which can put the person in danger.
++     * The query itself is answered exactly as it would be without this check.
++     */
++    private fun checkSpyware(name: String) {
++        val alert = try { spywareWatch?.check(name) } catch (_: Throwable) { null } ?: return
++        try { postSpywareAlert(alert) } catch (_: Throwable) {}
++    }
++
++    private fun postSpywareAlert(alert: SpywareWatch.Alert) {
++        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
++        if (nm.getNotificationChannel(ALERT_CHANNEL_ID) == null) {
++            nm.createNotificationChannel(
++                NotificationChannel(ALERT_CHANNEL_ID, tr("Safety alerts", "安全提醒"), NotificationManager.IMPORTANCE_HIGH)
++            )
++        }
++        val open = PendingIntent.getActivity(
++            this, 3, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
++            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
++        )
++        val ind = alert.indicator
++        // What the lock screen shows: nothing about the app or the domain, so someone glancing at the
++        // phone (possibly the person who installed it) learns nothing.
++        val public = Notification.Builder(this, ALERT_CHANNEL_ID)
++            .setSmallIcon(android.R.drawable.stat_sys_warning)
++            .setContentTitle(tr("Guardian has a safety alert", "Guardian 有一条安全提醒"))
++            .setContentText(tr("Unlock to see it", "解锁后查看"))
++            .build()
++        val (title, body) = spywareAlertText(ind.app, ind.kind, ind.alsoWebsite, alert.queryName)
++        val n = Notification.Builder(this, ALERT_CHANNEL_ID)
++            .setSmallIcon(android.R.drawable.stat_sys_warning)
++            .setContentTitle(title)
++            .setContentText(body)
++            .setStyle(Notification.BigTextStyle().bigText(body))
++            .setVisibility(Notification.VISIBILITY_PRIVATE)
++            .setPublicVersion(public)
++            .setContentIntent(open)
++            .setAutoCancel(true)
++            .build()
++        nm.notify(ALERT_NOTIF_BASE + (ind.domain.hashCode() and 0xFFFF), n)
++    }
++
+     private fun writeTun(packet: ByteArray) {
+         val out = tunOut ?: return
+         synchronized(writeLock) {
+@@ -511,6 +563,8 @@ class GuardianVpnService : VpnService() {
+         private const val DOT_BACKOFF_MS = 10_000L
+         private const val CHANNEL_ID = "guardian_vpn"
+         private const val NOTIF_ID = 1
++        private const val ALERT_CHANNEL_ID = "guardian_safety_alerts"
++        private const val ALERT_NOTIF_BASE = 1000
+         private val LIST_ASSETS = listOf("blocklist-hagezi-light.txt", "blocklist-extra.txt")
+         private val rulesLock = Any()
+ 
+@@ -568,6 +622,61 @@ class GuardianVpnService : VpnService() {
+             }
+         }
+ 
++        // G20: Echap stalkerware C2 domains. Loaded once per process; a failed load leaves alerts off
++        // (the UI then says the list is unavailable rather than implying the phone was checked).
++        @Volatile private var spywareWatch: SpywareWatch? = null
++        @Volatile private var spywareLoaded: Boolean = false
++        @Volatile var spywareListSize: Int = 0
++            private set
++
++        private fun loadSpywareWatch(ctx: Context) {
++            if (spywareLoaded) return
++            spywareLoaded = true
++            spywareWatch = try {
++                val text = ctx.assets.open("stalkerware-echap.tsv").use { it.bufferedReader().readText() }
++                SpywareDb.parse(text).also { spywareListSize = it.size }.let { SpywareWatch(it) }
++            } catch (_: Throwable) {
++                null
++            }
++        }
++
++        /** Alerts raised in this process, newest first (memory only; gone when the process ends). */
++        fun recentSpywareAlerts(): List<SpywareWatch.Alert> = spywareWatch?.recent() ?: emptyList()
++
++        private fun tr(en: String, zh: String): String =
++            if (Locale.getDefault().language == "zh") zh else en
++
++        /** Title and body for one alert; shared by the notification and the in-app list. */
++        fun spywareAlertText(app: String, kind: SpywareKind, alsoWebsite: Boolean, queryName: String): Pair<String, String> {
++            val title = when {
++                kind == SpywareKind.WATCHWARE ->
++                    tr("An app contacted the servers of the monitoring app $app", "有 App 连接了远程监控软件「$app」的服务器")
++                alsoWebsite ->
++                    tr("This phone contacted the website or servers of the stalkerware $app", "这台手机连接了跟踪软件「$app」的网站或服务器")
++                else ->
++                    tr("An app contacted the servers of the stalkerware $app", "有 App 连接了跟踪软件「$app」的服务器")
++            }
++            val detail = when {
++                kind == SpywareKind.WATCHWARE -> tr(
++                    "Apps like this also have legitimate uses (parental control, remote work). If you did not install it yourself, take a look.",
++                    "这类软件也有正当用途(家长监控、远程办公)。如果不是你自己装的，请注意。"
++                )
++                alsoWebsite -> tr(
++                    "If you were only reading about it in a browser, you can ignore this.",
++                    "如果你只是在浏览器里查看它的网站，可以忽略。"
++                )
++                else -> tr(
++                    "Guardian cannot tell which app it was.",
++                    "Guardian 无法知道是哪个 App。"
++                )
++            }
++            val body = tr(
++                "Domain: $queryName. $detail Not blocked, so whoever installed it is not tipped off. Open Guardian to see how to handle this safely.",
++                "域名:$queryName。$detail 没有替你拦截，以免惊动安装它的人。打开 Guardian 查看怎么安全处理。"
++            )
++            return title to body
++        }
++
+         /** Exodus tracker DB, or null if it failed to load. Cheap; safe to call from the UI thread. */
+         fun trackerDb(): TrackerDb? = trackerDbCache
+ 
+diff --git a/guardian/app/src/main/kotlin/org/secureinchat/guardian/MainActivity.kt b/guardian/app/src/main/kotlin/org/secureinchat/guardian/MainActivity.kt
+index 73e767b..76844a9 100644
+--- a/guardian/app/src/main/kotlin/org/secureinchat/guardian/MainActivity.kt
++++ b/guardian/app/src/main/kotlin/org/secureinchat/guardian/MainActivity.kt
+@@ -56,6 +56,8 @@ class MainActivity : Activity() {
+     private lateinit var rulesView: TextView
+     private lateinit var logView: TextView
+     private lateinit var hintView: TextView
++    private lateinit var spywareStatusView: TextView
++    private lateinit var spywareAlertsView: TextView
+     private lateinit var privacyView: TextView
+     private lateinit var dotStatusView: TextView
+     // G18: the stored choice, kept here so the 1 Hz refresh does not read preferences every tick.
+@@ -208,6 +210,21 @@ class MainActivity : Activity() {
+         }
+         root.addView(hintView)
+ 
++        // G20: stalkerware server alerts. The list is shown only while there are alerts; the status line
++        // always says what is being watched and what a quiet result does not mean.
++        spywareAlertsView = TextView(this).apply {
++            textSize = 13f
++            setTextColor(0xFFCC0000.toInt())
++            visibility = View.GONE
++            setPadding(0, pad / 2, 0, 0)
++        }
++        root.addView(spywareAlertsView)
++        spywareStatusView = TextView(this).apply {
++            textSize = 11f
++            setPadding(0, pad / 4, 0, 0)
++        }
++        root.addView(spywareStatusView)
++
+         dotChoice = DnsSettingsStore.provider(this)
+         // G18: the text depends on the encrypted DNS choice; refreshUi keeps it current.
+         privacyView = TextView(this).apply {
+@@ -411,6 +428,19 @@ class MainActivity : Activity() {
+             }
+         })
+ 
++        // G20: attribution for the stalkerware indicators (CC-BY 4.0).
++        root.addView(TextView(this).apply {
++            textSize = 10f
++            setTextColor(0xFF0088CC.toInt())
++            text = txt("Stalkerware servers: Echap (CC-BY 4.0)", "跟踪软件服务器名单来自 Echap(CC-BY 4.0)")
++            setPadding(0, pad / 4, 0, 0)
++            setOnClickListener {
++                try {
++                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/AssoEchap/stalkerware-indicators")))
++                } catch (_: ActivityNotFoundException) {}
++            }
++        })
++
+         root.addView(View(this).apply { minimumHeight = small })
+ 
+         setContentView(ScrollView(this).apply { addView(root) })
+@@ -680,6 +710,7 @@ class MainActivity : Activity() {
+         }
+ 
+         renderHistory()
++        renderSpyware(running)
+ 
+         if (pdnsOn.isNotEmpty()) {
+             if (hintView.visibility != View.VISIBLE) hintView.visibility = View.VISIBLE
+@@ -1007,6 +1038,44 @@ class MainActivity : Activity() {
+         dotStatusView.setTextColor(if (red) 0xFFFF4444.toInt() else dotStatusDefaultColor)
+     }
+ 
++    // G20: never "you are safe": a quiet list only means none of the known servers was contacted.
++    private fun renderSpyware(running: Boolean) {
++        val n = GuardianVpnService.spywareListSize
++        setIfChanged(spywareStatusView, when {
++            !running -> txt(
++                "Stalkerware server alerts work while Guardian is on.",
++                "Guardian 开启时，会在有 App 连接已知跟踪软件服务器时提醒你。"
++            )
++            n == 0 -> txt(
++                "Stalkerware server list unavailable; no alerts can be raised.",
++                "跟踪软件服务器名单不可用，无法提醒。"
++            )
++            else -> txt(
++                "Watching for $n known stalkerware servers. No alert does not mean no stalkerware: the list is incomplete, and advanced spyware can avoid Guardian.",
++                "正在留意 $n 个已知跟踪软件服务器。没有提醒不代表没有跟踪软件：名单不完整，高级间谍软件也可能绕过 Guardian。"
++            )
++        })
++        val alerts = GuardianVpnService.recentSpywareAlerts()
++        if (alerts.isEmpty()) {
++            if (spywareAlertsView.visibility != View.GONE) spywareAlertsView.visibility = View.GONE
++            return
++        }
++        val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
++        val sb = StringBuilder(txt("Safety alerts", "安全提醒")).append('\n')
++        for (a in alerts) {
++            val (title, body) = GuardianVpnService.spywareAlertText(
++                a.indicator.app, a.indicator.kind, a.indicator.alsoWebsite, a.queryName
++            )
++            sb.append(fmt.format(Date(a.timeMs))).append("  ").append(title).append('\n').append(body).append("\n\n")
++        }
++        sb.append(txt(
++            "If you are worried about someone close to you: do not delete anything yet, save evidence (screenshots), and plan with someone you trust or a support organisation. If you fear a government or a professional attacker, treat this phone as exposed and use a different, clean device for sensitive things.",
++            "如果担心的是身边的人：先不要删除任何东西，先截图保存证据，再和可信的人或求助机构一起规划。如果担心的是政府或专业攻击者：把这台手机当作已经暴露，敏感的事改用另一台干净的设备。"
++        ))
++        if (spywareAlertsView.visibility != View.VISIBLE) spywareAlertsView.visibility = View.VISIBLE
++        setIfChanged(spywareAlertsView, sb.toString())
++    }
++
+     // The screen refreshes every second; setting identical text still re-lays out the view, which keeps
+     // the window from ever being idle (wasted work, and UI tests cannot read the screen).
+     private fun setIfChanged(view: TextView, value: CharSequence) {
+diff --git a/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/SpywareDb.kt b/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/SpywareDb.kt
+new file mode 100644
+index 0000000..5e37aed
+--- /dev/null
++++ b/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/SpywareDb.kt
+@@ -0,0 +1,117 @@
++// SPDX-License-Identifier: GPL-3.0-or-later
++package org.secureinchat.guardian.dns
++
++/**
++ * G20: known stalkerware command-and-control (C2) domains, from Echap's stalkerware-indicators
++ * (CC-BY 4.0; see app/src/main/assets/stalkerware-echap.tsv and tools/update_stalkerware.py).
++ *
++ * A hit means some app on this phone looked up a server that a known stalkerware product uses to send
++ * out what it collected. It does not say which app (on Android 10+ every lookup reaches Guardian from
++ * the system DNS service), and no hit does not mean the phone is clean: the list is incomplete, and
++ * spyware with root access can avoid Guardian altogether. The UI says both.
++ */
++enum class SpywareKind { STALKERWARE, WATCHWARE }
++
++data class SpywareIndicator(
++    /** The listed domain that matched (the query may be a subdomain of it). */
++    val domain: String,
++    val app: String,
++    val kind: SpywareKind,
++    /** Echap also lists this domain as the vendor's website: a hit may just be someone reading it. */
++    val alsoWebsite: Boolean
++)
++
++class SpywareDb private constructor(private val byDomain: Map<String, SpywareIndicator>) {
++
++    val size: Int get() = byDomain.size
++
++    /**
++     * The indicator for [name] itself or its closest listed parent domain, or null. Exact labels only:
++     * `x.copy9.com` matches a listed `copy9.com`, `notcopy9.com` does not. Cost is one map lookup per
++     * label, cheap enough to run on every query.
++     */
++    fun match(name: String): SpywareIndicator? {
++        var n = name.trim().trimEnd('.').lowercase()
++        while (n.isNotEmpty()) {
++            byDomain[n]?.let { return it }
++            val dot = n.indexOf('.')
++            if (dot < 0) return null
++            n = n.substring(dot + 1)
++        }
++        return null
++    }
++
++    companion object {
++        /**
++         * Shared hosting and platform domains. If one of these were ever listed on its own, every app
++         * using the platform would raise an alert, so such rows are dropped at load time (the update
++         * tool's data has none; SpywareDbTest checks).
++         */
++        val SHARED_PLATFORMS: Set<String> = setOf(
++            "appspot.com", "firebaseio.com", "firebaseapp.com", "web.app", "googleapis.com", "google.com",
++            "amazonaws.com", "cloudfront.net", "azurewebsites.net", "herokuapp.com", "github.io",
++            "blogspot.com", "wordpress.com", "000webhostapp.com", "netlify.app", "vercel.app",
++            "duckdns.org", "no-ip.org", "ddns.net", "ngrok.io"
++        )
++
++        /** Parses the bundled TSV. Bad rows, comments and shared-platform rows are skipped, never thrown. */
++        fun parse(tsv: String): SpywareDb {
++            val map = HashMap<String, SpywareIndicator>(2048)
++            for (raw in tsv.lineSequence()) {
++                if (raw.isBlank() || raw.startsWith("#")) continue
++                val p = raw.split('\t')
++                if (p.size < 4) continue
++                val domain = p[0].trim().trimEnd('.').lowercase()
++                if (domain.isEmpty() || !domain.contains('.') || domain in SHARED_PLATFORMS) continue
++                val kind = when (p[2].trim()) {
++                    "stalkerware" -> SpywareKind.STALKERWARE
++                    "watchware" -> SpywareKind.WATCHWARE
++                    else -> continue
++                }
++                val app = p[1].trim()
++                if (app.isEmpty()) continue
++                map.putIfAbsent(domain, SpywareIndicator(domain, app, kind, p[3].trim() == "1"))
++            }
++            return SpywareDb(map)
++        }
++    }
++}
++
++/**
++ * G20: turns matches into alerts without flooding the user. Each listed domain alerts at most once per
++ * [quietMs] (a stalkerware app may phone home every few minutes); different domains alert separately.
++ * Memory only: nothing about what was looked up is written to disk.
++ */
++class SpywareWatch(
++    private val db: SpywareDb,
++    private val quietMs: Long = 6 * 60 * 60 * 1000L,
++    private val clock: () -> Long = System::currentTimeMillis
++) {
++    data class Alert(val queryName: String, val indicator: SpywareIndicator, val timeMs: Long)
++
++    private val lastAlert = HashMap<String, Long>()
++    private val recentAlerts = ArrayDeque<Alert>()
++    private val lock = Any()
++
++    /** Returns an alert to show for this query, or null (no match, or this domain alerted recently). */
++    fun check(queryName: String): Alert? {
++        val hit = db.match(queryName) ?: return null
++        val now = clock()
++        synchronized(lock) {
++            val last = lastAlert[hit.domain]
++            if (last != null && now - last < quietMs) return null
++            lastAlert[hit.domain] = now
++            val alert = Alert(queryName.trim().trimEnd('.').lowercase(), hit, now)
++            recentAlerts.addFirst(alert)
++            while (recentAlerts.size > MAX_RECENT) recentAlerts.removeLast()
++            return alert
++        }
++    }
++
++    /** Newest first; for the in-app list. */
++    fun recent(): List<Alert> = synchronized(lock) { recentAlerts.toList() }
++
++    companion object {
++        const val MAX_RECENT = 20
++    }
++}
+diff --git a/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/SpywareDbTest.kt b/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/SpywareDbTest.kt
+new file mode 100644
+index 0000000..16a4272
+--- /dev/null
++++ b/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/SpywareDbTest.kt
+@@ -0,0 +1,116 @@
++// SPDX-License-Identifier: GPL-3.0-or-later
++package org.secureinchat.guardian.dns
++
++import java.nio.file.Files
++import java.nio.file.Paths
++
++private var sn = 0
++private fun st(name: String, block: () -> Unit) {
++    try { block(); sn++ } catch (e: Throwable) {
++        println("FAIL $name: ${e.message}")
++        throw e
++    }
++}
++private fun seq(actual: Any?, expected: Any?) { check(actual == expected) { "expected $expected, got $actual" } }
++
++private const val SAMPLE = "# comment\n" +
++    "copy9.com\tCopy9\tstalkerware\t1\n" +
++    "12d60.firebaseio.com\tTrackplus\tstalkerware\t0\n" +
++    "mycloud.wisemo.com\tWiseMo\twatchware\t0\n"
++
++fun main() {
++    st("exact and subdomain match, label boundaries respected") {
++        val db = SpywareDb.parse(SAMPLE)
++        seq(db.size, 3)
++        seq(db.match("copy9.com")?.app, "Copy9")
++        seq(db.match("api.v2.copy9.com")?.app, "Copy9")
++        seq(db.match("COPY9.com.")?.app, "Copy9")          // case and trailing dot
++        seq(db.match("notcopy9.com"), null)                 // not a label boundary
++        seq(db.match("copy9.com.evil.net"), null)
++        seq(db.match("com"), null)
++    }
++
++    st("a listed project subdomain does not flag the whole platform") {
++        val db = SpywareDb.parse(SAMPLE)
++        seq(db.match("12d60.firebaseio.com")?.app, "Trackplus")
++        seq(db.match("myapp-123.firebaseio.com"), null)
++        seq(db.match("firebaseio.com"), null)
++    }
++
++    st("kind and website flag are carried") {
++        val db = SpywareDb.parse(SAMPLE)
++        seq(db.match("mycloud.wisemo.com")?.kind, SpywareKind.WATCHWARE)
++        seq(db.match("copy9.com")?.alsoWebsite, true)
++        seq(db.match("12d60.firebaseio.com")?.alsoWebsite, false)
++    }
++
++    st("bad rows and shared-platform rows are skipped, never thrown") {
++        val db = SpywareDb.parse(
++            "firebaseio.com\tX\tstalkerware\t0\n" +   // whole platform: must be dropped
++            "amazonaws.com\tX\tstalkerware\t0\n" +
++            "nodot\tX\tstalkerware\t0\n" +
++            "ok.example\tOk\tunknownkind\t0\n" +
++            "short\trow\n" +
++            "\tEmpty\tstalkerware\t0\n" +
++            "good.example\tGood\tstalkerware\t0\n"
++        )
++        seq(db.size, 1)
++        seq(db.match("x.amazonaws.com"), null)
++        seq(db.match("good.example")?.app, "Good")
++    }
++
++    st("watch: one alert per domain per quiet period, separate domains separate") {
++        var now = 1_000_000L
++        val w = SpywareWatch(SpywareDb.parse(SAMPLE), quietMs = 60_000L, clock = { now })
++        check(w.check("a.copy9.com") != null)
++        seq(w.check("b.copy9.com"), null)          // same listed domain, still quiet
++        check(w.check("12d60.firebaseio.com") != null)
++        seq(w.check("example.org"), null)
++        now += 60_000L
++        check(w.check("copy9.com") != null)        // quiet period over
++        seq(w.recent().map { it.indicator.app }, listOf("Copy9", "Trackplus", "Copy9"))
++    }
++
++    st("watch keeps only the most recent alerts") {
++        var now = 0L
++        val rows = (1..30).joinToString("") { "d$it.example\tApp$it\tstalkerware\t0\n" }
++        val w = SpywareWatch(SpywareDb.parse(rows), clock = { now++ })
++        for (i in 1..30) check(w.check("d$i.example") != null)
++        seq(w.recent().size, SpywareWatch.MAX_RECENT)
++        seq(w.recent().first().indicator.app, "App30")
++    }
++
++    st("watch is safe under concurrent queries: exactly one alert for a burst") {
++        // Many short rounds, all threads released at once, so an unlocked check-then-set shows up as a
++        // round with two alerts.
++        val db = SpywareDb.parse(SAMPLE)
++        var badRounds = 0
++        repeat(300) {
++            val w = SpywareWatch(db)
++            val start = java.util.concurrent.CountDownLatch(1)
++            val alerts = java.util.concurrent.atomic.AtomicInteger()
++            val ts = (0 until 8).map { Thread { start.await(); repeat(20) { if (w.check("x.copy9.com") != null) alerts.incrementAndGet() } } }
++            ts.forEach { it.start() }; start.countDown(); ts.forEach { it.join() }
++            if (alerts.get() != 1) badRounds++
++        }
++        seq(badRounds, 0)
++    }
++
++    st("real Echap data loads and contains no shared-platform domain") {
++        val path = Paths.get("app/src/main/assets/stalkerware-echap.tsv")
++        val text = Files.readString(path)
++        check(text.lineSequence().first().contains("CC-BY 4.0")) { "attribution header missing" }
++        val raw = text.lineSequence().filter { it.isNotBlank() && !it.startsWith("#") }.map { it.split('\t')[0] }.toList()
++        val shared = raw.filter { it in SpywareDb.SHARED_PLATFORMS }
++        check(shared.isEmpty()) { "shared platforms listed: $shared" }
++        val db = SpywareDb.parse(text)
++        check(db.size >= 500) { "only ${db.size} domains" }
++        seq(db.size, raw.size)
++        // Ordinary names must not match.
++        for (n in listOf("google.com", "www.wikipedia.org", "graph.facebook.com", "firebaseio.com", "example.com"))
++            seq(db.match(n), null)
++        println("real list: ${db.size} domains")
++    }
++
++    println("SpywareDbTest: $sn passed")
++}
+diff --git a/guardian/tests/emulator_flow.py b/guardian/tests/emulator_flow.py
+index 40f00ba..e239acf 100644
+--- a/guardian/tests/emulator_flow.py
++++ b/guardian/tests/emulator_flow.py
+@@ -352,6 +352,34 @@ def main():
+     snap("block-and-allow")
+     print(f"ok: {ALLOWED} forwarded and answered")
+ 
++    # 4a2. G20 stalkerware server alert. Look up a subdomain of a listed C2 domain (a fresh name, so netd
++    #      cannot answer from cache). It does not need to resolve: the lookup reaching Guardian is enough.
++    #      Expect: a notification on the safety-alert channel, and the alert in the app. Read the test
++    #      domain from the bundled list, so the test follows data updates.
++    spy_rows = [l.split("\t") for l in (ROOT / "app/src/main/assets/stalkerware-echap.tsv").read_text().splitlines()
++                if l and not l.startswith("#")]
++    spy_domain, spy_app = next((r[0], r[1]) for r in spy_rows if r[2] == "stalkerware" and r[3] == "0")
++    spy_probe = f"g20check-{int(time.time())}.{spy_domain}"
++    try:
++        sh(f"ping -c 1 -W 2 {spy_probe}", check=False, timeout=30)
++    except subprocess.TimeoutExpired:
++        pass
++    deadline = time.time() + 30
++    notif = ""
++    while time.time() < deadline:
++        notif = sh("dumpsys notification --noredact", check=False, timeout=60)
++        if "guardian_safety_alerts" in notif and spy_app in notif:
++            break
++        time.sleep(2)
++    else:
++        fail(f"no safety-alert notification for {spy_probe} ({spy_app})")
++    print(f"ok: stalkerware alert notification for {spy_app}")
++    alert_title = f"An app contacted the servers of the stalkerware {spy_app}"
++    find_anywhere(lambda s: alert_title in s, f"app does not show '{alert_title}'")
++    snap("stalkerware-alert")
++    print("ok: stalkerware alert shown in the app")
++    scroll_top()
++
+     # 4b. "Blocked most often" list and the user's allowlist (G3b): allow doubleclick.net from its row,
+     #     check a not-yet-cached subdomain now resolves for real, then remove the rule again.
+     # Match the list row itself ("doubleclick.net (2)"), not the log line "doubleclick.net (type 1)".
+diff --git a/guardian/tools/update_stalkerware.py b/guardian/tools/update_stalkerware.py
+new file mode 100644
+index 0000000..4c3db16
+--- /dev/null
++++ b/guardian/tools/update_stalkerware.py
+@@ -0,0 +1,66 @@
++#!/usr/bin/env python3
++# SPDX-License-Identifier: GPL-3.0-or-later
++"""Refresh Guardian's bundled stalkerware server list (G20).
++
++Source: Echap's stalkerware indicators, https://github.com/AssoEchap/stalkerware-indicators
++License: CC-BY 4.0 (attribution required; credited in the app and in the asset header).
++
++Only the C2 (command-and-control) domains are used, not the vendors' marketing websites: a journalist
++or a worried person reading about a stalkerware product must not be told their phone talks to its
++servers. A C2 domain that Echap also lists as a website is kept but marked "web", and the app words that
++alert more cautiously.
++
++Writes guardian/app/src/main/assets/stalkerware-echap.tsv:
++  domain <TAB> app name <TAB> kind (stalkerware|watchware) <TAB> also_website (0|1)
++Lines starting with '#' are comments. The app never downloads this file; it is committed so builds are
++reproducible, and the header records the exact source commit.
++
++Needs PyYAML on the maintainer's machine (pip install pyyaml). This is a tool dependency only; the app
++has none.
++"""
++import pathlib, re, subprocess, sys, urllib.request
++
++try:
++    import yaml
++except ImportError:
++    sys.exit("pip install pyyaml (maintainer tool only)")
++
++REPO = "AssoEchap/stalkerware-indicators"
++OUT = pathlib.Path(__file__).resolve().parent.parent / "app/src/main/assets/stalkerware-echap.tsv"
++DOMAIN = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,62}$")
++
++
++def get(url):
++    return urllib.request.urlopen(url, timeout=60).read().decode("utf-8")
++
++
++# Pin the exact commit (git, not the GitHub API, so it works without an API token or rate limit).
++sha = subprocess.run(["git", "ls-remote", f"https://github.com/{REPO}", "refs/heads/master"],
++                     capture_output=True, text=True, check=True, timeout=60).stdout.split()[0]
++rows = {}
++skipped = 0
++for name, kind in (("ioc.yaml", "stalkerware"), ("watchware.yaml", "watchware")):
++    apps = yaml.safe_load(get(f"https://raw.githubusercontent.com/{REPO}/{sha}/{name}"))
++    for app in apps:
++        websites = {w.strip().lower() for w in (app.get("websites") or [])}
++        for d in ((app.get("c2") or {}).get("domains") or []):
++            d = d.strip().lower().rstrip(".")
++            if not DOMAIN.match(d):
++                skipped += 1
++                continue
++            # First listing wins; a domain in both files stays stalkerware (the stronger label).
++            if d not in rows:
++                rows[d] = (re.sub(r"[\t\r\n]+", " ", app["name"]).strip(), kind, "1" if d in websites else "0")
++
++if len(rows) < 500:
++    sys.exit(f"only {len(rows)} domains; refusing to bundle a truncated file")
++
++lines = [
++    "# Stalkerware C2 domains: Echap stalkerware-indicators, CC-BY 4.0, https://github.com/" + REPO,
++    f"# Source commit: {sha}",
++    "# domain\tapp\tkind\talso_website",
++] + ["\t".join((d,) + rows[d]) for d in sorted(rows)]
++OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
++kinds = {k: sum(1 for r in rows.values() if r[1] == k) for k in ("stalkerware", "watchware")}
++print(f"{OUT.name}: {len(rows)} domains ({kinds}), {sum(r[2] == '1' for r in rows.values())} also websites, "
++      f"{skipped} malformed skipped, commit {sha[:12]}")
+-- 
+2.43.0
+

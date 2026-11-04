@@ -1,0 +1,227 @@
+From 9e145e212c931ea4d7b3ee1f457d80b54675796e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 3 Nov 2026 14:14:25 +0000
+Subject: [PATCH 1/3] Guardian G18: bound DoT connect time; emulator DoT step
+ checks reachability
+
+Run 41646471550 (feature/G18b) and 41644698809 failed at emulator step
+4g: with Quad9 chosen a lookup got no answer for over 30 s. DotClient
+could spend addresses x connect timeout per attempt and then sweep all
+addresses again: about 32 s against a provider whose packets are
+dropped, far past the system resolver's patience.
+
+DotClient: connect timeout 3 s, a 5 s total connect budget per query,
+and the retry only for a reused connection the resolver had closed, not
+after a fresh connect already failed. DotClientTest +2 (blackholed
+provider gives up within the budget with at most 3 attempts; a closed
+reused connection is retried once). Mutations (no budget, re-sweep
+after a fresh failure) each fail the new test.
+
+Emulator flow: resolve() treats an adb timeout as "no answer" instead
+of crashing the flow; step 4g first checks from the CI host that
+Quad9:853 accepts TCP (address read from DotProviders.kt) and prints
+UNTESTED and skips if not; on failure it prints the encrypted DNS
+status line so the cause is visible.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Dphx7H7WfpCsybM6HswWFN
+---
+ .../secureinchat/guardian/dns/DotClient.kt    | 23 ++++++--
+ .../guardian/dns/DotClientTest.kt             | 32 +++++++++++
+ guardian/tests/emulator_flow.py               | 57 +++++++++++++------
+ 3 files changed, 89 insertions(+), 23 deletions(-)
+
+diff --git a/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/DotClient.kt b/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/DotClient.kt
+index e6da335..4444dca 100644
+--- a/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/DotClient.kt
++++ b/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/DotClient.kt
+@@ -28,8 +28,14 @@ class DotClient(
+     private val addresses: List<InetSocketAddress>,
+     private val openSocket: () -> Socket,
+     private val wrapTls: (Socket, String) -> Socket,
+-    private val connectTimeoutMs: Int = 4000,
+-    private val readTimeoutMs: Int = 4000
++    private val connectTimeoutMs: Int = 3000,
++    private val readTimeoutMs: Int = 4000,
++    /**
++     * Total time one query may spend opening a connection across all addresses. Without it, a provider
++     * whose packets are dropped costs (addresses × connect timeout) per lookup, and the system resolver
++     * gives up long before Guardian answers (seen in the emulator: a lookup hung for over 30 s).
++     */
++    private val connectBudgetMs: Long = 5000
+ ) {
+     private val lock = Any()
+     private var socket: Socket? = null
+@@ -46,6 +52,10 @@ class DotClient(
+         val id = ((payload[0].toInt() and 0xFF) shl 8) or (payload[1].toInt() and 0xFF)
+         synchronized(lock) {
+             repeat(2) { attempt ->
++                // The retry is for a reused connection the resolver closed in the meantime. When this
++                // attempt had to open a fresh connection and still failed, a second sweep only doubles
++                // the wait.
++                val reused = socket != null
+                 try {
+                     if (socket == null) connect()
+                     val out = output!!
+@@ -65,10 +75,10 @@ class DotClient(
+                     throw IOException("no answer with the query id")
+                 } catch (_: IOException) {
+                     closeLocked()
+-                    if (attempt == 1) return null
++                    if (attempt == 1 || !reused) return null
+                 } catch (_: RuntimeException) {
+                     closeLocked()
+-                    if (attempt == 1) return null
++                    if (attempt == 1 || !reused) return null
+                 }
+             }
+             return null
+@@ -79,11 +89,14 @@ class DotClient(
+ 
+     private fun connect() {
+         var last: Exception? = null
++        val deadline = System.currentTimeMillis() + connectBudgetMs
+         for (addr in addresses) {
++            val remaining = deadline - System.currentTimeMillis()
++            if (remaining <= 0) break
+             var raw: Socket? = null
+             try {
+                 raw = openSocket()
+-                raw.connect(addr, connectTimeoutMs)
++                raw.connect(addr, minOf(connectTimeoutMs.toLong(), remaining).toInt().coerceAtLeast(1))
+                 raw.soTimeout = readTimeoutMs
+                 val tls = wrapTls(raw, hostname)
+                 tls.soTimeout = readTimeoutMs
+diff --git a/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/DotClientTest.kt b/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/DotClientTest.kt
+index afd8fbf..35df0ff 100644
+--- a/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/DotClientTest.kt
++++ b/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/DotClientTest.kt
+@@ -130,5 +130,37 @@ fun main() {
+         c.close()
+     }
+ 
++    dtt("blackholed provider: one lookup gives up within the connect budget, no second sweep") {
++        // Every address drops packets: connect waits out its timeout. 4 addresses x 1 s with a 2.5 s
++        // budget must stop after the budget, not try all four twice (that was ~32 s with the defaults).
++        val attempts = AtomicInteger()
++        class BlackholeSocket : Socket() {
++            override fun connect(endpoint: java.net.SocketAddress?, timeout: Int) {
++                attempts.incrementAndGet()
++                Thread.sleep(timeout.toLong())
++                throw java.net.SocketTimeoutException("blackholed")
++            }
++        }
++        val addrs = (1..4).map { InetSocketAddress(InetAddress.getLoopbackAddress(), 1000 + it) }
++        val c = DotClient("dns.example", addrs, { BlackholeSocket() }, { s, _ -> s },
++            connectTimeoutMs = 1000, readTimeoutMs = 500, connectBudgetMs = 2500)
++        val t0 = System.currentTimeMillis()
++        deq2(c.query(query(7)), null)
++        val took = System.currentTimeMillis() - t0
++        check(took < 3500) { "took $took ms" }
++        check(attempts.get() <= 3) { "${attempts.get()} connect attempts" }
++    }
++
++    dtt("a reused connection that the resolver closed is retried once on a fresh one") {
++        // First connection answers once and then closes; the next query must reconnect and succeed.
++        val r = FakeResolver { q, out, n -> out.send(answerFor(q)); n != 1 }
++        val c = client(r.addr)
++        check(c.query(query(8)) != null)
++        Thread.sleep(100)
++        check(c.query(query(9)) != null) { "no retry on a fresh connection" }
++        deq2(c.connectionsOpened, 2)
++        c.close()
++    }
++
+     println("DotClientTest: $dn passed")
+ }
+diff --git a/guardian/tests/emulator_flow.py b/guardian/tests/emulator_flow.py
+index 09d65ac..40f00ba 100644
+--- a/guardian/tests/emulator_flow.py
++++ b/guardian/tests/emulator_flow.py
+@@ -16,13 +16,14 @@
+ 
+ Usage: emulator_flow.py <guardian.apk>. Screens, UI dumps and logcat go to /tmp/guardian-flow.
+ """
+-import pathlib, re, subprocess, sys, time
++import pathlib, re, socket, subprocess, sys, time
+ import xml.etree.ElementTree as ET
+ 
+ PKG = "org.secureinchat.guardian"
+ BLOCKED = "doubleclick.net"   # from app/src/main/assets/blocklist-extra.txt
+ BLOCKED_HAGEZI = "bat.bing.com"   # from the bundled HaGeZi LIGHT snapshot, not in the extra list
+ ALLOWED = "example.com"
++ROOT = pathlib.Path(__file__).resolve().parent.parent   # guardian/
+ OUT = pathlib.Path("/tmp/guardian-flow")
+ OUT.mkdir(parents=True, exist_ok=True)
+ step_no = 0
+@@ -254,7 +255,12 @@ def resolve(name, tries=6):
+     discovered asynchronously after the VPN starts, and netd caches negative answers briefly."""
+     last = ""
+     for i in range(tries):
+-        last = sh(f"ping -c 1 -W 2 {name}", check=False, timeout=30)
++        try:
++            last = sh(f"ping -c 1 -W 2 {name}", check=False, timeout=30)
++        except subprocess.TimeoutExpired:
++            # The lookup itself hung (Guardian did not answer in time): a result, not a crash of the flow.
++            last = f"ping {name}: no answer within 30 s"
++            continue
+         m = re.search(r"PING \S+ \(([0-9a-fA-F:.]+)\)", last)
+         if m:
+             return m.group(1), last
+@@ -568,22 +574,37 @@ def main():
+                 return bnds
+         fail(f"'{label_prefix}' is not a radio button", nodes)
+ 
+-    tap(radio("Quad9:"))
+-    time.sleep(2)
+-    dot_probe = "www.wikipedia.org"
+-    addr, out = resolve(dot_probe)
+-    print(f"guardian with Quad9 DoT: {dot_probe} -> {addr}")
+-    if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
+-        fail(f"{dot_probe} should resolve over DoT to Quad9, got {addr}: {out}", dump())
+-    find_anywhere(lambda s: "Encrypted DNS: Quad9, connected" in s,
+-                  "encrypted DNS status does not say 'Quad9, connected'")
+-    snap("dot-quad9")
+-    print("ok: Quad9 DoT answers and the status says connected")
+-    tap(radio("Off (default)"))
+-    find_anywhere(lambda s: "Encrypted DNS: off" in s, "encrypted DNS status does not return to off")
+-    scroll_top()
+-    nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after turning encrypted DNS off")
+-    print("ok: encrypted DNS back to off")
++    # The emulator's traffic leaves through this host, so if the host cannot open TCP to Quad9's DoT
++    # port, the step cannot pass for reasons that have nothing to do with Guardian. Say so instead of
++    # failing (and instead of pretending it passed). The address comes from DotProviders.kt.
++    providers = (ROOT / "core/src/main/kotlin/org/secureinchat/guardian/dns/DotProviders.kt").read_text()
++    quad9_ip = re.search(r'id = "quad9".*?addresses = listOf\("([0-9.]+)"', providers, re.S).group(1)
++    try:
++        socket.create_connection((quad9_ip, 853), timeout=5).close()
++        dot_reachable = True
++    except OSError as e:
++        dot_reachable = False
++        print(f"UNTESTED: encrypted DNS step skipped, this CI host cannot reach {quad9_ip}:853 ({e})")
++    if dot_reachable:
++        tap(radio("Quad9:"))
++        time.sleep(2)
++        dot_probe = "www.wikipedia.org"
++        addr, out = resolve(dot_probe, tries=4)
++        print(f"guardian with Quad9 DoT: {dot_probe} -> {addr}")
++        if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
++            nodes = find_anywhere(lambda s: "Encrypted DNS:" in s, "no encrypted DNS status line", timeout=20)
++            status = [l for l in joined(nodes).split("\n") if l.startswith("Encrypted DNS:")]
++            fail(f"{dot_probe} should resolve over DoT to Quad9, got {addr} ({out.strip()[-200:]}); "
++                 f"status: {status}", nodes)
++        find_anywhere(lambda s: "Encrypted DNS: Quad9, connected" in s,
++                      "encrypted DNS status does not say 'Quad9, connected'")
++        snap("dot-quad9")
++        print("ok: Quad9 DoT answers and the status says connected")
++        tap(radio("Off (default)"))
++        find_anywhere(lambda s: "Encrypted DNS: off" in s, "encrypted DNS status does not return to off")
++        scroll_top()
++        nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after turning encrypted DNS off")
++        print("ok: encrypted DNS back to off")
+ 
+     # 5. Stop from the app
+     b = button(nodes, "Stop")
+-- 
+2.43.0
+
