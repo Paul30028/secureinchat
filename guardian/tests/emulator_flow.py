@@ -5,7 +5,7 @@
   1. Install the APK, allow the VPN consent with `appops set ... ACTIVATE_VPN allow` (stands in for the
      user's tap on the system consent dialog), grant POST_NOTIFICATIONS on API 33+, turn Private DNS off
      (with it on, Android may send DNS over TLS and bypass a local DNS VPN; the app shows a hint for that).
-  2. Tap "Start": the status must read "Status: Running" and the service must be a foreground service.
+  2. Dismiss the first-run introduction, tap "Turn on" on the Protect tab: it must read "Protection is on" and the service must be a foreground service. (U2: four tabs; each step first taps the tab it needs.)
   3. `ping` from adb shell resolves a listed tracker domain: it must resolve to 0.0.0.0 (Guardian's
      NULL_IP answer) and the app's log must show "BLOCK <domain>".
   4. `ping` resolves example.com: it must get a real address (forwarded to the network's own resolver)
@@ -117,7 +117,8 @@ def wait_block_logged(name):
     push a line out before we look (seen on API 34). Blocking itself is proven by the DNS answer;
     this checks that blocks are logged. If [name]'s line is gone, query a fresh subdomain (netd would
     answer a repeat of [name] from its cache, so it would never reach Guardian) and look for that."""
-    nodes = ui_has(lambda s: f"BLOCK {name}" in s, 15)
+    show_live_log()
+    nodes = find_quiet(lambda s: f"BLOCK {name}" in s, 15)
     if nodes:
         return nodes
     for i in range(3):
@@ -125,7 +126,7 @@ def wait_block_logged(name):
         addr, out = resolve(probe)
         if addr not in ("0.0.0.0", "127.0.0.1"):
             fail(f"{probe} should be blocked like {name}, got {addr}: {out}")
-        nodes = ui_has(lambda s: f"BLOCK {probe}" in s, 10)
+        nodes = find_quiet(lambda s: f"BLOCK {probe}" in s, 10)
         if nodes:
             print(f"note: {name} line had scrolled out of the log; {probe} was logged")
             return nodes
@@ -188,8 +189,9 @@ def scroll_top():
 
 
 def button_on_row(nodes, label, row_text_prefix):
-    """The button labelled [label] whose vertical centre lies inside the text node starting with
-    row_text_prefix (each domain row is a horizontal layout: text, then its button)."""
+    """The button labelled [label] on the row whose text starts with row_text_prefix. Each row is a
+    horizontal layout (texts, then the button, centred vertically), so the button's vertical span
+    overlaps the row's first text line; rows do not overlap each other."""
     for rt, _, row, _ in nodes:
         if not (rt.startswith(row_text_prefix) and row):
             continue
@@ -197,9 +199,55 @@ def button_on_row(nodes, label, row_text_prefix):
         for t, _, b, c in nodes:
             if c.endswith("Button") and t.strip().lower() == label.lower() and b:
                 _, y1, _, y2 = map(int, re.findall(r"\d+", b))
-                if y1 <= (ry1 + ry2) // 2 <= y2:
+                if y1 <= ry2 and y2 >= ry1:
                     return b
     return None
+
+
+# U2: the app has four tabs (bottom bar). Each bar cell's content-desc starts with the tab name.
+STATUS_ON = "Protection is on"
+STATUS_OFF = "Protection is off"
+STATUS_PAUSED = "Paused until"
+
+
+def goto(tab):
+    nodes = []
+    for _ in range(5):
+        nodes = dump()
+        cell = next((b for t, d, b, c in nodes if d.startswith(tab) and b), None)
+        if cell:
+            tap(cell)
+            time.sleep(1)
+            scroll_top()
+            return dump()
+        time.sleep(1)
+    fail(f"no '{tab}' tab in the bottom bar", nodes)
+
+
+def find_quiet(pred, timeout=15, swipes=6):
+    """Like find_anywhere, but returns None instead of failing."""
+    end = time.time() + timeout
+    while time.time() < end:
+        scroll_top()
+        for _ in range(swipes):
+            nodes = dump()
+            if pred(joined(nodes)):
+                return nodes
+            swipe_up()
+            time.sleep(1)
+    return None
+
+
+def show_live_log():
+    """The live log in Activity starts folded (U2); open it once, it stays open for the session."""
+    goto("Activity")
+    nodes = find_quiet(lambda s: "Show live log" in s or "Hide live log" in s, timeout=20)
+    if nodes is None:
+        fail("no live log toggle in Activity", dump())
+    b = button(nodes, "Show live log")
+    if b:
+        tap(b)
+        time.sleep(1)
 
 
 def type_into_field(desc, text, tries=3):
@@ -271,19 +319,29 @@ def resolve(name, tries=6):
 def launch():
     sh(f"am start -W -n {PKG}/.MainActivity")
     time.sleep(2)
+    # U3: the first launch shows a one-screen introduction.
+    nodes = dump()
+    b = button(nodes, "Get started")
+    if b:
+        if "Welcome to Guardian" not in joined(nodes) or "What it does not do" not in joined(nodes):
+            fail("introduction screen incomplete", nodes)
+        snap("intro")
+        tap(b)
+        time.sleep(1)
+        print("ok: introduction shown on first launch")
 
 
 def start_from_app():
     # The status line is at the top; earlier steps (G13 level switch) may have left the page scrolled down.
-    scroll_top()
-    nodes = wait_ui(lambda s: "Status: " in s, "main screen did not appear")
-    b = button(nodes, "Start")
+    goto("Protect")
+    nodes = wait_ui(lambda s: "Protection is" in s, "main screen did not appear")
+    b = button(nodes, "Turn on")
     if not b:
-        fail("no Start button", nodes)
+        fail("no Turn on button", nodes)
     tap(b)
     time.sleep(1)
     scroll_top()
-    nodes = wait_ui(lambda s: "Status: Running" in s, "status did not change to Running")
+    nodes = wait_ui(lambda s: STATUS_ON in s, "status did not change to on")
     end = time.time() + 15
     while time.time() < end and not service_running():
         time.sleep(1)
@@ -354,7 +412,8 @@ def main():
     # The real address already proves Guardian forwarded the query (it is the only DNS path while the VPN is
     # up). The on-screen log keeps only the last 10 lines and the emulator's own Google traffic can push the
     # line out within seconds, so the log line is a soft check; the answered counter is the hard one.
-    nodes = wait_ui(lambda s: re.search(r"Answered: [1-9]", s), "no answered query counted")
+    show_live_log()
+    nodes = find_anywhere(lambda s: re.search(r"Answered: [1-9]", s), "no answered query counted")
     if f"ALLOW {ALLOWED}" not in joined(nodes):
         print(f"note: ALLOW {ALLOWED} already scrolled out of the 10-line log (background traffic)")
     snap("block-and-allow")
@@ -383,10 +442,14 @@ def main():
         fail(f"no safety-alert notification for {spy_probe} ({spy_app})")
     print(f"ok: stalkerware alert notification for {spy_app}")
     alert_title = f"An app contacted the servers of the stalkerware {spy_app}"
+    goto("Check")
     find_anywhere(lambda s: alert_title in s, f"app does not show '{alert_title}'")
     snap("stalkerware-alert")
     print("ok: stalkerware alert shown in the app")
-    scroll_top()
+    goto("Protect")
+    wait_ui(lambda s: "1 safety alert" in s, "Protect tab does not show the safety alert card")
+    print("ok: Protect tab shows the safety alert card")
+    goto("Activity")
 
     # 4b. "Blocked most often" list and the user's allowlist (G3b): allow doubleclick.net from its row,
     #     check a not-yet-cached subdomain now resolves for real, then remove the rule again.
@@ -415,6 +478,7 @@ def main():
         fail(f"no Allow button on the {BLOCKED} row", nodes)
     tap(b)
     allowed_row = re.compile(rf"^{re.escape(BLOCKED)}$", re.M)
+    goto("Settings")
     nodes = scroll_find(lambda s: allowed_row.search(s), f"'Allowed by you' does not list {BLOCKED}")
     snap("allowed-by-user")
     probe = "www." + BLOCKED
@@ -428,37 +492,34 @@ def main():
         fail(f"no Remove button on the {BLOCKED} allowlist row", nodes)
     tap(b)
     scroll_top()
-    wait_ui(lambda s: "0 allowed by you" in s, "rules line does not return to 0 allowed by you")
+    scroll_find(lambda s: "0 allowed by you" in s, "rules line does not return to 0 allowed by you")
     probe2 = "googleads.g." + BLOCKED
     addr, out = resolve(probe2)
     print(f"guardian after Remove: {probe2} -> {addr}")
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{probe2} should be blocked again after removing the rule, got {addr}: {out}")
-    scroll_top()
-    nodes = dump()
     print("ok: 'Blocked most often', Allow and Remove work")
 
     # 4c. Pause 5 minutes (G6): a blocked name resolves for real while paused, and is blocked again after Resume.
-    nodes = dump()
+    nodes = goto("Protect")
     b = button(nodes, "Pause 5 min")
     if not b:
         fail("no 'Pause 5 min' button while running", nodes)
     tap(b)
-    nodes = wait_ui(lambda s: "Status: Paused until" in s, "status did not change to 'Paused until'")
+    nodes = wait_ui(lambda s: STATUS_PAUSED in s, "status did not change to 'Paused until'")
     probe3 = "stats.g." + BLOCKED
     addr, out = resolve(probe3)
     print(f"guardian paused: {probe3} -> {addr}")
     if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{probe3} should resolve for real while paused, got {addr}: {out}")
-    # Since G20 the safety alert card sits above the log and can push it below the fold: scroll to it.
+    goto("Activity")
     find_anywhere(lambda s: f"PAUSE {probe3}" in s, f"log does not show PAUSE {probe3}", timeout=30)
-    scroll_top()
-    nodes = dump()
+    nodes = goto("Protect")
     b = button(nodes, "Resume")
     if not b:
         fail("no Resume button while paused", nodes)
     tap(b)
-    nodes = wait_ui(lambda s: "Status: Running" in s, "status did not return to Running after Resume")
+    nodes = wait_ui(lambda s: STATUS_ON in s, "status did not return to on after Resume")
     probe4 = "ad." + BLOCKED
     addr, out = resolve(probe4)
     print(f"guardian resumed: {probe4} -> {addr}")
@@ -471,6 +532,7 @@ def main():
     #     an error. The valid entry goes first, into the empty field: clearing a field over adb is
     #     unreliable (backspaces landed as stray text on API 29).
     user_dom = "example.org"
+    goto("Settings")
 
     def find_field():
         nodes = []
@@ -506,16 +568,18 @@ def main():
         fail(f"{user_dom} should be blocked after the user blocked it, got {addr}: {out}")
     # G11: the new "Blocked most often" row for it names the user's own rule.
     rule_user = f"Rule: {user_dom} (blocked by you)"
+    goto("Activity")
     find_anywhere(lambda s: rule_user in s, f"'Blocked most often' has no '{rule_user}' line")
     snap("rule-blocked-by-you")
     print(f"ok: row shows '{rule_user}'")
+    goto("Settings")
     nodes = scroll_find(lambda s: blocked_row.search(s), f"'Blocked by you' does not list {user_dom}")
     b = button_on_row(nodes, "Remove", user_dom)
     if not b:
         fail(f"no Remove button on the {user_dom} row", nodes)
     tap(b)
     scroll_top()
-    wait_ui(lambda s: "0 blocked by you" in s, "rules line does not return to 0 blocked by you")
+    scroll_find(lambda s: "0 blocked by you" in s, "rules line does not return to 0 blocked by you")
     # The row itself must go too (it once stayed: an empty list's signature equalled the reset value).
     sect = re.compile(r"Blocked by you(?:(?!Allowed by you)[\s\S]){0,400}?\(none\)")
     scroll_find(lambda s: sect.search(s) and not blocked_row.search(s),
@@ -541,7 +605,8 @@ def main():
 
     # 4e. Always-on VPN (G9): the status area reports "Always-on: Off" (API 29+), and the button opens
     #     the system VPN settings; Back returns to Guardian, still running.
-    wait_ui(lambda s: "Always-on: Off" in s, "status area does not show 'Always-on: Off'")
+    goto("Settings")
+    scroll_find(lambda s: "Always-on: Off" in s, "Settings does not show 'Always-on: Off'", tries=10)
     nodes = scroll_find(lambda s: "Always-on VPN settings" in s, "no 'Always-on VPN settings' button", tries=10)
     b = button(nodes, "Always-on VPN settings")
     if not b:
@@ -567,12 +632,14 @@ def main():
     sh("input keyevent 4")  # Back
     time.sleep(2)
     scroll_top()
-    nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after returning from VPN settings")
+    goto("Protect")
+    nodes = wait_ui(lambda s: STATUS_ON in s, "Guardian not running after returning from VPN settings")
     print("ok: Always-on row and VPN settings button work")
 
     # 4f. Export / import of your rules (G10): Export opens the system document picker (DocumentsUI);
     #     Back returns to Guardian, still running. Picking a file is not automated (no reliable adb
     #     route); the format itself is covered by RulesTextTest.
+    goto("Settings")
     nodes = scroll_find(lambda s: "Export rules" in s, "no 'Export rules' button", tries=10)
     b = button(nodes, "Export rules")
     if not b:
@@ -599,7 +666,8 @@ def main():
     time.sleep(2)
     hide_keyboard()
     scroll_top()
-    nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after cancelling the export picker")
+    goto("Protect")
+    nodes = wait_ui(lambda s: STATUS_ON in s, "Guardian not running after cancelling the export picker")
     print("ok: Export opens the document picker")
 
     # 4f2. G13 blocking strength. sentry.io is in HaGeZi Pro only: not in Light, not in Multi, and not in
@@ -608,7 +676,7 @@ def main():
     STRICT_ONLY = "sentry.io"
 
     def pick_level(prefix):
-        scroll_top()
+        goto("Settings")
         nodes = scroll_find(lambda s: prefix in s, f"no '{prefix}' option")
         for t, d, b, c in nodes:
             if c.endswith("RadioButton") and t.startswith(prefix) and b:
@@ -617,8 +685,9 @@ def main():
         else:
             fail(f"no radio button starting with '{prefix}'", nodes)
         time.sleep(1)
-        # isLoading shows "Loading list…" in the status line; Running means the new list is in place.
-        wait_ui(lambda s: "Status: Running" in s and "Loading list" not in s,
+        # While the new tier loads, Protect shows "Loading list…"; "Protection is on" means it is in place.
+        goto("Protect")
+        wait_ui(lambda s: STATUS_ON in s and "Loading list" not in s,
                 f"still loading after choosing {prefix}", timeout=90)
 
     # Judge by the DNS answer, not the 10-line log (background traffic pushes lines out): a blocked
@@ -633,6 +702,7 @@ def main():
     addr, out = resolve("g13b." + STRICT_ONLY)
     if addr not in BLOCK_ADDRS:
         fail(f"Strict did not block g13b.{STRICT_ONLY}: {addr} {out[-200:]}")
+    goto("Activity")
     find_anywhere(lambda s: f"Rule: {STRICT_ONLY} (built-in list)" in s,
                   f"no 'Blocked most often' row with Rule: {STRICT_ONLY}")
     snap("level-strict")
@@ -667,6 +737,7 @@ def main():
         dot_reachable = False
         print(f"UNTESTED: encrypted DNS step skipped, this CI host cannot reach {quad9_ip}:853 ({e})")
     if dot_reachable:
+        goto("Settings")
         tap(radio("Quad9:"))
         time.sleep(2)
         dot_probe = "www.wikipedia.org"
@@ -683,18 +754,17 @@ def main():
         print("ok: Quad9 DoT answers and the status says connected")
         tap(radio("Off (default)"))
         find_anywhere(lambda s: "Encrypted DNS: off" in s, "encrypted DNS status does not return to off")
-        scroll_top()
-        nodes = wait_ui(lambda s: "Status: Running" in s, "Guardian not running after turning encrypted DNS off")
+        goto("Protect")
+        nodes = wait_ui(lambda s: STATUS_ON in s, "Guardian not running after turning encrypted DNS off")
         print("ok: encrypted DNS back to off")
-    scroll_top()
-    nodes = dump()
+    nodes = goto("Protect")
 
     # 5. Stop from the app
-    b = button(nodes, "Stop")
+    b = button(nodes, "Turn off")
     if not b:
-        fail("no Stop button", nodes)
+        fail("no Turn off button", nodes)
     tap(b)
-    wait_ui(lambda s: "Status: Stopped" in s, "status did not change to Stopped")
+    wait_ui(lambda s: STATUS_OFF in s, "status did not change to off")
     wait_stopped("stop from app")
     snap("stopped-app")
     print("ok: stopped from the app")
@@ -702,6 +772,7 @@ def main():
     # 5b. G12: stopping flushes the last interval, so today's durable count is above 0 even though
     # the 60 s timer may not have fired; then "Clear block history" resets the row to 0.
     m_hist = re.compile(r"Blocked today: (\d+) · last 7 days: (\d+)")
+    goto("Activity")
     nodes = find_anywhere(lambda s: (lambda m: bool(m) and int(m.group(1)) > 0)(m_hist.search(s)),
                           "Blocked today stayed 0 after blocking and stopping")
     print("ok: " + m_hist.search(joined(nodes)).group(0))
@@ -716,6 +787,7 @@ def main():
 
     # 5c. G16: the privacy checkup shows three rows. Each row has either a working button or a
     # "Search Settings" hint, never both. A button must leave Guardian, and Back must return.
+    goto("Check")
     nodes = find_anywhere(lambda s: all(x in s for x in (
         "Privacy checkup", "Delete your advertising ID", "Precise location", "Review app permissions")),
         "privacy checkup rows missing")

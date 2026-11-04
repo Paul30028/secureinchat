@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later. Drawn for Guardian (U2); tinted in code. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FF000000" android:pathData="M3,6h9v2H3V6zM16,6h5v2h-5V6zM12,4h4v6h-4V4zM3,16h5v2H3V16zM12,16h9v2h-9V16zM8,14h4v6H8V14zM3,11h12v2H3V11zM19,11h2v2h-2V11zM15,9h4v6h-4V9z"/>
+</vector>

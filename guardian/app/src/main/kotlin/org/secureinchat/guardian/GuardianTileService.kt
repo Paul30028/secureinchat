@@ -10,14 +10,10 @@ import android.os.Handler
 import android.os.Looper
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import java.util.Locale
 
 class GuardianTileService : TileService() {
 
     private val uiHandler = Handler(Looper.getMainLooper())
-
-    private fun txt(en: String, zh: String): String =
-        if (Locale.getDefault().language == "zh") zh else en
 
     override fun onStartListening() {
         super.onStartListening()
@@ -33,13 +29,13 @@ class GuardianTileService : TileService() {
         // check; isPaused() is clock-based and safe to call from the main thread.
         val paused = running && (GuardianVpnService.activeHandler?.isPaused() ?: false)
         tile.state = if (running) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-        tile.label = "Guardian"
+        tile.label = getString(R.string.app_name)
         if (Build.VERSION.SDK_INT >= 29) {
             tile.subtitle = when {
-                loading -> txt("Starting…", "正在启动…")
-                paused -> txt("Paused", "已暂停")
-                running -> txt("On", "已开启")
-                else -> txt("Off", "已关闭")
+                loading -> getString(R.string.tile_starting)
+                paused -> getString(R.string.tile_paused)
+                running -> getString(R.string.tile_on)
+                else -> getString(R.string.tile_off)
             }
         }
         try { tile.updateTile() } catch (_: Throwable) {}

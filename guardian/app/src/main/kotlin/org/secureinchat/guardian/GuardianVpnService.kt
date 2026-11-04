@@ -19,9 +19,7 @@ import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import javax.net.ssl.HttpsURLConnection
@@ -264,7 +262,7 @@ class GuardianVpnService : VpnService() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (nm.getNotificationChannel(CHANNEL_ID) == null) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Guardian VPN", NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(CHANNEL_ID, getString(R.string.notif_channel_vpn), NotificationManager.IMPORTANCE_LOW)
             )
         }
         val stopIntent = Intent(this, GuardianVpnService::class.java).setAction(ACTION_STOP)
@@ -278,19 +276,18 @@ class GuardianVpnService : VpnService() {
             .setOngoing(true)
         val h = handler
         if (h != null && h.isPaused()) {
-            val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
-            val until = fmt.format(Date(h.pausedUntilMs))
-            builder.setContentText("Paused until $until")
+            val until = android.text.format.DateFormat.getTimeFormat(this).format(Date(h.pausedUntilMs))
+            builder.setContentText(getString(R.string.status_paused_until, until))
             val resumeIntent = Intent(this, GuardianVpnService::class.java).setAction(ACTION_RESUME)
             val resumePi = PendingIntent.getService(
                 this, 2, resumeIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(0, "Resume", resumePi)
+            builder.addAction(0, getString(R.string.resume), resumePi)
         } else {
-            builder.setContentText("DNS filtering active")
+            builder.setContentText(getString(R.string.notif_active))
         }
-        builder.addAction(0, "Stop", stopPi)
+        builder.addAction(0, getString(R.string.notif_stop), stopPi)
         return builder.build()
     }
 
@@ -486,7 +483,7 @@ class GuardianVpnService : VpnService() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (nm.getNotificationChannel(ALERT_CHANNEL_ID) == null) {
             nm.createNotificationChannel(
-                NotificationChannel(ALERT_CHANNEL_ID, tr("Safety alerts", "安全提醒"), NotificationManager.IMPORTANCE_HIGH)
+                NotificationChannel(ALERT_CHANNEL_ID, getString(R.string.safety_alerts), NotificationManager.IMPORTANCE_HIGH)
             )
         }
         val open = PendingIntent.getActivity(
@@ -498,10 +495,10 @@ class GuardianVpnService : VpnService() {
         // phone (possibly the person who installed it) learns nothing.
         val public = Notification.Builder(this, ALERT_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_warning)
-            .setContentTitle(tr("Guardian has a safety alert", "Guardian 有一条安全提醒"))
-            .setContentText(tr("Unlock to see it", "解锁后查看"))
+            .setContentTitle(getString(R.string.alert_public_title))
+            .setContentText(getString(R.string.alert_public_body))
             .build()
-        val (title, body) = spywareAlertText(ind.app, ind.kind, ind.alsoWebsite, alert.queryName)
+        val (title, body) = spywareAlertText(this, ind.app, ind.kind, ind.alsoWebsite, alert.queryName)
         val n = Notification.Builder(this, ALERT_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_warning)
             .setContentTitle(title)
@@ -651,38 +648,19 @@ class GuardianVpnService : VpnService() {
         /** Alerts raised in this process, newest first (memory only; gone when the process ends). */
         fun recentSpywareAlerts(): List<SpywareWatch.Alert> = spywareWatch?.recent() ?: emptyList()
 
-        private fun tr(en: String, zh: String): String =
-            if (Locale.getDefault().language == "zh") zh else en
-
-        /** Title and body for one alert; shared by the notification and the in-app list. */
-        fun spywareAlertText(app: String, kind: SpywareKind, alsoWebsite: Boolean, queryName: String): Pair<String, String> {
+        /** Title and body for one alert; shared by the notification and the Check tab. */
+        fun spywareAlertText(ctx: Context, app: String, kind: SpywareKind, alsoWebsite: Boolean, queryName: String): Pair<String, String> {
             val title = when {
-                kind == SpywareKind.WATCHWARE ->
-                    tr("An app contacted the servers of the monitoring app $app", "有 App 连接了远程监控软件「$app」的服务器")
-                alsoWebsite ->
-                    tr("This phone contacted the website or servers of the stalkerware $app", "这台手机连接了跟踪软件「$app」的网站或服务器")
-                else ->
-                    tr("An app contacted the servers of the stalkerware $app", "有 App 连接了跟踪软件「$app」的服务器")
+                kind == SpywareKind.WATCHWARE -> ctx.getString(R.string.alert_title_watchware, app)
+                alsoWebsite -> ctx.getString(R.string.alert_title_website, app)
+                else -> ctx.getString(R.string.alert_title_stalkerware, app)
             }
             val detail = when {
-                kind == SpywareKind.WATCHWARE -> tr(
-                    "Apps like this also have legitimate uses (parental control, remote work). If you did not install it yourself, take a look.",
-                    "这类软件也有正当用途(家长监控、远程办公)。如果不是你自己装的，请注意。"
-                )
-                alsoWebsite -> tr(
-                    "If you were only reading about it in a browser, you can ignore this.",
-                    "如果你只是在浏览器里查看它的网站，可以忽略。"
-                )
-                else -> tr(
-                    "Guardian cannot tell which app it was.",
-                    "Guardian 无法知道是哪个 App。"
-                )
+                kind == SpywareKind.WATCHWARE -> ctx.getString(R.string.alert_detail_watchware)
+                alsoWebsite -> ctx.getString(R.string.alert_detail_website)
+                else -> ctx.getString(R.string.alert_detail_stalkerware)
             }
-            val body = tr(
-                "Domain: $queryName. $detail Not blocked, so whoever installed it is not tipped off. Open Guardian to see how to handle this safely.",
-                "域名:$queryName。$detail 没有替你拦截，以免惊动安装它的人。打开 Guardian 查看怎么安全处理。"
-            )
-            return title to body
+            return title to ctx.getString(R.string.alert_body, queryName, detail)
         }
 
         /** Exodus tracker DB, or null if it failed to load. Cheap; safe to call from the UI thread. */

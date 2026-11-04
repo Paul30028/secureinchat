@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later. U2: framework theme only (no AppCompat/Material library). -->
+<resources>
+    <style name="Guardian" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#FFF6F7F5</item>
+        <item name="android:navigationBarColor">#FFFFFFFF</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorAccent">#FF1F6F5C</item>
+    </style>
+</resources>

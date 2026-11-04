@@ -11,8 +11,10 @@
 
 
     <application
-        android:label="Guardian"
+        android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
+        android:theme="@style/Guardian"
+        android:localeConfig="@xml/locales_config"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:supportsRtl="true">
@@ -51,7 +53,7 @@
             android:name=".GuardianTileService"
             android:exported="true"
             android:icon="@android:drawable/ic_lock_lock"
-            android:label="Guardian"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
