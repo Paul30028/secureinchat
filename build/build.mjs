@@ -65,6 +65,7 @@ function head({ title, desc, canonical, jsonld, lang = 'en', robots = '' }) {
   <meta name="description" content="${esc(desc)}" />
   <link rel="canonical" href="${SITE}${canonical}" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SecureInChat" />
@@ -86,7 +87,7 @@ const NAV = [['/protect/', 'Protect', 'protect'], ['/tools/', 'Tools', 'tools'],
 function header(current) {
   return `<header class="top">
     <div class="wrap top__in">
-      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark">${icon('eye-off')}</span>SecureInChat</a>
+      <a href="/" class="brand" aria-label="SecureInChat home"><span class="brand__mark"><svg class="brand__svg" viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg></span>SecureInChat</a>
       <nav class="nav" aria-label="Main">
         ${NAV.map(([h, t, k]) => `<a href="${h}"${current === k ? ' aria-current="page"' : ''}>${t}</a>`).join('\n        ')}
       </nav>
@@ -630,9 +631,14 @@ ${FUNDING_CHANNELS.map(([name, url]) => `      <li><a href="${url}" rel="noopene
 // Design v4 (DeepSeek layouts #6/#7, chosen by Paul 2026-10-31): one stylesheet loaded last on every
 // HTML page re-skins the whole site without rewriting each page's markup.
 const V4_LINK = '<link href="/assets/css/v4.css" rel="stylesheet"/>';
+const ICO_LINK = '<link rel="icon" href="/favicon.ico" sizes="32x32">';
 function write(rel, content) {
   if (rel.endsWith('.html') && typeof content === 'string' && content.includes('</head>') && !content.includes(V4_LINK)) {
     content = content.replace('</head>', `  ${V4_LINK}\n </head>`);
+  }
+  // Pixel-fitted 16/32 px bitmaps for tabs and bookmarks; browsers that support SVG icons use the SVG after it.
+  if (rel.endsWith('.html') && typeof content === 'string' && !content.includes(ICO_LINK)) {
+    content = content.replace(/<link[^>]*favicon\.svg[^>]*>/, (m) => `${ICO_LINK}\n  ${m}`);
   }
   const f = path.join(PUB, rel);
   fs.mkdirSync(path.dirname(f), { recursive: true });
@@ -1041,8 +1047,7 @@ write('blog/index.html', blogIndex());
   }));
 }
 
-write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#23483E"/><g transform="translate(6 6) scale(.833)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g></svg>
-`);
+write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 76"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg>`);
 
 // fonts + script
 const fonts = [
