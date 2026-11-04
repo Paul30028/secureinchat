@@ -22,10 +22,27 @@ export const DEFAULT_LOCALE: Locale = "zh";
 /** 词条表：键 → 文本。参数占位符写 `{name}`。 */
 export type Messages = Record<string, string>;
 
+/**
+ * 各界面自己的词条放在 `ns/<界面>.ts`，导出 zh / en / es 三个对象。
+ * 用 import.meta.glob 自动收集：并行翻译多个界面时，不用改同一个文件，避免冲突。
+ */
+export interface NamespaceModule {
+  zh: Messages;
+  en: Messages;
+  es: Messages;
+}
+export const NAMESPACES = import.meta.glob<NamespaceModule>("./ns/*.ts", { eager: true });
+
+function merged(locale: Locale, base: Messages): Messages {
+  const out: Messages = { ...base };
+  for (const mod of Object.values(NAMESPACES)) Object.assign(out, mod[locale]);
+  return out;
+}
+
 const MESSAGES: Record<Locale, Messages> = {
-  zh: zhMessages,
-  en: enMessages,
-  es: esMessages,
+  zh: merged("zh", zhMessages),
+  en: merged("en", enMessages),
+  es: merged("es", esMessages),
 };
 
 function isLocale(x: string): x is Locale {

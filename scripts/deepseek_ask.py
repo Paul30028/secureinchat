@@ -69,7 +69,11 @@ def main(paths: list[str]) -> None:
         n = 1
         while (out_dir / f"round{n}.txt").exists():
             n += 1
-        answer, usage = ask(spec.read_text(encoding="utf-8"))
+        try:
+            answer, usage = ask(spec.read_text(encoding="utf-8"))
+        except Exception as err:  # one failed task must not lose the answers of the others
+            print(f"FAILED {p}: {err}")
+            continue
         (out_dir / f"round{n}.txt").write_text(answer, encoding="utf-8")
         (out_dir / f"round{n}.usage.json").write_text(json.dumps(usage, indent=2), encoding="utf-8")
         print(f"{p} -> {out_dir}/round{n}.txt ({len(answer)} chars)")

@@ -1,0 +1,535 @@
+# 任务：把界面「MessageListScreen」改成三语（中文、英文、西班牙语）
+
+你是 SecureInChat（加密群聊 App，React + TypeScript）的软件工程师。
+
+## 输出格式（脚本自动应用，必须严格遵守）
+每个文件输出为完整内容的块，块内不要再包 Markdown 代码围栏：
+=== FILE: 相对仓库根目录的路径 ===
+文件完整内容
+=== END FILE ===
+
+## 要做的事
+1. 新文件 `apps/android-client/src/i18n/ns/messageList.ts`：
+   `import type { Messages } from "../index";`，导出 `export const zh: Messages`、`export const en: Messages`、`export const es: Messages`。
+   三个对象的键完全一致；键一律以 `messageList.` 开头（如 `messageList.title`）；参数用 `{name}` 占位，三种语言占位符一致。
+2. 改写 `apps/android-client/src/screens/MessageListScreen.tsx`：所有给人看的文字（包括 aria-label、placeholder、title、alt、错误提示、按钮文字）改成 `t("messageList.xxx")`，`const t = useT();` 从 `"../i18n"` 导入。
+   - 界面结构、样式、props、行为一律不变。不在组件外（模块顶层常量）调用 t；需要的话把常量挪进组件或改成键名。
+   - 中文词条必须与原文**逐字相同**（现有测试按中文断言，必须原样通过）。
+   - 日期、数字用 `Intl` 格式化时，locale 用 `useLocale()`（同样从 "../i18n" 导入）。
+3. 英语自然简洁；西班牙语用中性拉美西语。语气平实准确，不夸大安全效果（不要写「完全安全」「无法破解」之类）。
+4. 不加任何依赖；TypeScript strict，不用 any；保留现有注释。
+5. 不要输出测试文件以外的其他文件；不要修改现有测试。
+
+## 翻译层 API（apps/android-client/src/i18n/index.tsx，只读）
+- `useT(): (key: string, params?: Record<string, string | number>) => string`
+- `useLocale(): "zh" | "en" | "es"`
+- 没有 Provider 时默认中文。
+
+## 现有源码：apps/android-client/src/screens/MessageListScreen.tsx
+import { useState } from "react";
+import { colors, MessageListItem, BottomNav, Button, touchTarget, type BottomNavKey } from "@secureinchat/ui";
+import { TodayScreen, type TodayContent } from "./TodayScreen";
+import { registerTap, INITIAL_TAP_STATE, type TapState } from "../adminAccess";
+import { formatListTime } from "../timeFormat";
+import { APP_VERSION } from "../version";
+
+export interface GroupListItem {
+  groupId: string;
+  groupName: string;
+  unread: number;
+  onlineCount: number;
+  lastMessage?: { preview: string; sentAtMs: number } | undefined;
+}
+
+export interface MessageListScreenProps {
+  groups: GroupListItem[];
+  onOpenGroup: (groupId: string) => void;
+  /** 长按群条目触发——直接到群设置，退群/改名都在那儿 */
+  onOpenGroupSettings: (groupId: string) => void;
+  /** 去加入/创建另一个群 */
+  onJoinAnotherGroup: () => void;
+  todayContent: TodayContent;
+  isAdmin: boolean;
+  onOpenAdmin: () => void;
+  /** 版本号连点 7 次后触发 */
+  onAdminUnlocked: () => void;
+  onOpenAdminRecovery: () => void;
+  onOpenLockSetup: () => void;
+  onOpenDiagnostics: () => void;
+  onOpenDevices: () => void;
+  onOpenEditProfile: () => void;
+  deviceId: string;
+  nickname?: string | undefined;
+  onOpenServerSettings: () => void;
+  relayUrl: string;
+  /** 默认打开哪个 tab，不传就是公告 */
+  initialTab?: BottomNavKey | undefined;
+  /** 截屏保护是否开启 */
+  screenSecurityEnabled?: boolean | undefined;
+  /** 点按「截屏保护」开关。不传（Web 端没有这个系统能力）就不显示这一行——不放点了没用的开关 */
+  onToggleScreenSecurity?: (() => void) | undefined;
+  /** 指纹/面部解锁是否开启 */
+  biometricEnabled?: boolean | undefined;
+  /** 点按「用指纹或面部解锁」开关。不传（平台不支持）就不显示这一行 */
+  onToggleBiometric?: (() => void) | undefined;
+  /** 应用锁是否已启用。未启用时点按生物识别行会引导去设置应用密码 */
+  lockEnabled?: boolean | undefined;
+  /** 打开「备份与恢复」页面。不传就不显示这一行 */
+  onOpenBackup?: (() => void) | undefined;
+  /** 设备安全：空手过境、手机失守后全部清除 */
+  onOpenDeviceSafety?: (() => void) | undefined;
+}
+
+/** 消息列表页 + 公告/我的两个 tab。单群试用版：消息列表只有当前这一个群。 */
+export function MessageListScreen({
+  groups,
+  onOpenGroup,
+  onOpenGroupSettings,
+  onJoinAnotherGroup,
+  todayContent,
+  isAdmin,
+  onOpenAdmin,
+  onAdminUnlocked,
+  onOpenAdminRecovery,
+  onOpenLockSetup,
+  onOpenDiagnostics,
+  onOpenDevices,
+  onOpenEditProfile,
+  deviceId,
+  nickname,
+  onOpenServerSettings,
+  relayUrl,
+  initialTab,
+  screenSecurityEnabled,
+  onToggleScreenSecurity,
+  biometricEnabled,
+  onToggleBiometric,
+  lockEnabled,
+  onOpenBackup,
+  onOpenDeviceSafety,
+}: MessageListScreenProps) {
+  // 公告每天更新，是很多人打开这个应用的第一个理由——所以默认落在这里，
+  // 而不是像通用 IM 那样落在会话列表。
+  const [activeTab, setActiveTab] = useState<BottomNavKey>(initialTab ?? "announcements");
+  const [tapState, setTapState] = useState<TapState>(INITIAL_TAP_STATE);
+  const [tapHint, setTapHint] = useState<string | null>(null);
+
+  const inputStyle = {
+    minHeight: touchTarget.minDp,
+    border: `0.5px solid ${colors.sageMint}`,
+    borderRadius: 14,
+    padding: "8px 16px",
+    fontSize: 14,
+    background: colors.ivory,
+    color: colors.textPrimary,
+    boxShadow: "none",
+    width: "100%",
+    boxSizing: "border-box" as const,
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: colors.ivory, display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "16px 16px 8px", fontSize: 16, fontWeight: 500, color: colors.deepInkGreen }}>
+        邀群密聊
+      </div>
+
+      <div style={{ flex: 1, padding: "0 12px" }}>
+        {activeTab === "messages" ? (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {groups.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "48px 16px 24px" }}>
+                <div style={{ fontSize: 15, color: colors.textPrimary, marginBottom: 6 }}>还没有加入任何群聊</div>
+                <div style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7 }}>
+                  这个应用只能通过邀请码加入，
+                  <br />
+                  没有搜索、没有好友列表、也不需要手机号。
+                </div>
+              </div>
+            ) : null}
+            {groups.map((g) => (
+              <div key={g.groupId}>
+                <MessageListItem
+                  name={g.groupName}
+                  previewText={g.lastMessage ? g.lastMessage.preview : "还没有消息"}
+                  timeLabel={g.lastMessage ? formatListTime(g.lastMessage.sentAtMs) : ""}
+                  unreadCount={g.unread}
+                  onClick={() => onOpenGroup(g.groupId)}
+                  onContextMenu={(e) => {
+                    // 移动端长按走 contextmenu；不再需要先进群才能改名或退群
+                    e.preventDefault();
+                    onOpenGroupSettings(g.groupId);
+                  }}
+                />
+                <div style={{ padding: "0 6px 6px 60px", fontSize: 11, color: "#9A9A94" }}>
+                  {g.onlineCount > 0 ? `${g.onlineCount} 位成员在线` : "群里暂时只有你在线"}
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={onJoinAnotherGroup}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 12,
+                background: "transparent",
+                border: `0.5px dashed ${colors.sageMint}`,
+                borderRadius: 14,
+                color: colors.deepInkGreen,
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              + 加入或创建其他群聊
+            </button>
+          </div>
+        ) : activeTab === "announcements" ? (
+          <TodayScreen content={todayContent} isAdmin={isAdmin} onOpenAdmin={onOpenAdmin} />
+        ) : (
+          <div style={{ paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+            <button
+              onClick={onOpenEditProfile}
+              style={{
+                minHeight: touchTarget.minDp,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>昵称</div>
+              <div style={{ fontSize: 15, color: colors.deepInkGreen }}>{nickname ?? "未设置"}</div>
+            </button>
+            <div style={{ fontSize: 13, color: colors.textPrimary, marginTop: 8 }}>本机身份</div>
+            <div style={{ fontSize: 11, color: "#8A8A82", wordBreak: "break-all", fontFamily: "monospace" }}>
+              {deviceId}
+            </div>
+            <button
+              onClick={onOpenDevices}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>群内设备</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>看看有没有不认识的设备</div>
+            </button>
+
+            <button
+              onClick={onOpenDiagnostics}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>连接诊断</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>延迟、掉线次数</div>
+            </button>
+
+            <button
+              onClick={onOpenServerSettings}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 12,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>服务器设置</div>
+              <div style={{ fontSize: 11, color: "#9A9A94", fontFamily: "monospace", wordBreak: "break-all" }}>
+                {relayUrl}
+              </div>
+            </button>
+
+            {onOpenBackup ? (
+              <button
+                onClick={onOpenBackup}
+                style={{
+                  minHeight: touchTarget.minDp,
+                  marginTop: 8,
+                  textAlign: "left",
+                  background: "transparent",
+                  border: `0.5px solid ${colors.sageMint}`,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>备份与恢复</div>
+                <div style={{ fontSize: 11, color: "#9A9A94" }}>导出加密备份文件，换手机时恢复群和聊天记录</div>
+              </button>
+            ) : null}
+
+            {onOpenDeviceSafety ? (
+              <button
+                onClick={onOpenDeviceSafety}
+                style={{
+                  minHeight: touchTarget.minDp,
+                  marginTop: 8,
+                  textAlign: "left",
+                  background: "transparent",
+                  border: `0.5px solid ${colors.sageMint}`,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>设备安全</div>
+                <div style={{ fontSize: 11, color: "#9A9A94" }}>空手过境；手机被扣留或拿走过时清除全部数据</div>
+              </button>
+            ) : null}
+
+            <button
+              onClick={() => {
+                const result = registerTap(tapState);
+                setTapState(result.state);
+                if (result.unlocked) {
+                  setTapHint("管理员入口已开启");
+                  onAdminUnlocked();
+                } else if (result.remaining <= 3) {
+                  // 到最后三次才给提示——否则误触也会看到莫名其妙的倒数
+                  setTapHint(`还差 ${result.remaining} 次`);
+                } else {
+                  setTapHint(null);
+                }
+              }}
+              style={{
+                minHeight: touchTarget.minDp,
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                boxShadow: "none",
+                color: "#9A9A94",
+                fontSize: 11,
+                cursor: "default",
+                marginTop: 12,
+              }}
+            >
+              版本 {APP_VERSION}
+              {tapHint ? <span style={{ marginLeft: 8, color: colors.wheatGold }}>{tapHint}</span> : null}
+            </button>
+
+            <button
+              onClick={onOpenLockSetup}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>应用密码</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>打开应用前需要输入密码</div>
+            </button>
+
+            {onToggleBiometric ? (
+              <button
+                onClick={() => {
+                  if (!lockEnabled) {
+                    // 没有 PIN 就不能单独用生物识别——直接引导去设置应用密码
+                    onOpenLockSetup();
+                    return;
+                  }
+                  onToggleBiometric();
+                }}
+                style={{
+                  minHeight: touchTarget.minDp,
+                  marginTop: 8,
+                  textAlign: "left",
+                  background: "transparent",
+                  border: `0.5px solid ${colors.sageMint}`,
+                  borderRadius: 12,
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                <div style={{ fontSize: 14, color: colors.textPrimary }}>用指纹或面部解锁</div>
+                <div style={{ fontSize: 11, color: "#9A9A94" }}>
+                  {!lockEnabled
+                    ? "先设置应用密码，才能开启指纹或面部解锁"
+                    : biometricEnabled
+                      ? "已开启：指纹或面部只用于在本机解开应用锁；没有 PIN 时不能单独使用。"
+                      : "已关闭：开启后可用指纹或面部解锁应用锁，PIN 始终可用"}
+                </div>
+              </button>
+            ) : null}
+
+            {onToggleScreenSecurity ? (
+            <button
+              onClick={onToggleScreenSecurity}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>截屏保护</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>
+                {screenSecurityEnabled
+                  ? "已开启：本应用界面无法截屏或录屏，最近任务里显示空白"
+                  : "已关闭：开启后无法截图转发邀请卡片"}
+              </div>
+            </button>
+            ) : null}
+
+            <button
+              onClick={onOpenAdminRecovery}
+              style={{
+                minHeight: touchTarget.minDp,
+                marginTop: 8,
+                textAlign: "left",
+                background: "transparent",
+                border: `0.5px solid ${colors.sageMint}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 14, color: colors.textPrimary }}>恢复管理员权限</div>
+              <div style={{ fontSize: 11, color: "#9A9A94" }}>换手机后用恢复码找回发布权限</div>
+            </button>
+
+            <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.6, marginTop: 8 }}>
+              设备身份、群密钥和聊天记录都加密保存在本机。清除应用数据会全部丢失，
+              且无法从服务器恢复——中继按设计不保存任何聊天内容。
+            </p>
+          </div>
+        )}
+      </div>
+
+      <BottomNav active={activeTab} onChange={setActiveTab} />
+    </div>
+  );
+}
+
+## 现有测试（必须原样通过）：apps/android-client/test/MessageListScreen.test.tsx
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { MessageListScreen } from "../src/screens/MessageListScreen";
+import type { TodayContent } from "../src/screens/TodayScreen";
+
+function renderScreen(overrides: {
+  screenSecurityEnabled?: boolean;
+  onToggleScreenSecurity?: () => void;
+  biometricEnabled?: boolean;
+  onToggleBiometric?: () => void;
+  lockEnabled?: boolean;
+} = {}) {
+  const onToggleScreenSecurity = overrides.onToggleScreenSecurity ?? vi.fn();
+  const props = {
+    groups: [],
+    onOpenGroup: vi.fn(),
+    onOpenGroupSettings: vi.fn(),
+    onJoinAnotherGroup: vi.fn(),
+    todayContent: {} as TodayContent,
+    isAdmin: false,
+    onOpenAdmin: vi.fn(),
+    onAdminUnlocked: vi.fn(),
+    onOpenAdminRecovery: vi.fn(),
+    onOpenLockSetup: vi.fn(),
+    onOpenDiagnostics: vi.fn(),
+    onOpenDevices: vi.fn(),
+    onOpenEditProfile: vi.fn(),
+    deviceId: "device-1",
+    nickname: "测试昵称",
+    onOpenServerSettings: vi.fn(),
+    relayUrl: "wss://relay.example",
+    initialTab: "me" as const,
+    screenSecurityEnabled: overrides.screenSecurityEnabled ?? false,
+    onToggleScreenSecurity,
+    biometricEnabled: overrides.biometricEnabled,
+    onToggleBiometric: overrides.onToggleBiometric,
+    lockEnabled: overrides.lockEnabled,
+  };
+  render(<MessageListScreen {...props} />);
+  return { onToggleScreenSecurity };
+}
+
+describe("MessageListScreen 截屏保护开关", () => {
+  it("点按「截屏保护」触发 onToggleScreenSecurity", () => {
+    const { onToggleScreenSecurity } = renderScreen();
+    const button = screen.getByText("截屏保护").closest("button");
+    expect(button).not.toBeNull();
+    fireEvent.click(button as HTMLButtonElement);
+    expect(onToggleScreenSecurity).toHaveBeenCalledTimes(1);
+  });
+
+  it("关闭时显示关闭说明", () => {
+    renderScreen({ screenSecurityEnabled: false });
+    expect(screen.getByText("已关闭：开启后无法截图转发邀请卡片")).toBeInTheDocument();
+  });
+
+  it("开启时显示开启说明", () => {
+    renderScreen({ screenSecurityEnabled: true });
+    expect(
+      screen.getByText("已开启：本应用界面无法截屏或录屏，最近任务里显示空白")
+    ).toBeInTheDocument();
+  });
+});
+
+describe("MessageListScreen 指纹/面部解锁开关", () => {
+  it("不传 onToggleBiometric 时没有这一行", () => {
+    renderScreen();
+    expect(screen.queryByText("用指纹或面部解锁")).not.toBeInTheDocument();
+  });
+
+  it("传入且应用锁已启用时，点击调用 onToggleBiometric", () => {
+    const onToggleBiometric = vi.fn();
+    renderScreen({ onToggleBiometric, lockEnabled: true, biometricEnabled: false });
+    const button = screen.getByText("用指纹或面部解锁").closest("button");
+    expect(button).not.toBeNull();
+    fireEvent.click(button as HTMLButtonElement);
+    expect(onToggleBiometric).toHaveBeenCalledTimes(1);
+  });
+
+  it("开启时显示边界说明", () => {
+    renderScreen({ onToggleBiometric: vi.fn(), lockEnabled: true, biometricEnabled: true });
+    expect(
+      screen.getByText("已开启：指纹或面部只用于在本机解开应用锁；没有 PIN 时不能单独使用。")
+    ).toBeInTheDocument();
+  });
+
+  it("关闭时显示关闭说明", () => {
+    renderScreen({ onToggleBiometric: vi.fn(), lockEnabled: true, biometricEnabled: false });
+    expect(
+      screen.getByText("已关闭：开启后可用指纹或面部解锁应用锁，PIN 始终可用")
+    ).toBeInTheDocument();
+  });
+
+  it("未启用应用锁时点击引导去设置应用密码，不调用 onToggleBiometric", () => {
+    const onToggleBiometric = vi.fn();
+    renderScreen({ onToggleBiometric, lockEnabled: false, biometricEnabled: false });
+    expect(
+      screen.getByText("先设置应用密码，才能开启指纹或面部解锁")
+    ).toBeInTheDocument();
+    const button = screen.getByText("用指纹或面部解锁").closest("button");
+    fireEvent.click(button as HTMLButtonElement);
+    expect(onToggleBiometric).not.toHaveBeenCalled();
+  });
+});
