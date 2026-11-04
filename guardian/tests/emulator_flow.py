@@ -820,9 +820,10 @@ def main():
     nodes = dump()
     b = button(nodes, "Stop")
     if not b:
-        # Low-importance notifications can be collapsed; expand ours by swiping down on its title.
+        # Low-importance notifications can be collapsed; expand ours by swiping down on its text. Not on
+        # the first "Guardian" title: since G20 a safety-alert notification from step 4a2 sits above it.
         for t, d, bounds, c in nodes:
-            if t == "Guardian" and bounds:
+            if t in ("DNS filtering active", "Blocking ads and trackers") and bounds:
                 x1, y1, x2, y2 = map(int, re.findall(r"\d+", bounds))
                 sh(f"input swipe {(x1 + x2) // 2} {y1} {(x1 + x2) // 2} {y1 + 400} 300")
                 time.sleep(2)
