@@ -1,6 +1,7 @@
 import type { RelayClient, ConnectionStatus, KnownDevice } from "@secureinchat/chat-core";
 import type { DisplayMessage } from "./screens/ChatScreen";
 import type { TodayContent } from "./screens/TodayScreen";
+import { t } from "./i18n";
 
 /**
  * 一个群的会话状态。
@@ -49,8 +50,8 @@ export function previewFor(session: GroupSession): { preview: string; sentAtMs: 
   if (!last) return undefined;
   if (last.text) return { preview: last.text, sentAtMs: last.sentAtMs };
   if (last.media) {
-    const label = last.media.mediaKind === "image" ? "图片" : last.media.mediaKind === "voice" ? "语音" : "文件";
-    return { preview: `[${label}] ${last.media.fileName}`, sentAtMs: last.sentAtMs };
+    const label = t(`media.${last.media.mediaKind}`);
+    return { preview: t("media.preview", { label, fileName: last.media.fileName }), sentAtMs: last.sentAtMs };
   }
   return { preview: "", sentAtMs: last.sentAtMs };
 }

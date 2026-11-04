@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 /**
  * 启动自检。
  *
@@ -27,13 +28,13 @@ function deleteProbeDb(): void {
 /** 能不能把 CryptoKey 存进 IndexedDB —— 这是整个应用的地基 */
 export async function checkCryptoStorage(): Promise<CapabilityResult> {
   if (typeof indexedDB === "undefined") {
-    return { ok: false, reason: "这台设备不支持本地存储（IndexedDB）" };
+    return { ok: false, reason: t("capability.noIndexedDb") };
   }
   if (!globalThis.crypto?.subtle) {
     return {
       ok: false,
-      reason: "无法使用加密功能",
-      detail: "页面必须通过 HTTPS 打开（或 localhost），否则浏览器不提供加密接口。",
+      reason: t("capability.noCrypto"),
+      detail: t("capability.noCryptoDetail"),
     };
   }
 
@@ -50,7 +51,7 @@ export async function checkCryptoStorage(): Promise<CapabilityResult> {
         if (!d.objectStoreNames.contains(PROBE_STORE)) d.createObjectStore(PROBE_STORE);
       };
       req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error ?? new Error("打开数据库失败"));
+      req.onerror = () => reject(req.error ?? new Error(t("capability.dbOpenFailed")));
     });
 
     await new Promise<void>((resolve, reject) => {
@@ -63,7 +64,7 @@ export async function checkCryptoStorage(): Promise<CapabilityResult> {
         return;
       }
       tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error("写入失败"));
+      tx.onerror = () => reject(tx.error ?? new Error(t("capability.writeFailed")));
     });
 
     db.close();
@@ -73,10 +74,10 @@ export async function checkCryptoStorage(): Promise<CapabilityResult> {
     deleteProbeDb();
     return {
       ok: false,
-      reason: "这台设备的浏览器内核太旧，无法保存加密密钥",
+      reason: t("capability.webviewTooOld"),
       detail:
-        "请到应用商店更新「Android System WebView」和 Chrome 后重试。" +
-        (err instanceof Error ? `（${err.message}）` : ""),
+        t("capability.webviewTooOldDetail") +
+        (err instanceof Error ? t("common.parenthetical", { text: err.message }) : ""),
     };
   }
 }

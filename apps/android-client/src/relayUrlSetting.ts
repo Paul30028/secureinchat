@@ -1,4 +1,5 @@
 import { IndexedDbStorageBackend } from "@secureinchat/secure-storage";
+import { t } from "./i18n";
 
 /**
  * 中继地址的校验与持久化。
@@ -19,17 +20,17 @@ export type RelayUrlValidation = { ok: true } | { ok: false; reason: string };
  */
 export function validateRelayUrl(raw: string, isSecurePage: boolean): RelayUrlValidation {
   const trimmed = raw.trim();
-  if (!trimmed) return { ok: false, reason: "地址不能为空" };
+  if (!trimmed) return { ok: false, reason: t("relayUrl.empty") };
 
   let parsed: URL;
   try {
     parsed = new URL(trimmed);
   } catch {
-    return { ok: false, reason: "地址格式不正确，例如：wss://ws.example.com" };
+    return { ok: false, reason: t("relayUrl.malformed") };
   }
 
   if (parsed.protocol !== "ws:" && parsed.protocol !== "wss:") {
-    return { ok: false, reason: "地址必须以 ws:// 或 wss:// 开头" };
+    return { ok: false, reason: t("relayUrl.badScheme") };
   }
 
   if (isSecurePage && parsed.protocol === "ws:") {
@@ -37,7 +38,7 @@ export function validateRelayUrl(raw: string, isSecurePage: boolean): RelayUrlVa
     if (!isLocalhost) {
       return {
         ok: false,
-        reason: "当前页面是 HTTPS，浏览器会拦截 ws:// 连接，请改用 wss://",
+        reason: t("relayUrl.mixedContent"),
       };
     }
   }

@@ -1,5 +1,6 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { IndexedDbStorageBackend } from "@secureinchat/secure-storage";
+import { t } from "./i18n";
 
 /**
  * 应用锁的指纹/面部解锁。
@@ -71,9 +72,9 @@ export async function authenticateBiometric(): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
   try {
     const result = await Biometric.authenticate({
-      title: "解锁邀群密聊",
-      subtitle: "用指纹或面部解锁",
-      cancelLabel: "取消",
+      title: t("biometric.title"),
+      subtitle: t("biometric.subtitle"),
+      cancelLabel: t("common.cancel"),
     });
     return result.ok === true;
   } catch {

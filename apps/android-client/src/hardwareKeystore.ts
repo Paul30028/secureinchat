@@ -4,6 +4,7 @@ import {
   type HardwareKeyWrapper,
   type HardwareLevel,
 } from "@secureinchat/secure-storage";
+import { t } from "./i18n";
 
 /**
  * C10-A：原生 HardwareKeystore 插件（KeystorePlugin.java）的 TS 封装。
@@ -39,7 +40,7 @@ function fromB64(b64: string): Uint8Array {
 /** 插件 reject 的 code → 上层能处理的失败原因 */
 function mapError(err: unknown): HardwareKeyError {
   const code = typeof err === "object" && err !== null ? (err as { code?: unknown }).code : undefined;
-  const message = err instanceof Error ? err.message : "硬件密钥库出错";
+  const message = err instanceof Error ? err.message : t("keystore.genericError");
   if (code === "KEY_MISSING") return new HardwareKeyError("missing", message);
   if (code === "KEY_INVALIDATED") return new HardwareKeyError("invalidated", message);
   return new HardwareKeyError("failed", message);

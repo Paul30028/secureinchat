@@ -1,5 +1,6 @@
 import { IndexedDbStorageBackend } from "@secureinchat/secure-storage";
 import { setBiometricUnlockEnabled } from "./biometricUnlock";
+import { t } from "./i18n";
 
 /**
  * 应用锁。
@@ -73,9 +74,9 @@ export async function isLockEnabled(): Promise<boolean> {
 export type PinValidation = { ok: true } | { ok: false; reason: string };
 
 export function validatePin(pin: string): PinValidation {
-  if (pin.length < PIN_MIN_LENGTH) return { ok: false, reason: `密码至少 ${PIN_MIN_LENGTH} 位` };
-  if (!/^\d+$/.test(pin)) return { ok: false, reason: "密码只能是数字" };
-  if (/^(\d)\1+$/.test(pin)) return { ok: false, reason: "不要使用重复的数字" };
+  if (pin.length < PIN_MIN_LENGTH) return { ok: false, reason: t("pin.tooShort", { count: PIN_MIN_LENGTH }) };
+  if (!/^\d+$/.test(pin)) return { ok: false, reason: t("pin.digitsOnly") };
+  if (/^(\d)\1+$/.test(pin)) return { ok: false, reason: t("pin.repeated") };
   return { ok: true };
 }
 
