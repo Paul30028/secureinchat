@@ -576,6 +576,11 @@ const PRINCIPLES = `    <h1>Privacy principles for the tools</h1>
     <p>What our automated tests check is listed on <a href="/testing/">how we test</a>. Found a problem? <a href="/security/">Report it</a>.</p>
 `;
 
+// Donation channels: [label, URL]. Paul registers the accounts; a channel appears on the page only once its URL is filled in here.
+const FUNDING_CHANNELS = [
+  // ['Open Collective', 'https://opencollective.com/...'],
+  // ['GitHub Sponsors', 'https://github.com/sponsors/...'],
+];
 const SPONSOR = `    <h1>How SecureInChat is funded</h1>
     <p class="meta">Last updated: ${DATE}</p>
     <p>SecureInChat is free to use and does not track you. If money ever changes hands, this page says how. See our <a href="/mission/">mission</a>.</p>
@@ -591,6 +596,30 @@ const SPONSOR = `    <h1>How SecureInChat is funded</h1>
     <p>We do not accept money from ad networks, data brokers, surveillance vendors, or companies whose main business is behavioural tracking. We can end a sponsorship at any time if it conflicts with these rules. Past sponsorships stay listed on this page.</p>
     <h2>Commission links</h2>
     <p>Some tool pages (English, Chinese and Japanese) carry commission links to Nord Security products (NordVPN, NordPass, NordLocker, Coveron). Each one is marked "affiliate link" and sits next to a plain link to the same site. A commission never changes a test result.</p>
+    <h2>Donations</h2>
+${FUNDING_CHANNELS.length
+  ? `    <p>You can support SecureInChat once or every month. Donations go through a fiscal host with a public ledger, so you can see every expense.</p>
+    <ul>
+${FUNDING_CHANNELS.map(([name, url]) => `      <li><a href="${url}" rel="noopener">${name}</a></li>`).join('\n')}
+    </ul>`
+  : `    <p><span class="tag tag--untested">Untested</span> Donation channels are being set up. Until they are listed here, nothing on this site asks you for money.</p>`}
+    <p>Giving money never gives anyone access to user data, and nothing in the apps or tools is locked behind a payment.</p>
+    <h2>Where the money goes</h2>
+    <ul>
+      <li>The message relay server for the SecureInChat app (today one small virtual server).</li>
+      <li>Testing on real low-end Android phones, which our automated tests cannot replace.</li>
+      <li>An independent security audit of the chat app. It has not had one yet.</li>
+    </ul>
+    <p>Once the fiscal host is set up, the full ledger will be linked here.</p>
+    <h2 id="sponsor-a-relay">Sponsor a relay <span class="tag tag--untested">Untested</span></h2>
+    <p>Planned. The SecureInChat app sends messages through relay servers that only ever see encrypted data. An organisation or company will be able to sponsor or run a public relay. To be listed, a relay must:</p>
+    <ul>
+      <li>run our open-source relay software without changes;</li>
+      <li>keep no IP address logs, and say so publicly;</li>
+      <li>name who operates it and who pays for it, shown in the app's server list;</li>
+      <li>accept removal from the list if it breaks these rules.</li>
+    </ul>
+    <p>A relay cannot read messages, but it can see which addresses connect and when. That is why operators must be named and must not keep logs. Sponsors get their name in the server list, nothing else.</p>
     <h2>Current sponsors</h2>
     <p>None.</p>
     <h2>Get in touch</h2>
