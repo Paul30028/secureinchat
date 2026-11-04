@@ -173,7 +173,8 @@ class Ui(val ctx: Context) {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
-        texts.addView(body(primary).apply { ellipsize = TextUtils.TruncateAt.MIDDLE })
+        // One line, shortened in the middle, so a long domain keeps its end (and the count) visible.
+        texts.addView(body(primary).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.MIDDLE })
         for (l in secondaryLines) texts.addView(caption(l))
         row.addView(texts)
         if (action != null) row.addView(action)

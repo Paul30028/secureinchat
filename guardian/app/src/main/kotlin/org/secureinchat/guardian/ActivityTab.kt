@@ -25,13 +25,17 @@ import org.secureinchat.guardian.dns.Tracker
  * from that service, not from the app. The live log is for the curious and starts folded.
  */
 class ActivityTab(a: MainActivity) : Tab(a) {
+    companion object {
+        /** Kept for the process, so a language change or rotation does not fold the log again. */
+        private var liveShown = false
+    }
+
     private lateinit var topBox: LinearLayout
     private lateinit var history: TextView
     private lateinit var liveToggle: Button
     private lateinit var liveBox: LinearLayout
     private lateinit var stats: TextView
     private lateinit var log: TextView
-    private var liveShown = false
     private var topSig = ""
     private var topBuiltAt = 0L
     private var historySig = ""

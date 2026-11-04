@@ -545,7 +545,7 @@ def main():
     print(f"guardian paused: {probe3} -> {addr}")
     if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{probe3} should resolve for real while paused, got {addr}: {out}")
-    goto("Activity")
+    show_live_log()
     find_anywhere(lambda s: f"PAUSE {probe3}" in s, f"log does not show PAUSE {probe3}", timeout=30)
     nodes = goto("Protect")
     b = button(nodes, "Resume")
@@ -821,9 +821,26 @@ def main():
     # 5c. G16: the privacy checkup shows three rows. Each row has either a working button or a
     # "Search Settings" hint, never both. A button must leave Guardian, and Back must return.
     goto("Check")
-    nodes = find_anywhere(lambda s: all(x in s for x in (
-        "Privacy checkup", "Delete your advertising ID", "Precise location", "Review app permissions")),
-        "privacy checkup rows missing")
+    # The card can be taller than the screen: collect what each scroll position shows.
+    seen = ""
+    end = time.time() + 45
+    want = ("Privacy checkup", "Delete your advertising ID", "Precise location", "Review app permissions")
+    nodes = []
+    while time.time() < end and not all(x in seen for x in want):
+        scroll_top()
+        for _ in range(6):
+            nodes = dump()
+            seen += "\n" + joined(nodes)
+            if all(x in seen for x in want):
+                break
+            swipe_up()
+            time.sleep(1)
+    if not all(x in seen for x in want):
+        fail("privacy checkup rows missing", nodes)
+    # The rows themselves: scroll until the ad row and its button or hint are on screen together.
+    nodes = find_anywhere(lambda s: "Delete your advertising ID" in s and
+                          ("Open ad settings" in s or 'Search Settings for "Ads"' in s),
+                          "ad row without its button or hint")
     s = joined(nodes)
     if ("Open ad settings" in s) == ('Search Settings for "Ads"' in s):
         fail("ad row must show exactly one of button / search hint", nodes)
