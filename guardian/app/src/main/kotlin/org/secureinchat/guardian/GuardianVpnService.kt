@@ -433,7 +433,16 @@ class GuardianVpnService : VpnService() {
         addresses = p.addresses.map { InetSocketAddress(InetAddress.getByName(it), DOT_PORT) },
         openSocket = {
             // protect() before connect, so the TLS connection bypasses Guardian's own tunnel.
+            // A fresh Socket() has no file descriptor until it is bound or connected, and protect()
+            // then returns false (CI run 41834725958: "VpnService.protect failed" on every address).
+            // bind(null) takes an ephemeral local port, which creates the descriptor.
             val s = Socket()
+            try {
+                s.bind(null)
+            } catch (e: IOException) {
+                try { s.close() } catch (_: Throwable) {}
+                throw e
+            }
             if (!protect(s)) {
                 try { s.close() } catch (_: Throwable) {}
                 throw IOException("VpnService.protect failed")
