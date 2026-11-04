@@ -870,37 +870,34 @@ def main():
     nodes = dump()
     b = button(nodes, "Stop")
     if not b:
-        # Low-importance notifications can be collapsed; expand ours by swiping down from its title.
-        # Since G20 a safety-alert notification (also titled "Guardian") can sit above ours, so take
-        # the "Guardian" title nearest above our own text line.
-        texts = [b for t, d, b, c in nodes if t in ("DNS filtering active", "Blocking ads and trackers") and b]
-        titles = [b for t, d, b, c in nodes if t == "Guardian" and b]
-        start = None
-        if texts:
-            ty = int(re.findall(r"\d+", texts[0])[1])
-            above = [b for b in titles if int(re.findall(r"\d+", b)[1]) <= ty]
-            start = max(above, key=lambda b: int(re.findall(r"\d+", b)[1])) if above else texts[0]
-        elif titles:
-            start = titles[-1]
-        # API 34 shows an "Expand" button beside each notification; tap the one level with our text.
-        expand = None
-        if texts:
+        # Low-importance notifications can be collapsed. On API 34 both Guardian notifications (ours and
+        # a G20 safety alert) are grouped: the first "Expand" opens the group, the next our own row, so
+        # re-read the screen and tap the "Expand" level with our text until Stop shows. Older versions
+        # expand on a swipe down from our title (the "Guardian" title nearest above our text).
+        for _ in range(3):
+            texts = [bb for t, d, bb, c in nodes if t in ("DNS filtering active", "Blocking ads and trackers") and bb]
+            if not texts:
+                break
             _, ty1, _, ty2 = map(int, re.findall(r"\d+", texts[0]))
+            expand = None
             for t, d, bb, c in nodes:
                 if d == "Expand" and bb:
                     _, ey1, _, ey2 = map(int, re.findall(r"\d+", bb))
                     if ey1 <= ty2 and ey2 >= ty1:
                         expand = bb
                         break
-        if expand:
-            tap(expand)
+            if expand:
+                tap(expand)
+            else:
+                titles = [bb for t, d, bb, c in nodes if t == "Guardian" and bb and int(re.findall(r"\d+", bb)[1]) <= ty1]
+                start = max(titles, key=lambda bb: int(re.findall(r"\d+", bb)[1])) if titles else texts[0]
+                x1, y1, x2, y2 = map(int, re.findall(r"\d+", start))
+                sh(f"input swipe {(x1 + x2) // 2} {y1} {(x1 + x2) // 2} {y1 + 400} 300")
             time.sleep(2)
-        elif start:
-            x1, y1, x2, y2 = map(int, re.findall(r"\d+", start))
-            sh(f"input swipe {(x1 + x2) // 2} {y1} {(x1 + x2) // 2} {y1 + 400} 300")
-            time.sleep(2)
-        nodes = dump()
-        b = button(nodes, "Stop")
+            nodes = dump()
+            b = button(nodes, "Stop")
+            if b:
+                break
     if not b:
         fail("notification Stop action not found", nodes)
     snap("notification")
