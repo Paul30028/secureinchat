@@ -67,7 +67,7 @@
 | R6 | 自建中继一键部署(Docker Compose + 文档)+ 客户端切换中继 | Claude 云端(文档、Compose);Code(客户端) | `feature/R6` | 待做 |
 | R8 | 发布签名、SHA-256 校验和、可复现构建，申请 F-Droid | Claude 云端调研;Paul 持有签名密钥 | — | 待做 |
 | P1a–c | **包 1 设备安全**：群数据彻底清除(修复退群残留群密钥和管理员身份)、空手过境、「这台手机曾离开过我」全部清除;顺带修复「PIN 输错次数用尽的清除被打开的连接挡住、实际没删」 | Claude 云端 | `feature/P1` | 待审查(fd19345 起;聊天线全部测试 + 中继 129 项通过，CI 绿;APK 构建见 Actions) |
-| P1d | 每个群一个独立设备身份 | DeepSeek 写(规格 `drop/claude/p1d.txt`)，Claude 集成 | `feature/P1` | DeepSeek 已答复，待收取审查 |
+| P1d | 每个群一个独立设备身份(新群专属 deviceId 和签名密钥，老群不变) | Claude 云端(DeepSeek 答复因浏览器剪贴板不可靠未取回，改为直接写) | `feature/P1` | 待审查(3c85db4;全部测试通过)。**C10-A 注意**:KeystorePort 新增 `deleteKeyPair`，原生 Keystore 插件也要实现 |
 | W21 | 网站「资金」页：捐助渠道(配置了才显示)、钱花在哪里、认养中继规则 | Claude 云端 | `feature/W21` | 待审查(3f770af;全部网站测试通过) |
 | R10 | 界面改用逻辑属性，为从右到左语言做准备 | Code(随 K6) | 同 K6 | 待做 |
 
