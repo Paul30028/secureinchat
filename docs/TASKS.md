@@ -28,6 +28,9 @@
 | K4 | **聊天 App 真机测试** | 不改代码;记到 `docs/device-test-chat.md`(聊天线 `feature/C10`) | 改由 Paul 做 |
 | K5 | **Exodus 宽正则不显示公司名(G15b)** | 基线 `feature/G18b` | K3 之后(Code) | 两台手机(或手机 + 模拟器):建群、扫码加群、文字/图片/语音/文件、一对一通话、阅后即焚、应用锁和指纹、截屏保护、备份导出与恢复(C9b 合入后)、断网重连 |
 
+| K6 | **拆分 `App.tsx` + 自写翻译层(中文、英文)** | 基线 `origin/feature/chat` | K2b、K3 之后(Code)。不加依赖;日期用 `Intl`;所有界面文字进 locale 文件;测试覆盖缺失键回退到中文 |
+| K7 | **首次引导、今日页卡片与签名徽章、设计令牌 v2、深色模式** | 基线 `origin/feature/chat` | 等 Paul 同意界面方向(报告 https://claude.ai/artifact/TeVokkwuRjquUavKJ9KYpx 第 7 节，示意图 `design/ui-direction-2026-11-04.png` 在 `feature/C11-icon`) |
+
 ## DeepSeek 的任务(Claude 云端会话负责发规格、收答复、审查集成)
 
 | # | 任务 | 分支 | 状态 |
@@ -37,6 +40,8 @@
 | D-C9b | 自写 DocumentSavePlugin，备份导出在真机能保存 | `feature/C10` | 已审查集成(271 个测试通过;顺手修了一个原有的阅后即焚测试抖动)。APK 由 CI 构建，真机验证归 K4 |
 | D-G17 | 扫描已装 App 内嵌的追踪 SDK(TrackerDb.byClassName;写「含有」不写「在用」) | `feature/G17`(从 G16 分出) | 规格已发 DeepSeek |
 | D-W18 | 照片/文件清理工具：清理后列出删掉了哪些字段，并自动重新检查一遍(来自用户痛点调研) | `feature/W18` | 待审查(守护会话直接写，未走 DeepSeek):1501960。新模块 cleandiff.js + 两个清理工具清理后逐类显示「已删除/仍然存在」和「再次检查」行;PNG/WebP 不做逐项声明。cleandiff 单元测试 11 项(做过变异检查),tools2/mrpage/zhphoto/zhfile 加了断言;22 组页面测试 + 20 个 node 测试全过。未合并 next、未上线 |
+| D-C11 | 新图标转 VectorDrawable(前景、背景、单色三层)+ 自写「切换图标」插件(activity-alias) | `feature/C11-icon`(SVG 源文件在 `design/icon/`) | 等 Paul 选定图标 |
+| D-C12 | 密文大小分档填充(协议层，老客户端兼容) | `feature/C12` | 待发规格 |
 
 ## Claude 云端会话自己的任务
 
@@ -45,6 +50,8 @@
 | C-G13 | G13 CI 收尾 | 完成:run 41639990376 全绿，等 Paul 合并 |
 | C-REL | 中继成员资格校验的设计(OTF 第一个里程碑) | 待审查(轮班 11-03):设计草案 `docs/protocol/RELAY_ADMISSION_DESIGN.md`,分支 `feature/C-REL` 2e2fb9b(基于 feature/chat,只加文档，没写代码)。第 9 节有 4 个要 Paul 决定的问题;中继现有 129 项测试作为基线全过 |
 | C-OTF | OTF 申请：等 Paul 注册账号和两句真实信息 | 等 Paul |
+| C-ADM / C-ROSTER | 多管理员授权与撤销;管理员签名的设备名单(自动校验，不用安全码) | 待做 |
+| C-MLS | MLS 库选型(OpenMLS / mls-rs:审计、WASM 体积、老 WebView) | 等 Paul 同意「加密库例外」 |
 
 ## 已合并 / 已上线(2026-11-03 晚，Paul 授权)
 
