@@ -7,7 +7,6 @@ import {
   FileAssembler,
   buildFileEnvelopes,
   rotateGroupKey,
-  buildInviteForGroup,
   loadKnownDevices,
   removeGroup,
   renameGroup,
@@ -15,7 +14,6 @@ import {
   saveKnownDevices,
   markDeviceSeen,
   forgetAllDevices,
-  type KnownDevice,
   sendFileEnvelopes,
   addLatencySample,
   recordDisconnect,
@@ -23,7 +21,6 @@ import {
   EMPTY_LATENCY_STATS,
   type LatencyStats,
   type DisconnectRecord,
-  describeSendProgress,
   loadMessages,
   saveMessages,
   loadJoinedGroups,
@@ -36,13 +33,8 @@ import {
   partitionExpired,
   nextExpiryMs,
   setDisappearAfter,
-  buildBackupPayload,
-  encryptBackup,
-  decryptBackup,
   mergeRestore,
-  type StoredMessage,
   type BackupPayload,
-  type ConnectionStatus,
   type AnnouncementCategory,
 } from "@secureinchat/chat-core";
 import type { InviteInfo } from "@secureinchat/ui";
@@ -51,7 +43,7 @@ import { InviteScreen } from "./screens/InviteScreen";
 import { CreateGroupScreen } from "./screens/CreateGroupScreen";
 import { MessageListScreen } from "./screens/MessageListScreen";
 import { ChatScreen, type DisplayMessage } from "./screens/ChatScreen";
-import { TodayScreen, type TodayContent } from "./screens/TodayScreen";
+import type { TodayContent } from "./screens/TodayScreen";
 import { AdminPublishScreen } from "./screens/AdminPublishScreen";
 import { QrScanScreen } from "./screens/QrScanScreen";
 import { AdminRecoveryScreen } from "./screens/AdminRecoveryScreen";
@@ -63,31 +55,19 @@ import { EditProfileScreen } from "./screens/EditProfileScreen";
 import { GroupSettingsScreen, disappearLabel } from "./screens/GroupSettingsScreen";
 import { GroupInviteScreen } from "./screens/GroupInviteScreen";
 import { BackupScreen } from "./screens/BackupScreen";
-import { isLockEnabled, disableLock } from "./appLock";
-import { checkCryptoStorage, type CapabilityResult } from "./capabilityCheck";
+import { disableLock } from "./appLock";
 import { isAdminUnlocked, setAdminUnlocked } from "./adminAccess";
 import { saveAdminKey, loadAdminKey } from "./adminKeys";
 import { CallScreen } from "./screens/CallScreen";
 import {
   CallSession,
-  createConference,
-  addParticipant,
-  updateParticipant,
-  removeParticipant,
-  setSelfMuted,
-  shouldInitiateTo,
-  isEmpty as conferenceIsEmpty,
   type CallKind,
-  type CallStateInfo,
-  type ConferenceState,
 } from "@secureinchat/webrtc";
 import {
   getDeviceStore,
   getDeviceIdentity,
-  getMasterKeyProtection,
   resetLocalEncryptedData,
 } from "./deviceIdentity";
-import { MasterKeyUnavailableError, type MasterKeyProtection } from "@secureinchat/secure-storage";
 import { KeyUnavailableScreen } from "./screens/KeyUnavailableScreen";
 import { randomUUID, signAnnouncement, verifyAnnouncement } from "@secureinchat/crypto-core";
 import { RELAY_URL, ICE_CONFIG } from "./relayConfig";
@@ -107,82 +87,20 @@ import {
   type GroupSessions,
 } from "./groupSession";
 import { isSecureContextAvailable, InsecureContextNotice } from "./SecureContextGuard";
-import { isScreenSecurityEnabled, setScreenSecurityEnabled, applyScreenSecurity, screenSecuritySupported } from "./screenSecurity";
+import { screenSecuritySupported } from "./screenSecurity";
 import {
-  biometricAvailable,
   authenticateBiometric,
-  isBiometricUnlockEnabled,
-  setBiometricUnlockEnabled,
 } from "./biometricUnlock";
 
-interface ActiveCall {
-  session: CallSession;
-  kind: CallKind;
-  info: CallStateInfo;
-  peerDeviceId: string;
-  localStream?: MediaStream;
-  remoteStream?: MediaStream;
-}
-
-type Screen =
-  | { name: "join" }
-  | { name: "createGroup" }
-  | { name: "serverSettings" }
-  | { name: "adminPublish" }
-  | { name: "scanQr" }
-  | { name: "adminRecovery" }
-  | { name: "diagnostics" }
-  | { name: "devices" }
-  | { name: "editProfile" }
-  | { name: "groupSettings"; groupId: string; from: "chat" | "list" }
-  | { name: "groupInvite"; groupId: string; from: "chat" | "list" }
-  | { name: "backup" }
-  | {
-      name: "invite";
-      invite: InviteInfo;
-      parsed?: ParsedInvite | undefined;
-      isConfirming: boolean;
-      errorMessage?: string | undefined;
-    }
-  // "messages" 和 "chat" 合成一个状态，view 只决定渲染哪个屏幕——消息数组
-  // 活在这一个对象里，在两个视图之间切换不会因为组件卸载而丢失历史。
-  | {
-      name: "connected";
-      /** 当前打开的群；null 表示在群列表页 */
-      activeGroupId: string | null;
-      view: "list" | "chat" | "search";
-      deviceId: string;
-      call?: ActiveCall | undefined;
-    };
-
-/**
- * protocol 包解析出的 InviteParseError.reason 和 ui 包 InviteInfoCard 期待的
- * reason 不是同一套枚举——前者是"哪里解析失败"（bad-prefix/invalid-json 等，
- * 面向协议实现者），后者是"给用户看的失效原因"（面向最终用户）。这里做一次
- * 明确的映射，不要把协议层的内部错误码直接展示给用户。
- */
-/** 把过期时间戳转成"有效期剩 X 天 Y 小时"这种人话 */
-function mediaLabel(kind: "image" | "voice" | "file"): string {
-  if (kind === "image") return "图片";
-  if (kind === "voice") return "语音";
-  return "文件";
-}
-
-function formatExpiry(expiresAtMs: number): string {
-  const remainMs = expiresAtMs - Date.now();
-  if (remainMs <= 0) return "已过期";
-  const hours = Math.floor(remainMs / 3_600_000);
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `有效期剩 ${days} 天 ${hours % 24} 小时`;
-  if (hours > 0) return `有效期剩 ${hours} 小时`;
-  return `有效期剩 ${Math.max(1, Math.floor(remainMs / 60_000))} 分钟`;
-}
-
-function mapParseErrorReason(reason: InviteParseError["reason"]): "expired" | "exhausted" | "malformed" {
-  if (reason === "expired") return "expired";
-  if (reason === "exhausted") return "exhausted";
-  return "malformed";
-}
+import { LIST_SCREEN, type ActiveCall, type Screen } from "./app/types";
+import { formatExpiry, mapParseErrorReason, parsedInviteFor } from "./app/invite";
+import { useDeviceSecurity } from "./app/useDeviceSecurity";
+import { useGroupInvite } from "./app/useGroupInvite";
+import { useConference } from "./app/useConference";
+import { exportBackup, previewRestore } from "./app/backup";
+import { t } from "./i18n";
+import { BusyScreen, CapabilityProblemScreen } from "./screens/StartupScreens";
+import { sendProgressText } from "./i18n/labels";
 
 let nextMessageId = 0;
 
@@ -208,117 +126,31 @@ export function App() {
   const arrivedAudioRef = useRef<Map<string, string>>(new Map());
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // 截屏保护：启动时读本机偏好并应用到窗口。
-  // 默认关闭——邀请卡片就是为了截图转发；开启后本应用界面无法截屏。
-  const [screenSecurityEnabled, setScreenSecurityEnabledState] = useState(false);
-
-  useEffect(() => {
-    if (!screenSecuritySupported()) return;
-    void (async () => {
-      const enabled = await isScreenSecurityEnabled();
-      setScreenSecurityEnabledState(enabled);
-      await applyScreenSecurity(enabled);
-    })();
-  }, []);
-
-  const handleToggleScreenSecurity = () => {
-    const next = !screenSecurityEnabled;
-    setScreenSecurityEnabledState(next);
-    void (async () => {
-      await setScreenSecurityEnabled(next);
-      await applyScreenSecurity(next);
-    })();
-  };
-  /** null = 还没查完是否启用了应用锁 */
-  const [locked, setLocked] = useState<boolean | null>(null);
-  /** 应用锁是否已启用——解锁后 locked 变 false，但应用锁本身仍启用着 */
-  const [lockEnabled, setLockEnabledState] = useState(false);
-  const [capability, setCapability] = useState<CapabilityResult | null>(null);
-
-  useEffect(() => {
-    void checkCryptoStorage().then(setCapability);
-  }, []);
-
-  // C10-A：本机主密钥能不能打开。解不开时单独一屏说明，不让后面的每一步以看不懂的方式失败。
-  const [keyProblem, setKeyProblem] = useState<MasterKeyUnavailableError | null>(null);
-  const [dataProtection, setDataProtection] = useState<MasterKeyProtection | null>(null);
-  async function probeMasterKey(): Promise<boolean> {
-    try {
-      await getDeviceStore();
-      setKeyProblem(null);
-      setDataProtection(getMasterKeyProtection());
-      return true;
-    } catch (err) {
-      if (err instanceof MasterKeyUnavailableError) {
-        setKeyProblem(err);
-        return false;
-      }
-      throw err;
-    }
-  }
-  useEffect(() => {
-    void probeMasterKey().catch(() => undefined);
-  }, []);
-  const [showLockSetup, setShowLockSetup] = useState(false);
-
-  useEffect(() => {
-    void isLockEnabled().then((enabled) => {
-      setLocked(enabled);
-      setLockEnabledState(enabled);
-    });
-  }, []);
-
-  // 指纹/面部解锁：只有原生平台且系统可用时才读偏好。
-  // 不可用时 MessageListScreen 不显示这一行（不做假功能）。
-  const [biometricSupported, setBiometricSupported] = useState(false);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-
-  useEffect(() => {
-    void (async () => {
-      const available = await biometricAvailable();
-      setBiometricSupported(available);
-      if (!available) {
-        setBiometricEnabled(false);
-        return;
-      }
-      setBiometricEnabled(await isBiometricUnlockEnabled());
-    })();
-  }, []);
-
-  const handleToggleBiometric = () => {
-    if (!lockEnabled) {
-      setShowLockSetup(true);
-      return;
-    }
-    if (biometricEnabled) {
-      setBiometricEnabled(false);
-      void setBiometricUnlockEnabled(false);
-      return;
-    }
-    void (async () => {
-      // 开启前先验证一次，避免用户开了却从没验证过
-      const ok = await authenticateBiometric();
-      if (!ok) return;
-      setBiometricEnabled(true);
-      await setBiometricUnlockEnabled(true);
-    })();
-  };
+  // 截屏保护、应用锁、指纹解锁、能力自检、本机主密钥——都是「这台设备」的状态，和群无关
+  const {
+    screenSecurityEnabled,
+    handleToggleScreenSecurity,
+    locked,
+    setLocked,
+    lockEnabled,
+    setLockEnabledState,
+    capability,
+    keyProblem,
+    dataProtection,
+    probeMasterKey,
+    showLockSetup,
+    setShowLockSetup,
+    biometricSupported,
+    biometricEnabled,
+    setBiometricEnabled,
+    handleToggleBiometric,
+  } = useDeviceSecurity();
   /** 发布圣诗音频时的进度文案 */
   const [publishProgress, setPublishProgress] = useState<string | null>(null);
-  /** 当前会议。null = 不在会议中 */
-  const [conference, setConference] = useState<ConferenceState | null>(null);
-  const [conferenceElapsed, setConferenceElapsed] = useState(0);
-  /** 会议里每个参与者一条 CallSession */
-  const conferenceSessionsRef = useRef<Map<string, CallSession>>(new Map());
-
-  useEffect(() => {
-    if (!conference) {
-      setConferenceElapsed(0);
-      return;
-    }
-    const timer = setInterval(() => setConferenceElapsed((s) => s + 1), 1000);
-    return () => clearInterval(timer);
-  }, [conference !== null]);
+  // 通话工厂：连上群时才赋值（见 connectToGroup），一对一通话和会议都用它
+  const callFactoryRef = useRef<((callId: string, peer: string, kind: CallKind) => CallSession) | null>(null);
+  const { conference, conferenceElapsed, handleConferenceFrame, startConference, leaveConference, toggleConferenceMute } =
+    useConference(callFactoryRef, myDeviceIdRef);
   // 连接质量统计。跨群共用一份——它们走的是同一条网络、同一台中继，
   // 分群统计只会把样本切碎，看不出趋势。
   const [latency, setLatency] = useState<LatencyStats>(EMPTY_LATENCY_STATS);
@@ -341,77 +173,10 @@ export function App() {
     );
   }, [sessions]);
 
-  // 群设置页是否显示「邀请新成员」——只看这个群的管理员私钥，不用全局的
-  // holdsAdminKey。那个是"有没有任意群的管理员权限"，拿到另一个群的管理员
-  // 私钥也能通过，会让非管理员看到不该看到的入口。
-  const [groupSettingsAdminAvailable, setGroupSettingsAdminAvailable] = useState(false);
-  const [groupInviteState, setGroupInviteState] = useState<
-    | { status: "loading" }
-    | { status: "ready"; groupName: string; inviteCode: string }
-    | { status: "error"; message: string }
-  >({ status: "loading" });
-
   const settingsGroupId =
     screen.name === "groupSettings" || screen.name === "groupInvite" ? screen.groupId : null;
   const inviteGroupId = screen.name === "groupInvite" ? screen.groupId : null;
-
-  useEffect(() => {
-    if (!settingsGroupId) {
-      setGroupSettingsAdminAvailable(false);
-      return;
-    }
-    let cancelled = false;
-    void loadAdminKey(settingsGroupId).then((key) => {
-      if (!cancelled) setGroupSettingsAdminAvailable(Boolean(key));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [settingsGroupId]);
-
-  // 重新生成邀请卡片：打开时读一次 JoinedGroup 里的密钥材料和 epoch，
-  // 现算邀请串；找不到这个群就报错，不显示空卡片。
-  useEffect(() => {
-    if (!inviteGroupId) return;
-    let cancelled = false;
-    setGroupInviteState({ status: "loading" });
-    void (async () => {
-      try {
-        const store = await getDeviceStore();
-        const groups = await loadJoinedGroups(store);
-        const group = groups.find((g) => g.groupId === inviteGroupId);
-        if (!group) {
-          if (!cancelled) {
-            setGroupInviteState({
-              status: "error",
-              message: "找不到这个群的密钥材料，无法生成邀请卡片。请重新加入这个群。",
-            });
-          }
-          return;
-        }
-        const inviteCode = buildInviteForGroup({
-          groupId: group.groupId,
-          groupName: group.groupName,
-          keyMaterialB64Url: group.keyMaterialB64Url,
-          epoch: group.epoch,
-          adminPublicKeyRawB64Url: group.adminPublicKeyRawB64Url,
-        });
-        if (!cancelled) {
-          setGroupInviteState({ status: "ready", groupName: group.groupName, inviteCode });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setGroupInviteState({
-            status: "error",
-            message: err instanceof Error ? err.message : "生成邀请卡片失败，请重试",
-          });
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [inviteGroupId]);
+  const { groupSettingsAdminAvailable, groupInviteState } = useGroupInvite(settingsGroupId, inviteGroupId);
   /** 正在回复的消息（每个群独立） */
   const [replyTarget, setReplyTarget] = useState<DisplayMessage | null>(null);
   const [nickname, setNickname] = useState<string | undefined>(undefined);
@@ -458,15 +223,8 @@ export function App() {
    * 也能把它的历史备份出去。C8 已把媒体 base64 落盘，所以这里拿到的
    * StoredMessage 自带媒体内容。
    */
-  async function handleExportBackup(password: string): Promise<string> {
-    const store = await getDeviceStore();
-    const groups = await loadJoinedGroups(store);
-    const messagesByGroup: Record<string, StoredMessage[]> = {};
-    for (const g of groups) {
-      messagesByGroup[g.groupId] = await loadMessages(store, g.groupId);
-    }
-    const payload = buildBackupPayload(groups, messagesByGroup, nicknameRef.current, Date.now());
-    return encryptBackup(payload, password);
+  function handleExportBackup(password: string): Promise<string> {
+    return exportBackup(nicknameRef.current, password);
   }
 
   /**
@@ -478,13 +236,9 @@ export function App() {
     text: string,
     password: string
   ): Promise<{ groups: number; messages: number; skipped: number }> {
-    const payload = await decryptBackup(text, password);
+    const { payload, preview } = await previewRestore(text, password);
     pendingRestoreRef.current = payload;
-    // 预览按真正会发生的合并来算：本机已有的群不动，只报告新增的。
-    const store = await getDeviceStore();
-    const existingGroups = await loadJoinedGroups(store);
-    const merged = mergeRestore(existingGroups, {}, payload);
-    return { groups: merged.addedGroupIds.length, messages: merged.addedMessages, skipped: merged.skippedGroupIds.length };
+    return preview;
   }
 
   /**
@@ -497,7 +251,7 @@ export function App() {
    */
   async function handleConfirmRestore(): Promise<void> {
     const payload = pendingRestoreRef.current;
-    if (!payload) throw new Error("没有待恢复的备份，请重新选择文件并解密");
+    if (!payload) throw new Error(t("backup.nothingPending"));
     pendingRestoreRef.current = null;
     const store = await getDeviceStore();
     const existingGroups = await loadJoinedGroups(store);
@@ -525,20 +279,7 @@ export function App() {
       for (const g of merged.groups) {
         if (!merged.addedGroupIds.includes(g.groupId) || sessionsRef.current[g.groupId]) continue;
         try {
-          await connectToGroup(
-            {
-              version: "SIC2",
-              isCompatMode: false,
-              serverJoinCode: "",
-              groupId: g.groupId,
-              keyMaterialB64Url: g.keyMaterialB64Url,
-              epoch: g.epoch,
-              ...(g.adminPublicKeyRawB64Url
-                ? { adminPublicKeyRawB64Url: g.adminPublicKeyRawB64Url }
-                : {}),
-            },
-            g.groupName
-          );
+          await connectToGroup(parsedInviteFor(g), g.groupName);
         } catch {
           // 单个群连不上不影响其他群；用户可在消息列表里重试
         }
@@ -644,7 +385,7 @@ export function App() {
       isOwn: true,
       system: true,
       sentAtMs: Date.now(),
-      text: ms > 0 ? `你开启了定时消失：${disappearLabel(ms)}` : "你关闭了定时消失",
+      text: ms > 0 ? t("disappear.turnedOn", { duration: disappearLabel(ms) }) : t("disappear.turnedOff"),
     });
   }
 
@@ -671,20 +412,7 @@ export function App() {
       isAutoReconnectRef.current = true;
       for (const g of groups) {
         try {
-          await connectToGroup(
-            {
-              version: "SIC2",
-              isCompatMode: false,
-              serverJoinCode: "",
-              groupId: g.groupId,
-              keyMaterialB64Url: g.keyMaterialB64Url,
-              epoch: g.epoch,
-              ...(g.adminPublicKeyRawB64Url
-                ? { adminPublicKeyRawB64Url: g.adminPublicKeyRawB64Url }
-                : {}),
-            },
-            g.groupName
-          );
+          await connectToGroup(parsedInviteFor(g), g.groupName);
         } catch {
           // 这个群连不上就跳过，继续连下一个
         }
@@ -695,7 +423,6 @@ export function App() {
   // 信令回调是在 connectToGroup 里一次性注册的闭包，拿不到最新的 screen——
   // 用 ref 让它们能读到当前通话状态，避免闭包捕获旧值这个经典坑。
   const currentCallRef = useRef<ActiveCall | undefined>(undefined);
-  const callFactoryRef = useRef<((callId: string, peer: string, kind: CallKind) => CallSession) | null>(null);
   currentCallRef.current = screen.name === "connected" ? screen.call : undefined;
 
   /**
@@ -836,7 +563,7 @@ export function App() {
                   title: env.title,
                   body: env.body,
                   audioUrl: readyUrl,
-                  audioPending: env.audioFileId && !readyUrl ? "音频接收中..." : undefined,
+                  audioPending: env.audioFileId && !readyUrl ? t("today.audioReceiving") : undefined,
                 },
               },
             });
@@ -975,31 +702,9 @@ export function App() {
       }
     });
 
-    client.onConference((frame) => {
-      if (frame.type === "conference_end") {
-        setConference((prev) => (prev ? removeParticipant(prev, frame.fromDeviceId) : prev));
-        conferenceSessionsRef.current.get(frame.fromDeviceId)?.hangup();
-        conferenceSessionsRef.current.delete(frame.fromDeviceId);
-        return;
-      }
-
-      // conference_invite：别人发起了会议，或者已在会议中的人告诉我他也在
-      setConference((prev) => {
-        const base = prev ?? createConference(frame.conferenceId);
-        const known = sessionsRef.current[groupId]?.knownDevices ?? [];
-        const displayName = known.find((d) => d.deviceId === frame.fromDeviceId)?.displayName;
-        const result = addParticipant(base, frame.fromDeviceId, displayName);
-        if (!result.ok) {
-          // 满了：告诉对方一声，别让他一直等
-          client.sendConferenceFrame("conference_end", frame.conferenceId);
-          return prev;
-        }
-        return result.state;
-      });
-
-      // 已经在同一个会议里就去建连接
-      connectToConferencePeer(frame.fromDeviceId, frame.conferenceId);
-    });
+    client.onConference((frame) =>
+      handleConferenceFrame(frame, client, sessionsRef.current[groupId]?.knownDevices ?? [])
+    );
 
     client.onPeersChange((onlinePeers) => {
       patch({ onlinePeers });
@@ -1101,7 +806,7 @@ export function App() {
       // 所以这两项暂时不显示，而不是编一个假的出来。
       const invite: InviteInfo = {
         status: "valid",
-        groupName: parsed.groupName ?? "加密群聊",
+        groupName: parsed.groupName ?? t("invite.defaultGroupName"),
         inviterName: undefined,
         expiryLabel: parsed.expiresAtMs ? formatExpiry(parsed.expiresAtMs) : undefined,
       };
@@ -1118,13 +823,13 @@ export function App() {
     setScreen({ ...screen, isConfirming: true, errorMessage: undefined });
 
     try {
-      const groupName = screen.invite.status === "valid" ? screen.invite.groupName : "邀群密聊";
+      const groupName = screen.invite.status === "valid" ? screen.invite.groupName : t("app.name");
       await connectToGroup(parsed, groupName);
     } catch (err) {
       const message =
         err instanceof MissingGroupIdError
-          ? "这个邀请是旧版兼容格式，暂不支持加密入群"
-          : `加群失败：${err instanceof Error ? err.message : "请重试"}`;
+          ? t("invite.legacyUnsupported")
+          : t("invite.joinFailed", { reason: err instanceof Error ? err.message : t("common.pleaseRetry") });
       setScreen((prev) =>
         prev.name === "invite" ? { ...prev, isConfirming: false, errorMessage: message } : prev
       );
@@ -1205,7 +910,7 @@ export function App() {
     // 否则重发会丢掉引用
     const reply = replyTarget
         ? {
-            senderName: replyTarget.isOwn ? (nickname ?? "我") : (replyTarget.fromDeviceId ?? "对方"),
+            senderName: replyTarget.isOwn ? (nickname ?? t("common.me")) : (replyTarget.fromDeviceId ?? t("common.otherPerson")),
             excerpt: buildReplyExcerpt({
               id: replyTarget.id,
               text: replyTarget.text,
@@ -1247,7 +952,7 @@ export function App() {
     } catch {
       // sendEnvelope 断线时会排队而不是抛错，所以走到这里说明是加密或
       // 序列化出了问题——那不是重发能解决的，如实报错。
-      setSessions((prev) => patchSession(prev, groupId, { sendError: "这条消息发不出去，请重试" }));
+      setSessions((prev) => patchSession(prev, groupId, { sendError: t("chat.sendFailedRetry") }));
     }
   }
 
@@ -1286,7 +991,7 @@ export function App() {
         (env) => client.sendEnvelope(env as Parameters<typeof client.sendEnvelope>[0]),
         {
           onProgress: (p) =>
-            setSessions((prev) => patchSession(prev, groupId, { sendProgress: describeSendProgress(p) })),
+            setSessions((prev) => patchSession(prev, groupId, { sendProgress: sendProgressText(p) })),
         }
       );
       setSessions((prev) => patchSession(prev, groupId, { sendProgress: undefined }));
@@ -1313,7 +1018,7 @@ export function App() {
         bytes
       );
     } catch {
-      setSessions((prev) => patchSession(prev, groupId, { sendError: "发送失败，请检查连接" }));
+      setSessions((prev) => patchSession(prev, groupId, { sendError: t("chat.sendFailedConnection") }));
     }
   }
 
@@ -1329,7 +1034,7 @@ export function App() {
     // 只有持有这个群管理员私钥的设备才能签发公告。没有私钥就发不出去——
     // 本地解锁界面不构成权限。
     const adminKey = await loadAdminKey(session.groupId);
-    if (!adminKey) throw new Error("这台设备没有该群的管理员密钥，无法发布公告");
+    if (!adminKey) throw new Error(t("admin.noKeyForGroup"));
 
     // 音频走已有的分片加密传输，公告只带一个引用——公告帧不适合塞几 MB
     let audioFileId: string | undefined;
@@ -1348,7 +1053,7 @@ export function App() {
         meta,
         chunks,
         (env) => session.client.sendEnvelope(env as Parameters<typeof session.client.sendEnvelope>[0]),
-        { onProgress: (p) => setPublishProgress(describeSendProgress(p)) }
+        { onProgress: (p) => setPublishProgress(sendProgressText(p)) }
       );
       setPublishProgress(null);
       // 本机也要能播——不然发布者自己看不到播放器
@@ -1394,51 +1099,10 @@ export function App() {
     });
   }
 
-  /**
-   * 和会议里某个人建立语音连接。
-   *
-   * 谁主动发 offer 由 shouldInitiateTo 决定（deviceId 字典序），两边必须一致，
-   * 否则会同时发 offer 撞车。
-   */
-  function connectToConferencePeer(peerDeviceId: string, conferenceId: string) {
-    const factory = callFactoryRef.current;
-    if (!factory) return;
-
-    const session = factory(`${conferenceId}:${peerDeviceId}`, peerDeviceId, "voice");
-    conferenceSessionsRef.current.set(peerDeviceId, session);
-
-    if (shouldInitiateTo(myDeviceIdRef.current, peerDeviceId)) {
-      setConference((prev) => (prev ? updateParticipant(prev, peerDeviceId, { state: "connecting" }) : prev));
-      void session.startOutgoing();
-    }
-    // 另一边会发 offer 过来，由 onSignaling 里的 call_invite 分支处理
-  }
-
   /** 发起会议：广播邀请，群里在线的人会收到 */
   function handleStartConference() {
     const session = activeSession();
-    if (!session) return;
-    const conferenceId = randomUUID();
-    setConference(createConference(conferenceId));
-    session.client.sendConferenceFrame("conference_invite", conferenceId);
-  }
-
-  /** 离开会议：断开所有连接 */
-  function handleLeaveConference() {
-    for (const s of conferenceSessionsRef.current.values()) {
-      void s.hangup();
-    }
-    conferenceSessionsRef.current.clear();
-    setConference(null);
-  }
-
-  function handleToggleConferenceMute() {
-    setConference((prev) => {
-      if (!prev) return prev;
-      const next = setSelfMuted(prev, !prev.selfMuted);
-      for (const s of conferenceSessionsRef.current.values()) s.setMuted(next.selfMuted);
-      return next;
-    });
+    if (session) startConference(session.client);
   }
 
   /**
@@ -1473,7 +1137,7 @@ export function App() {
    */
   async function handleRotateKey(): Promise<string> {
     const session = activeSession() ?? sortSessions(sessions)[0];
-    if (!session) throw new Error("没有可以更换密钥的群");
+    if (!session) throw new Error(t("admin.noGroupToRotate"));
 
     const rotated = rotateGroupKey({
       groupId: session.groupId,
@@ -1528,7 +1192,7 @@ export function App() {
       sessionsRef.current = next;
       return next;
     });
-    setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+    setScreen(LIST_SCREEN);
   }
 
   /** 各群的今日内容合并显示——小团体通常只有一个群，多群时后加入的覆盖先加入的 */
@@ -1554,29 +1218,12 @@ export function App() {
 
   // 能力自检最先——地基不行的话，后面每一步都会以看不懂的方式失败
   if (capability && !capability.ok) {
-    return (
-      <div
-        style={{
-          minHeight: "100%",
-          background: "#EBECE5",
-          padding: 32,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          gap: 12,
-        }}
-      >
-        <div style={{ fontSize: 16, fontWeight: 500, color: "#2B2B28" }}>{capability.reason}</div>
-        {capability.detail ? (
-          <div style={{ fontSize: 13, color: "#8A8A82", lineHeight: 1.8 }}>{capability.detail}</div>
-        ) : null}
-      </div>
-    );
+    return <CapabilityProblemScreen reason={capability.reason} detail={capability.detail} />;
   }
 
   // 应用锁在最前面——手机被别人拿到时，连群名都不该看到
   if (locked === null) {
-    return <div style={{ minHeight: "100%", background: "#EBECE5" }} aria-busy="true" />;
+    return <BusyScreen />;
   }
   if (locked) {
     return (
@@ -1634,7 +1281,7 @@ export function App() {
   // 读得慢时老用户被重复要求设昵称，或者新用户点得快就绕过了设置。
   // 这一步通常是几十毫秒，用户几乎察觉不到。
   if (!profileLoaded) {
-    return <div style={{ minHeight: "100%", background: "#EBECE5" }} aria-busy="true" />;
+    return <BusyScreen />;
   }
 
   if (needsProfile) {
@@ -1653,7 +1300,7 @@ export function App() {
           const go = () => setScreen({ name: "scanQr" });
           if (!requireProfile(go)) go();
         }}
-        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onBack={() => setScreen(LIST_SCREEN)}
       />
     );
   }
@@ -1663,7 +1310,7 @@ export function App() {
       <ServerSettingsScreen
         defaultUrl={RELAY_URL}
         onSaved={(url) => setRelayUrl(url)}
-        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onBack={() => setScreen(LIST_SCREEN)}
       />
     );
   }
@@ -1678,9 +1325,9 @@ export function App() {
         onLockAdmin={() => {
           void setAdminUnlocked(false);
           setIsAdmin(false);
-          setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+          setScreen(LIST_SCREEN);
         }}
-        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onBack={() => setScreen(LIST_SCREEN)}
       />
     );
   }
@@ -1692,9 +1339,9 @@ export function App() {
         onSaved={(name) => {
           nicknameRef.current = name;
           setNickname(name);
-          setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+          setScreen(LIST_SCREEN);
         }}
-        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onBack={() => setScreen(LIST_SCREEN)}
       />
     );
   }
@@ -1702,7 +1349,7 @@ export function App() {
   if (screen.name === "groupSettings") {
     const s = sessions[screen.groupId];
     if (!s) {
-      return <div style={{ minHeight: "100%", background: "#EBECE5" }} aria-busy="true" />;
+      return <BusyScreen />;
     }
     return (
       <GroupSettingsScreen
@@ -1721,7 +1368,7 @@ export function App() {
           // 从哪儿进来就回哪儿——从列表长按进来的，返回不该跳进聊天页
           setScreen(
             screen.name === "groupSettings" && screen.from === "list"
-              ? { name: "connected", activeGroupId: null, view: "list", deviceId: "" }
+              ? LIST_SCREEN
               : { name: "connected", activeGroupId: s.groupId, view: "chat", deviceId: "" }
           )
         }
@@ -1750,7 +1397,7 @@ export function App() {
   if (screen.name === "backup") {
     return (
       <BackupScreen
-        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onBack={() => setScreen(LIST_SCREEN)}
         onExport={handleExportBackup}
         onPreviewRestore={handlePreviewRestore}
         onConfirmRestore={handleConfirmRestore}
@@ -1766,7 +1413,7 @@ export function App() {
         devices={s?.knownDevices ?? []}
         onlineNow={s?.onlinePeers ?? []}
         myDeviceId={screen.name === "devices" ? myDeviceIdRef.current : ""}
-        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onBack={() => setScreen(LIST_SCREEN)}
       />
     );
   }
@@ -1779,7 +1426,7 @@ export function App() {
         status={sortSessions(sessions)[0]?.connectionStatus ?? "disconnected"}
         latency={latency}
         disconnects={disconnects}
-        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onBack={() => setScreen(LIST_SCREEN)}
       />
     );
   }
@@ -1796,9 +1443,9 @@ export function App() {
           setHoldsAdminKey(true);
           setIsAdmin(true);
           void setAdminUnlocked(true);
-          setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
+          setScreen(LIST_SCREEN);
         }}
-        onBack={() => setScreen({ name: "connected", activeGroupId: null, view: "list", deviceId: "" })}
+        onBack={() => setScreen(LIST_SCREEN)}
       />
     );
   }
@@ -1839,8 +1486,8 @@ export function App() {
         groupName={s?.groupName ?? ""}
         myNickname={nickname}
         elapsedSec={conferenceElapsed}
-        onToggleSelfMute={handleToggleConferenceMute}
-        onLeave={handleLeaveConference}
+        onToggleSelfMute={toggleConferenceMute}
+        onLeave={leaveConference}
       />
     );
   }
@@ -1854,7 +1501,7 @@ export function App() {
         hasTurn={ICE_CONFIG.hasTurn}
         kind={call.kind}
         info={call.info}
-        peerLabel={callSession?.groupName ?? "通话"}
+        peerLabel={callSession?.groupName ?? t("call.defaultPeerLabel")}
         localStream={call.localStream}
         remoteStream={call.remoteStream}
         onAccept={() => void call.session.accept()}
@@ -1871,7 +1518,6 @@ export function App() {
     );
   }
 
-  const allSessions = sortSessions(sessions);
   const active = activeSession();
 
   if (screen.view === "list" || !active) {
