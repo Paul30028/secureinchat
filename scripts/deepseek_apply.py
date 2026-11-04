@@ -14,7 +14,7 @@ import re
 import sys
 
 ALLOWED = ("apps/", "packages/", "server/", "scripts/", "docs/", "src/", "build/", "tests/")
-BLOCK = re.compile(r"^=== FILE: (?P<path>[^\n]+?) ===\n(?P<body>.*?)\n=== END FILE ===$", re.M | re.S)
+BLOCK = re.compile(r"^=== FILE: (?P<path>[^\n]+?) ===\n(?P<body>.*?)\n=== END FILE(?: ===)?[ \t]*$", re.M | re.S)
 
 
 def main(answer_path: str) -> None:
