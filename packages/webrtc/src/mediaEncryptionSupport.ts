@@ -16,11 +16,11 @@
 
 export type MediaEncryptionSupport =
   | { supported: true; api: "encoded-transform" | "insertable-streams" }
-  | { supported: false; reason: string };
+  | { supported: false; reason: string; code: "no-webrtc" | "no-frame-encryption" };
 
 export function detectMediaEncryptionSupport(): MediaEncryptionSupport {
   if (typeof RTCPeerConnection === "undefined") {
-    return { supported: false, reason: "这个环境不支持 WebRTC" };
+    return { supported: false, reason: "这个环境不支持 WebRTC", code: "no-webrtc" };
   }
 
   // 新标准:RTCRtpSender.transform
@@ -37,6 +37,7 @@ export function detectMediaEncryptionSupport(): MediaEncryptionSupport {
   return {
     supported: false,
     reason: "这台设备的浏览器内核不支持媒体帧加密（需要较新的 Chromium）",
+    code: "no-frame-encryption",
   };
 }
 

@@ -67,7 +67,7 @@ describe("detectMediaEncryptionSupport", () => {
 
 describe("describeMediaEncryptionSupport", () => {
   it("spells out the two options when unsupported, rather than just saying no", () => {
-    const text = describeMediaEncryptionSupport({ supported: false, reason: "内核太旧" });
+    const text = describeMediaEncryptionSupport({ supported: false, reason: "内核太旧", code: "no-frame-encryption" });
     expect(text).toContain("8 人以内");
     expect(text).toContain("服务器能看到");
   });

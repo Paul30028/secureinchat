@@ -84,7 +84,10 @@ export function recordReconnect(history: DisconnectRecord[], atMs: number): Disc
 
 export type ProbeResult =
   | { ok: true; elapsedMs: number }
-  | { ok: false; reason: string };
+  | { ok: false; reason: string; code: ProbeFailure };
+
+/** 失败原因的机器可读代码：界面按它显示当前语言的文字，reason 是中文说明 */
+export type ProbeFailure = "timeout" | "bad-url" | "not-relay" | "bad-reply" | "unreachable" | "closed";
 
 /**
  * 主动测一次连接。
@@ -118,14 +121,14 @@ export async function probeRelay(
     };
 
     const timer = setTimeout(
-      () => finish({ ok: false, reason: "连接超时，服务器没有响应" }),
+      () => finish({ ok: false, reason: "连接超时，服务器没有响应", code: "timeout" }),
       timeoutMs
     );
 
     try {
       ws = new WS(url);
     } catch {
-      finish({ ok: false, reason: "地址格式不正确" });
+      finish({ ok: false, reason: "地址格式不正确", code: "bad-url" });
       return;
     }
 
@@ -137,13 +140,13 @@ export async function probeRelay(
           return;
         }
         // 连上了但第一帧不是 auth_challenge——多半连到了别的服务
-        finish({ ok: false, reason: "连上了，但对方不是这个应用的服务器" });
+        finish({ ok: false, reason: "连上了，但对方不是这个应用的服务器", code: "not-relay" });
       } catch {
-        finish({ ok: false, reason: "服务器返回了无法识别的内容" });
+        finish({ ok: false, reason: "服务器返回了无法识别的内容", code: "bad-reply" });
       }
     };
 
-    ws.onerror = () => finish({ ok: false, reason: "连不上，请检查网络和服务器地址" });
-    ws.onclose = () => finish({ ok: false, reason: "连接被关闭" });
+    ws.onerror = () => finish({ ok: false, reason: "连不上，请检查网络和服务器地址", code: "unreachable" });
+    ws.onclose = () => finish({ ok: false, reason: "连接被关闭", code: "closed" });
   });
 }

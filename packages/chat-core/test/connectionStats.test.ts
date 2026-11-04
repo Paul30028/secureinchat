@@ -121,7 +121,10 @@ describe("probeRelay", () => {
   it("fails clearly when something else answers on that address", async () => {
     const result = await probeRelay("wss://relay.test", { WebSocketImpl: socketFactory("wrong") });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toContain("不是这个应用的服务器");
+    if (!result.ok) {
+      expect(result.reason).toContain("不是这个应用的服务器");
+      expect(result.code).toBe("not-relay");
+    }
   });
 
   it("fails when the socket errors", async () => {
@@ -135,6 +138,9 @@ describe("probeRelay", () => {
       timeoutMs: 30,
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toContain("超时");
+    if (!result.ok) {
+      expect(result.reason).toContain("超时");
+      expect(result.code).toBe("timeout");
+    }
   });
 });

@@ -35,10 +35,28 @@ export const MIN_BACKUP_PASSWORD_LENGTH = 10;
 /** 固定 AAD：绑定「这段密文属于备份文件 v1」，防止被挪用到别的上下文。 */
 const BACKUP_AAD = new TextEncoder().encode("sic-backup:v1");
 
+/**
+ * 出错原因的机器可读代码。界面按它显示当前语言的文字（App 的 i18n），
+ * message 仍是中文说明，给日志和其他调用方。
+ */
+export type BackupErrorCode =
+  | "password-too-short"
+  | "bad-iterations"
+  | "encrypt-failed"
+  | "not-json"
+  | "bad-format"
+  | "bad-kdf"
+  | "incomplete"
+  | "bad-base64"
+  | "wrong-password"
+  | "bad-content";
+
 export class BackupError extends Error {
-  constructor(message: string) {
+  readonly code: BackupErrorCode;
+  constructor(message: string, code: BackupErrorCode) {
     super(message);
     this.name = "BackupError";
+    this.code = code;
   }
 }
 
@@ -123,10 +141,10 @@ export async function encryptBackup(
   iterations: number = DEFAULT_KDF_ITERATIONS
 ): Promise<string> {
   if (password.length < MIN_BACKUP_PASSWORD_LENGTH) {
-    throw new BackupError(`备份密码至少 ${MIN_BACKUP_PASSWORD_LENGTH} 个字符`);
+    throw new BackupError(`备份密码至少 ${MIN_BACKUP_PASSWORD_LENGTH} 个字符`, "password-too-short");
   }
   if (!Number.isInteger(iterations) || iterations <= 0 || iterations > MAX_KDF_ITERATIONS) {
-    throw new BackupError("PBKDF2 迭代次数必须是合理的正整数");
+    throw new BackupError("PBKDF2 迭代次数必须是合理的正整数", "bad-iterations");
   }
 
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
@@ -140,7 +158,7 @@ export async function encryptBackup(
     iv = out.iv;
     ciphertext = out.ciphertext;
   } catch (err) {
-    throw new BackupError(`加密失败：${err instanceof Error ? err.message : "请重试"}`);
+    throw new BackupError(`加密失败：${err instanceof Error ? err.message : "请重试"}`, "encrypt-failed");
   }
 
   const file: BackupFile = {
@@ -172,14 +190,14 @@ export async function decryptBackup(text: string, password: string): Promise<Bac
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new BackupError("备份文件不是合法 JSON");
+    throw new BackupError("备份文件不是合法 JSON", "not-json");
   }
   if (typeof parsed !== "object" || parsed === null) {
-    throw new BackupError("备份文件格式不对");
+    throw new BackupError("备份文件格式不对", "bad-format");
   }
   const file = parsed as Partial<BackupFile>;
   if (file.format !== BACKUP_FORMAT || file.v !== BACKUP_VERSION) {
-    throw new BackupError("备份文件格式不对");
+    throw new BackupError("备份文件格式不对", "bad-format");
   }
   const kdf = file.kdf;
   if (
@@ -193,10 +211,10 @@ export async function decryptBackup(text: string, password: string): Promise<Bac
     kdf.iter > MAX_KDF_ITERATIONS ||
     typeof kdf.salt !== "string"
   ) {
-    throw new BackupError("备份文件的密钥派生参数不对");
+    throw new BackupError("备份文件的密钥派生参数不对", "bad-kdf");
   }
   if (typeof file.iv !== "string" || typeof file.ct !== "string") {
-    throw new BackupError("备份文件内容不完整");
+    throw new BackupError("备份文件内容不完整", "incomplete");
   }
 
   let salt: Uint8Array;
@@ -207,10 +225,10 @@ export async function decryptBackup(text: string, password: string): Promise<Bac
     iv = base64UrlToBytes(file.iv);
     ciphertext = base64UrlToBytes(file.ct);
   } catch {
-    throw new BackupError("备份文件内容不是合法的 base64url");
+    throw new BackupError("备份文件内容不是合法的 base64url", "bad-base64");
   }
   if (salt.byteLength === 0 || iv.byteLength === 0 || ciphertext.byteLength === 0) {
-    throw new BackupError("备份文件内容不完整");
+    throw new BackupError("备份文件内容不完整", "incomplete");
   }
 
   let plaintext: Uint8Array;
@@ -219,17 +237,17 @@ export async function decryptBackup(text: string, password: string): Promise<Bac
     plaintext = await decryptAead(key, { iv, ciphertext }, BACKUP_AAD);
   } catch {
     // 不区分「密码错」和「文件被改」——统一提示，避免给攻击者侧信道信息
-    throw new BackupError("密码不对，或文件已损坏");
+    throw new BackupError("密码不对，或文件已损坏", "wrong-password");
   }
 
   let payload: unknown;
   try {
     payload = JSON.parse(new TextDecoder().decode(plaintext));
   } catch {
-    throw new BackupError("备份内容不是合法 JSON");
+    throw new BackupError("备份内容不是合法 JSON", "bad-content");
   }
   if (!isBackupPayload(payload)) {
-    throw new BackupError("备份内容格式不对");
+    throw new BackupError("备份内容格式不对", "bad-content");
   }
   return payload;
 }

@@ -78,12 +78,14 @@ describe("encryptBackup / decryptBackup", () => {
     const payload: BackupPayload = { createdAtMs: 0, groups: [], messagesByGroup: {} };
     const short = "x".repeat(MIN_BACKUP_PASSWORD_LENGTH - 1);
     await expect(encryptBackup(payload, short, TEST_ITER)).rejects.toBeInstanceOf(BackupError);
+    await expect(encryptBackup(payload, short, TEST_ITER)).rejects.toMatchObject({ code: "password-too-short" });
   });
 
   it("错密码解密失败，抛 BackupError", async () => {
     const payload: BackupPayload = { createdAtMs: 0, groups: [], messagesByGroup: {} };
     const text = await encryptBackup(payload, TEST_PASSWORD, TEST_ITER);
     await expect(decryptBackup(text, "wrong-password")).rejects.toBeInstanceOf(BackupError);
+    await expect(decryptBackup(text, "wrong-password")).rejects.toMatchObject({ code: "wrong-password" });
     await expect(decryptBackup(text, "wrong-password")).rejects.toThrow(
       "密码不对，或文件已损坏"
     );
@@ -100,7 +102,7 @@ describe("encryptBackup / decryptBackup", () => {
   });
 
   it("格式字段不对时报错", async () => {
-    await expect(decryptBackup("not json at all", TEST_PASSWORD)).rejects.toBeInstanceOf(BackupError);
+    await expect(decryptBackup("not json at all", TEST_PASSWORD)).rejects.toMatchObject({ code: "not-json" });
     await expect(
       decryptBackup(JSON.stringify({ format: "wrong", v: 1 }), TEST_PASSWORD)
     ).rejects.toBeInstanceOf(BackupError);

@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { colors, touchTarget, Button } from "@secureinchat/ui";
 import { saveTextFile } from "../documentSave";
+import { t } from "../i18n";
+import { backupErrorText } from "../i18n/labels";
 
 /** 备份密码最短长度。和 chat-core 的 MIN_BACKUP_PASSWORD_LENGTH 保持一致。 */
 const MIN_BACKUP_PASSWORD_LENGTH = 10;
@@ -95,11 +97,11 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
     setExportError(null);
     setExportDone(false);
     if (exportPassword.length < MIN_BACKUP_PASSWORD_LENGTH) {
-      setExportError(`备份密码至少 ${MIN_BACKUP_PASSWORD_LENGTH} 个字符`);
+      setExportError(t("backup.passwordTooShort", { count: MIN_BACKUP_PASSWORD_LENGTH }));
       return;
     }
     if (exportPassword !== exportConfirm) {
-      setExportError("两次输入的密码不一致");
+      setExportError(t("backup.passwordMismatch"));
       return;
     }
     setExportBusy(true);
@@ -116,7 +118,7 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
       setExportPassword("");
       setExportConfirm("");
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : "生成备份失败，请重试");
+      setExportError(backupErrorText(err, err instanceof Error ? err.message : t("backup.exportFailed")));
     } finally {
       setExportBusy(false);
     }
@@ -131,7 +133,7 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
       setRestoreText(text);
       setRestoreFileName(file.name);
     } catch {
-      setRestoreError("读取文件失败");
+      setRestoreError(t("backup.readFailed"));
       setRestoreText(null);
       setRestoreFileName("");
     }
@@ -148,7 +150,7 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
       setPreview(result);
     } catch (err) {
       // 解密失败统一提示，不区分「密码错」和「文件被改」
-      setRestoreError(err instanceof Error ? err.message : "密码不对，或文件已损坏");
+      setRestoreError(backupErrorText(err, err instanceof Error ? err.message : t("backup.wrongPassword")));
     } finally {
       setRestoreBusy(false);
     }
@@ -166,7 +168,7 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
       setRestoreFileName("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
-      setRestoreError(err instanceof Error ? err.message : "恢复失败，请重试");
+      setRestoreError(backupErrorText(err, err instanceof Error ? err.message : t("backup.restoreFailed")));
     } finally {
       setRestoreBusy(false);
     }
@@ -176,7 +178,7 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
     <div style={{ minHeight: "100%", background: colors.ivory, padding: 24, overflowY: "auto" }}>
       <button
         onClick={onBack}
-        aria-label="返回"
+        aria-label={t("common.back")}
         style={{
           background: "transparent",
           border: "none",
@@ -188,14 +190,12 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
           minHeight: touchTarget.minDp,
         }}
       >
-        ← 返回
+        {t("common.backArrow")}
       </button>
 
-      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 8px" }}>备份与恢复</h1>
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 8px" }}>{t("me.backup")}</h1>
       <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "0 0 20px" }}>
-        备份里有你的群和聊天记录，用你设的密码加密。忘记密码就无法恢复。
-        设备密钥和管理员私钥不在备份里——管理员请另外保存好管理员恢复码。
-        正在倒计时的阅后即焚消息不会被备份。
+        {t("backup.intro")}
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
@@ -204,20 +204,20 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
           onClick={() => setMode("export")}
           style={{ flex: 1 }}
         >
-          导出备份
+          {t("backup.exportTab")}
         </Button>
         <Button
           variant={mode === "restore" ? "primary" : "secondary"}
           onClick={() => setMode("restore")}
           style={{ flex: 1 }}
         >
-          从备份恢复
+          {t("backup.restoreTab")}
         </Button>
       </div>
 
       {mode === "export" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 14, color: colors.textPrimary }}>设置备份密码</div>
+          <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("backup.setPassword")}</div>
           <input
             type="password"
             value={exportPassword}
@@ -226,8 +226,8 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
               setExportError(null);
               setExportDone(false);
             }}
-            aria-label="备份密码输入框"
-            placeholder={`至少 ${MIN_BACKUP_PASSWORD_LENGTH} 个字符`}
+            aria-label={t("backup.passwordInput")}
+            placeholder={t("backup.passwordPlaceholder", { count: MIN_BACKUP_PASSWORD_LENGTH })}
             style={inputStyle}
           />
           <input
@@ -238,8 +238,8 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
               setExportError(null);
               setExportDone(false);
             }}
-            aria-label="再次输入备份密码"
-            placeholder="再输一次"
+            aria-label={t("backup.passwordRepeatInput")}
+            placeholder={t("backup.passwordRepeatPlaceholder")}
             style={inputStyle}
           />
           {exportError ? (
@@ -249,7 +249,7 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
           ) : null}
           {exportDone ? (
             <p role="status" style={successStyle}>
-              备份已保存。请把文件放到安全的地方——密码忘了就打不开了。
+              {t("backup.exportDone")}
             </p>
           ) : null}
           <Button
@@ -257,12 +257,12 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
             onClick={() => void handleExport()}
             disabled={exportBusy || exportPassword.length === 0 || exportConfirm.length === 0}
           >
-            {exportBusy ? "生成中..." : "生成备份文件"}
+            {exportBusy ? t("backup.exporting") : t("backup.exportButton")}
           </Button>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 14, color: colors.textPrimary }}>选择备份文件</div>
+          <div style={{ fontSize: 14, color: colors.textPrimary }}>{t("backup.chooseFile")}</div>
           <input
             ref={fileInputRef}
             type="file"
@@ -271,7 +271,7 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
               const file = e.target.files?.[0];
               if (file) void handleFileChosen(file);
             }}
-            aria-label="选择备份文件"
+            aria-label={t("backup.chooseFile")}
             style={{
               minHeight: touchTarget.minDp,
               fontSize: 13,
@@ -279,10 +279,10 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
             }}
           />
           {restoreFileName ? (
-            <p style={{ fontSize: 11, color: "#9A9A94", margin: 0 }}>已选择：{restoreFileName}</p>
+            <p style={{ fontSize: 11, color: "#9A9A94", margin: 0 }}>{t("backup.chosen", { fileName: restoreFileName })}</p>
           ) : null}
 
-          <div style={{ fontSize: 14, color: colors.textPrimary, marginTop: 8 }}>输入备份密码</div>
+          <div style={{ fontSize: 14, color: colors.textPrimary, marginTop: 8 }}>{t("backup.enterPassword")}</div>
           <input
             type="password"
             value={restorePassword}
@@ -291,8 +291,8 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
               setRestoreError(null);
               setPreview(null);
             }}
-            aria-label="恢复密码输入框"
-            placeholder="导出时设置的密码"
+            aria-label={t("backup.restorePasswordInput")}
+            placeholder={t("backup.restorePasswordPlaceholder")}
             style={inputStyle}
           />
 
@@ -312,22 +312,22 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
               }}
             >
               <p style={{ fontSize: 13, color: colors.textPrimary, margin: 0 }}>
-                将恢复 {preview.groups} 个群、{preview.messages} 条消息。
+                {t("backup.previewCounts", { groups: preview.groups, messages: preview.messages })}
               </p>
               {preview.skipped ? (
                 <p style={{ fontSize: 12, color: colors.textPrimary, margin: "6px 0 0" }}>
-                  另有 {preview.skipped} 个群本机已有，保持不变，不导入它们的旧记录。
+                  {t("backup.previewSkipped", { count: preview.skipped })}
                 </p>
               ) : null}
               <p style={{ fontSize: 11, color: "#9A9A94", margin: "6px 0 0", lineHeight: 1.6 }}>
-                只添加本机没有的群，不会改动已有的群和消息。恢复后会自动重连新添加的群。
+                {t("backup.previewNote")}
               </p>
             </div>
           ) : null}
 
           {restoreDone ? (
             <p role="status" style={successStyle}>
-              恢复完成。回到消息列表就能看到恢复的群。
+              {t("backup.restoreDone")}
             </p>
           ) : null}
 
@@ -337,11 +337,11 @@ export function BackupScreen({ onBack, onExport, onPreviewRestore, onConfirmRest
               onClick={() => void handlePreview()}
               disabled={restoreBusy || !restoreText || restorePassword.length === 0}
             >
-              {restoreBusy ? "解密中..." : "解密并预览"}
+              {restoreBusy ? t("backup.decrypting") : t("backup.decryptPreview")}
             </Button>
           ) : (
             <Button variant="primary" onClick={() => void handleConfirmRestore()} disabled={restoreBusy}>
-              {restoreBusy ? "恢复中..." : "确认恢复"}
+              {restoreBusy ? t("backup.restoring") : t("backup.confirmRestore")}
             </Button>
           )}
         </div>

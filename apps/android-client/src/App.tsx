@@ -98,13 +98,15 @@ import { useDeviceSecurity } from "./app/useDeviceSecurity";
 import { useGroupInvite } from "./app/useGroupInvite";
 import { useConference } from "./app/useConference";
 import { exportBackup, previewRestore } from "./app/backup";
-import { t } from "./i18n";
+import { t, useLocale } from "./i18n";
 import { BusyScreen, CapabilityProblemScreen } from "./screens/StartupScreens";
 import { sendProgressText } from "./i18n/labels";
 
 let nextMessageId = 0;
 
 export function App() {
+  // 订阅当前语言：在「我的」页切换语言时整个界面重渲染
+  useLocale();
   const [screen, setScreen] = useState<Screen>({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
   // 应用内配置的中继地址优先于构建时注入的默认值——换服务器不用重新打包
   const [relayUrl, setRelayUrl] = useState<string>(RELAY_URL);
