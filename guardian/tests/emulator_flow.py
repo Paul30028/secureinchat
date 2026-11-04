@@ -671,14 +671,22 @@ def main():
     nodes = dump()
     b = button(nodes, "Stop")
     if not b:
-        # Low-importance notifications can be collapsed; expand ours by swiping down on its text. Not on
-        # the first "Guardian" title: since G20 a safety-alert notification from step 4a2 sits above it.
-        for t, d, bounds, c in nodes:
-            if t in ("DNS filtering active", "Blocking ads and trackers") and bounds:
-                x1, y1, x2, y2 = map(int, re.findall(r"\d+", bounds))
-                sh(f"input swipe {(x1 + x2) // 2} {y1} {(x1 + x2) // 2} {y1 + 400} 300")
-                time.sleep(2)
-                break
+        # Low-importance notifications can be collapsed; expand ours by swiping down from its title.
+        # Since G20 a safety-alert notification (also titled "Guardian") can sit above ours, so take
+        # the "Guardian" title nearest above our own text line.
+        texts = [b for t, d, b, c in nodes if t in ("DNS filtering active", "Blocking ads and trackers") and b]
+        titles = [b for t, d, b, c in nodes if t == "Guardian" and b]
+        start = None
+        if texts:
+            ty = int(re.findall(r"\d+", texts[0])[1])
+            above = [b for b in titles if int(re.findall(r"\d+", b)[1]) <= ty]
+            start = max(above, key=lambda b: int(re.findall(r"\d+", b)[1])) if above else texts[0]
+        elif titles:
+            start = titles[-1]
+        if start:
+            x1, y1, x2, y2 = map(int, re.findall(r"\d+", start))
+            sh(f"input swipe {(x1 + x2) // 2} {y1} {(x1 + x2) // 2} {y1 + 400} 300")
+            time.sleep(2)
         nodes = dump()
         b = button(nodes, "Stop")
     if not b:
