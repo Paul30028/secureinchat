@@ -6,3 +6,5 @@ export * from "./browserKeystore";
 export * from "./persistentMasterKey";
 export * from "./randomUuid";
 export * from "./adminSignature";
+export * from "./adminSet";
+export * from "./deviceRoster";
