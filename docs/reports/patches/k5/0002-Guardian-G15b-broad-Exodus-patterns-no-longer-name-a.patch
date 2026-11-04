@@ -1,0 +1,166 @@
+From 82738e0c3c8c5e595c4de9ae28c418ca9a473ef9 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Tue, 3 Nov 2026 14:17:26 +0000
+Subject: [PATCH 2/2] Guardian G15b: broad Exodus patterns no longer name a
+ tracker
+
+Rows whose network regex is only "any subdomain of one domain"
+(every | alternative of the form \.<label>\.<tld>, no groups) are
+marked broad; byDomain skips them, byClassName (G17) is unaffected.
+With the bundled data: 14 rows. 8 are the intended Google Ads
+(\.google\.com) and Facebook (\.facebook\.com) rows, so mail.google.com
+or graph.facebook.com no longer show "Google Ads" / "Facebook Audience".
+6 are trackers' own domains (ChartBoost, Dynatrace, DOV-E, Glympse,
+Lenddo, Cifrasoft) that lose a correct label; nothing is mislabelled.
+Reported to the planner as a possible follow-up (an explicit list of
+first-party domains instead of the syntactic rule).
+
+withNetwork still counts every row with a regex; broadCount is new.
+TrackerDbTest 12 -> 15 groups. Mutations (not skipping broad rows,
+treating everything as broad, any-instead-of-all) each fail a test.
+All 13 core test classes and policy_check pass. README row added.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Dphx7H7WfpCsybM6HswWFN
+---
+ guardian/README.md                            |  1 +
+ .../secureinchat/guardian/dns/TrackerDb.kt    | 35 ++++++++++++++++---
+ .../guardian/dns/TrackerDbTest.kt             | 34 ++++++++++++++++++
+ 3 files changed, 65 insertions(+), 5 deletions(-)
+
+diff --git a/guardian/README.md b/guardian/README.md
+index 37118fb..959454f 100644
+--- a/guardian/README.md
++++ b/guardian/README.md
+@@ -24,6 +24,7 @@ Licensed GPL-3.0-or-later.
+ | Block history (G12) | DeepSeek wrote to Claude's spec: per-day block counts only (a date and a number, never a domain), kept for 7 days in `StatsStore`, written once a minute and on stop; a "Blocked today: N · last 7 days: M" row that shows even when stopped, and "Clear block history". `DailyCountsTest` (13 groups) passes; `policy_check.py` forbids `domain`, `qname` and `uid` in StatsStore.kt; the emulator flow checks the count is above 0 after stopping and that Clear resets it. |
+ | CNAME uncloaking (G14) | Claude wrote this. Trackers hide behind a first-party subdomain whose CNAME points at the tracker; the query name is on no list. `DnsAnswer.cnameTargets` reads the CNAME chain of each upstream answer (compression pointers, bounds-checked, at most 16 jumps and 64 records, anything malformed is forwarded unchanged). If a target is blocked, Guardian returns its usual blocked answer and the log line reads "metrics.shop.example → really shop.tracker.example". Your allow on the query name or on the target wins; nothing is uncloaked while paused. `CnameTest` (11 groups, including 20,000 random messages and every truncation) passes; a mutation that disables the check fails it. These blocks count in the daily history but not in "Blocked most often", whose rule line is computed from the query name. |
+ | Tracker company names (G15) | DeepSeek wrote TrackerDb and the UI to Claude's spec; Claude fixed three string escapes the chat page had eaten. Bundled Exodus Privacy tracker data (ODbL v1.0 / DbCL v1.0, attributed in the app and in the asset header; 432 trackers, 260 with network signatures; `tools/update_trackers.py`). Each "Blocked most often" row gets a line such as "Tracker: Google DoubleClick · Advertisement"; blocked log lines end with the company name (for a CNAME block, the real target's company). Lookups are cached (LRU 512). `TrackerDbTest` (9 groups, including the real file: doubleclick.net → Google DoubleClick) passes; the emulator flow checks the doubleclick.net row. `TrackerDb.byClassName` is ready for G17. |
++| Broad Exodus patterns get no company name (G15b) | Claude wrote this. Some Exodus rows only say "any subdomain of one domain" (`\.google\.com` is filed under Google Ads, seven Facebook rows use `\.facebook\.com`); most names there are the company's own services, so labelling them would mislead. A row whose every pattern has the form `\.<label>\.<tld>` is marked broad and is never used to name a blocked domain (its code signatures still serve G17). With the bundled data that is 14 rows: the 8 Google/Facebook ones, and 6 trackers' own domains (ChartBoost, Dynatrace, DOV-E, Glympse, Lenddo, Cifrasoft) that lose a label which was correct; no domain gets a wrong label. `TrackerDbTest` (15 groups: mail.google.com and graph.facebook.com get no label, doubleclick.net is still Google DoubleClick) passes; three mutations each fail it. |
+ | Encrypted DNS, core (G18 part 1) | Claude wrote this. `DotClient` speaks DNS over TLS (RFC 7858) to one resolver: length-framed messages over one reused connection, answer id must match the query, one reconnect on error, timeouts. It fails closed: when the resolver cannot be reached it returns nothing, and Guardian must not resend the query in clear text. `DotProviders` lists Quad9 (dns.quad9.net) and Cloudflare (one.one.one.one), from their official pages on 2026-11-01; Mullvad was left out because its public DNS ends on 2026-11-02. `policy_check.py` now allows public resolver addresses only in DotProviders.kt and forbids UDP or port 53 in the DoT client. `DotClientTest` (8 groups against a local fake resolver, including concurrency and a stale answer) passes; a mutation that drops the id check fails it. App wiring (protected socket, platform TLS with hostname check, choice in the UI, off by default) is part 2. |
+ | Encrypted DNS in the app (G18 part 2) | Claude wrote this. Choice under "Encrypted DNS": Off (default), Quad9 or Cloudflare; stored as the provider id only (`DnsSettingsStore`, held to that by `policy_check.py`). The DoT socket is protected from Guardian's own tunnel, uses the platform trust store and checks the hostname twice (TLS endpoint identification and after the handshake). If the provider cannot be reached, lookups fail and the screen says so; there is no fallback to unencrypted DNS. Emulator flow step 4g: Quad9 answers a new name and the status reads connected. Not tested on a real phone. |
+ | Real-device test | none |
+diff --git a/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/TrackerDb.kt b/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/TrackerDb.kt
+index 7173f04..8dd7f4b 100644
+--- a/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/TrackerDb.kt
++++ b/guardian/core/src/main/kotlin/org/secureinchat/guardian/dns/TrackerDb.kt
+@@ -8,6 +8,11 @@ package org.secureinchat.guardian.dns
+  * a valid Java regex: in both cases the tracker has no network face and byDomain will never return
+  * it. [codeSignatures] are class-name prefixes; the G17 scanner matches an installed app's DEX
+  * class names against them, so they are kept verbatim (with or without a trailing dot).
++ *
++ * [broad] (G15b): the network regex only says "any subdomain of one registrable domain", e.g.
++ * `\.google\.com` (filed under Google Ads) or `\.facebook\.com`. Most names under such a domain are
++ * the company's own services (mail, login, maps), so naming a tracker for them would mislead;
++ * byDomain skips these rows. The code signatures are unaffected (G17 still uses them).
+  */
+ data class Tracker(
+     val id: Int,
+@@ -15,7 +20,8 @@ data class Tracker(
+     val categories: List<String>,
+     val website: String,
+     val networkRegex: Regex?,
+-    val codeSignatures: List<String>
++    val codeSignatures: List<String>,
++    val broad: Boolean = false
+ )
+ 
+ /**
+@@ -32,12 +38,18 @@ data class Tracker(
+ class TrackerDb private constructor(
+     private val trackers: List<Tracker>
+ ) {
+-    /** Trackers with a working network regex, sorted by id so the first hit is the smallest id. */
++    /**
++     * Trackers byDomain may return: a working network regex that is not [Tracker.broad], sorted by id
++     * so the first hit is the smallest id.
++     */
+     private val networkTrackers: List<Tracker> =
+-        trackers.filter { it.networkRegex != null }.sortedBy { it.id }
++        trackers.filter { it.networkRegex != null && !it.broad }.sortedBy { it.id }
+ 
+     val size: Int get() = trackers.size
+-    val withNetwork: Int get() = networkTrackers.size
++    /** Rows with a working network regex, broad ones included. */
++    val withNetwork: Int = trackers.count { it.networkRegex != null }
++    /** Rows whose network regex is only "any subdomain of one domain"; byDomain skips them. */
++    val broadCount: Int = trackers.count { it.broad }
+ 
+     /**
+      * LRU of byDomain results, misses included. A domain is looked up for every visible log line
+@@ -89,6 +101,19 @@ class TrackerDb private constructor(
+         private const val CACHE_INITIAL = 128
+         private const val EXPECTED_COLS = 6
+ 
++        /** One alternative of the form `\.<label>\.<tld>`: any subdomain of one registrable domain. */
++        private val BROAD_ALTERNATIVE = Regex("""^\\\.[a-z0-9-]+\\\.[a-z]{2,}$""")
++
++        /**
++         * True when every `|` alternative of [regex] is a [BROAD_ALTERNATIVE] (so the row says nothing
++         * more specific than "somewhere under this domain"). A regex with groups is never split, and is
++         * not treated as broad.
++         */
++        fun isBroadRegex(regex: String): Boolean {
++            if (regex.isEmpty() || regex.contains('(')) return false
++            return regex.split('|').all { BROAD_ALTERNATIVE.matches(it) }
++        }
++
+         /**
+          * Parses a TSV as produced by tools/update_trackers.py. Comment lines start with '#';
+          * blank lines are ignored. A row with fewer than 6 tab-separated columns is dropped; a
+@@ -115,7 +140,7 @@ class TrackerDb private constructor(
+                 val sigsRaw = parts[5]
+                 val sigs = if (sigsRaw.isEmpty()) emptyList()
+                 else sigsRaw.split('|').filter { it.isNotEmpty() }
+-                list.add(Tracker(id, name, cats, website, rx, sigs))
++                list.add(Tracker(id, name, cats, website, rx, sigs, broad = rx != null && isBroadRegex(regexRaw)))
+             }
+             return TrackerDb(list.sortedBy { it.id })
+         }
+diff --git a/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/TrackerDbTest.kt b/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/TrackerDbTest.kt
+index 3497c42..f07c858 100644
+--- a/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/TrackerDbTest.kt
++++ b/guardian/core/src/test/kotlin/org/secureinchat/guardian/dns/TrackerDbTest.kt
+@@ -166,5 +166,39 @@ fun main() {
+         )
+     }
+ 
++    // G15b: rows that only say "any subdomain of one domain" do not name a tracker.
++    t("broad regex detection") {
++        check(TrackerDb.isBroadRegex("\\.google\\.com"))
++        check(TrackerDb.isBroadRegex("\\.facebook\\.com|\\.fb\\.com"))
++        check(!TrackerDb.isBroadRegex("doubleclick\\.net"))                  // the tracker's own domain, no leading dot
++        check(!TrackerDb.isBroadRegex("ads\\.bigco\\.com"))                 // a specific host
++        check(!TrackerDb.isBroadRegex("\\.bigco\\.com|ads\\.other\\.com"))   // mixed: something specific remains
++        check(!TrackerDb.isBroadRegex("\\.(bigco)\\.com"))                  // groups are never treated as broad
++        check(!TrackerDb.isBroadRegex(""))
++    }
++
++    t("byDomain skips broad rows but keeps their other data") {
++        val tsv = "1\tBigCo Ads\tAdvertisement\thttp://bigco.com\t\\.bigco\\.com\tcom.bigco.ads.\n" +
++            "2\tBigCo Metrics\tAnalytics\thttp://bigco.com\tmetrics\\.bigco\\.com\t"
++        val db = TrackerDb.parse(tsv)
++        eq(db.byDomain("mail.bigco.com"), null)
++        eq(db.byDomain("metrics.bigco.com")?.id, 2)   // a specific row under the same domain still matches
++        eq(db.byClassName("com.bigco.ads.Banner")?.id, 1) // code signatures are unaffected (G17)
++        eq(db.broadCount, 1)
++        eq(db.withNetwork, 2)
++    }
++
++    t("real data: Google and Facebook first-party names get no tracker label") {
++        val db = TrackerDb.parse(Files.readString(Paths.get("app/src/main/assets/trackers-exodus.tsv")))
++        eq(db.byDomain("mail.google.com"), null)
++        eq(db.byDomain("www.google.com"), null)
++        eq(db.byDomain("graph.facebook.com"), null)
++        eq(db.byDomain("doubleclick.net")?.name, "Google DoubleClick")
++        eq(db.byDomain("stats.g.doubleclick.net")?.name, "Google DoubleClick")
++        eq(db.byDomain("pagead2.googlesyndication.com")?.name, "Google AdMob")
++        check(db.broadCount in 1..30) { "broadCount ${db.broadCount}" }
++        println("real tsv: ${db.broadCount} broad rows skipped by byDomain")
++    }
++
+     println("TrackerDbTest: $tn passed")
+ }
+-- 
+2.43.0
+
