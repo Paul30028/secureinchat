@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import "./global.css";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { I18nRoot } from "./i18n";
 
 const container = document.getElementById("root");
 if (!container) {
@@ -10,6 +11,8 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <App />
+    <I18nRoot>
+      <App />
+    </I18nRoot>
   </StrictMode>
 );

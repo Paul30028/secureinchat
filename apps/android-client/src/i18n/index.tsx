@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { messages as zhMessages } from "./zh";
 import { messages as enMessages } from "./en";
 import { messages as esMessages } from "./es";
@@ -142,7 +142,7 @@ const I18nContext = createContext<I18nContextValue>({
 
 export interface I18nProviderProps {
   /** 不传则根据浏览器语言自动选择。 */
-  locale?: Locale;
+  locale?: Locale | undefined;
   children: ReactNode;
 }
 
@@ -162,4 +162,65 @@ export function useT(): I18nContextValue["t"] {
 
 export function useLocale(): Locale {
   return useContext(I18nContext).locale;
+}
+
+// —— 语言选择（设置里的「语言」）——
+
+/** 用户的选择："auto" 表示跟随系统语言。 */
+export type LocaleChoice = Locale | "auto";
+
+/** 只存在这台设备的本地存储里，不上传。值是 "zh" | "en" | "es"；没有值就是跟随系统。 */
+export const LOCALE_STORAGE_KEY = "sic.locale";
+
+export function readLocaleChoice(storage: Pick<Storage, "getItem"> | undefined): LocaleChoice {
+  try {
+    const v = storage?.getItem(LOCALE_STORAGE_KEY) ?? null;
+    return v !== null && isLocale(v) ? v : "auto";
+  } catch {
+    // 隐私模式或存储被禁用时会抛错：退回跟随系统，App 照常启动。
+    return "auto";
+  }
+}
+
+export function writeLocaleChoice(storage: Pick<Storage, "setItem" | "removeItem"> | undefined, choice: LocaleChoice): void {
+  try {
+    if (choice === "auto") storage?.removeItem(LOCALE_STORAGE_KEY);
+    else storage?.setItem(LOCALE_STORAGE_KEY, choice);
+  } catch {
+    // 存不下就只在本次运行生效。
+  }
+}
+
+interface LocaleChoiceValue {
+  choice: LocaleChoice;
+  setChoice: (choice: LocaleChoice) => void;
+}
+
+/** 没有 I18nRoot 时为 null：设置页据此不显示语言选项（没有能力支撑的按钮不显示）。 */
+const LocaleChoiceContext = createContext<LocaleChoiceValue | null>(null);
+
+function browserStorage(): Storage | undefined {
+  try {
+    return typeof localStorage === "undefined" ? undefined : localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+/** App 的根：记住用户选的语言，并提供给 I18nProvider。 */
+export function I18nRoot({ children }: { children: ReactNode }) {
+  const [choice, setChoiceState] = useState<LocaleChoice>(() => readLocaleChoice(browserStorage()));
+  const setChoice = (next: LocaleChoice) => {
+    writeLocaleChoice(browserStorage(), next);
+    setChoiceState(next);
+  };
+  return (
+    <LocaleChoiceContext.Provider value={{ choice, setChoice }}>
+      <I18nProvider locale={choice === "auto" ? undefined : choice}>{children}</I18nProvider>
+    </LocaleChoiceContext.Provider>
+  );
+}
+
+export function useLocaleChoice(): LocaleChoiceValue | null {
+  return useContext(LocaleChoiceContext);
 }

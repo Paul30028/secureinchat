@@ -5,6 +5,7 @@ import { registerTap, INITIAL_TAP_STATE, type TapState } from "../adminAccess";
 import { formatListTime } from "../timeFormat";
 import { APP_VERSION } from "../version";
 import { useT, useLocale } from "../i18n";
+import { LanguagePicker } from "./LanguagePicker";
 
 export interface GroupListItem {
   groupId: string;
@@ -257,6 +258,8 @@ export function MessageListScreen({
                 <div style={{ fontSize: 11, color: "#9A9A94" }}>{t("messageList.backupHint")}</div>
               </button>
             ) : null}
+
+            <LanguagePicker />
 
             {onOpenDeviceSafety ? (
               <button
