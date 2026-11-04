@@ -133,16 +133,24 @@ class MainActivity : Activity() {
                 addView(ui.caption(getString(b)).apply { layoutParams = ui.matchWidth(4) })
             })
         }
-        root.addView(ui.primaryButton(getString(R.string.intro_start)) {
-            getPreferences(Context.MODE_PRIVATE).edit().putBoolean(PREF_INTRO_DONE, true).apply()
-            showMain()
-        }.apply { layoutParams = ui.matchWidth(24) })
-        setContentView(ScrollView(this).apply {
-            isFillViewport = true
+        // The text scrolls; the button stays pinned at the bottom so it is visible on any screen size.
+        val page = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             setBackgroundColor(ui.p.background)
+        }
+        page.addView(ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
             addView(root)
-            padForSystemBars(this)
         })
+        page.addView(ui.vertical(16).apply {
+            setPadding(ui.dp(24), 0, ui.dp(24), ui.dp(16))
+            addView(ui.primaryButton(getString(R.string.intro_start)) {
+                getPreferences(Context.MODE_PRIVATE).edit().putBoolean(PREF_INTRO_DONE, true).apply()
+                showMain()
+            }.apply { layoutParams = ui.matchWidth(8) })
+        })
+        padForSystemBars(page)
+        setContentView(page)
     }
 
     /** Settings → "How Guardian works" shows the intro again. */
