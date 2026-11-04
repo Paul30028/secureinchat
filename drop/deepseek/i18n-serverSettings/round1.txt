@@ -1,0 +1,176 @@
+=== FILE: apps/android-client/src/i18n/ns/serverSettings.ts ===
+import type { Messages } from "../index";
+
+export const zh: Messages = {
+  "serverSettings.back": "返回",
+  "serverSettings.backAriaLabel": "返回",
+  "serverSettings.title": "服务器设置",
+  "serverSettings.description":
+    "填写你们团队的中继服务器地址。改完保存后，下次连接就会用新地址，不需要重新安装应用。",
+  "serverSettings.urlPlaceholder": "wss://ws.example.com",
+  "serverSettings.urlAriaLabel": "中继服务器地址输入框",
+  "serverSettings.saved": "已保存",
+  "serverSettings.save": "保存",
+  "serverSettings.reset": "恢复默认（{defaultUrl}）",
+  "serverSettings.hint":
+    "提示：如果这个页面是通过 https:// 打开的，服务器地址必须用 wss://，浏览器会拦截不加密的 ws:// 连接。",
+};
+
+export const en: Messages = {
+  "serverSettings.back": "Back",
+  "serverSettings.backAriaLabel": "Back",
+  "serverSettings.title": "Server settings",
+  "serverSettings.description":
+    "Enter your team's relay server address. After saving, the next connection will use the new address and you won't need to reinstall the app.",
+  "serverSettings.urlPlaceholder": "wss://ws.example.com",
+  "serverSettings.urlAriaLabel": "Relay server address input",
+  "serverSettings.saved": "Saved",
+  "serverSettings.save": "Save",
+  "serverSettings.reset": "Restore default ({defaultUrl})",
+  "serverSettings.hint":
+    "Note: if this page was opened over https://, the server address must use wss://. The browser will block unencrypted ws:// connections.",
+};
+
+export const es: Messages = {
+  "serverSettings.back": "Volver",
+  "serverSettings.backAriaLabel": "Volver",
+  "serverSettings.title": "Configuración del servidor",
+  "serverSettings.description":
+    "Ingresa la dirección del servidor de retransmisión de tu equipo. Después de guardar, la próxima conexión usará la nueva dirección y no necesitarás reinstalar la aplicación.",
+  "serverSettings.urlPlaceholder": "wss://ws.example.com",
+  "serverSettings.urlAriaLabel": "Campo de dirección del servidor de retransmisión",
+  "serverSettings.saved": "Guardado",
+  "serverSettings.save": "Guardar",
+  "serverSettings.reset": "Restaurar predeterminado ({defaultUrl})",
+  "serverSettings.hint":
+    "Nota: si esta página se abrió mediante https://, la dirección del servidor debe usar wss://. El navegador bloqueará las conexiones ws:// sin cifrar.",
+};
+=== END FILE ===
+
+=== FILE: apps/android-client/src/screens/ServerSettingsScreen.tsx ===
+import { useEffect, useState } from "react";
+import { colors, touchTarget, Button } from "@secureinchat/ui";
+import { useT } from "../i18n";
+import { validateRelayUrl, saveRelayUrl, loadSavedRelayUrl, clearSavedRelayUrl } from "../relayUrlSetting";
+
+export interface ServerSettingsScreenProps {
+  /** 构建时注入的默认地址，用户没自定义时用这个 */
+  defaultUrl: string;
+  onSaved: (url: string) => void;
+  onBack: () => void;
+}
+
+/**
+ * 服务器地址设置。之所以要有这一页：地址如果只能构建时注入，换一次中继就要
+ * 重新打一次 APK，团队成员也没法自己填。
+ */
+export function ServerSettingsScreen({ defaultUrl, onSaved, onBack }: ServerSettingsScreenProps) {
+  const t = useT();
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [savedNotice, setSavedNotice] = useState(false);
+  const isSecurePage = typeof location !== "undefined" && location.protocol === "https:";
+
+  useEffect(() => {
+    void loadSavedRelayUrl().then((saved) => setUrl(saved ?? defaultUrl));
+  }, [defaultUrl]);
+
+  async function handleSave() {
+    const result = validateRelayUrl(url, isSecurePage);
+    if (!result.ok) {
+      setError(result.reason);
+      return;
+    }
+    setError(null);
+    await saveRelayUrl(url);
+    setSavedNotice(true);
+    onSaved(url.trim());
+  }
+
+  async function handleReset() {
+    await clearSavedRelayUrl();
+    setUrl(defaultUrl);
+    setError(null);
+    setSavedNotice(false);
+    onSaved(defaultUrl);
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: colors.ivory, padding: 24 }}>
+      <button
+        onClick={onBack}
+        aria-label={t("serverSettings.backAriaLabel")}
+        style={{
+          background: "transparent",
+          border: "none",
+          boxShadow: "none",
+          color: colors.deepInkGreen,
+          fontSize: 14,
+          marginBottom: 16,
+          cursor: "pointer",
+          minHeight: touchTarget.minDp,
+        }}
+      >
+        ← {t("serverSettings.back")}
+      </button>
+
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 8px" }}>
+        {t("serverSettings.title")}
+      </h1>
+      <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "0 0 16px" }}>
+        {t("serverSettings.description")}
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <input
+          type="text"
+          value={url}
+          onChange={(e) => {
+            setUrl(e.target.value);
+            setError(null);
+            setSavedNotice(false);
+          }}
+          placeholder={t("serverSettings.urlPlaceholder")}
+          aria-label={t("serverSettings.urlAriaLabel")}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          style={{
+            minHeight: touchTarget.minDp,
+            border: `0.5px solid ${error ? "#A33" : colors.sageMint}`,
+            borderRadius: 14,
+            padding: "0 16px",
+            fontSize: 14,
+            background: colors.ivory,
+            color: colors.textPrimary,
+            boxShadow: "none",
+            fontFamily: "monospace",
+          }}
+        />
+
+        {error ? (
+          <p role="alert" style={{ color: "#A33", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
+            {error}
+          </p>
+        ) : null}
+        {savedNotice ? (
+          <p role="status" style={{ color: colors.deepInkGreen, fontSize: 12, margin: 0 }}>
+            {t("serverSettings.saved")}
+          </p>
+        ) : null}
+
+        <Button variant="primary" onClick={handleSave}>
+          {t("serverSettings.save")}
+        </Button>
+        <Button variant="secondary" onClick={handleReset}>
+          {t("serverSettings.reset", { defaultUrl })}
+        </Button>
+      </div>
+
+      <p style={{ fontSize: 11, color: "#9A9A94", lineHeight: 1.7, marginTop: 20 }}>
+        {t("serverSettings.hint")}
+      </p>
+    </div>
+  );
+}
+=== END FILE ===

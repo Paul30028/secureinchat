@@ -1,0 +1,357 @@
+=== FILE: apps/android-client/src/i18n/ns/createGroup.ts ===
+import type { Messages } from "../index";
+
+export const zh: Messages = {
+  "createGroup.back": "← 返回",
+  "createGroup.backAria": "返回",
+  "createGroup.title": "创建群聊",
+  "createGroup.namePlaceholder": "群聊名称",
+  "createGroup.nameAria": "群聊名称输入框",
+  "createGroup.createButton": "创建群聊",
+  "createGroup.defaultGroupName": "新群聊",
+  "createGroup.shareHint": "截图这张卡片发出去，或让对方扫码加入",
+  "createGroup.recoveryCollapseAria": "收起管理员恢复码",
+  "createGroup.recoveryExpandAria": "展开管理员恢复码",
+  "createGroup.recoveryLabel": "管理员恢复码",
+  "createGroup.recoveryCollapse": "收起",
+  "createGroup.recoveryExpand": "展开抄写",
+  "createGroup.recoveryShortHint": "换手机时用来找回发布权限，建议现在抄下来",
+  "createGroup.recoveryExplain":
+    "只有你能发布这个群的每日内容，凭据就保存在这台手机上。",
+  "createGroup.recoveryExplainStrong": "换手机或手机丢失后，只有这串码能恢复",
+  "createGroup.recoveryExplainTail": "，请抄下来收好。它只显示这一次。",
+  "createGroup.recoveryCopy": "复制",
+  "createGroup.recoverySaved": "已保存 ✓",
+  "createGroup.recoverySave": "我已保存",
+  "createGroup.enterButton": "进入群聊",
+  "createGroup.entering": "正在进入...",
+  "createGroup.enterError": "进入群聊失败：{reason}\n服务器：{relayUrl}",
+  "createGroup.enterErrorFallback": "请重试",
+};
+
+export const en: Messages = {
+  "createGroup.back": "← Back",
+  "createGroup.backAria": "Back",
+  "createGroup.title": "Create group",
+  "createGroup.namePlaceholder": "Group name",
+  "createGroup.nameAria": "Group name input",
+  "createGroup.createButton": "Create group",
+  "createGroup.defaultGroupName": "New group",
+  "createGroup.shareHint": "Take a screenshot of this card and send it, or let others scan the code to join",
+  "createGroup.recoveryCollapseAria": "Collapse admin recovery code",
+  "createGroup.recoveryExpandAria": "Expand admin recovery code",
+  "createGroup.recoveryLabel": "Admin recovery code",
+  "createGroup.recoveryCollapse": "Collapse",
+  "createGroup.recoveryExpand": "Show to write down",
+  "createGroup.recoveryShortHint": "Use this to restore posting rights on a new phone. Write it down now.",
+  "createGroup.recoveryExplain":
+    "Only you can post daily content to this group, and the credential is stored only on this phone.",
+  "createGroup.recoveryExplainStrong": "If you switch or lose your phone, this code is the only way to recover it",
+  "createGroup.recoveryExplainTail": " — please write it down and keep it safe. It is shown only once.",
+  "createGroup.recoveryCopy": "Copy",
+  "createGroup.recoverySaved": "Saved ✓",
+  "createGroup.recoverySave": "I've saved it",
+  "createGroup.enterButton": "Enter group",
+  "createGroup.entering": "Entering...",
+  "createGroup.enterError": "Failed to enter group: {reason}\nServer: {relayUrl}",
+  "createGroup.enterErrorFallback": "Please try again",
+};
+
+export const es: Messages = {
+  "createGroup.back": "← Volver",
+  "createGroup.backAria": "Volver",
+  "createGroup.title": "Crear grupo",
+  "createGroup.namePlaceholder": "Nombre del grupo",
+  "createGroup.nameAria": "Campo de nombre del grupo",
+  "createGroup.createButton": "Crear grupo",
+  "createGroup.defaultGroupName": "Grupo nuevo",
+  "createGroup.shareHint": "Toma una captura de esta tarjeta y envíala, o deja que otros escaneen el código para unirse",
+  "createGroup.recoveryCollapseAria": "Contraer el código de recuperación del administrador",
+  "createGroup.recoveryExpandAria": "Expandir el código de recuperación del administrador",
+  "createGroup.recoveryLabel": "Código de recuperación del administrador",
+  "createGroup.recoveryCollapse": "Contraer",
+  "createGroup.recoveryExpand": "Mostrar para anotar",
+  "createGroup.recoveryShortHint": "Sirve para recuperar el permiso de publicar en otro teléfono. Anótalo ahora.",
+  "createGroup.recoveryExplain":
+    "Solo tú puedes publicar contenido diario en este grupo, y la credencial se guarda solo en este teléfono.",
+  "createGroup.recoveryExplainStrong": "Si cambias o pierdes el teléfono, este código es la única forma de recuperarlo",
+  "createGroup.recoveryExplainTail": ": anótalo y guárdalo. Solo se muestra una vez.",
+  "createGroup.recoveryCopy": "Copiar",
+  "createGroup.recoverySaved": "Guardado ✓",
+  "createGroup.recoverySave": "Ya lo guardé",
+  "createGroup.enterButton": "Entrar al grupo",
+  "createGroup.entering": "Entrando...",
+  "createGroup.enterError": "No se pudo entrar al grupo: {reason}\nServidor: {relayUrl}",
+  "createGroup.enterErrorFallback": "Inténtalo de nuevo",
+};
+=== END FILE ===
+
+=== FILE: apps/android-client/src/screens/CreateGroupScreen.tsx ===
+import { useState } from "react";
+import { colors, touchTarget, Button, InviteShareCard } from "@secureinchat/ui";
+import { buildSic2Invite } from "@secureinchat/protocol";
+import { randomUUID, generateAdminKeyPair } from "@secureinchat/crypto-core";
+import { copyToClipboard } from "@secureinchat/chat-core";
+import { useT } from "../i18n";
+
+export interface CreateGroupScreenProps {
+  /** 当前生效的中继地址，连不上时要显示出来——否则不知道它在连哪里 */
+  relayUrl: string;
+  onCreated: (input: {
+    groupId: string;
+    groupName: string;
+    keyMaterialB64Url: string;
+    inviteCode: string;
+    /** 管理员凭据（恢复码那串）。存文本而不是 CryptoKey 对象——
+     *  老 WebView 存不了 CryptoKey，一失败建群就断在这一步。 */
+    adminRecoveryCode: string;
+  }) => Promise<void>;
+  onBack: () => void;
+}
+
+function randomBase64UrlKeyMaterial(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/**
+ * 创建群聊。relay 现在没配 membership/invite_registry（见
+ * docs/deployment/DEPLOY_RELAY.md 的已知限制），"创建群"本质上是客户端本地
+ * 生成一对 groupId + 随机密钥材料，谁拿到这串邀请码谁就能派生出同一把群密钥、
+ * 连上同一个 groupId——服务端目前不做"这个群是否真的存在/谁有权创建"的校验。
+ * 等成员资格收紧之后，创建群需要额外一步向服务端登记邀请码，这里先不冒充已实现。
+ */
+export function CreateGroupScreen({ relayUrl, onCreated, onBack }: CreateGroupScreenProps) {
+  const t = useT();
+  const [groupName, setGroupName] = useState("");
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [pendingGroupId, setPendingGroupId] = useState<string | null>(null);
+  const [pendingKeyMaterial, setPendingKeyMaterial] = useState<string | null>(null);
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
+  const [recoverySaved, setRecoverySaved] = useState(false);
+  // 恢复码默认折叠：它重要，但不该占满整屏把主流程挤下去
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  async function handleCreate() {
+    const groupId = `group-${randomUUID()}`;
+    const keyMaterialB64Url = randomBase64UrlKeyMaterial();
+    // 建群时生成管理员密钥：公钥进邀请串（人人可验证），私钥只留在本机
+    const admin = await generateAdminKeyPair();
+    const code = buildSic2Invite({
+      serverJoinCode: randomUUID().slice(0, 8).toUpperCase(),
+      groupId,
+      groupName: groupName.trim(),
+      adminPublicKeyRawB64Url: admin.publicKeyRawB64Url,
+      keyMaterialB64Url,
+      epoch: 0,
+    });
+    setPendingGroupId(groupId);
+    setPendingKeyMaterial(keyMaterialB64Url);
+    setRecoveryCode(admin.recoveryCode);
+    setInviteCode(code);
+  }
+
+  async function handleEnter() {
+    if (!pendingGroupId || !pendingKeyMaterial || !inviteCode || !recoveryCode) return;
+    setIsEntering(true);
+    setErrorMessage(null);
+    try {
+      await onCreated({
+        groupId: pendingGroupId,
+        groupName: groupName || t("createGroup.defaultGroupName"),
+        keyMaterialB64Url: pendingKeyMaterial,
+        inviteCode,
+        adminRecoveryCode: recoveryCode,
+      });
+    } catch (err) {
+      setIsEntering(false);
+      // 把地址一起显示出来。连不上时最需要知道的就是"它在连哪台服务器"——
+      // 只说"失败了"没法判断是服务器没起、地址填错、还是网络问题。
+      setErrorMessage(
+        t("createGroup.enterError", {
+          reason: err instanceof Error ? err.message : t("createGroup.enterErrorFallback"),
+          relayUrl,
+        })
+      );
+    }
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: colors.ivory, padding: 24 }}>
+      <button
+        onClick={onBack}
+        aria-label={t("createGroup.backAria")}
+        style={{
+          background: "transparent",
+          border: "none",
+          boxShadow: "none",
+          color: colors.deepInkGreen,
+          fontSize: 14,
+          marginBottom: 16,
+          cursor: "pointer",
+          minHeight: 48,
+        }}
+      >
+        {t("createGroup.back")}
+      </button>
+
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "0 0 16px" }}>{t("createGroup.title")}</h1>
+
+      {!inviteCode ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <input
+            type="text"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            placeholder={t("createGroup.namePlaceholder")}
+            aria-label={t("createGroup.nameAria")}
+            style={{
+              minHeight: touchTarget.minDp,
+              border: `0.5px solid ${colors.sageMint}`,
+              borderRadius: 14,
+              padding: "0 16px",
+              fontSize: 14,
+              background: colors.ivory,
+              color: colors.textPrimary,
+              boxShadow: "none",
+            }}
+          />
+          <Button variant="primary" onClick={() => void handleCreate()} disabled={groupName.trim().length === 0}>
+            {t("createGroup.createButton")}
+          </Button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <p style={{ fontSize: 12, color: "#8A8A82", textAlign: "center" }}>
+            {t("createGroup.shareHint")}
+          </p>
+          {recoveryCode ? (
+            <div
+              style={{
+                border: `1px solid ${colors.wheatGold}`,
+                borderRadius: 14,
+                padding: "14px 16px",
+                background: `${colors.sageMint}22`,
+              }}
+            >
+              <button
+                onClick={() => setRecoveryOpen((v) => !v)}
+                aria-label={
+                  recoveryOpen
+                    ? t("createGroup.recoveryCollapseAria")
+                    : t("createGroup.recoveryExpandAria")
+                }
+                style={{
+                  width: "100%",
+                  minHeight: touchTarget.minDp,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  background: "transparent",
+                  border: "none",
+                  boxShadow: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                <span style={{ fontSize: 14, fontWeight: 500, color: colors.textPrimary }}>
+                  {t("createGroup.recoveryLabel")}{recoverySaved ? " ✓" : ""}
+                </span>
+                <span style={{ fontSize: 12, color: colors.wheatGold }}>
+                  {recoveryOpen
+                    ? t("createGroup.recoveryCollapse")
+                    : t("createGroup.recoveryExpand")}
+                </span>
+              </button>
+              {!recoveryOpen ? (
+                <p style={{ fontSize: 11, color: "#9A9A94", margin: "4px 0 0" }}>
+                  {t("createGroup.recoveryShortHint")}
+                </p>
+              ) : null}
+
+              {recoveryOpen ? (
+              <>
+              <p style={{ fontSize: 12, color: "#8A8A82", lineHeight: 1.7, margin: "8px 0 10px" }}>
+                {t("createGroup.recoveryExplain")}
+                <strong style={{ fontWeight: 500, color: colors.textPrimary }}>
+                  {t("createGroup.recoveryExplainStrong")}
+                </strong>
+                {t("createGroup.recoveryExplainTail")}
+              </p>
+              <code
+                style={{
+                  display: "block",
+                  fontSize: 11,
+                  fontFamily: "monospace",
+                  color: colors.textPrimary,
+                  wordBreak: "break-all",
+                  background: colors.ivory,
+                  border: `0.5px solid ${colors.sageMint}`,
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  marginBottom: 10,
+                }}
+              >
+                {recoveryCode}
+              </code>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button variant="secondary" onClick={() => void copyToClipboard(recoveryCode)} style={{ flex: 1 }}>
+                  {t("createGroup.recoveryCopy")}
+                </Button>
+                <Button
+                  variant={recoverySaved ? "secondary" : "primary"}
+                  onClick={() => setRecoverySaved(true)}
+                  style={{ flex: 1 }}
+                >
+                  {recoverySaved ? t("createGroup.recoverySaved") : t("createGroup.recoverySave")}
+                </Button>
+              </div>
+              </>
+              ) : null}
+            </div>
+          ) : null}
+
+          <InviteShareCard
+            groupName={groupName || t("createGroup.defaultGroupName")}
+            inviteCode={inviteCode}
+            onCopy={() => void copyToClipboard(inviteCode)}
+          />
+
+          {errorMessage ? (
+            <p role="alert" style={{ color: "#A33", fontSize: 12, textAlign: "center", whiteSpace: "pre-line" }}>
+              {errorMessage}
+            </p>
+          ) : null}
+
+          {/* 底部留出固定按钮的高度，免得最后一段内容被挡住 */}
+          <div style={{ height: 76 }} />
+        </div>
+      )}
+
+      {/* 进入群聊是这一页唯一的出口，固定在底部——之前它排在恢复码和二维码
+          两张卡片下面，手机上要滚很久才看得到，看起来就像没有这个按钮。 */}
+      {inviteCode ? (
+        <div
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            padding: "10px 24px calc(10px + env(safe-area-inset-bottom))",
+            background: colors.ivory,
+            borderTop: `0.5px solid ${colors.sageMint}`,
+          }}
+        >
+          <Button variant="primary" onClick={handleEnter} disabled={isEntering} style={{ width: "100%" }}>
+            {isEntering ? t("createGroup.entering") : t("createGroup.enterButton")}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+=== END FILE ===

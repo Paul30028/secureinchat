@@ -1,0 +1,159 @@
+=== FILE: apps/android-client/src/i18n/ns/messageSearch.ts ===
+import type { Messages } from "../index";
+
+export const zh: Messages = {
+  "messageSearch.back": "返回",
+  "messageSearch.searchPlaceholder": "在「{groupName}」中搜索",
+  "messageSearch.searchInputLabel": "搜索关键词输入框",
+  "messageSearch.emptyHint": "输入关键词搜索本群的消息",
+  "messageSearch.noResults": "没有找到包含「{query}」的消息",
+  "messageSearch.resultCount": "找到 {count} 条",
+  "messageSearch.senderSelf": "我",
+  "messageSearch.senderOther": "对方",
+  "messageSearch.fileText": "[文件] {fileName}",
+};
+
+export const en: Messages = {
+  "messageSearch.back": "Back",
+  "messageSearch.searchPlaceholder": "Search in \"{groupName}\"",
+  "messageSearch.searchInputLabel": "Search keyword input",
+  "messageSearch.emptyHint": "Enter a keyword to search this group's messages",
+  "messageSearch.noResults": "No messages found containing \"{query}\"",
+  "messageSearch.resultCount": "{count} results",
+  "messageSearch.senderSelf": "Me",
+  "messageSearch.senderOther": "Other",
+  "messageSearch.fileText": "[File] {fileName}",
+};
+
+export const es: Messages = {
+  "messageSearch.back": "Volver",
+  "messageSearch.searchPlaceholder": "Buscar en «{groupName}»",
+  "messageSearch.searchInputLabel": "Campo de búsqueda por palabra clave",
+  "messageSearch.emptyHint": "Ingresa una palabra clave para buscar en los mensajes de este grupo",
+  "messageSearch.noResults": "No se encontraron mensajes con «{query}»",
+  "messageSearch.resultCount": "{count} resultados",
+  "messageSearch.senderSelf": "Yo",
+  "messageSearch.senderOther": "Otro",
+  "messageSearch.fileText": "[Archivo] {fileName}",
+};
+=== END FILE ===
+
+=== FILE: apps/android-client/src/screens/MessageSearchScreen.tsx ===
+import { useMemo, useState } from "react";
+import { colors, touchTarget } from "@secureinchat/ui";
+import { searchMessages } from "@secureinchat/chat-core";
+import type { DisplayMessage } from "./ChatScreen";
+import { formatMessageTime } from "../timeFormat";
+import { useT } from "../i18n";
+
+export interface MessageSearchScreenProps {
+  groupName: string;
+  messages: DisplayMessage[];
+  onBack: () => void;
+}
+
+/**
+ * 消息搜索。全部在本地做——消息已经解密存在本机，中继上只有密文，
+ * 服务端既搜不了也不该能搜。
+ */
+export function MessageSearchScreen({ groupName, messages, onBack }: MessageSearchScreenProps) {
+  const t = useT();
+  const [query, setQuery] = useState("");
+
+  const searchable = useMemo(
+    () =>
+      messages.map((m) => ({
+        id: m.id,
+        text: m.text,
+        media: m.media ? { fileName: m.media.fileName } : undefined,
+        senderLabel: m.fromDeviceId,
+        sentAtMs: m.sentAtMs,
+        isOwn: m.isOwn,
+      })),
+    [messages]
+  );
+
+  const hits = useMemo(() => searchMessages(searchable, query), [searchable, query]);
+  const trimmed = query.trim();
+
+  return (
+    <div style={{ minHeight: "100%", background: colors.ivory, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
+        <button
+          onClick={onBack}
+          aria-label={t("messageSearch.back")}
+          style={{
+            background: "transparent",
+            border: "none",
+            boxShadow: "none",
+            color: colors.deepInkGreen,
+            cursor: "pointer",
+            minHeight: touchTarget.minDp,
+          }}
+        >
+          ←
+        </button>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("messageSearch.searchPlaceholder", { groupName })}
+          aria-label={t("messageSearch.searchInputLabel")}
+          autoFocus
+          style={{
+            flex: 1,
+            minHeight: touchTarget.minDp,
+            border: `0.5px solid ${colors.sageMint}`,
+            borderRadius: 20,
+            padding: "0 16px",
+            fontSize: 14,
+            background: colors.ivory,
+            color: colors.textPrimary,
+            boxShadow: "none",
+          }}
+        />
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 16px 16px" }}>
+        {!trimmed ? (
+          <p style={{ fontSize: 12, color: "#9A9A94", textAlign: "center", marginTop: 24 }}>
+            {t("messageSearch.emptyHint")}
+          </p>
+        ) : hits.length === 0 ? (
+          <p style={{ fontSize: 12, color: "#9A9A94", textAlign: "center", marginTop: 24 }}>
+            {t("messageSearch.noResults", { query: trimmed })}
+          </p>
+        ) : (
+          <>
+            <div style={{ fontSize: 11, color: "#9A9A94", padding: "4px 0 8px" }}>
+              {t("messageSearch.resultCount", { count: hits.length })}
+            </div>
+            {hits.map(({ message }) => (
+              <div
+                key={message.id}
+                style={{
+                  padding: "10px 0",
+                  borderBottom: `0.5px solid ${colors.sageMint}`,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, color: colors.deepInkGreen }}>
+                    {message.isOwn
+                      ? t("messageSearch.senderSelf")
+                      : (message.senderLabel ?? t("messageSearch.senderOther"))}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#9A9A94" }}>{formatMessageTime(message.sentAtMs)}</span>
+                </div>
+                <div style={{ fontSize: 14, color: colors.textPrimary, wordBreak: "break-word" }}>
+                  {message.text ??
+                    t("messageSearch.fileText", { fileName: message.media?.fileName ?? "" })}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+=== END FILE ===

@@ -1,0 +1,149 @@
+=== FILE: apps/android-client/src/i18n/ns/profileSetup.ts ===
+import type { Messages } from "../index";
+
+export const zh: Messages = {
+  "profileSetup.title": "设置你的昵称",
+  "profileSetup.description":
+    "群里的其他人会看到这个名字。只需要设置一次，\n以后加入别的群聊不用重复填写。",
+  "profileSetup.placeholder": "例如：李阳",
+  "profileSetup.inputAriaLabel": "昵称输入框",
+  "profileSetup.counter": "{current}/{max}",
+  "profileSetup.errorSaveFailed": "保存失败，请重试",
+  "profileSetup.saving": "保存中...",
+  "profileSetup.submit": "完成设置",
+};
+
+export const en: Messages = {
+  "profileSetup.title": "Set your nickname",
+  "profileSetup.description":
+    "Other people in the group will see this name. You only need to set it once;\nyou won't have to fill it in again when you join other groups later.",
+  "profileSetup.placeholder": "For example: Li Yang",
+  "profileSetup.inputAriaLabel": "Nickname input field",
+  "profileSetup.counter": "{current}/{max}",
+  "profileSetup.errorSaveFailed": "Save failed. Please try again.",
+  "profileSetup.saving": "Saving...",
+  "profileSetup.submit": "Finish setup",
+};
+
+export const es: Messages = {
+  "profileSetup.title": "Elige tu apodo",
+  "profileSetup.description":
+    "Las demás personas del grupo verán este nombre. Solo tienes que configurarlo una vez;\nno tendrás que volver a escribirlo cuando te unas a otros grupos más adelante.",
+  "profileSetup.placeholder": "Por ejemplo: Li Yang",
+  "profileSetup.inputAriaLabel": "Campo de apodo",
+  "profileSetup.counter": "{current}/{max}",
+  "profileSetup.errorSaveFailed": "No se pudo guardar. Inténtalo de nuevo.",
+  "profileSetup.saving": "Guardando...",
+  "profileSetup.submit": "Terminar configuración",
+};
+=== END FILE ===
+
+=== FILE: apps/android-client/src/screens/ProfileSetupScreen.tsx ===
+import { useState } from "react";
+import { colors, touchTarget, Button, Avatar } from "@secureinchat/ui";
+import { validateNickname, NICKNAME_MAX_LENGTH } from "../profile";
+import { useT } from "../i18n";
+
+export interface ProfileSetupScreenProps {
+  onDone: (nickname: string) => Promise<void>;
+}
+
+/**
+ * 首次个人设置。需求第七节：这一页只在第一次使用时出现一次，
+ * 以后加入其他群聊不再要求重设——所以昵称存在设备本地、和群无关。
+ *
+ * 头像上传暂未实现，先用昵称首字生成的圆形占位（和消息列表里的头像同一套逻辑）。
+ */
+export function ProfileSetupScreen({ onDone }: ProfileSetupScreenProps) {
+  const t = useT();
+  const [nickname, setNickname] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function handleDone() {
+    const result = validateNickname(nickname);
+    if (!result.ok) {
+      setError(result.reason);
+      return;
+    }
+    setError(null);
+    setIsSaving(true);
+    try {
+      await onDone(nickname.trim());
+    } catch {
+      setIsSaving(false);
+      setError(t("profileSetup.errorSaveFailed"));
+    }
+  }
+
+  return (
+    <div
+      style={{
+        minHeight: "100%",
+        background: colors.ivory,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 12,
+        padding: 24,
+      }}
+    >
+      <Avatar name={nickname || "?"} size="large" />
+      <h1 style={{ fontSize: 17, fontWeight: 500, color: colors.textPrimary, margin: "8px 0 0" }}>
+        {t("profileSetup.title")}
+      </h1>
+      <p
+        style={{
+          fontSize: 12,
+          color: "#8A8A82",
+          textAlign: "center",
+          lineHeight: 1.7,
+          margin: 0,
+          whiteSpace: "pre-line",
+        }}
+      >
+        {t("profileSetup.description")}
+      </p>
+
+      <div style={{ width: "100%", maxWidth: 320, marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+        <input
+          type="text"
+          value={nickname}
+          onChange={(e) => {
+            setNickname(e.target.value);
+            setError(null);
+          }}
+          placeholder={t("profileSetup.placeholder")}
+          aria-label={t("profileSetup.inputAriaLabel")}
+          maxLength={NICKNAME_MAX_LENGTH}
+          style={{
+            minHeight: touchTarget.minDp,
+            border: `0.5px solid ${error ? "#A33" : colors.sageMint}`,
+            borderRadius: 14,
+            padding: "0 16px",
+            fontSize: 14,
+            background: colors.ivory,
+            color: colors.textPrimary,
+            boxShadow: "none",
+            textAlign: "center",
+          }}
+        />
+        <div style={{ fontSize: 11, color: "#9A9A94", textAlign: "right" }}>
+          {t("profileSetup.counter", { current: nickname.length, max: NICKNAME_MAX_LENGTH })}
+        </div>
+
+        {error ? (
+          <p role="alert" style={{ color: "#A33", fontSize: 12, margin: 0, textAlign: "center" }}>
+            {error}
+          </p>
+        ) : null}
+
+        <Button variant="primary" onClick={handleDone} disabled={isSaving || nickname.trim().length === 0}>
+          {isSaving ? t("profileSetup.saving") : t("profileSetup.submit")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+=== END FILE ===
