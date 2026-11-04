@@ -13,7 +13,7 @@ export const zh: Messages = {
 
 export const en: Messages = {
   "joinGroup.back": "Back",
-  "joinGroup.appName": "InviteGroup Chat",
+  "joinGroup.appName": "Invite-only Chat",
   "joinGroup.tagline": "Secure · Private · Yours",
   "joinGroup.codePlaceholder": "Enter invite code",
   "joinGroup.codeAriaLabel": "Invite code input",

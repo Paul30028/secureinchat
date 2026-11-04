@@ -19,6 +19,7 @@ import { MessageActionSheet, type MessageAction } from "./MessageActionSheet";
 import { ImageViewer } from "./ImageViewer";
 import { EmojiPicker } from "./EmojiPicker";
 import { GroupMembersSheet } from "./GroupMembersSheet";
+import { useT, useLocale } from "../i18n";
 import { parseMentions, mentionsMe, mentionCandidates, activeMentionQuery, applyMention } from "@secureinchat/chat-core";
 
 export interface DisplayMessage {
@@ -148,6 +149,8 @@ export function ChatScreen({
   onStartCall,
   onBack,
 }: ChatScreenProps) {
+  const t = useT();
+  const locale = useLocale();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -188,7 +191,7 @@ export function ChatScreen({
       setIsRecording(true);
     } catch {
       // 权限被拒绝 / 设备不支持——明确告诉用户，不要静默失败
-      setRecordError("无法录音，请检查麦克风权限");
+      setRecordError(t("chat.recordError"));
     }
   }
 
@@ -214,14 +217,14 @@ export function ChatScreen({
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
         <button
           onClick={onBack}
-          aria-label="返回"
+          aria-label={t("chat.back")}
           style={{ background: "transparent", border: "none", boxShadow: "none", color: colors.deepInkGreen, cursor: "pointer" }}
         >
           ←
         </button>
         <button
           onClick={onOpenGroupSettings}
-          aria-label="群设置"
+          aria-label={t("chat.groupSettings")}
           style={{
             flex: 1,
             textAlign: "left",
@@ -240,7 +243,7 @@ export function ChatScreen({
           <span
             role="button"
             tabIndex={0}
-            aria-label="查看群成员"
+            aria-label={t("chat.viewMembers")}
             onClick={(e) => {
               // 点在线人数看成员，点群名进设置——两个动作叠在同一块区域，
               // 所以这里要拦住冒泡
@@ -261,12 +264,16 @@ export function ChatScreen({
               cursor: "pointer",
             }}
           >
-            {knownPeers.length > 0 ? `${knownPeers.length} 人在线` : "群里暂时只有你在线"}
+            {knownPeers.length > 0
+              ? t("chat.onlineCount", {
+                  count: new Intl.NumberFormat(locale).format(knownPeers.length),
+                })
+              : t("chat.onlyYouOnline")}
           </span>
         </button>
         <button
           onClick={onOpenSearch}
-          aria-label="搜索消息"
+          aria-label={t("chat.searchMessages")}
           style={{ ...callBtnStyle, fontSize: 16 }}
         >
           <SearchIcon />
@@ -276,15 +283,15 @@ export function ChatScreen({
         <button
           onClick={() => onStartCall("voice", knownPeers[knownPeers.length - 1]!)}
           aria-disabled={knownPeers.length === 0}
-          aria-label="语音通话"
+          aria-label={t("chat.voiceCall")}
           onClickCapture={(e) => {
             if (knownPeers.length === 0) {
               e.preventDefault();
               e.stopPropagation();
-              setCallHint("群里现在没有其他人在线，等对方打开应用后再拨");
+              setCallHint(t("chat.noOthersOnlineCall"));
             }
           }}
-          title={knownPeers.length === 0 ? "群里没有其他人在线" : "语音通话"}
+          title={knownPeers.length === 0 ? t("chat.noOthersOnline") : t("chat.voiceCall")}
           style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
         >
           <PhoneIcon />
@@ -292,14 +299,14 @@ export function ChatScreen({
         <button
           onClick={() => {
             if (knownPeers.length === 0) {
-              setCallHint("群里现在没有其他人在线，等大家打开应用后再开会议");
+              setCallHint(t("chat.noOthersOnlineConference"));
               return;
             }
             onStartConference();
           }}
-          aria-label="发起语音会议"
+          aria-label={t("chat.startConference")}
           aria-disabled={knownPeers.length === 0}
-          title={knownPeers.length === 0 ? "群里没有其他人在线" : "发起语音会议"}
+          title={knownPeers.length === 0 ? t("chat.noOthersOnline") : t("chat.startConference")}
           style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
         >
           <UsersIcon />
@@ -307,15 +314,15 @@ export function ChatScreen({
         <button
           onClick={() => onStartCall("video", knownPeers[knownPeers.length - 1]!)}
           aria-disabled={knownPeers.length === 0}
-          aria-label="视频通话"
+          aria-label={t("chat.videoCall")}
           onClickCapture={(e) => {
             if (knownPeers.length === 0) {
               e.preventDefault();
               e.stopPropagation();
-              setCallHint("群里现在没有其他人在线，等对方打开应用后再拨");
+              setCallHint(t("chat.noOthersOnlineCall"));
             }
           }}
-          title={knownPeers.length === 0 ? "群里没有其他人在线" : "视频通话"}
+          title={knownPeers.length === 0 ? t("chat.noOthersOnline") : t("chat.videoCall")}
           style={{ ...callBtnStyle, opacity: knownPeers.length === 0 ? 0.35 : 1 }}
         >
           <VideoIcon />
@@ -351,11 +358,15 @@ export function ChatScreen({
           }}
         >
           {connectionStatus === "reconnecting"
-            ? "连接已断开，正在自动重连..."
+            ? t("chat.statusReconnecting")
             : connectionStatus === "connecting"
-              ? "正在连接..."
-              : "已断开连接"}
-          {pendingCount ? `（${pendingCount} 条消息等待发送）` : ""}
+              ? t("chat.statusConnecting")
+              : t("chat.statusDisconnected")}
+          {pendingCount
+            ? t("chat.pendingSuffix", {
+                count: new Intl.NumberFormat(locale).format(pendingCount),
+              })
+            : ""}
         </div>
       ) : null}
 
@@ -363,7 +374,7 @@ export function ChatScreen({
         {announcement ? <AnnouncementCard title={announcement.title} body={announcement.body} /> : null}
 
         {messages.length === 0 && !announcement ? (
-          <p style={{ textAlign: "center", color: "#9A9A94", fontSize: 12, marginTop: 24 }}>还没有消息，说点什么吧</p>
+          <p style={{ textAlign: "center", color: "#9A9A94", fontSize: 12, marginTop: 24 }}>{t("chat.emptyHint")}</p>
         ) : (
           messages.map((m) =>
             m.system ? (
@@ -410,7 +421,7 @@ export function ChatScreen({
                       border: 0,
                     }}
                   >
-                    定时消失
+                    {t("chat.disappearingHint")}
                   </span>
                 ) : null}
                 {m.replyTo ? (
@@ -449,7 +460,7 @@ export function ChatScreen({
               </ChatBubble>
               {m.queued ? (
                 <div style={{ textAlign: "right", fontSize: 11, color: colors.wheatGold, marginTop: 2 }}>
-                  等待发送
+                  {t("chat.queued")}
                 </div>
               ) : null}
             </div>
@@ -459,7 +470,11 @@ export function ChatScreen({
 
         {incomingProgress?.map((p) => (
           <div key={p.fileId} style={{ fontSize: 11, color: "#9A9A94", textAlign: "center" }}>
-            正在接收 {p.fileName}（{p.receivedChunks}/{p.totalChunks}）
+            {t("chat.incomingProgress", {
+              fileName: p.fileName,
+              received: new Intl.NumberFormat(locale).format(p.receivedChunks),
+              total: new Intl.NumberFormat(locale).format(p.totalChunks),
+            })}
           </div>
         ))}
       </div>
@@ -488,7 +503,7 @@ export function ChatScreen({
           type="file"
           accept="image/*"
           style={{ display: "none" }}
-          aria-label="选择图片"
+          aria-label={t("chat.chooseImage")}
           onChange={async (e) => {
             const file = e.target.files?.[0];
             if (file) await onSendFile(file, "image");
@@ -499,7 +514,7 @@ export function ChatScreen({
           ref={fileInputRef}
           type="file"
           style={{ display: "none" }}
-          aria-label="选择文件"
+          aria-label={t("chat.chooseFile")}
           onChange={async (e) => {
             const file = e.target.files?.[0];
             if (file) await onSendFile(file, "file");
@@ -515,7 +530,7 @@ export function ChatScreen({
           return (
             <div
               role="listbox"
-              aria-label="选择要提醒的人"
+              aria-label={t("chat.mentionPicker")}
               style={{
                 display: "flex",
                 gap: 6,
@@ -568,7 +583,9 @@ export function ChatScreen({
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: colors.deepInkGreen, fontWeight: 500 }}>
-                回复 {replyTarget.isOwn ? "自己" : (replyTarget.fromDeviceId ?? "对方")}
+                {t("chat.replyTo", {
+                  name: replyTarget.isOwn ? t("chat.replyToSelf") : (replyTarget.fromDeviceId ?? t("chat.replyToOther")),
+                })}
               </div>
               <div
                 style={{
@@ -583,7 +600,7 @@ export function ChatScreen({
             </div>
             <button
               onClick={() => onSetReplyTarget(null)}
-              aria-label="取消回复"
+              aria-label={t("chat.cancelReply")}
               style={{
                 minHeight: touchTarget.minDp,
                 minWidth: touchTarget.minDp,
@@ -605,7 +622,7 @@ export function ChatScreen({
               setAttachOpen((v) => !v);
               setEmojiOpen(false);
             }}
-            aria-label={attachOpen ? "收起附件选项" : "添加图片或文件"}
+            aria-label={attachOpen ? t("chat.collapseAttach") : t("chat.addImageOrFile")}
             style={{
               minHeight: touchTarget.minDp,
               minWidth: touchTarget.minDp,
@@ -629,7 +646,7 @@ export function ChatScreen({
               setEmojiOpen((v) => !v);
               setAttachOpen(false);
             }}
-            aria-label={emojiOpen ? "收起表情" : "选择表情"}
+            aria-label={emojiOpen ? t("chat.collapseEmoji") : t("chat.chooseEmoji")}
             style={{
               minHeight: touchTarget.minDp,
               minWidth: touchTarget.minDp,
@@ -681,22 +698,22 @@ export function ChatScreen({
                 setAttachOpen(false);
                 imageInputRef.current?.click();
               }}
-              aria-label="发送图片"
+              aria-label={t("chat.sendImage")}
               style={toolbarButtonStyle(colors.deepInkGreen)}
             >
               <ImageIcon />
-              <span style={toolbarLabelStyle}>图片</span>
+              <span style={toolbarLabelStyle}>{t("chat.attachImageLabel")}</span>
             </button>
             <button
               onClick={() => {
                 setAttachOpen(false);
                 fileInputRef.current?.click();
               }}
-              aria-label="发送文件"
+              aria-label={t("chat.sendFile")}
               style={toolbarButtonStyle(colors.deepInkGreen)}
             >
               <FileIcon />
-              <span style={toolbarLabelStyle}>文件</span>
+              <span style={toolbarLabelStyle}>{t("chat.attachFileLabel")}</span>
             </button>
           </div>
         ) : null}
@@ -705,7 +722,7 @@ export function ChatScreen({
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "0 6px 6px" }}>
             <button
               onClick={stopRecording}
-              aria-label="停止录音并发送"
+              aria-label={t("chat.recordingStop")}
               style={{
                 minHeight: touchTarget.minDp,
                 width: "100%",
@@ -718,7 +735,7 @@ export function ChatScreen({
                 boxShadow: "none",
               }}
             >
-              ⏹ 录音中，点击结束并发送
+              {t("chat.recording")}
             </button>
           </div>
         ) : null}

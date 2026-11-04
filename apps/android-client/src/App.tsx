@@ -61,7 +61,7 @@ import { ConnectionDiagnosticsScreen } from "./screens/ConnectionDiagnosticsScre
 import { ConnectedDevicesScreen } from "./screens/ConnectedDevicesScreen";
 import { ConferenceScreen } from "./screens/ConferenceScreen";
 import { EditProfileScreen } from "./screens/EditProfileScreen";
-import { GroupSettingsScreen, disappearLabel } from "./screens/GroupSettingsScreen";
+import { GroupSettingsScreen } from "./screens/GroupSettingsScreen";
 import { GroupInviteScreen } from "./screens/GroupInviteScreen";
 import { BackupScreen } from "./screens/BackupScreen";
 import { isLockEnabled } from "./appLock";
@@ -110,6 +110,7 @@ import {
   isBiometricUnlockEnabled,
   setBiometricUnlockEnabled,
 } from "./biometricUnlock";
+import { useT } from "./i18n";
 
 interface ActiveCall {
   session: CallSession;
@@ -159,20 +160,41 @@ type Screen =
  * 明确的映射，不要把协议层的内部错误码直接展示给用户。
  */
 /** 把过期时间戳转成"有效期剩 X 天 Y 小时"这种人话 */
-function mediaLabel(kind: "image" | "voice" | "file"): string {
-  if (kind === "image") return "图片";
-  if (kind === "voice") return "语音";
-  return "文件";
+function mediaLabel(
+  kind: "image" | "voice" | "file",
+  t: (key: string, params?: Record<string, string | number>) => string
+): string {
+  if (kind === "image") return t("app.mediaLabel.image");
+  if (kind === "voice") return t("app.mediaLabel.voice");
+  return t("app.mediaLabel.file");
 }
 
-function formatExpiry(expiresAtMs: number): string {
+function formatExpiry(
+  expiresAtMs: number,
+  t: (key: string, params?: Record<string, string | number>) => string
+): string {
   const remainMs = expiresAtMs - Date.now();
-  if (remainMs <= 0) return "已过期";
+  if (remainMs <= 0) return t("app.expiry.expired");
   const hours = Math.floor(remainMs / 3_600_000);
   const days = Math.floor(hours / 24);
-  if (days > 0) return `有效期剩 ${days} 天 ${hours % 24} 小时`;
-  if (hours > 0) return `有效期剩 ${hours} 小时`;
-  return `有效期剩 ${Math.max(1, Math.floor(remainMs / 60_000))} 分钟`;
+  if (days > 0) return t("app.expiry.daysHours", { days, hours: hours % 24 });
+  if (hours > 0) return t("app.expiry.hours", { hours });
+  return t("app.expiry.minutes", { minutes: Math.max(1, Math.floor(remainMs / 60_000)) });
+}
+
+/** 消息定时消失的时长转成用户能看懂的文字（和群设置的选项一致） */
+function disappearLabelLocal(
+  ms: number,
+  t: (key: string, params?: Record<string, string | number>) => string
+): string {
+  const map: [number, string][] = [
+    [300_000, "groupSettings.disappear5min"],
+    [3_600_000, "groupSettings.disappear1hour"],
+    [86_400_000, "groupSettings.disappear1day"],
+    [604_800_000, "groupSettings.disappear7days"],
+  ];
+  const found = map.find(([value]) => value === ms);
+  return t(found ? found[1] : "groupSettings.disappearOff");
 }
 
 function mapParseErrorReason(reason: InviteParseError["reason"]): "expired" | "exhausted" | "malformed" {
@@ -184,6 +206,7 @@ function mapParseErrorReason(reason: InviteParseError["reason"]): "expired" | "e
 let nextMessageId = 0;
 
 export function App() {
+  const t = useT();
   const [screen, setScreen] = useState<Screen>({ name: "connected", activeGroupId: null, view: "list", deviceId: "" });
   // 应用内配置的中继地址优先于构建时注入的默认值——换服务器不用重新打包
   const [relayUrl, setRelayUrl] = useState<string>(RELAY_URL);
@@ -360,7 +383,7 @@ export function App() {
           if (!cancelled) {
             setGroupInviteState({
               status: "error",
-              message: "找不到这个群的密钥材料，无法生成邀请卡片。请重新加入这个群。",
+              message: t("app.groupInvite.missingKeys"),
             });
           }
           return;
@@ -379,7 +402,7 @@ export function App() {
         if (!cancelled) {
           setGroupInviteState({
             status: "error",
-            message: err instanceof Error ? err.message : "生成邀请卡片失败，请重试",
+            message: err instanceof Error ? err.message : t("app.groupInvite.generateFailed"),
           });
         }
       }
@@ -473,7 +496,7 @@ export function App() {
    */
   async function handleConfirmRestore(): Promise<void> {
     const payload = pendingRestoreRef.current;
-    if (!payload) throw new Error("没有待恢复的备份，请重新选择文件并解密");
+    if (!payload) throw new Error(t("app.restore.noPending"));
     pendingRestoreRef.current = null;
     const store = await getDeviceStore();
     const existingGroups = await loadJoinedGroups(store);
@@ -620,7 +643,7 @@ export function App() {
       isOwn: true,
       system: true,
       sentAtMs: Date.now(),
-      text: ms > 0 ? `你开启了定时消失：${disappearLabel(ms)}` : "你关闭了定时消失",
+      text: ms > 0 ? t("app.disappear.enabled", { label: disappearLabelLocal(ms, t) }) : t("app.disappear.disabled"),
     });
   }
 
@@ -822,7 +845,7 @@ export function App() {
                   title: env.title,
                   body: env.body,
                   audioUrl: readyUrl,
-                  audioPending: env.audioFileId && !readyUrl ? "音频接收中..." : undefined,
+                  audioPending: env.audioFileId && !readyUrl ? t("app.audio.receiving") : undefined,
                 },
               },
             });
@@ -1089,9 +1112,9 @@ export function App() {
       // 所以这两项暂时不显示，而不是编一个假的出来。
       const invite: InviteInfo = {
         status: "valid",
-        groupName: parsed.groupName ?? "加密群聊",
+        groupName: parsed.groupName ?? t("app.invite.defaultGroupName"),
         inviterName: undefined,
-        expiryLabel: parsed.expiresAtMs ? formatExpiry(parsed.expiresAtMs) : undefined,
+        expiryLabel: parsed.expiresAtMs ? formatExpiry(parsed.expiresAtMs, t) : undefined,
       };
       setScreen({ name: "invite", invite, parsed, isConfirming: false });
     } catch (err) {
@@ -1106,13 +1129,13 @@ export function App() {
     setScreen({ ...screen, isConfirming: true, errorMessage: undefined });
 
     try {
-      const groupName = screen.invite.status === "valid" ? screen.invite.groupName : "邀群密聊";
+      const groupName = screen.invite.status === "valid" ? screen.invite.groupName : t("app.invite.fallbackGroupName");
       await connectToGroup(parsed, groupName);
     } catch (err) {
       const message =
         err instanceof MissingGroupIdError
-          ? "这个邀请是旧版兼容格式，暂不支持加密入群"
-          : `加群失败：${err instanceof Error ? err.message : "请重试"}`;
+          ? t("app.join.legacyFormat")
+          : t("app.join.failed", { message: err instanceof Error ? err.message : t("app.join.retry") });
       setScreen((prev) =>
         prev.name === "invite" ? { ...prev, isConfirming: false, errorMessage: message } : prev
       );
@@ -1193,7 +1216,7 @@ export function App() {
     // 否则重发会丢掉引用
     const reply = replyTarget
         ? {
-            senderName: replyTarget.isOwn ? (nickname ?? "我") : (replyTarget.fromDeviceId ?? "对方"),
+            senderName: replyTarget.isOwn ? (nickname ?? t("app.reply.me")) : (replyTarget.fromDeviceId ?? t("app.reply.peer")),
             excerpt: buildReplyExcerpt({
               id: replyTarget.id,
               text: replyTarget.text,
@@ -1235,7 +1258,7 @@ export function App() {
     } catch {
       // sendEnvelope 断线时会排队而不是抛错，所以走到这里说明是加密或
       // 序列化出了问题——那不是重发能解决的，如实报错。
-      setSessions((prev) => patchSession(prev, groupId, { sendError: "这条消息发不出去，请重试" }));
+      setSessions((prev) => patchSession(prev, groupId, { sendError: t("app.send.failed") }));
     }
   }
 
@@ -1301,7 +1324,7 @@ export function App() {
         bytes
       );
     } catch {
-      setSessions((prev) => patchSession(prev, groupId, { sendError: "发送失败，请检查连接" }));
+      setSessions((prev) => patchSession(prev, groupId, { sendError: t("app.sendFile.failed") }));
     }
   }
 
@@ -1317,7 +1340,7 @@ export function App() {
     // 只有持有这个群管理员私钥的设备才能签发公告。没有私钥就发不出去——
     // 本地解锁界面不构成权限。
     const adminKey = await loadAdminKey(session.groupId);
-    if (!adminKey) throw new Error("这台设备没有该群的管理员密钥，无法发布公告");
+    if (!adminKey) throw new Error(t("app.announcement.noAdminKey"));
 
     // 音频走已有的分片加密传输，公告只带一个引用——公告帧不适合塞几 MB
     let audioFileId: string | undefined;
@@ -1461,7 +1484,7 @@ export function App() {
    */
   async function handleRotateKey(): Promise<string> {
     const session = activeSession() ?? sortSessions(sessions)[0];
-    if (!session) throw new Error("没有可以更换密钥的群");
+    if (!session) throw new Error(t("app.rotate.noGroup"));
 
     const rotated = rotateGroupKey({
       groupId: session.groupId,
@@ -1859,7 +1882,7 @@ export function App() {
         hasTurn={ICE_CONFIG.hasTurn}
         kind={call.kind}
         info={call.info}
-        peerLabel={callSession?.groupName ?? "通话"}
+        peerLabel={callSession?.groupName ?? t("app.call.peerLabelFallback")}
         localStream={call.localStream}
         remoteStream={call.remoteStream}
         onAccept={() => void call.session.accept()}
