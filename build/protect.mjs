@@ -1,7 +1,7 @@
 // Mission page and the "protection layers" hubs. Status labels must stay honest:
 // 'live' = usable today on this site, 'planned' = not built or not tested yet.
 
-export const MISSION_SHORT = 'Protect your privacy layer by layer, from the device in your hand to the messages you send, with tools that run on your own device and guides where every step was actually tested.';
+export const MISSION_SHORT = 'Protect your privacy layer by layer, from the device in your hand to the messages you send, with tools that run on your own device where possible, and guides that say which steps we have tested.';
 
 export const MISSION = `    <h1>Our mission</h1>
     <p class="meta">Last updated: 2026-10-21</p>
@@ -60,7 +60,7 @@ export const LAYERS = [
   {
     slug: 'accounts', icon: 'key-round', name: 'Accounts and email', tagline: 'Who can get into your accounts, and what your inbox reveals.',
     threat: 'Reused passwords, SMS codes and an email provider that can read every message are the usual way accounts and identities are taken over.',
-    live: [['Account security checkup: eight checks, official Google, Apple and Microsoft steps', '/tools/account-checkup/', 'local'], ['Password breach checker', '/tools/password-checker/', 'local'], ['How password breach checks work', '/blog/how-password-breach-checks-work/', 'guide'], ['What data brokers know about you', '/blog/what-data-brokers-know-about-you/', 'guide'], ['Data broker opt-out guide: official removal pages for the US, UK and EU', '/blog/data-broker-opt-out-guide/', 'guide'], ['Moving to encrypted email: what it protects and how to switch', '/blog/move-to-encrypted-email/', 'guide'], ['Email aliases: a separate address for every site', '/blog/email-aliases-hide-your-address/', 'guide'], ['Protect your phone number: SIM PIN, carrier locks and SIM-swap scams', '/blog/protect-your-phone-number-sim-swap/', 'guide']],
+    live: [['Account security checkup: eight checks, official Google, Apple and Microsoft steps', '/tools/account-checkup/', 'local'], ['Password breach checker', '/tools/password-checker/', 'net'], ['How password breach checks work', '/blog/how-password-breach-checks-work/', 'guide'], ['What data brokers know about you', '/blog/what-data-brokers-know-about-you/', 'guide'], ['Data broker opt-out guide: official removal pages for the US, UK and EU', '/blog/data-broker-opt-out-guide/', 'guide'], ['Moving to encrypted email: what it protects and how to switch', '/blog/move-to-encrypted-email/', 'guide'], ['Email aliases: a separate address for every site', '/blog/email-aliases-hide-your-address/', 'guide'], ['Protect your phone number: SIM PIN, carrier locks and SIM-swap scams', '/blog/protect-your-phone-number-sim-swap/', 'guide']],
     planned: ['An account recovery plan you keep offline: recovery codes, security keys and trusted devices'],
   },
   {
@@ -146,13 +146,13 @@ export const SITUATIONS = [
     slug: 'being-tracked', title: 'Someone may be tracking me', short: 'Phone, location and accounts',
     intro: 'If you think a person is following what you do, through your phone, your accounts or photos you share, these are the first checks we can offer today.',
     safety: 'If you are in danger, contact local emergency services or a local support organisation first. If someone has access to your phone or accounts, changing settings or passwords can alert them; consider making changes from a device they cannot reach.',
-    steps: [['Remove location data from photos before you share them', '/tools/photo-metadata-remover/', 'local'], ['Check your passwords against known breaches without sending them', '/tools/password-checker/', 'local'], ['See what your browser gives away to sites that track you', '/tools/browser-fingerprint-test/', 'local'], ['What data brokers know about you, and how to ask them to delete it', '/blog/what-data-brokers-know-about-you/', 'guide']],
+    steps: [['Remove location data from photos before you share them', '/tools/photo-metadata-remover/', 'local'], ['Check your passwords against known breaches without sending them', '/tools/password-checker/', 'net'], ['See what your browser gives away to sites that track you', '/tools/browser-fingerprint-test/', 'local'], ['What data brokers know about you, and how to ask them to delete it', '/blog/what-data-brokers-know-about-you/', 'guide']],
     layers: ['devices', 'accounts', 'physical'],
   },
   {
     slug: 'account-hacked', title: 'My account may be hacked', short: 'Passwords, recovery, keys',
     intro: 'Most account takeovers start with a reused or leaked password. Start by checking the passwords you use most.',
-    steps: [['Run the account checkup: two-step verification, recovery details, signed-in devices', '/tools/account-checkup/', 'local'], ['Check a password against known breaches without sending it', '/tools/password-checker/', 'local'], ['Check a login link for phishing signs before you use it', '/tools/link-checker/', 'local'], ['How password breach checks work, and what they cannot tell you', '/blog/how-password-breach-checks-work/', 'guide']],
+    steps: [['Run the account checkup: two-step verification, recovery details, signed-in devices', '/tools/account-checkup/', 'local'], ['Check a password against known breaches without sending it', '/tools/password-checker/', 'net'], ['Check a login link for phishing signs before you use it', '/tools/link-checker/', 'local'], ['How password breach checks work, and what they cannot tell you', '/blog/how-password-breach-checks-work/', 'guide']],
     layers: ['accounts'],
   },
   {

@@ -108,6 +108,11 @@ with sync_playwright() as p:
     pg3.goto(BASE + '/zh/checkup/')
     zc = pg3.eval_on_selector_all('main a[href]', 'as => as.map(a => a.getAttribute("href"))')
     check(not [h for h in zc if 'privacy-report' in h or 'ip-leak' in h], '/zh/checkup/ has no IP test (rule)')
+    # Rule 5: no Chinese page links to the IP, WebRTC, IPv6 or DNS leak tests (the privacy report runs them all).
+    import glob
+    LEAK = ('privacy-report', 'ip-leak-test', 'webrtc-leak-test', 'ipv6-leak-test', 'dns-leak')
+    zh_bad = [f for f in glob.glob(os.path.join(ROOT, 'zh/**/*.html'), recursive=True) if any(f'href="/tools/{k}' in open(f, encoding='utf-8').read() for k in LEAK)]
+    check(not zh_bad, f'no zh page links to leak tests (rule) {zh_bad[:3]}')
     pg3.goto(BASE + '/checkup/')
     ec = pg3.eval_on_selector_all('.checkup-card a', 'as => as.map(a => a.getAttribute("href"))')
     check(ec == ['/tools/privacy-report/', '/tools/link-checker/', '/tools/phone-checkup/', '/tools/account-checkup/'], f'/checkup/ four checks in order {ec}')
