@@ -22,7 +22,8 @@ private const val P = "android.permission."
 private fun app(
     pkg: String, label: String = pkg, system: Boolean = false, launcher: Boolean = true, game: Boolean = false,
     granted: Set<String> = emptySet(), a11y: Boolean = false, admin: Boolean = false, notif: Boolean = false,
-) = AppFacts(pkg, label, system, launcher, game, granted, a11y, admin, notif)
+    overlay: Boolean = false,
+) = AppFacts(pkg, label, system, launcher, game, granted, a11y, admin, notif, overlay)
 
 private val LIST = AppCheckup.parseList(
     "# header\n# package\tapp\tkind\n" +
@@ -82,6 +83,17 @@ fun main() {
         aeq(AppCheckup.evaluate(listOf(app("sys.a", system = true, a11y = true, admin = true, launcher = false,
             granted = AppCheckup.SENSITIVE)), LIST), emptyList<AppCheckup.Finding>())
         aeq(AppCheckup.evaluate(listOf(app("com.spy.thing", system = true)), LIST).single().signals, listOf(Signal.STALKERWARE))
+    }
+
+    at("drawing over other apps is REVIEW") {
+        val f = AppCheckup.evaluate(listOf(app("o.a", overlay = true)), LIST).single()
+        aeq(f.level, Level.REVIEW); aeq(f.signals, listOf(Signal.OVERLAY))
+    }
+
+    at("component lists from secure settings: packages, malformed parts skipped") {
+        aeq(AppCheckup.packagesOfComponents("com.a/com.a.Svc:com.b/.L"), setOf("com.a", "com.b"))
+        aeq(AppCheckup.packagesOfComponents("garbage::/x:"), emptySet<String>())
+        aeq(AppCheckup.packagesOfComponents(null), emptySet<String>())
     }
 
     at("Guardian itself is never reported") {

@@ -321,9 +321,10 @@ def launch():
     time.sleep(2)
     # U3: the first launch shows a one-screen introduction.
     nodes = dump()
-    b = button(nodes, "Get started")
+    b = button(nodes, "Start protection")
     if b:
-        if "Welcome to Guardian" not in joined(nodes) or "What it does not do" not in joined(nodes):
+        t = joined(nodes)
+        if "Your phone. Your business." not in t or "does not hide your IP address" not in t:
             fail("introduction screen incomplete", nodes)
         snap("intro")
         tap(b)
@@ -449,6 +450,21 @@ def main():
     goto("Protect")
     wait_ui(lambda s: "1 safety alert" in s, "Protect tab does not show the safety alert card")
     print("ok: Protect tab shows the safety alert card")
+
+    # 4a3. G19 app checkup. The emulator has no screen lock and USB debugging on (adb), so the scan must
+    #      report both: proof that it reads the real phone state. It must also finish and count apps.
+    goto("Check")
+    nodes = find_quiet(lambda s: "Scan my apps" in s, timeout=20)
+    if nodes is None:
+        fail("no 'Scan my apps' button on Check", dump())
+    tap(button(nodes, "Scan my apps"))
+    nodes = find_anywhere(lambda s: re.search(r"\d+ apps checked", s), "app checkup did not finish", timeout=60)
+    find_anywhere(lambda s: "No screen lock" in s, "app checkup does not report the missing screen lock")
+    find_anywhere(lambda s: "USB debugging is on" in s, "app checkup does not report USB debugging")
+    find_anywhere(lambda s: "Which apps have access" in s, "app checkup has no 'Which apps have access' section")
+    goto("Check")
+    snap("app-checkup")
+    print("ok: app checkup finishes and reports the screen lock and USB debugging")
 
     # Screenshots for review (U2): each tab in English; on API 33+ also in Chinese (per-app language)
     # and in dark mode. Taken now, while blocks and a safety alert give the screens real content.

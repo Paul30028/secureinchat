@@ -7,15 +7,49 @@
     <string name="tab_activity">Activity</string>
     <string name="tab_check">Check</string>
     <string name="tab_settings">Settings</string>
-    <string name="intro_title">Welcome to Guardian</string>
-    <string name="intro_subtitle">Fewer ads and trackers in every app, without an account.</string>
-    <string name="intro_does_title">What it does</string>
-    <string name="intro_does_body">Guardian checks the names apps look up (DNS) on this phone and blocks known ad and tracker servers. It runs only on your phone: no account and no server of ours.</string>
-    <string name="intro_not_title">What it does not do</string>
-    <string name="intro_not_body">It is not a VPN to another country: it does not hide your IP address or encrypt your other traffic. Android shows a key icon because Guardian uses the system VPN interface to filter DNS locally.</string>
-    <string name="intro_always_title">Keep it on after a restart</string>
-    <string name="intro_always_body">In Settings → Start automatically, turn on Always-on VPN for Guardian. Android then starts it by itself.</string>
-    <string name="intro_start">Get started</string>
+    <string name="intro_title">Your phone. Your business.</string>
+    <string name="intro_point1">Blocks ads and trackers in your apps</string>
+    <string name="intro_point2">No sign-up. We never receive your data.</string>
+    <string name="intro_point3">Something broken? One tap to allow it.</string>
+    <string name="intro_note">Filters on your phone only. Not a VPN to somewhere else, and it does not hide your IP address.</string>
+    <string name="intro_start">Start protection</string>
+    <string name="protect_scan_prompt">See which apps can read your screen, your messages or your location.</string>
+    <string name="protect_scan_button">Check my apps</string>
+    <string name="dot_switch_off">Switch back to standard DNS</string>
+    <string name="activity_attribution">Guardian can see which addresses were blocked, but not which app asked for them.</string>
+    <string name="promise_title">Our privacy promise</string>
+    <string name="promise_body">• No account and no servers of ours: nothing about you reaches us.\n• Block lists come with the app; Guardian never downloads them.\n• The addresses your apps contact are not saved, only a daily count of blocks.\n• App checkup results stay in memory and are never saved.\n• All of this can be checked in the source code (GPL).</string>
+    <string name="scan_title">App checkup</string>
+    <string name="scan_intro">Finds apps that can read your screen or notifications, track you in the background, or are known stalkerware, and phone settings that make spying easier. Results stay on this phone and are not saved.</string>
+    <string name="scan_button">Scan my apps</string>
+    <string name="scan_running">Scanning…</string>
+    <string name="scan_again">Scan again</string>
+    <string name="scan_failed">The scan could not finish. Please try again.</string>
+    <string name="scan_clean">%1$d apps checked. Nothing needs attention. A clean result is not a guarantee: advanced spyware can hide.</string>
+    <string name="scan_summary">%1$d need attention · %2$d worth a look · %3$d apps checked</string>
+    <string name="scan_phone">This phone</string>
+    <string name="scan_high">Needs attention</string>
+    <string name="scan_review">Worth a look</string>
+    <string name="scan_by_permission">Which apps have access</string>
+    <string name="scan_listed_as">Listed by Echap as %1$s</string>
+    <string name="scan_open_permissions">Permissions</string>
+    <string name="scan_open_permissions_for">Open permissions for %1$s</string>
+    <string name="scan_notif_unknown">This phone does not let Guardian see which apps can read notifications. Check Settings → Notifications → Notification access.</string>
+    <string name="scan_footer">Guardian cannot know whether an app really needs a permission. If you don\'t expect an app to have it, open its permissions and switch it off. Stalkerware list: Echap (CC-BY 4.0).</string>
+    <string name="sig_stalkerware">On a public list of stalkerware</string>
+    <string name="sig_watchware">On a list of monitoring apps (also used for parental control)</string>
+    <string name="sig_accessibility">Can read and control your screen (accessibility service)</string>
+    <string name="sig_device_admin">Device administrator: can lock or wipe the phone and is hard to remove</string>
+    <string name="sig_notification">Can read all your notifications, including messages and codes</string>
+    <string name="sig_hidden">No icon in the app list, yet holds sensitive permissions</string>
+    <string name="sig_background_location">Can see your location even when you are not using it</string>
+    <string name="sig_sms">Can read or send text messages</string>
+    <string name="sig_call_log">Can read your call history</string>
+    <string name="sig_game">A game with access to microphone, camera, location or contacts</string>
+    <string name="sig_overlay">Can draw over other apps</string>
+    <string name="phone_no_lock">No screen lock: anyone holding the phone can open everything</string>
+    <string name="phone_usb_debugging">USB debugging is on: someone with a cable and a computer can copy data</string>
+    <string name="phone_old_patch">Last security update: %1$s (%2$d months ago)</string>
     <string name="status_on">Protection is on</string>
     <string name="status_off">Protection is off</string>
     <string name="status_paused_until">Paused until %1$s</string>
@@ -37,8 +71,8 @@
     <string name="see_all">See all</string>
     <string name="recent_empty_off">Turn on protection to see what gets blocked.</string>
     <string name="nothing_blocked_yet">Nothing blocked yet.</string>
-    <string name="privacy_plain">Only DNS lookups go through Guardian. Allowed lookups go to your current network\'s DNS servers. Nothing is logged to storage.</string>
-    <string name="privacy_dot">Only DNS lookups go through Guardian. Allowed lookups go encrypted to %1$s. Nothing is logged to storage.</string>
+    <string name="privacy_plain">Ads and trackers are stopped right on your phone. Nothing is stored or sent to us.</string>
+    <string name="privacy_dot">Ads and trackers are stopped right on your phone; other lookups go encrypted to %1$s. Nothing is stored or sent to us.</string>
     <string name="blocked_most_often">Blocked most often</string>
     <string name="blocked_most_often_hint">If an app or site stops working, tap Allow on its row.</string>
     <string name="allow">Allow</string>
@@ -157,6 +191,38 @@
     <plurals name="safety_alerts_count">
         <item quantity="one">%1$d safety alert</item>
         <item quantity="other">%1$d safety alerts</item>
+    </plurals>
+    <plurals name="kind_location">
+        <item quantity="one">Location: %1$d app</item>
+        <item quantity="other">Location: %1$d apps</item>
+    </plurals>
+    <plurals name="kind_background_location">
+        <item quantity="one">Location in the background: %1$d app</item>
+        <item quantity="other">Location in the background: %1$d apps</item>
+    </plurals>
+    <plurals name="kind_microphone">
+        <item quantity="one">Microphone: %1$d app</item>
+        <item quantity="other">Microphone: %1$d apps</item>
+    </plurals>
+    <plurals name="kind_camera">
+        <item quantity="one">Camera: %1$d app</item>
+        <item quantity="other">Camera: %1$d apps</item>
+    </plurals>
+    <plurals name="kind_contacts">
+        <item quantity="one">Contacts: %1$d app</item>
+        <item quantity="other">Contacts: %1$d apps</item>
+    </plurals>
+    <plurals name="kind_sms">
+        <item quantity="one">Text messages: %1$d app</item>
+        <item quantity="other">Text messages: %1$d apps</item>
+    </plurals>
+    <plurals name="kind_call_log">
+        <item quantity="one">Call history: %1$d app</item>
+        <item quantity="other">Call history: %1$d apps</item>
+    </plurals>
+    <plurals name="kind_photos">
+        <item quantity="one">Photos and files: %1$d app</item>
+        <item quantity="other">Photos and files: %1$d apps</item>
     </plurals>
     <plurals name="watch_on">
         <item quantity="one">Watching for %1$d known stalkerware server. No alert does not mean no stalkerware: the list is incomplete, and advanced spyware can avoid Guardian.</item>

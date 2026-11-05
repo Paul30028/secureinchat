@@ -44,11 +44,24 @@ for p, s in src.items():
                 fail.append(f'{rel}: forbidden identifier {pat} (DnsSettingsStore holds only the provider id)')
         if len(re.findall(r'const val KEY_', s)) != 1:
             fail.append(f'{rel}: DnsSettingsStore must define exactly one preference key')
+# G19: the app checkup reads the list of installed apps. That list must never leave the phone or be stored:
+# no network or file/preference APIs in the scanner or the core rules.
+for rel in ('app/src/main/kotlin/org/secureinchat/guardian/AppScanner.kt',
+            'core/src/main/kotlin/org/secureinchat/guardian/dns/AppCheckup.kt'):
+    path = os.path.join(ROOT, rel)
+    if os.path.exists(path):
+        src = open(path, encoding='utf-8').read()
+        for bad in ('java.net', 'Socket', 'URL(', 'HttpURLConnection', 'openFileOutput', 'FileOutputStream',
+                    'getSharedPreferences', 'SharedPreferences', 'File(', 'Files.write', 'writeText'):
+            if bad in src:
+                fail.append(f'{rel}: must not use {bad} (scan results stay in memory and on the phone)')
 man = os.path.join(ROOT, 'app', 'src', 'main', 'AndroidManifest.xml')
 if os.path.exists(man):
     m = open(man, encoding='utf-8').read()
     perms = set(re.findall(r'uses-permission[^>]*android:name="([^"]+)"', m))
-    allowed = {'android.permission.INTERNET', 'android.permission.ACCESS_NETWORK_STATE', 'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED', 'android.permission.POST_NOTIFICATIONS'}
+    allowed = {'android.permission.INTERNET', 'android.permission.ACCESS_NETWORK_STATE', 'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED', 'android.permission.POST_NOTIFICATIONS',
+               # G19 app checkup (read-only, in memory; Paul 2026-11-01 / 2026-11-05)
+               'android.permission.QUERY_ALL_PACKAGES'}
     if perms - allowed: fail.append(f'unexpected permissions: {sorted(perms - allowed)}')
     if 'android.permission.BIND_VPN_SERVICE' not in m: fail.append('VPN service not protected by BIND_VPN_SERVICE')
 if len(sys.argv) > 1:

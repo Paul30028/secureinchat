@@ -7,15 +7,49 @@
     <string name="tab_activity">履歴</string>
     <string name="tab_check">チェック</string>
     <string name="tab_settings">設定</string>
-    <string name="intro_title">Guardian へようこそ</string>
-    <string name="intro_subtitle">すべてのアプリで広告とトラッカーを減らします。アカウントは不要です。</string>
-    <string name="intro_does_title">できること</string>
-    <string name="intro_does_body">Guardian はこのスマートフォンでアプリが問い合わせる名前（DNS）を確認し、既知の広告・トラッカーのサーバーをブロックします。動作はスマートフォン上だけで、アカウントも当方のサーバーもありません。</string>
-    <string name="intro_not_title">できないこと</string>
-    <string name="intro_not_body">他の国につなぐ VPN ではありません。IP アドレスを隠したり、ほかの通信を暗号化したりはしません。鍵のアイコンが出るのは、Guardian がシステムの VPN の仕組みを使って端末内で DNS をフィルタするためです。</string>
-    <string name="intro_always_title">再起動後も有効にする</string>
-    <string name="intro_always_body">「設定 → 自動で開始」で Guardian の「常時接続 VPN」をオンにすると、Android が自動で起動します。</string>
-    <string name="intro_start">はじめる</string>
+    <string name="intro_title">あなたのスマホは、あなただけのもの</string>
+    <string name="intro_point1">アプリの広告とトラッキングをブロック</string>
+    <string name="intro_point2">登録不要。あなたのデータは私たちに届きません</string>
+    <string name="intro_point3">うまく動かない？ワンタップで許可</string>
+    <string name="intro_note">スマホの中だけでフィルタします。別の場所につなぐ VPN ではなく、IP アドレスも隠しません。</string>
+    <string name="intro_start">保護を開始</string>
+    <string name="protect_scan_prompt">どのアプリが画面・メッセージ・位置情報を読めるか確認しましょう。</string>
+    <string name="protect_scan_button">アプリを確認</string>
+    <string name="dot_switch_off">通常の DNS に戻す</string>
+    <string name="activity_attribution">Guardian はブロックしたアドレスはわかりますが、どのアプリが要求したかはわかりません。</string>
+    <string name="promise_title">プライバシーのお約束</string>
+    <string name="promise_body">• アカウントも当方のサーバーもありません。あなたに関する情報は私たちに届きません。\n• ブロックリストはアプリに同梱されており、Guardian がダウンロードすることはありません。\n• アプリが接続したアドレスは保存せず、1 日のブロック回数だけを保存します。\n• アプリ診断の結果はメモリ内だけにあり、保存しません。\n• これらはすべてソースコード（GPL）で確認できます。</string>
+    <string name="scan_title">アプリ診断</string>
+    <string name="scan_intro">画面や通知を読めるアプリ、バックグラウンドで位置情報を取るアプリ、既知のストーカーウェア、そして監視を容易にする端末の設定を見つけます。結果はこのスマホの中だけにあり、保存しません。</string>
+    <string name="scan_button">アプリをスキャン</string>
+    <string name="scan_running">スキャン中…</string>
+    <string name="scan_again">もう一度スキャン</string>
+    <string name="scan_failed">スキャンを完了できませんでした。もう一度お試しください。</string>
+    <string name="scan_clean">%1$d 個のアプリを確認しました。注意が必要なものはありません。問題なしでも安全の保証ではありません。高度なスパイウェアは隠れることがあります。</string>
+    <string name="scan_summary">注意が必要 %1$d 件 · 確認をおすすめ %2$d 件 · %3$d 個のアプリを確認</string>
+    <string name="scan_phone">このスマホ</string>
+    <string name="scan_high">注意が必要</string>
+    <string name="scan_review">確認をおすすめ</string>
+    <string name="scan_by_permission">アクセスできるアプリ</string>
+    <string name="scan_listed_as">Echap のリスト上の名前：%1$s</string>
+    <string name="scan_open_permissions">権限</string>
+    <string name="scan_open_permissions_for">%1$s の権限を開く</string>
+    <string name="scan_notif_unknown">このスマホでは、通知を読めるアプリを Guardian が確認できません。「設定 → 通知 → 通知へのアクセス」で確認してください。</string>
+    <string name="scan_footer">アプリが本当にその権限を必要としているかは Guardian にはわかりません。不要だと思えば、権限設定を開いてオフにしてください。ストーカーウェアのリスト：Echap（CC-BY 4.0）。</string>
+    <string name="sig_stalkerware">公開されているストーカーウェアのリストに掲載</string>
+    <string name="sig_watchware">監視アプリのリストに掲載（保護者による管理などの用途もあり）</string>
+    <string name="sig_accessibility">画面を読み取って操作できる（ユーザー補助）</string>
+    <string name="sig_device_admin">デバイス管理者：ロックや初期化ができ、削除しにくい</string>
+    <string name="sig_notification">メッセージや確認コードを含むすべての通知を読める</string>
+    <string name="sig_hidden">アプリ一覧にアイコンがないのに、重要な権限を持っている</string>
+    <string name="sig_background_location">使っていないときも位置情報を取得できる</string>
+    <string name="sig_sms">SMS を読んだり送ったりできる</string>
+    <string name="sig_call_log">通話履歴を読める</string>
+    <string name="sig_game">マイク・カメラ・位置情報・連絡先にアクセスできるゲーム</string>
+    <string name="sig_overlay">他のアプリの上に表示できる</string>
+    <string name="phone_no_lock">画面ロックがありません。手に取った人が何でも開けます</string>
+    <string name="phone_usb_debugging">USB デバッグがオンです。ケーブルとパソコンでデータをコピーされる可能性があります</string>
+    <string name="phone_old_patch">最後のセキュリティ更新：%1$s（%2$d か月前）</string>
     <string name="status_on">保護はオンです</string>
     <string name="status_off">保護はオフです</string>
     <string name="status_paused_until">%1$s まで一時停止中</string>
@@ -37,8 +71,8 @@
     <string name="see_all">すべて表示</string>
     <string name="recent_empty_off">保護をオンにすると、ブロックされた内容がここに表示されます。</string>
     <string name="nothing_blocked_yet">まだ何もブロックしていません。</string>
-    <string name="privacy_plain">Guardian を通るのは DNS の問い合わせだけです。許可した問い合わせは現在のネットワークの DNS サーバーに送られます。記録は保存しません。</string>
-    <string name="privacy_dot">Guardian を通るのは DNS の問い合わせだけです。許可した問い合わせは暗号化して %1$s に送ります。記録は保存しません。</string>
+    <string name="privacy_plain">広告とトラッカーはスマホの中で止められます。何も保存せず、私たちにも送りません。</string>
+    <string name="privacy_dot">広告とトラッカーはスマホの中で止められ、その他の問い合わせは暗号化して %1$s に送られます。何も保存せず、私たちにも送りません。</string>
     <string name="blocked_most_often">ブロック回数の多いドメイン</string>
     <string name="blocked_most_often_hint">アプリやサイトが動かなくなったら、その行の「許可」をタップしてください。</string>
     <string name="allow">許可</string>
@@ -156,6 +190,30 @@
     <string name="tile_off">オフ</string>
     <plurals name="safety_alerts_count">
         <item quantity="other">安全に関する通知 %1$d 件</item>
+    </plurals>
+    <plurals name="kind_location">
+        <item quantity="other">位置情報：%1$d 個のアプリ</item>
+    </plurals>
+    <plurals name="kind_background_location">
+        <item quantity="other">バックグラウンドの位置情報：%1$d 個のアプリ</item>
+    </plurals>
+    <plurals name="kind_microphone">
+        <item quantity="other">マイク：%1$d 個のアプリ</item>
+    </plurals>
+    <plurals name="kind_camera">
+        <item quantity="other">カメラ：%1$d 個のアプリ</item>
+    </plurals>
+    <plurals name="kind_contacts">
+        <item quantity="other">連絡先：%1$d 個のアプリ</item>
+    </plurals>
+    <plurals name="kind_sms">
+        <item quantity="other">SMS：%1$d 個のアプリ</item>
+    </plurals>
+    <plurals name="kind_call_log">
+        <item quantity="other">通話履歴：%1$d 個のアプリ</item>
+    </plurals>
+    <plurals name="kind_photos">
+        <item quantity="other">写真とファイル：%1$d 個のアプリ</item>
     </plurals>
     <plurals name="watch_on">
         <item quantity="other">既知のストーカーウェアのサーバー %1$d 件を監視中。通知がなくてもストーカーウェアがないとは限りません。リストは不完全で、高度なスパイウェアは Guardian を回避できます。</item>

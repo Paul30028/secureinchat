@@ -8,6 +8,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- G19 app checkup: see every installed app and its permissions (Android 11+ package visibility).
+         Read-only and in memory only; Paul approved it on 2026-11-01 and asked to merge the checkup
+         into Guardian on 2026-11-05. Google Play requires a declaration for this permission. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
 
 
     <application

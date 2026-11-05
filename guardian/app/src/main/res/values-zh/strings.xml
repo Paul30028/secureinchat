@@ -6,15 +6,49 @@
     <string name="tab_activity">记录</string>
     <string name="tab_check">检查</string>
     <string name="tab_settings">设置</string>
-    <string name="intro_title">欢迎使用 Guardian</string>
-    <string name="intro_subtitle">所有 App 里的广告和追踪更少，无需注册账号。</string>
-    <string name="intro_does_title">它做什么</string>
-    <string name="intro_does_body">Guardian 检查手机上各个 App 要查询的域名（DNS），拦截已知的广告和追踪服务器。它只在你的手机上运行：没有账号，也没有我们的服务器。</string>
-    <string name="intro_not_title">它不做什么</string>
-    <string name="intro_not_body">它不是连到别处的 VPN：不隐藏你的 IP 地址，也不加密其他流量。状态栏出现钥匙图标，是因为 Guardian 借用系统的 VPN 接口在本机过滤 DNS。</string>
-    <string name="intro_always_title">重启后保持开启</string>
-    <string name="intro_always_body">在「设置 → 开机自动保护」里为 Guardian 打开「始终开启的 VPN」，之后 Android 会自动启动它。</string>
-    <string name="intro_start">开始使用</string>
+    <string name="intro_title">你的手机，只属于你</string>
+    <string name="intro_point1">挡住 App 里的广告和追踪</string>
+    <string name="intro_point2">不用注册，我们收不到你的任何数据</string>
+    <string name="intro_point3">误拦了？点一下就放行</string>
+    <string name="intro_note">只在手机上过滤，不是连到别处的 VPN，也不隐藏 IP 地址。</string>
+    <string name="intro_start">开始保护</string>
+    <string name="protect_scan_prompt">看看哪些 App 能读你的屏幕、消息或位置。</string>
+    <string name="protect_scan_button">检查我的 App</string>
+    <string name="dot_switch_off">切回普通 DNS</string>
+    <string name="activity_attribution">Guardian 能看到被挡的网址，看不到是哪个 App 发出的。</string>
+    <string name="promise_title">我们的隐私承诺</string>
+    <string name="promise_body">• 没有账号，也没有我们的服务器：关于你的任何信息都到不了我们这里。\n• 拦截名单随 App 一起安装，Guardian 从不下载名单。\n• 不保存你的 App 访问过哪些网址，只保存每天拦截了几次。\n• 应用体检的结果只在内存里，从不保存。\n• 以上都可以在源代码（GPL）里核对。</string>
+    <string name="scan_title">应用体检</string>
+    <string name="scan_intro">找出能读屏幕、读通知、在后台定位的 App 和已知的跟踪软件，以及让别人更容易监控你的手机设置。结果只留在这台手机上，不保存。</string>
+    <string name="scan_button">扫描我的 App</string>
+    <string name="scan_running">正在扫描…</string>
+    <string name="scan_again">重新扫描</string>
+    <string name="scan_failed">扫描没能完成，请重试。</string>
+    <string name="scan_clean">检查了 %1$d 个 App，没有需要注意的。没发现问题不等于绝对安全：高级间谍软件可能藏得更深。</string>
+    <string name="scan_summary">%1$d 项需要注意 · %2$d 项值得看看 · 共检查 %3$d 个 App</string>
+    <string name="scan_phone">这台手机</string>
+    <string name="scan_high">需要注意</string>
+    <string name="scan_review">值得看看</string>
+    <string name="scan_by_permission">哪些 App 有这些权限</string>
+    <string name="scan_listed_as">在 Echap 名单上的名字：%1$s</string>
+    <string name="scan_open_permissions">权限</string>
+    <string name="scan_open_permissions_for">打开 %1$s 的权限设置</string>
+    <string name="scan_notif_unknown">这台手机不让 Guardian 查看哪些 App 能读通知。请到「设置 → 通知 → 通知使用权」查看。</string>
+    <string name="scan_footer">Guardian 无法知道某个 App 是否真的需要这个权限。如果你觉得它不该有，打开它的权限设置关掉即可。跟踪软件名单：Echap（CC-BY 4.0）。</string>
+    <string name="sig_stalkerware">在公开的跟踪软件名单上</string>
+    <string name="sig_watchware">在监控类软件名单上（也有家长监控等正当用途）</string>
+    <string name="sig_accessibility">能读取和操作你的屏幕（无障碍服务）</string>
+    <string name="sig_device_admin">设备管理员：能锁屏或清空手机，很难卸载</string>
+    <string name="sig_notification">能读你所有的通知，包括消息和验证码</string>
+    <string name="sig_hidden">应用列表里没有图标，却有敏感权限</string>
+    <string name="sig_background_location">不用它的时候也能获取你的位置</string>
+    <string name="sig_sms">能读取或发送短信</string>
+    <string name="sig_call_log">能读取你的通话记录</string>
+    <string name="sig_game">一个游戏却能用麦克风、相机、位置或通讯录</string>
+    <string name="sig_overlay">能显示在其他应用上层</string>
+    <string name="phone_no_lock">没有设置锁屏：拿到手机的人能打开一切</string>
+    <string name="phone_usb_debugging">USB 调试已打开：有人用数据线连电脑就能拷走数据</string>
+    <string name="phone_old_patch">最近一次安全更新：%1$s（%2$d 个月前）</string>
     <string name="status_on">保护已开启</string>
     <string name="status_off">保护已关闭</string>
     <string name="status_paused_until">已暂停，%1$s 恢复</string>
@@ -36,8 +70,8 @@
     <string name="see_all">全部</string>
     <string name="recent_empty_off">开启保护后，这里会显示被拦截的内容。</string>
     <string name="nothing_blocked_yet">还没有拦截任何内容。</string>
-    <string name="privacy_plain">只有 DNS 查询经过 Guardian。放行的查询发给当前网络的 DNS 服务器。不保存任何记录。</string>
-    <string name="privacy_dot">只有 DNS 查询经过 Guardian。放行的查询加密后发给 %1$s。不保存任何记录。</string>
+    <string name="privacy_plain">广告和追踪在你的手机上就被挡掉，不保存，也不会传给我们。</string>
+    <string name="privacy_dot">广告和追踪在你的手机上就被挡掉，其他查询加密后发给 %1$s。不保存，也不会传给我们。</string>
     <string name="blocked_most_often">拦截最多的域名</string>
     <string name="blocked_most_often_hint">如果某个 App 或网站不正常，在对应的行点「放行」。</string>
     <string name="allow">放行</string>
@@ -155,6 +189,30 @@
     <string name="tile_off">已关闭</string>
     <plurals name="safety_alerts_count">
         <item quantity="other">%1$d 条安全提醒</item>
+    </plurals>
+    <plurals name="kind_location">
+        <item quantity="other">位置：%1$d 个 App</item>
+    </plurals>
+    <plurals name="kind_background_location">
+        <item quantity="other">后台位置：%1$d 个 App</item>
+    </plurals>
+    <plurals name="kind_microphone">
+        <item quantity="other">麦克风：%1$d 个 App</item>
+    </plurals>
+    <plurals name="kind_camera">
+        <item quantity="other">相机：%1$d 个 App</item>
+    </plurals>
+    <plurals name="kind_contacts">
+        <item quantity="other">通讯录：%1$d 个 App</item>
+    </plurals>
+    <plurals name="kind_sms">
+        <item quantity="other">短信：%1$d 个 App</item>
+    </plurals>
+    <plurals name="kind_call_log">
+        <item quantity="other">通话记录：%1$d 个 App</item>
+    </plurals>
+    <plurals name="kind_photos">
+        <item quantity="other">照片和文件：%1$d 个 App</item>
     </plurals>
     <plurals name="watch_on">
         <item quantity="other">正在留意 %1$d 个已知跟踪软件服务器。没有提醒不代表没有跟踪软件：名单不完整，高级间谍软件也可能绕过 Guardian。</item>

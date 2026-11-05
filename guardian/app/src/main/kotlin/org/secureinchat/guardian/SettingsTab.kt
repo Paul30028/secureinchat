@@ -25,6 +25,9 @@ class SettingsTab(a: MainActivity) : Tab(a) {
     private lateinit var levelStatus: TextView
     private var settingLevel = false
     private lateinit var dotStatus: TextView
+    private lateinit var dotGroup: RadioGroup
+    private var dotOptions: List<DotProvider?> = emptyList()
+    private var settingDot = false
     private var dotChoice: DotProvider? = null
     private lateinit var rulesLine: TextView
     private lateinit var input: EditText
@@ -66,12 +69,15 @@ class SettingsTab(a: MainActivity) : Tab(a) {
             addView(ui.section(s(R.string.encrypted_dns)))
             addView(ui.caption(s(R.string.encrypted_dns_explain)).apply { layoutParams = ui.matchWidth(4) })
             val group = RadioGroup(a).apply { orientation = RadioGroup.VERTICAL; layoutParams = ui.matchWidth(4) }
+            dotGroup = group
             val options = listOf<DotProvider?>(null) + DotProviders.ALL
+            dotOptions = options
             for ((i, prov) in options.withIndex()) {
                 val label = if (prov == null) s(R.string.dot_off_default) else "${prov.label}: " + providerAbout(prov)
                 group.addView(radio(label, i).apply { isChecked = prov?.id == dotChoice?.id })
             }
             group.setOnCheckedChangeListener { g, id ->
+                if (settingDot) return@setOnCheckedChangeListener
                 val idx = g.findViewById<View>(id)?.tag as? Int ?: return@setOnCheckedChangeListener
                 val prov = options[idx]
                 if (prov?.id == dotChoice?.id) return@setOnCheckedChangeListener
@@ -160,6 +166,12 @@ class SettingsTab(a: MainActivity) : Tab(a) {
             addView(ui.caption(s(R.string.translation_note)).apply { layoutParams = ui.matchWidth(8) })
         })
 
+        // --- Privacy promise (what Guardian does not do, in plain words) ---
+        root.addView(ui.card(12).apply {
+            addView(ui.section(s(R.string.promise_title)))
+            addView(ui.caption(s(R.string.promise_body)).apply { layoutParams = ui.matchWidth(4) })
+        })
+
         // --- About ---
         root.addView(ui.card(12).apply {
             addView(ui.section(s(R.string.about)))
@@ -206,8 +218,23 @@ class SettingsTab(a: MainActivity) : Tab(a) {
         if (message != null) setIfChanged(ioError, message)
     }
 
-    override fun onResume() { if (built) syncLevel() }
-    override fun onShown() { syncLevel() }
+    override fun onResume() { if (built) { syncLevel(); syncDot() } }
+    override fun onShown() { syncLevel(); syncDot() }
+
+    /** The choice can change from the Protect tab ("switch back to standard DNS"). */
+    fun syncDot() {
+        if (!built) return
+        dotChoice = DnsSettingsStore.provider(a)
+        val idx = dotOptions.indexOfFirst { it?.id == dotChoice?.id }.coerceAtLeast(0)
+        settingDot = true
+        try {
+            for (i in 0 until dotGroup.childCount) {
+                val rb = dotGroup.getChildAt(i) as? RadioButton ?: continue
+                val match = (rb.tag as? Int) == idx
+                if (rb.isChecked != match) rb.isChecked = match
+            }
+        } finally { settingDot = false }
+    }
 
     // Setting isChecked fires the listener, so the flag short-circuits it while syncing from storage.
     private fun syncLevel() {

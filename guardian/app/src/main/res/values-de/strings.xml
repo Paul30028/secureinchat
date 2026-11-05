@@ -7,15 +7,49 @@
     <string name="tab_activity">Verlauf</string>
     <string name="tab_check">Prüfen</string>
     <string name="tab_settings">Optionen</string>
-    <string name="intro_title">Willkommen bei Guardian</string>
-    <string name="intro_subtitle">Weniger Werbung und Tracker in allen Apps – ohne Konto.</string>
-    <string name="intro_does_title">Was es tut</string>
-    <string name="intro_does_body">Guardian prüft die Namen, die Apps auf diesem Telefon nachschlagen (DNS), und blockiert bekannte Werbe- und Tracking-Server. Es läuft nur auf deinem Telefon: kein Konto, kein Server von uns.</string>
-    <string name="intro_not_title">Was es nicht tut</string>
-    <string name="intro_not_body">Es ist kein VPN in ein anderes Land: Es verbirgt deine IP-Adresse nicht und verschlüsselt keinen anderen Verkehr. Android zeigt ein Schlüsselsymbol, weil Guardian die VPN-Schnittstelle des Systems nutzt, um DNS lokal zu filtern.</string>
-    <string name="intro_always_title">Nach einem Neustart aktiv bleiben</string>
-    <string name="intro_always_body">Schalte unter Optionen → Automatisch starten „Durchgehend aktives VPN“ für Guardian ein. Android startet es dann selbst.</string>
-    <string name="intro_start">Los geht’s</string>
+    <string name="intro_title">Dein Telefon gehört dir.</string>
+    <string name="intro_point1">Blockiert Werbung und Tracker in deinen Apps</string>
+    <string name="intro_point2">Ohne Anmeldung. Wir bekommen keine deiner Daten.</string>
+    <string name="intro_point3">Etwas funktioniert nicht? Mit einem Tipp erlauben.</string>
+    <string name="intro_note">Filtert nur auf deinem Telefon. Kein VPN zu einem anderen Ort, und es verbirgt deine IP-Adresse nicht.</string>
+    <string name="intro_start">Schutz starten</string>
+    <string name="protect_scan_prompt">Sieh nach, welche Apps deinen Bildschirm, deine Nachrichten oder deinen Standort lesen können.</string>
+    <string name="protect_scan_button">Meine Apps prüfen</string>
+    <string name="dot_switch_off">Zurück zu normalem DNS</string>
+    <string name="activity_attribution">Guardian sieht, welche Adressen blockiert wurden, aber nicht, welche App sie angefragt hat.</string>
+    <string name="promise_title">Unser Datenschutzversprechen</string>
+    <string name="promise_body">• Kein Konto und keine eigenen Server: Nichts über dich erreicht uns.\n• Die Sperrlisten kommen mit der App; Guardian lädt sie nie herunter.\n• Die Adressen, die deine Apps aufrufen, werden nicht gespeichert, nur die tägliche Anzahl der Blockierungen.\n• Die Ergebnisse des App-Checks bleiben im Arbeitsspeicher und werden nie gespeichert.\n• All das lässt sich im Quellcode (GPL) prüfen.</string>
+    <string name="scan_title">App-Check</string>
+    <string name="scan_intro">Findet Apps, die deinen Bildschirm oder deine Benachrichtigungen lesen, dich im Hintergrund orten oder bekannte Stalkerware sind, sowie Telefoneinstellungen, die Überwachung erleichtern. Die Ergebnisse bleiben auf diesem Telefon und werden nicht gespeichert.</string>
+    <string name="scan_button">Meine Apps scannen</string>
+    <string name="scan_running">Wird gescannt …</string>
+    <string name="scan_again">Erneut scannen</string>
+    <string name="scan_failed">Der Scan konnte nicht abgeschlossen werden. Bitte versuche es erneut.</string>
+    <string name="scan_clean">%1$d Apps geprüft. Nichts erfordert Aufmerksamkeit. Ein sauberes Ergebnis ist keine Garantie: Fortgeschrittene Spyware kann sich verstecken.</string>
+    <string name="scan_summary">%1$d erfordern Aufmerksamkeit · %2$d einen Blick wert · %3$d Apps geprüft</string>
+    <string name="scan_phone">Dieses Telefon</string>
+    <string name="scan_high">Erfordert Aufmerksamkeit</string>
+    <string name="scan_review">Einen Blick wert</string>
+    <string name="scan_by_permission">Welche Apps Zugriff haben</string>
+    <string name="scan_listed_as">Bei Echap gelistet als %1$s</string>
+    <string name="scan_open_permissions">Berechtigungen</string>
+    <string name="scan_open_permissions_for">Berechtigungen für %1$s öffnen</string>
+    <string name="scan_notif_unknown">Dieses Telefon lässt Guardian nicht sehen, welche Apps Benachrichtigungen lesen können. Prüfe Einstellungen → Benachrichtigungen → Benachrichtigungszugriff.</string>
+    <string name="scan_footer">Guardian kann nicht wissen, ob eine App eine Berechtigung wirklich braucht. Wenn du das nicht erwartest, öffne ihre Berechtigungen und schalte sie aus. Stalkerware-Liste: Echap (CC-BY 4.0).</string>
+    <string name="sig_stalkerware">Auf einer öffentlichen Stalkerware-Liste</string>
+    <string name="sig_watchware">Auf einer Liste von Überwachungs-Apps (auch für Kinderschutz genutzt)</string>
+    <string name="sig_accessibility">Kann deinen Bildschirm lesen und steuern (Bedienungshilfe)</string>
+    <string name="sig_device_admin">Geräteadministrator: kann das Telefon sperren oder löschen und ist schwer zu entfernen</string>
+    <string name="sig_notification">Kann alle Benachrichtigungen lesen, auch Nachrichten und Codes</string>
+    <string name="sig_hidden">Kein Symbol in der App-Liste, hat aber sensible Berechtigungen</string>
+    <string name="sig_background_location">Kann deinen Standort sehen, auch wenn du sie nicht nutzt</string>
+    <string name="sig_sms">Kann SMS lesen oder senden</string>
+    <string name="sig_call_log">Kann deine Anrufliste lesen</string>
+    <string name="sig_game">Ein Spiel mit Zugriff auf Mikrofon, Kamera, Standort oder Kontakte</string>
+    <string name="sig_overlay">Kann über anderen Apps angezeigt werden</string>
+    <string name="phone_no_lock">Keine Displaysperre: Wer das Telefon hat, kann alles öffnen</string>
+    <string name="phone_usb_debugging">USB-Debugging ist an: Mit Kabel und Computer können Daten kopiert werden</string>
+    <string name="phone_old_patch">Letztes Sicherheitsupdate: %1$s (vor %2$d Monaten)</string>
     <string name="status_on">Schutz ist aktiv</string>
     <string name="status_off">Schutz ist aus</string>
     <string name="status_paused_until">Pausiert bis %1$s</string>
@@ -37,8 +71,8 @@
     <string name="see_all">Alle</string>
     <string name="recent_empty_off">Schalte den Schutz ein, um zu sehen, was blockiert wird.</string>
     <string name="nothing_blocked_yet">Noch nichts blockiert.</string>
-    <string name="privacy_plain">Nur DNS-Anfragen laufen über Guardian. Erlaubte Anfragen gehen an die DNS-Server deines aktuellen Netzes. Nichts wird gespeichert.</string>
-    <string name="privacy_dot">Nur DNS-Anfragen laufen über Guardian. Erlaubte Anfragen gehen verschlüsselt an %1$s. Nichts wird gespeichert.</string>
+    <string name="privacy_plain">Werbung und Tracker werden direkt auf deinem Telefon gestoppt. Nichts wird gespeichert oder an uns gesendet.</string>
+    <string name="privacy_dot">Werbung und Tracker werden direkt auf deinem Telefon gestoppt; andere Anfragen gehen verschlüsselt an %1$s. Nichts wird gespeichert oder an uns gesendet.</string>
     <string name="blocked_most_often">Am häufigsten blockiert</string>
     <string name="blocked_most_often_hint">Wenn eine App oder Website nicht mehr funktioniert, tippe in ihrer Zeile auf „Erlauben“.</string>
     <string name="allow">Erlauben</string>
@@ -157,6 +191,38 @@
     <plurals name="safety_alerts_count">
         <item quantity="one">%1$d Sicherheitswarnung</item>
         <item quantity="other">%1$d Sicherheitswarnungen</item>
+    </plurals>
+    <plurals name="kind_location">
+        <item quantity="one">Standort: %1$d App</item>
+        <item quantity="other">Standort: %1$d Apps</item>
+    </plurals>
+    <plurals name="kind_background_location">
+        <item quantity="one">Standort im Hintergrund: %1$d App</item>
+        <item quantity="other">Standort im Hintergrund: %1$d Apps</item>
+    </plurals>
+    <plurals name="kind_microphone">
+        <item quantity="one">Mikrofon: %1$d App</item>
+        <item quantity="other">Mikrofon: %1$d Apps</item>
+    </plurals>
+    <plurals name="kind_camera">
+        <item quantity="one">Kamera: %1$d App</item>
+        <item quantity="other">Kamera: %1$d Apps</item>
+    </plurals>
+    <plurals name="kind_contacts">
+        <item quantity="one">Kontakte: %1$d App</item>
+        <item quantity="other">Kontakte: %1$d Apps</item>
+    </plurals>
+    <plurals name="kind_sms">
+        <item quantity="one">SMS: %1$d App</item>
+        <item quantity="other">SMS: %1$d Apps</item>
+    </plurals>
+    <plurals name="kind_call_log">
+        <item quantity="one">Anrufliste: %1$d App</item>
+        <item quantity="other">Anrufliste: %1$d Apps</item>
+    </plurals>
+    <plurals name="kind_photos">
+        <item quantity="one">Fotos und Dateien: %1$d App</item>
+        <item quantity="other">Fotos und Dateien: %1$d Apps</item>
     </plurals>
     <plurals name="watch_on">
         <item quantity="one">Achtet auf %1$d bekannten Stalkerware-Server. Keine Warnung heißt nicht, dass keine Stalkerware da ist: Die Liste ist unvollständig, und fortgeschrittene Spyware kann Guardian umgehen.</item>

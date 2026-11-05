@@ -115,24 +115,30 @@ class MainActivity : Activity() {
             contentDescription = null
             layoutParams = LinearLayout.LayoutParams(ui.dp(72), ui.dp(72)).apply { topMargin = ui.dp(24) }
         })
-        root.addView(ui.title(getString(R.string.intro_title), 26f).apply {
+        root.addView(ui.title(getString(R.string.intro_title), 28f).apply {
             gravity = Gravity.CENTER
-            layoutParams = ui.matchWidth(16)
+            layoutParams = ui.matchWidth(20)
         })
-        root.addView(ui.caption(getString(R.string.intro_subtitle)).apply {
-            gravity = Gravity.CENTER
-            layoutParams = ui.matchWidth(8)
-        })
-        for ((t, b) in listOf(
-            R.string.intro_does_title to R.string.intro_does_body,
-            R.string.intro_not_title to R.string.intro_not_body,
-            R.string.intro_always_title to R.string.intro_always_body,
-        )) {
-            root.addView(ui.card(16).apply {
-                addView(ui.section(getString(t)))
-                addView(ui.caption(getString(b)).apply { layoutParams = ui.matchWidth(4) })
+        // Three short promises, then one plain line on what it is not. Details live in Settings.
+        val points = ui.vertical().apply { layoutParams = ui.matchWidth(28) }
+        for (t in listOf(R.string.intro_point1, R.string.intro_point2, R.string.intro_point3)) {
+            points.addView(LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = ui.matchWidth(14)
+                addView(ImageView(this@MainActivity).apply {
+                    setImageDrawable(ui.tinted(R.drawable.ic_tab_check, ui.p.accent))
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                    layoutParams = LinearLayout.LayoutParams(ui.dp(24), ui.dp(24)).apply { marginEnd = ui.dp(12) }
+                })
+                addView(ui.body(getString(t), 17f))
             })
         }
+        root.addView(points)
+        root.addView(ui.caption(getString(R.string.intro_note)).apply {
+            gravity = Gravity.CENTER
+            layoutParams = ui.matchWidth(28)
+        })
         // The text scrolls; the button stays pinned at the bottom so it is visible on any screen size.
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -279,6 +285,12 @@ class MainActivity : Activity() {
     fun rulesChanged() {
         GuardianVpnService.applyUserRules(applicationContext)
         tabs.forEach { it.invalidate() }
+        uiHandler.post { refreshUi() }
+    }
+
+    /** Encrypted DNS was changed outside Settings: keep its radio buttons in line. */
+    fun dnsSettingChanged() {
+        settings().syncDot()
         uiHandler.post { refreshUi() }
     }
 

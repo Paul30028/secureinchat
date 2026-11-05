@@ -34,6 +34,8 @@ object AppCheckup {
         CALL_LOG(Level.REVIEW),
         /** A game holding microphone, camera, location or contacts. */
         GAME_SENSITIVE(Level.REVIEW),
+        /** May draw over other apps (used to fake screens or hide what is happening). */
+        OVERLAY(Level.REVIEW),
     }
 
     data class AppFacts(
@@ -48,6 +50,7 @@ object AppCheckup {
         val accessibility: Boolean = false,
         val deviceAdmin: Boolean = false,
         val notificationListener: Boolean = false,
+        val overlay: Boolean = false,
     )
 
     data class Finding(val app: AppFacts, val level: Level, val signals: List<Signal>, val listedAs: String? = null)
@@ -66,6 +69,16 @@ object AppCheckup {
 
     /** Permissions that make an app able to watch a person. */
     val SENSITIVE: Set<String> = LOCATION + BACKGROUND_LOCATION + MICROPHONE + CAMERA + CONTACTS + SMS + CALL_LOG
+
+    /**
+     * Package names from a secure setting such as enabled_notification_listeners: component names
+     * ("pkg/cls" or "pkg/.cls") separated by ':'. Malformed parts are skipped.
+     */
+    fun packagesOfComponents(value: String?): Set<String> =
+        (value ?: "").split(':').mapNotNull { c ->
+            val pkg = c.trim().substringBefore('/', "")
+            if (pkg.isNotEmpty() && '/' in c) pkg else null
+        }.toSet()
 
     /** Parses stalkerware-packages-echap.tsv: package TAB app TAB kind; '#' lines are comments. */
     fun parseList(text: String): Map<String, ListedApp> {
@@ -92,6 +105,7 @@ object AppCheckup {
         if (a.granted.any { it in SMS }) s += Signal.SMS
         if (a.granted.any { it in CALL_LOG }) s += Signal.CALL_LOG
         if (a.isGame && a.granted.any { it in MICROPHONE + CAMERA + LOCATION + CONTACTS }) s += Signal.GAME_SENSITIVE
+        if (a.overlay) s += Signal.OVERLAY
         return s
     }
 

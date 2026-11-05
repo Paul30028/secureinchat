@@ -78,10 +78,21 @@ class ProtectTab(a: MainActivity) : Tab(a) {
         dotCard = ui.card(12, p.warnContainer).apply {
             dotText = ui.body().apply { setTextColor(p.warn) }
             addView(dotText)
-            addView(ui.textButton(s(R.string.open_settings), p.warn) { a.selectTab(3) })
+            // One tap back to working lookups (fail-closed stays the rule while a provider is chosen).
+            addView(ui.textButton(s(R.string.dot_switch_off), p.warn) {
+                DnsSettingsStore.setProvider(a, null)
+                Thread { GuardianVpnService.applyDnsSetting(a.applicationContext) }.apply { name = "guardian-dns-setting" }.start()
+                a.dnsSettingChanged()
+            })
             visibility = View.GONE
         }
         root.addView(dotCard)
+
+        // G19: lead people to the app checkup from the home screen.
+        root.addView(ui.card(12).apply {
+            addView(ui.body(s(R.string.protect_scan_prompt)))
+            addView(ui.textButton(s(R.string.protect_scan_button)) { a.selectTab(2) })
+        })
 
         val stats = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = ui.matchWidth(16) }
         fun tile(label: String): TextView {

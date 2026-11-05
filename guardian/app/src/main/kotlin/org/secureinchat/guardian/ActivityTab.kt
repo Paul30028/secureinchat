@@ -46,6 +46,8 @@ class ActivityTab(a: MainActivity) : Tab(a) {
         root.addView(ui.card(16).apply {
             addView(ui.section(s(R.string.blocked_most_often)))
             addView(ui.caption(s(R.string.blocked_most_often_hint)).apply { layoutParams = ui.matchWidth(4) })
+            // Said up front, because "which app was it?" is the first question people ask.
+            addView(ui.caption(s(R.string.activity_attribution)).apply { layoutParams = ui.matchWidth(4) })
             topBox = ui.vertical().apply { layoutParams = ui.matchWidth(8) }
             addView(topBox)
         })
