@@ -61,7 +61,7 @@
 |---|---|---|---|---|
 | R1 | 一键清除本机数据(设置里，二次确认，写明不可恢复) | Code(K7 之后) | `feature/R1` | 待做 |
 | R2 | 新群默认开启消息定时消失(功能已有，改默认值和模板默认时长) | Code(随 K7) | `feature/R2` | 待做 |
-| R3 | 「能防什么、不能防什么」页，中英西三语 | Claude 云端 | `feature/R3` | 待做 |
+| R3 | 「能防什么、不能防什么」页，中英西三语 | Claude 云端 + DeepSeek(翻译) | `feature/R3`、`feature/R3b` | **已合并 next**(0ba5006 改正不实的 Curve25519 说法;e8165eb 中文版、西语版)。上线等 Paul |
 | R4 | 中继和 Caddy 不记 IP:核实日志配置，改部署文档和隐私说明 | Claude 云端 | `feature/R4` | 代码已改(限流键改为加盐哈希、过期清除，83221c1);`docs/deployment/NO_IP_LOGS.md`。**等 Paul 在服务器上**查 Caddyfile、改 coturn 日志 |
 | R5 | 密文大小分档填充 | = D-C12 | `feature/C12` | 待发规格 |
 | R6 | 自建中继一键部署(Docker Compose + 文档)+ 客户端切换中继 | Claude 云端(文档、Compose);Code(客户端) | `feature/R6` | 待做 |
