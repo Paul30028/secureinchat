@@ -1,0 +1,388 @@
+# 任务：为 SecureInChat 网站设计一个全新版本(概念稿)，包括页面和里面的所有图片
+
+你是世界一流的网页设计师和前端工程师。网站主人 Paul 希望网站看起来像一家可靠的一流科技公司(参考 500 强科技公司官网的水准)，
+现在的版本太普通、插图没有视觉冲击力。**设计上没有任何限制**:版式、配色、字体、动效、标志用法、插图风格都由你决定，大胆去做。
+
+## 网站是什么
+- SecureInChat:一个保护个人隐私的项目。使命：保护个人隐私这项基本人权。
+- 三部分:
+  1. 免费的隐私工具，大多数在浏览器里本地运行(照片元数据清除、文本脱敏、密码泄露检查、链接检查、浏览器指纹测试、隐私体检等);
+  2. 写给普通人的隐私指南;
+  3. 一个正在开发的端到端加密群聊 App(Mizpah):小团体的私密公告栏 + 群聊，中继服务器只转发它解不开的密文。
+- 读者是普通人，不只是技术爱好者：要一眼看懂这是什么、能帮我做什么、下一步点哪里。
+
+## 要交付的东西
+用 HTML + CSS(+ 需要的话少量原生 JS)做 3 个页面，每个页面自包含(CSS 写在 <style> 里),所有图片用内联 SVG 或 CSS 画出来(你不能生成位图，所以插图要用代码画得精致、有纵深、有冲击力):
+1. 首页(英文);
+2. Messaging 页(介绍加密群聊 App 和它如何工作);
+3. 工具总览页。
+三个页面共享同一套视觉语言。
+
+## 内容规则(只有这一条：内容必须真实)
+- 页面上的文字以下面「现有内容」和「事实」为准，可以改写得更好懂、更有力，但不要编造功能、数字、用户量、客户案例、评价或奖项。
+- 聊天 App 还在开发中，没有独立审计，不要写成已上线或「最安全」。
+
+## 输出格式(脚本自动应用，必须严格遵守，不要包 Markdown 代码围栏)
+=== FILE: src/deepseek-concept/index.html ===
+完整内容
+=== END FILE ===
+=== FILE: src/deepseek-concept/messaging.html ===
+完整内容
+=== END FILE ===
+=== FILE: src/deepseek-concept/tools.html ===
+完整内容
+=== END FILE ===
+=== FILE: src/deepseek-concept/DESIGN.md ===
+用中文简述你的设计理念、配色、字体、插图风格，以及怎么推广到网站其他页面
+=== END FILE ===
+
+## 现有内容：首页
+Skip to content
+ SecureInChat
+ Better tools. A more private internet.
+ Tools
+ Guides
+ Privacy checkup
+ Messaging
+ Our mission
+ 中文
+ 日本語
+ Privacy checkup
+ Privacy tools
+ Guides
+ Privacy checkup
+ Messaging
+ Our mission
+ Privacy principles
+ 中文
+ 日本語
+## See what you give away. Then switch it off.
+Before you send a photo, paste text into an AI chat, or open a strange link, check what you expose. Everything runs in your browser.
+ Start the privacy checkup
+ Browse all tools
+## Start with the local tools
+These tools run in your browser and send nothing. Account checkup is a checklist that stays on your device too.
+## Photo Metadata Remover
+Before you send a photo, remove GPS, camera model and timestamps.
+## File Metadata Remover
+Before you send a Word file or PDF, clear author, revision history and hidden properties.
+## Text Redactor
+Before you paste text into an AI chat or send an email, replace emails, phone numbers and ID numbers. It replaces the text itself, not a box drawn over it.
+## Link Checker
+Before you open a strange link, see its tracking parameters and host.
+## Browser Fingerprint Test
+After you switch browsers or change settings, check which traits are still visible.
+## Account Checkup
+A checklist you tick off item by item: sign-in, recovery, two-factor.
+## Check the cleaning yourself.
+Every cleaning tool page lists the network requests it makes. While a file is being cleaned, you can watch that list and see whether anything leaves the browser.
+It shows which addresses the page contacted and when. Use it as evidence, then decide for yourself.
+ Requests from this page
+ none while cleaning
+ Illustration
+Read the data-flow notes
+These tools have limits. Local tools only clean what the browser can read. Limited network tools send the first 5 characters of a SHA-1 hash. Network tools send your IP or URL to third-party lookup services. Read the label definitions and data flows
+## Encrypted messaging is still being built.
+The chat client is developed separately from the privacy tools. No release date has been announced.
+ Read about messaging
+ SecureInChatBetter tools. A more private internet.
+ MissionPrinciplesPrivacyStatus labelsSponsorship & affiliate disclosureContact
+中文日本語
+© 2026 SecureInChat. All rights reserved.
+Privacy-conscious by design. Clear about limitations.
+
+
+## 现有内容：Messaging 页
+Skip to content
+ SecureInChat
+ Better tools. A more private internet.
+ Tools
+ Guides
+ Privacy checkup
+ Messaging
+ Our mission
+ 中文
+ 日本語
+ Start a checkup
+ Tools
+ Guides
+ Privacy checkup
+ Messaging
+ Our mission
+ 中文
+ 日本語
+ Home
+ /
+ Messaging
+## 
+ A relay that forwards. Devices that hold the keys.
+ SecureInChat messaging is in development. The client apps are not released yet, and there has been no independent third-party security audit. The production relay can be tested from your browser today.
+- 
+ Apps in development
+- 
+ No third-party audit yet
+ Message content is designed to be encrypted at the device edge; routing metadata can still exist.
+LIVE RELAY DIAGNOSTIC
+## Check the relay from your browser.
+Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay challenge. No message content is involved.
+ Network: Checking
+ Run the relay test
+Relay endpoint
+wss://ws.secureinchat.com
+Awaiting test
+Handshake time
+— ms
+Browser-to-relay open time
+Transport
+WSS / TLS
+Certificate checked by your browser
+Relay challenge
+Pending
+Waiting for auth_challenge
+ Ready to test the blind relay endpoint.
+A successful connection confirms this diagnostic path can reach the relay. It is not an independent security audit and does not establish that a future chat client is secure.
+## 
+ What the test measures
+ 1
+ Network connection
+ Whether a secure WebSocket connection can be opened from this browser.
+ 2
+ Handshake time
+ Browser-to-relay open time in milliseconds; it is not an end-to-end message latency measurement.
+ 3
+ Relay challenge
+ Whether the relay sends the expected authentication challenge.
+## 
+ Read the limits
+ A successful relay test is not an independent security audit, and it does not prove that a future client is secure.
+ Read the blind-relay guide →
+ Read the threat model →
+## 
+ Three steps at the device edge
+ The diagram describes the client design, not a claim of third-party certification.
+ Design intent.
+ Plaintext and session keys are intended to remain on client devices. Network and timing metadata may remain visible to systems involved in transport.
+## 
+ Cryptographic building blocks
+ These are design descriptions, not an independent audit or a legal certification.
+## 
+ ECDSA P-256
+ Signatures for device sign-in to the relay and admin announcements. The group key itself travels inside the invite code.
+## 
+ AES-256-GCM
+ Authenticated encryption intended to protect confidentiality and integrity of message payloads.
+## 
+ HKDF
+ Context-separated derivation of session and message keys.
+ SecureInChat
+ Better tools. A more private internet.
+ Mission
+ Principles
+ Privacy
+ Status labels
+ Sponsorship & affiliate disclosure
+ Contact
+ 中文
+ 日本語
+ © 2026 SecureInChat. All rights reserved.
+ Privacy-conscious by design. Clear about limitations.
+
+
+## 现有内容：工具总览页
+Skip to content
+ SecureInChat
+ Better tools. A more private internet.
+ Tools
+ Guides
+ Privacy checkup
+ Messaging
+ Our mission
+ 中文
+ 日本語
+ Start a checkup
+ Tools
+ Guides
+ Privacy checkup
+ Messaging
+ Our mission
+ 中文
+ 日本語
+ Home
+ /
+ Privacy tools
+## 
+ Small tools for a more private internet.
+ Choose a tool by the question you want answered. Each page explains what it checks, what stays in your browser, and when another service is involved.
+ Start with the privacy checkup
+ →
+ How we handle data
+ Privacy is layered. Start with the step that matters to you today.
+## 
+ Not sure where to begin?
+ The browser privacy report checks 12 items and prioritises what to look at first. Some connection checks use external lookup services; the report explains what leaves your browser.
+- 
+ Some network lookups
+- 
+ 12 checks
+ Run the report
+ →
+ Two distinct paths.
+ The messaging relay and selected tool lookups are not one continuous request.
+## 
+ Connection and browser signals
+ Checks for what a browser or network connection may reveal. Review the limits before relying on a result.
+## 
+ WebRTC leak test
+- 
+ Network lookup
+ See whether browser real-time connections expose an address outside your expected network path.
+ Open tool
+ →
+## 
+ IPv6 leak test
+- 
+ Network lookup
+ Check whether IPv6 connectivity is visible through the available network path.
+ Open tool
+ →
+## 
+ IP leak test
+- 
+ Network lookup
+ Review public IP, network and browser signals. This check contacts outside lookup services.
+ Open tool
+ →
+## 
+ Browser fingerprint test
+- 
+ Local processing
+ Inspect browser signals that may make your setup easier to distinguish.
+ Open tool
+ →
+## 
+ Everyday privacy tasks
+ Inspect links and files, reduce sensitive information, and review account settings.
+## 
+ Link Checker
+- 
+ Local processing
+ Inspect a URL for tracking parameters and structural warning signs without opening or sending it.
+ Open tool
+ →
+## 
+ Photo Metadata Remover
+- 
+ Local processing
+ Inspect supported metadata and save a cleaned copy of an image on your device.
+ Open tool
+ →
+## 
+ File Metadata Remover
+- 
+ Local processing
+ Inspect and remove hidden metadata from photos, videos, PDFs and Office files on your device.
+ Open tool
+ →
+## 
+ Text Redactor
+- 
+ Local processing
+ Replace common sensitive patterns in pasted text before you share it.
+ Open tool
+ →
+## 
+ Phone Number Privacy Checkup
+- 
+ Local checklist
+ Review six protective settings without entering or sending your phone number.
+ Open tool
+ →
+## 
+ Password Checker
+- 
+ Limited lookup
+ Estimate strength and check a known-breach corpus using the documented lookup method.
+ Open tool
+ →
+## 
+ Account Security Checkup
+- 
+ Local checklist
+ Review common account-security settings with a checklist that stays in the page.
+ Open tool
+ →
+## 
+ Website Health Check
+- 
+ Site request
+ Review public HTTPS, redirect, security-header and basic site-discovery signals.
+ Open tool
+ →
+## 
+ Understand the data flow
+ “Local processing” means the relevant work happens in your browser. Some tests still need an external request to observe a public-facing value.
+ Read every tool's data flow →
+ 1
+ Read the label
+ Local processing, network lookup and site request describe different behaviours.
+ 2
+ Check the limitation
+ A clean result is not proof of anonymity, and a URL structure check cannot prove that a destination is safe.
+ SecureInChat
+ Better tools. A more private internet.
+ Mission
+ Principles
+ Privacy
+ Status labels
+ Sponsorship & affiliate disclosure
+ Contact
+ 中文
+ 日本語
+
+
+
+## 事实：聊天 App 威胁模型(Messaging 页的内容必须与此一致)
+    Messenger threat model
+    Last updated: 2026-11-05
+    What the SecureInChat messenger is designed to protect, from whom, and what it cannot hide. The apps are in development and have not been independently audited, so this describes the design, not verified behaviour.
+    What it is designed to protect
+    
+      The content of messages and files. Keys stay on the devices, and the relay only forwards encrypted payloads it cannot decrypt.
+      Group names. In the design a group's display name exists only on each device and is never sent to the relay.
+      Announcements from the group admin. They carry a signature from the creator's key, and every client rejects announcements it cannot verify.
+    
+    How a group key reaches members
+    There is no public-key exchange between members. When a group is created, the app generates a random group key and puts it inside the invite code (the link or QR code). Whoever has a valid invite code can join and read the group's messages. Treat an invite like a house key: share it only in person or through a channel you trust.
+    Who it is designed to resist
+    
+      Someone who breaches the relay, or compels its operator to hand over data. The relay has no message content and is designed without persistent storage of message content.
+      Someone watching the network between a device and the relay. Connections use TLS, and the payload inside is encrypted again end to end.
+    
+    What the relay can still see
+    A relay that routes messages cannot avoid some metadata. In the current design it sees:
+    
+      The network address each device connects from. The relay uses it only to limit repeated connection attempts and keeps a salted hash rather than the address itself; the hosting provider and any network or tunnel in front of the relay (currently Cloudflare) can still see it.
+      When devices connect and when messages arrive.
+      The size of each payload, which can hint at its type.
+      The identifiers needed to route messages, such as which group a device joins.
+    
+    Not keeping connection history is a design goal. Removing this metadata entirely is not realistic for a server that routes messages.
+    What it does not protect against
+    
+      A compromised phone. Malware, or someone holding your unlocked device, can read what you can read.
+      People in the group. Anyone who receives a message can copy it, screenshot it or forward it.
+      A leaked invite code. Anyone who gets it can read the group until the admin changes the key and sends a new invite only to the people who should stay.
+      A key that leaks later. Each group key is used for every message until it is changed, so there is no forward secrecy within that period: if the key leaks, recorded messages from that period can be decrypted.
+      Removed members keeping old messages. Removal moves the group to new keys, so later messages are unreadable to them, but messages already delivered stay on their device.
+      Losing the admin key. Admin rights belong to whoever holds the creator's signing key, so losing it needs a recovery step.
+    
+    How it compares
+    Group key changes on removal are weaker than the continuous key ratcheting that the Signal protocol or MLS provide. We do not claim equivalent security.
+    Building blocks
+    
+      AES-256-GCM for authenticated encryption of each message.
+      HKDF-SHA-256 to derive each key period's encryption key from the group key in the invite.
+      ECDSA P-256 signatures for device sign-in to the relay and for admin announcements.
+    
+    These name the primitives in the design. They are not a certification. More detail: what a blind relay can and cannot know. You can check the live relay connection from your browser.
+
