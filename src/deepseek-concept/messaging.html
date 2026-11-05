@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Messaging — SecureInChat</title>
+<meta name="description" content="SecureInChat messaging is in development. A relay that forwards ciphertext it cannot decrypt, devices that hold the keys. No independent audit yet. Test the live relay from your browser.">
+<style>
+:root{
+  --bg:#070b12;--bg-2:#0b1220;--bg-3:#101a2e;
+  --line:rgba(140,170,220,.14);--line-2:rgba(140,170,220,.24);
+  --ink:#eaf1fb;--ink-2:#a9b8d0;--ink-3:#6f809c;
+  --accent:#3ef0c2;--accent-2:#48a6ff;--accent-3:#9b7bff;
+  --warn:#ffb547;--danger:#ff6b7a;
+  --r:18px;
+  --mono:"SFMono-Regular",ui-monospace,"Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --max:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+img,svg{display:block;max-width:100%}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#04120e;padding:10px 16px;border-radius:0 0 10px 0;z-index:99;font-weight:600}
+.skip:focus{left:0}
+::selection{background:rgba(155,123,255,.3)}
+
+.grid-bg{position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(1000px 600px at 82% -6%, rgba(155,123,255,.22), transparent 62%),
+    radial-gradient(900px 560px at 2% 6%, rgba(72,166,255,.16), transparent 58%),
+    radial-gradient(700px 500px at 50% 112%, rgba(62,240,194,.12), transparent 60%),
+    linear-gradient(180deg,#070b12,#060910 60%,#0a1726);
+}
+.grid-bg::after{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(140,170,220,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(140,170,220,.05) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(circle at 50% 26%,#000 0%,transparent 76%);
+  -webkit-mask-image:radial-gradient(circle at 50% 26%,#000 0%,transparent 76%);
+}
+
+.topbar{font-size:12.5px;color:var(--ink-2);border-bottom:1px solid var(--line);background:rgba(7,11,18,.7);backdrop-filter:blur(10px)}
+.topbar .wrap{display:flex;gap:14px;align-items:center;justify-content:space-between;padding-top:9px;padding-bottom:9px;flex-wrap:wrap}
+.topbar b{color:var(--ink);font-weight:600}
+.topbar .dot-warn{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-right:7px;box-shadow:0 0 0 4px rgba(255,181,71,.15)}
+
+header.site{position:sticky;top:0;z-index:50;background:rgba(7,11,18,.72);backdrop-filter:blur(16px) saturate(140%);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:8px;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em;font-size:17px;text-decoration:none;margin-right:10px}
+.brand .mark{width:34px;height:34px;flex:none}
+.nav .links{display:flex;gap:2px;margin-left:6px}
+.nav .links a{padding:9px 13px;border-radius:10px;text-decoration:none;color:var(--ink-2);font-size:14px;font-weight:500;transition:.18s}
+.nav .links a:hover{color:var(--ink);background:rgba(140,170,220,.08)}
+.nav .links a.active{color:var(--ink);background:rgba(155,123,255,.12);box-shadow:inset 0 0 0 1px rgba(155,123,255,.26)}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.lang{display:flex;gap:2px;font-size:12.5px}
+.lang a{padding:6px 9px;border-radius:8px;color:var(--ink-3);text-decoration:none}
+.lang a:hover{color:var(--ink)}
+.lang a.on{color:var(--ink);background:rgba(140,170,220,.10)}
+.btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;border-radius:12px;font-weight:600;font-size:14px;padding:11px 18px;border:1px solid transparent;transition:.2s;cursor:pointer;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#29d6e8);color:#03130f;box-shadow:0 8px 30px -8px rgba(62,240,194,.55)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 38px -8px rgba(62,240,194,.7)}
+.btn-ghost{background:rgba(140,170,220,.06);border-color:var(--line-2);color:var(--ink)}
+.btn-ghost:hover{background:rgba(140,170,220,.12)}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:10px}
+.menu-btn{display:none;background:none;border:1px solid var(--line-2);border-radius:10px;color:var(--ink);width:40px;height:40px;align-items:center;justify-content:center;cursor:pointer}
+@media(max-width:980px){.nav .links{display:none}.menu-btn{display:inline-flex}.nav .right .btn-primary{display:none}.lang{display:none}}
+
+.crumb{font-size:13px;color:var(--ink-3);padding:22px 0 0}
+.crumb a{text-decoration:none;color:var(--ink-2)}
+.crumb a:hover{color:var(--accent-3)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:38px 0 20px}
+.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:52px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:9px;padding:7px 14px;border-radius:100px;font-size:12.5px;font-weight:600;color:var(--accent-3);background:rgba(155,123,255,.1);border:1px solid rgba(155,123,255,.28);font-family:var(--mono);letter-spacing:.02em}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--accent-3);box-shadow:0 0 0 4px rgba(155,123,255,.16)}
+h1.hero-title{font-size:clamp(34px,4.6vw,56px);line-height:1.03;letter-spacing:-.03em;margin:20px 0 18px;font-weight:800}
+h1.hero-title .grad{background:linear-gradient(100deg,#eaf1fb 15%,#b7a6ff 55%,#48a6ff 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:18px;color:var(--ink-2);max-width:36em;margin:0 0 26px}
+.lede b{color:var(--ink)}
+.notice{border-left:2px solid var(--warn);padding:2px 0 2px 16px;color:var(--ink-2);font-size:14.5px;margin:0 0 28px}
+.notice b{color:var(--ink)}
+.status-chips{display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;font-family:var(--mono)}
+.status-chips span{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:9px;border:1px solid var(--line)}
+.status-chips .warn{color:var(--warn);border-color:rgba(255,181,71,.28);background:rgba(255,181,71,.06)}
+.status-chips .done{color:var(--accent);border-color:rgba(62,240,194,.26);background:rgba(62,240,194,.06)}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:28px}}
+
+/* ---------- section scaffold ---------- */
+section{position:relative;padding:64px 0}
+.sec-head{max-width:780px;margin-bottom:38px}
+.sec-head .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-3);font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-head .kicker .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:rgba(155,123,255,.12);border:1px solid rgba(155,123,255,.3);color:var(--accent-3);font-size:11px}
+h2.sec-title{font-size:clamp(26px,3.4vw,40px);line-height:1.1;letter-spacing:-.025em;margin:0 0 12px;font-weight:800}
+.sec-sub{font-size:17px;color:var(--ink-2);margin:0;max-width:62ch}
+.sec-sub b{color:var(--ink)}
+
+.hairline{height:1px;background:linear-gradient(90deg,transparent,var(--line-2),transparent)}
+
+/* ---------- relay diagnostic ---------- */
+.diag{border-radius:26px;border:1px solid rgba(72,166,255,.24);background:linear-gradient(140deg,rgba(12,22,36,.96),rgba(8,12,22,.96));overflow:hidden;box-shadow:0 40px 120px -60px rgba(0,0,0,.9)}
+.diag .head{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--line);background:rgba(72,166,255,.04)}
+.diag .head .lbl{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-2);font-weight:700}
+.diag .head .net{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.diag .head .net i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.diag .head .net.ok i{background:var(--accent);box-shadow:0 0 0 4px rgba(62,240,194,.16)}
+.diag .head .net.wait i{background:var(--warn);box-shadow:0 0 0 4px rgba(255,181,71,.16)}
+.diag .body{padding:28px;display:grid;grid-template-columns:1fr 1.15fr;gap:32px}
+@media(max-width:900px){.diag .body{grid-template-columns:1fr}}
+.diag .body h3{font-size:22px;margin:0 0 12px;letter-spacing:-.01em}
+.diag .body p{color:var(--ink-2);font-size:14.5px;margin:0 0 20px}
+.diag .body p b{color:var(--ink)}
+.diag .rows{border-radius:14px;border:1px solid var(--line);background:#070c15;overflow:hidden;font-family:var(--mono);font-size:13px}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row .k{color:var(--ink-3;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.row .v{color:var(--ink);font-weight:500;word-break:break-all}
+.row .s{font-size:11.5px;padding:3px 9px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.row .s.pending{color:var(--warn);background:rgba(255,181,71,.1);border:1px solid rgba(255,181,71,.28)}
+.row .s.ok{color:var(--accent);background:rgba(62,240,194,.1);border:1px solid rgba(62,240,194,.3)}
+.row .s.fail{color:var(--danger);background:rgba(255,107,122,.1);border:1px solid rgba(255,107,122,.3)}
+.diag .runbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:20px}
+.diag .note{font-size:12.5px;color:var(--ink-3);padding:16px 24px;border-top:1px solid var(--line);background:rgba(0,0,0,.2)}
+.diag .note b{color:var(--ink-2)}
+.progress{flex:1;min-width:120px;height:6px;border-radius:4px;background:rgba(140,170,220,.12);overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .5s}
+
+/* ---------- three measures ---------- */
+.measures{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:860px){.measures{grid-template-columns:1fr}}
+.measure{border-radius:var(--r);border:1px solid var(--line);background:linear-gradient(180deg,rgba(20,30,48,.85),rgba(11,18,32,.9));padding:26px;position:relative}
+.measure .n{font-family:var(--mono);font-size:30px;font-weight:700;background:linear-gradient(135deg,var(--accent-3),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1;margin-bottom:16px}
+.measure h3{font-size:16.5px;margin:0 0 8px}
+.measure p{color:var(--ink-2);font-size:14px;margin:0}
+.measure p b{color:var(--ink)}
+
+/* ---------- three steps diagram ---------- */
+.flow{border-radius:26px;border:1px solid var(--line);background:radial-gradient(700px 340px at 50% -10%,rgba(155,123,255,.12),transparent 60%),linear-gradient(180deg,rgba(14,22,38,.9),rgba(8,12,20,.95));padding:44px 32px;position:relative;overflow:hidden}
+.flow .stages{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch;margin-top:30px}
+@media(max-width:900px){.flow .stages{grid-template-columns:1fr;gap:16px}.flow .arrow-h{display:none}}
+.stage{border-radius:16px;border:1px solid var(--line-2);background:rgba(10,16,26,.8);padding:22px;text-align:center;position:relative}
+.stage .ico{width:56px;height:56px;margin:0 auto 14px;border-radius:14px;display:grid;place-items:center}
+.stage.device .ico{background:rgba(62,240,194,.1);border:1px solid rgba(62,240,194,.3)}
+.stage.relay .ico{background:rgba(72,166,255,.1);border:1px solid rgba(72,166,255,.3)}
+.stage h4{margin:0 0 6px;font-size:15.5px}
+.stage p{margin:0;font-size:13px;color:var(--ink-2)}
+.stage .tag{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:#0b1220;border:1px solid var(--line-2);color:var(--ink-3)}
+.arrow-h{display:grid;place-items:center;padding:0 12px;color:var(--accent-3)}
+.arrow-h svg{width:34px;height:34px}
+.stage .keyflag{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(62,240,194,.08);border:1px solid rgba(62,240,194,.24);padding:4px 9px;border-radius:20px}
+.stage .keyflag.relay{color:var(--accent-2);background:rgba(72,166,255,.08);border-color:rgba(72,166,255,.24)}
+/* lock + ciphertext picture */
+.cipher-strip{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:30px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.cipher-strip .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 13px;border-radius:10px;background:#0a1018;border:1px solid var(--line)}
+.cipher-strip .chip.plain{color:var(--accent)}
+.cipher-strip .chip.cipher{color:var(--accent-2)}
+.cipher-strip .chip.relayc{color:var(--ink-2)}
+.cipher-strip .arrow{color:var(--ink-3)}
+
+/* ---------- threat model grid ---------- */
+.tm-top{display:grid;grid-template-columns:1.15fr .85fr;gap:24px;margin-bottom:24px}
+@media(max-width:900px){.tm-top{grid-template-columns:1fr}}
+.panel{border-radius:20px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(18,27,44,.9),rgba(10,16,26,.92));padding:28px;position:relative;overflow:hidden}
+.panel.protect{border-color:rgba(62,240,194,.24)}
+.panel.protect::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--accent),transparent)}
+.panel.resist{border-color:rgba(72,166,255,.24)}
+.panel.resist::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--accent-2),transparent)}
+.panel h3{margin:0 0 16px;font-size:18px;display:flex;align-items:center;gap:11px}
+.panel h3 .b{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
+.panel.protect h3 .b{background:rgba(62,240,194,.12);border:1px solid rgba(62,240,194,.3)}
+.panel.resist h3 .b{background:rgba(72,166,255,.12);border:1px solid rgba(72,166,255,.3)}
+.panel ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:13px}
+.panel ul li{display:flex;gap:12px;font-size:14.5px;color:var(--ink-2);line-height:1.5}
+.panel ul li b{color:var(--ink)}
+.panel ul li svg{width:18px;height:18px;flex:none;margin-top:2px}
+
+/* reveal-on-scroll for limited facts */
+.limits-list{border-radius:20px;border:1px solid rgba(255,181,71,.24);background:linear-gradient(180deg,rgba(255,181,71,.05),rgba(255,181,71,.01));padding:30px}
+.limits-list h3{margin:0 0 8px;font-size:19px;display:flex;align-items:center;gap:10px}
+.limits-list > p.lead{margin:0 0 22px;color:var(--ink-2);font-size:14.5px;max-width:66ch}
+.limits-list .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:760px){.limits-list .grid{grid-template-columns:1fr}.tm-grid{grid-template-columns:1fr}}
+.limits-list .grid .item{border-radius:13px;border:1px solid rgba(255,181,71,.18);background:rgba(255,181,71,.03);padding:16px}
+.limits-list .grid .item b{display:block;margin-bottom:4px;font-size:14px;color:var(--ink)}
+.limits-list .grid .item span{font-size:13.5px;color:var(--ink-2)}
+.meta-note{margin-top:20px;border-radius:14px;border:1px dashed rgba(140,170,220,.24);padding:18px 20px;color:var(--ink-2);font-size:14px;background:rgba(140,170,220,.03)}
+.meta-note b{color:var(--ink)}
+
+/* invite key callout */
+.invite-callout{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;border-radius:18px;padding:24px 28px;margin:24px 0 0;background:linear-gradient(135deg,rgba(155,123,255,.10),rgba(72,166,255,.06));border:1px solid rgba(155,123,255,.26)}
+@media(max-width:640px){.invite-callout{grid-template-columns:1fr}}
+.invite-callout .keyart{width:88px;height:88px;flex:none;display:grid;place-items:center;border-radius:16px;background:rgba(7,11,18,.7);border:1px solid rgba(155,123,255,.3)}
+.invite-callout p{margin:0;color:var(--ink-2);font-size:14.5px}
+.invite-callout p b{color:var(--ink)}
+
+/* building blocks */
+.blocks{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:860px){.blocks{grid-template-columns:1fr}}
+.block{border-radius:var(--r);border:1px solid var(--line);background:linear-gradient(180deg,rgba(20,30,48,.85),rgba(11,18,32,.9));padding:26px}
+.block .name{font-family:var(--mono);font-size:14px;color:var(--accent-2);font-weight:700;letter-spacing:.02em;margin-bottom:12px;display:flex;align-items:center;gap:9px}
+.block .name .dot{width:8px;height:8px;border-radius:2px;background:var(--accent-2);transform:rotate(45deg)}
+.block p{margin:0;color:var(--ink-2);font-size:14px}
+.block p b{color:var(--ink)}
+.disclaim{margin-top:18px;font-size:13px;color:var(--ink-3);font-family:var(--mono);border-left:2px solid var(--line-2);padding-left:14px}
+
+/* CTA strip */
+.cta-strip{border-radius:22px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(16,26,46,.9),rgba(8,12,22,.95));padding:38px 40px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+.cta-strip h2{margin:0 0 6px;font-size:clamp(22px,3vw,30px);letter-spacing:-.02em}
+.cta-strip p{margin:0;color:var(--ink-2);font-size:14.5px}
+.cta-strip .cta-row{display:flex;gap:12px;flex-wrap:wrap}
+
+/* footer */
+footer.site{border-top:1px solid var(--line);background:rgba(6,9,15,.85);padding:64px 0 34px;margin-top:60px}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
+.foot-brand .brand{margin-bottom:14px}
+.foot-brand p{color:var(--ink-3);font-size:14px;max-width:30ch;margin:0 0 18px}
+.foot-brand .lang2{display:flex;gap:14px;font-size:13px;color:var(--ink-2)}
+footer.site h4{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 16px;font-weight:700}
+footer.site ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+footer.site ul a{text-decoration:none;color:var(--ink-2);font-size:14px;transition:.15s}
+footer.site ul a:hover{color:var(--accent-3)}
+.foot-bottom{margin-top:52px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+@media(max-width:860px){.foot-grid{grid-template-columns:1fr 1fr}.foot-brand{grid-column:1/-1}}
+@media(max-width:520px){.foot-grid{grid-template-columns:1fr}}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="topbar">
+  <div class="wrap">
+    <div><span class="dot-warn"></span><b>Messaging is in development.</b> No release date · no independent audit yet.</div>
+    <div>The relay can be tested from your browser.</div>
+  </div>
+</div>
+
+<header class="site">
+  <div class="wrap nav">
+    <a href="index.html" class="brand" aria-label="SecureInChat home">
+      <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <defs><linearGradient id="mg" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#3ef0c2"/><stop offset="1" stop-color="#48a6ff"/></linearGradient></defs>
+        <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+        <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      SecureInChat
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="tools.html">Tools</a>
+      <a href="index.html#guides">Guides</a>
+      <a href="index.html#checkup">Privacy checkup</a>
+      <a href="messaging.html" class="active">Messaging</a>
+      <a href="index.html#mission">Our mission</a>
+    </nav>
+    <div class="right">
+      <div class="lang" aria-label="Language">
+        <a href="messaging.html" class="on">EN</a>
+        <a href="#" title="Chinese">中文</a>
+        <a href="#" title="Japanese">日本語</a>
+      </div>
+      <a href="index.html#checkup" class="btn btn-primary btn-sm">Start a checkup <span class="arr">→</span></a>
+      <button class="menu-btn" aria-label="Open menu" onclick="document.querySelector('.nav .links').scrollIntoView()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap crumb"><a href="index.html">Home</a> / Messaging</div>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="reveal in">
+      <span class="pill"><i></i>Mizpah · encrypted group messenger</span>
+      <h1 class="hero-title">A relay that forwards.<br><span class="grad">Devices that hold the keys.</span></h1>
+      <p class="lede">SecureInChat messaging is a private noticeboard and group chat for small circles. The relay only forwards ciphertext it cannot decrypt. <b>It is still being built.</b></p>
+      <p class="notice">The client apps are <b>not released yet</b>, and there has been <b>no independent third-party security audit</b>. The production relay can be tested from your browser today.</p>
+      <div class="status-chips">
+        <span class="warn">◐ Apps in development</span>
+        <span class="warn">◐ No third-party audit yet</span>
+      </div>
+      <p style="font-size:13px;color:var(--ink-3);margin:20px 0 0;max-width:44em">Message content is designed to be encrypted at the device edge; routing metadata can still exist.</p>
+    </div>
+
+    <!-- HERO ART: devices & blind relay -->
+    <div class="reveal in" aria-hidden="true">
+      <svg viewBox="0 0 520 460" role="img" aria-label="Illustration: two devices send ciphertext through a blind relay that cannot read it">
+        <defs>
+          <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9b7bff"/><stop offset="1" stop-color="#48a6ff"/></linearGradient>
+          <linearGradient id="pg" x1="40" y1="0" x2="480" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#3ef0c2"/><stop offset=".5" stop-color="#9b7bff"/><stop offset="1" stop-color="#3ef0c2"/></linearGradient>
+          <filter id="glow3"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <radialGradient id="cglow" cx="50%" cy="50%" r="50%"><stop stop-color="#9b7bff" stop-opacity=".28"/><stop offset="1" stop-color="#9b7bff" stop-opacity="0"/></radialGradient>
+        </defs>
+        <circle cx="260" cy="230" r="180" fill="url(#cglow)"/>
+        <!-- orbit rings -->
+        <g stroke="#48a6ff" stroke-opacity=".16" fill="none">
+          <circle cx="260" cy="230" r="150"/>
+          <circle cx="260" cy="230" r="188" stroke-dasharray="3 8"/>
+        </g>
+        <!-- relay node in center -->
+        <g transform="translate(200 170)">
+          <rect width="120" height="120" rx="28" fill="#0b1220" stroke="url(#rg)" stroke-width="2.2"/>
+          <g stroke="url(#rg)" stroke-width="2" fill="none" filter="url(#glow3)">
+            <rect x="34" y="40" width="52" height="40" rx="7"/>
+            <path d="M46 40v-8h28v8"/>
+            <path d="M60 60 v0"/>
+          </g>
+          <text x="60" y="100" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#9b7bff" letter-spacing="1">BLIND RELAY</text>
+        </g>
+        <!-- left / right devices -->
+        <g transform="translate(28 60)">
+          <rect width="120" height="200" rx="22" fill="#0a1018" stroke="#3ef0c2" stroke-width="1.8"/>
+          <rect x="14" y="18" width="92" height="164" rx="14" fill="#081019"/>
+          <rect x="28" y="42" width="64" height="8" rx="4" fill="#3ef0c2" opacity=".6"/>
+          <rect x="28" y="58" width="44" height="8" rx="4" fill="#3ef0c2" opacity=".35"/>
+          <text x="60" y="150" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#3ef0c2">has key</text>
+        </g>
+        <g transform="translate(372 60)">
+          <rect width="120" height="200" rx="22" fill="#0a1018" stroke="#48a6ff" stroke-width="1.8"/>
+          <rect x="14" y="18" width="92" height="164" rx="14" fill="#081019"/>
+          <rect x="28" y="42" width="64" height="8" rx="4" fill="#48a6ff" opacity=".6"/>
+          <rect x="28" y="58" width="44" height="8" rx="4" fill="#48a6ff" opacity=".35"/>
+          <text x="60" y="150" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#48a6ff">has key</text>
+        </g>
+        <!-- ciphertext paths -->
+        <path d="M148 180 C220 180 200 230 260 230" fill="none" stroke="url(#pg)" stroke-width="2" stroke-dasharray="5 6"/>
+        <path d="M372 180 C300 180 320 230 260 230" fill="none" stroke="url(#pg)" stroke-width="2" stroke-dasharray="5 6"/>
+        <!-- forward path marker -->
+        <g transform="translate(238 224)">
+          <circle r="5" fill="#3ef0c2" filter="url(#glow3)"/>
+        </g>
+        <!-- ciphertext chip -->
+        <g transform="translate(160 300)">
+          <rect width="200" height="34" rx="10" fill="#0a1018" stroke="#2a3852"/>
+          <text x="16" y="22" font-family="ui-monospace,monospace" font-size="11" fill="#6f809c">0x9f…ciphertext</text>
+          <circle cx="170" cy="17" r="4" fill="#9b7bff"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LIVE RELAY DIAGNOSTIC ================= -->
+<section id="relay">
+  <div class="wrap">
+    <div class="diag reveal">
+      <div class="head">
+        <span class="lbl">Live relay diagnostic</span>
+        <span class="net wait" id="netStatus"><i></i><span id="netText">Checking</span></span>
+      </div>
+      <div class="body">
+        <div>
+          <h3>Check the relay from your browser.</h3>
+          <p>Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay challenge. <b>No message content is involved.</b></p>
+          <div class="runbar">
+            <button class="btn btn-primary" id="runBtn" type="button">Run the relay test <span class="arr">→</span></button>
+            <div class="progress" aria-hidden="true"><i id="progBar"></i></div>
+          </div>
+        </div>
+        <div class="rows" aria-live="polite">
+          <div class="row"><span class="k">Relay endpoint</span><span class="v mono">wss://ws.secureinchat.com</span><span class="s pending" id="stEp">Awaiting</span></div>
+          <div class="row"><span class="k">Handshake time</span><span class="v mono" id="hsVal">— ms</span><span class="s pending" id="stHs">—</span></div>
+          <div class="row"><span class="k">Transport</span><span class="v mono">WSS / TLS</span><span class="s ok">TLS</span></div>
+          <div class="row"><span class="k">Relay challenge</span><span class="v mono" id="challVal">Pending</span><span class="s pending" id="stCh">—</span></div>
+        </div>
+      </div>
+      <div class="note" id="diagNote"><b>Ready to test the blind relay endpoint.</b> A successful connection confirms this diagnostic path can reach the relay. It is not an independent security audit and does not establish that a future chat client is secure.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= WHAT THE TEST MEASURES ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">01</span>What the test measures</div>
+      <h2 class="sec-title">Three things, and nothing more.</h2>
+      <p class="sec-sub">Each line is what the page can honestly observe. None of them is a security guarantee.</p>
+    </div>
+    <div class="measures reveal">
+      <div class="measure">
+        <div class="n">1</div>
+        <h3>Network connection</h3>
+        <p>Whether a <b>secure WebSocket connection</b> can be opened from this browser.</p>
+      </div>
+      <div class="measure">
+        <div class="n">2</div>
+        <h3>Handshake time</h3>
+        <p>Browser-to-relay open time in milliseconds; it is <b>not</b> an end-to-end message latency measurement.</p>
+      </div>
+      <div class="measure">
+        <div class="n">3</div>
+        <h3>Relay challenge</h3>
+        <p>Whether the relay sends the expected <b>authentication challenge</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= READ THE LIMITS ================= -->
+<section>
+  <div class="wrap">
+    <div class="limits-list reveal">
+      <h3><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffb547" stroke-width="2"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg> Read the limits</h3>
+      <p class="lead">A successful relay test is <b>not</b> an independent security audit, and it does <b>not</b> prove that a future client is secure.</p>
+      <div class="grid">
+        <div class="item"><b>What a green result means</b><span>This diagnostic path reached the relay and got the expected challenge.</span></div>
+        <div class="item"><b>What it does not mean</b><span>That the app, the keys, or the encryption are audited or verified.</span></div>
+        <div class="item"><b>No content involved</b><span>The test sends no message and no account data.</span></div>
+        <div class="item"><b>Read further</b><span><a href="#blind-relay" style="color:var(--accent-2)">The blind-relay guide</a> · <a href="#threat-model" style="color:var(--accent-2)">the threat model</a></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="hairline"></div></div>
+
+<!-- ================= THREE STEPS AT DEVICE EDGE ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">02</span>How it works</div>
+      <h2 class="sec-title">Three steps at the device edge.</h2>
+      <p class="sec-sub">The diagram describes <b>the client design</b>, not a claim of third-party certification.</p>
+    </div>
+    <div class="flow reveal">
+      <div class="stages">
+        <div class="stage device">
+          <span class="tag">On your device</span>
+          <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 7h6M9 11h6M9 15h3"/></svg></div>
+          <h4>Write in plaintext</h4>
+          <p>Your message and its session keys never leave the phone.</p>
+          <span class="keyflag">● keys stay local</span>
+        </div>
+        <div class="arrow-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="stage relay">
+          <span class="tag">The relay</span>
+          <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/><circle cx="8" cy="7.5" r="1"/><circle cx="8" cy="16.5" r="1"/></svg></div>
+          <h4>Forward ciphertext</h4>
+          <p>The relay routes encrypted payloads it cannot decrypt.</p>
+          <span class="keyflag relay">● no message content</span>
+        </div>
+        <div class="arrow-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="stage device">
+          <span class="tag">Their device</span>
+          <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 7h6M9 11h6M9 15h3"/></svg></div>
+          <h4>Decrypt locally</h4>
+          <p>Only a member holding the key can read it.</p>
+          <span class="keyflag">● keys stay local</span>
+        </div>
+      </div>
+      <div class="cipher-strip">
+        <span class="chip plain">plaintext</span>
+        <span class="arrow">→</span>
+        <span class="chip cipher">AES-256-GCM</span>
+        <span class="arrow">→</span>
+        <span class="chip relayc">relay · sees ciphertext</span>
+        <span class="arrow">→</span>
+        <span class="chip cipher">decrypt on device</span>
+      </div>
+      <p style="text-align:center;color:var(--ink-3);font-size:13px;font-family:var(--mono);margin:26px 0 0">Design intent. Plaintext and session keys are intended to remain on client devices. Network and timing metadata may remain visible to systems involved in transport.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= THREAT MODEL ================= -->
+<section id="threat-model">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">03</span>Threat model</div>
+      <h2 class="sec-title">What it protects, from whom, and what it cannot hide.</h2>
+      <p class="sec-sub">The apps are in development and have not been independently audited, so this describes <b>the design</b>, not verified behaviour. Last updated 2026-11-05.</p>
+    </div>
+
+    <div class="tm-top reveal">
+      <div class="panel protect">
+        <h3><span class="b"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="M12 3 4 6v6c0 5 3..5 8.6 8 9 4.5-.4 8-4 8-9V6l-8-3Z"/><path d="m8.5 12 2.5 2.5L16 9"/></svg></span>Designed to protect</h3>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Message and file content.</b> Keys stay on the devices, and the relay only forwards encrypted payloads it cannot decrypt.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Group names.</b> In the design a group's display name exists only on each device and is never sent to the relay.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Announcements from the group admin.</b> They carry a signature from the creator's key, and every client rejects announcements it cannot verify.</span></li>
+        </ul>
+      </div>
+      <div class="panel resist">
+        <h3><span class="b"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg></span>Designed to resist</h3>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Someone who breaches the relay, or compels its operator to hand over data.</b> The relay has no message content and is designed without persistent storage of message content.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Someone watching the network between a device and the relay.</b> Connections use TLS, and the payload inside is encrypted again end to end.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- How a group key reaches members -->
+    <div class="reveal">
+      <h3 style="font-size:20px;letter-spacing:-.01em;margin:12px 0 10px">How a group key reaches members</h3>
+      <p style="color:var(--ink-2);font-size:15px;max-width:74ch;margin:0">There is no public-key exchange between members. When a group is created, the app generates a random group key and puts it inside the invite code (the link or QR code). <b style="color:var(--ink)">Whoever has a valid invite code can join and read the group's messages.</b></p>
+      <div class="invite-callout">
+        <div class="keyart" aria-hidden="true">
+          <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+            <g stroke="#9b7bff" stroke-width="2"><rect x="6" y="6" width="40" height="40" rx="8"/><rect x="14" y="14" width="7" height="7" fill="#9b7bff" stroke="none"/><rect x="31" y="14" width="7" height="7" fill="#9b7bff" stroke="none"/><rect x="14" y="31" width="7" height="7" fill="#9b7bff" stroke="none"/><rect x="31" y="31" width="7" height="7" fill="#9b7bff" stroke="none"/></g>
+            <path d="M40 14v6M43 17h-6" stroke="#3ef0c2" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p>Treat an invite like a <b>house key</b>: share it only in person or through a channel you trust.</p>
+      </div>
+    </div>
+
+    <!-- What the relay can still see -->
+    <div class="reveal" style="margin-top:38px">
+      <div class="panel" style="border-color:rgba(72,166,255,.24)">
+        <h3><span class="b" style="background:rgba(72,166,255,.12);border:1px solid rgba(72,166,255,.3);width:30px;height:30px;border-radius:9px;display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></span>What the relay can still see</h3>
+        <p style="color:var(--ink-2);font-size:14.5px;margin:0 0 16px;max-width:74ch">A relay that routes messages cannot avoid some metadata. In the current design it sees:</p>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+          <div class="limititem" style="border-radius:13px;border:1px solid var(--line);background:rgba(72,166,255,.03);padding:16px"><b style="display:block;margin-bottom:5px;font-size:14px">Your network address</b><span style="font-size:13.5px;color:var(--ink-2)">The relay uses it only to limit repeated connection attempts and keeps a salted hash rather than the address itself; the hosting provider and any network or tunnel in front of the relay (currently Cloudflare) can still see it.</span></div>
+          <div class="limititem" style="border-radius:13px;border:1px solid var(--line);background:rgba(72,166,255,.03);padding:16px"><b style="display:block;margin-bottom:5px;font-size:14px">When devices connect</b><span style="font-size:13.5px;color:var(--ink-2)">When devices connect and when messages arrive.</span></div>
+          <div class="limititem" style="border-radius:13px;border:1px solid var(--line);background:rgba(72,166,255,.03);padding:16px"><b style="display:block;margin-bottom:5px;font-size:14px">Payload size</b><span style="font-size:13.5px;color:var(--ink-2)">The size of each payload, which can hint at its type.</span></div>
+          <div class="limititem" style="border-radius:13px;border:1px solid var(--line);background:rgba(72,166,255,.03);padding:16px"><b style="display:block;margin-bottom:5px;font-size:14px">Routing identifiers</b><span style="font-size:13.5px;color:var(--ink-2)">The identifiers needed to route messages, such as which group a device joins.</span></div>
+        </div>
+        <p class="meta-note" style="margin:20px 0 0">Not keeping connection history is a design goal. Removing this metadata entirely is <b>not realistic</b> for a server that routes messages.</p>
+      </div>
+    </div>
+
+    <!-- What it does not protect against -->
+    <div class="reveal" style="margin-top:38px">
+      <div class="limits-list">
+        <h3><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffb547" stroke-width="2"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg> What it does not protect against</h3>
+        <p class="lead">These are the honest boundaries of the design. Every item here is a place where privacy depends on you.</p>
+        <div class="grid">
+          <div class="item"><b>A compromised phone</b><span>Malware, or someone holding your unlocked device, can read what you can read.</span></div>
+          <div class="item"><b>People in the group</b><span>Anyone who receives a message can copy it, screenshot it or forward it.</span></div>
+          <div class="item"><b>A leaked invite code</b><span>Anyone who gets it can read the group until the admin changes the key and sends a new invite only to the people who should stay.</span></div>
+          <div class="item"><b>A key that leaks later</b><span>Each group key is used for every message until it is changed, so there is no forward secrecy within that period: if the key leaks, recorded messages from that period can be decrypted.</span></div>
+          <div class="item"><b>Removed members keeping old messages</b><span>Removal moves the group to new keys, so later messages are unreadable to them, but messages already delivered stay on their device.</span></div>
+          <div class="item"><b>Losing the admin key</b><span>Admin rights belong to whoever holds the creator's signing key, so losing it needs a recovery step.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it compares -->
+    <div class="reveal" style="margin-top:38px">
+      <div class="panel" style="border-color:var(--line)">
+        <h3><span class="b" style="background:rgba(155,123,255,.12);border:1px solid rgba(155,123,255,.3);width:30px;height:30px;border-radius:9px;display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9b7bff" stroke-width="2"><path d="M4 20V8m8 12V4m8 16v-6"/></svg></span>How it compares</h3>
+        <p style="color:var(--ink-2);font-size:14.5px;margin:0">Group key changes on removal are weaker than the continuous key ratcheting that the Signal protocol or MLS provide. <b style="color:var(--ink)">We do not claim equivalent security.</b></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BUILDING BLOCKS ================= -->
+<section id="blind-relay">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">04</span>Building blocks</div>
+      <h2 class="sec-title">The cryptographic primitives named in the design.</h2>
+      <p class="sec-sub">These describe the design, <b>not</b> an independent audit or a legal certification.</p>
+    </div>
+    <div class="blocks reveal">
+      <div class="block">
+        <div class="name"><span class="dot"></span>ECDSA P-256</div>
+        <p>Signatures for device sign-in to the relay and admin announcements. <b>The group key itself travels inside the invite code.</b></p>
+      </div>
+      <div class="block">
+        <div class="name"><span class="dot"></span>AES-256-GCM</div>
+        <p>Authenticated encryption intended to protect <b>confidentiality and integrity</b> of message payloads.</p>
+      </div>
+      <div class="block">
+        <div class="name"><span class="dot"></span>HKDF</div>
+        <p><b>Context-separated</b> derivation of session and message keys.</p>
+      </div>
+    </div>
+    <p class="disclaim">These name the primitives in the design. They are not a certification. More detail: what a blind relay can and cannot know. You can check the live relay connection from your browser.</p>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="cta-strip reveal">
+      <div>
+        <h2>Curious what the relay reveals?</h2>
+        <p>The diagnostic runs in your browser and sends no message content.</p>
+      </div>
+      <div class="cta-row">
+        <a href="#relay" class="btn btn-primary">Run the relay test <span class="arr">→</span></a>
+        <a href="tools.html" class="btn btn-ghost">Explore the privacy tools</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="index.html" class="brand">
+          <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+            <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          SecureInChat
+        </a>
+        <p>Better tools. A more private internet. Privacy is a human right.</p>
+        <div class="lang2"><a href="messaging.html">English</a><a href="#">中文</a><a href="#">日本語</a></div>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="index.html#mission">Mission</a></li>
+          <li><a href="index.html#mission">Principles</a></li>
+          <li><a href="tools.html#data-flow">Status labels</a></li>
+          <li><a href="index.html#mission">Sponsorship &amp; affiliate disclosure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Use</h4>
+        <ul>
+          <li><a href="tools.html">Privacy tools</a></li>
+          <li><a href="index.html#guides">Guides</a></li>
+          <li><a href="index.html#checkup">Privacy checkup</a></li>
+          <li><a href="messaging.html">Messaging</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 SecureInChat. All rights reserved.</span>
+      <span>Privacy-conscious by design. Clear about limitations.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* reveal */
+  var items = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{rootMargin:'0px 0px -8% 0px',threshold:.06});
+    items.forEach(function(el){ io.observe(el); });
+  } else {
+    items.forEach(function(el){ el.classList.add('in'); });
+  }
+
+  /* ---- live relay diagnostic ----
+     Uses the public WebSocket API only. Sends no message content.
+     Some networks/browsers block cross-origin WebSockets; a failure
+     here is reported honestly as "unreachable", not as a security result. */
+  var RELAY = 'wss://ws.secureinchat.com';
+  var runBtn = document.getElementById('runBtn');
+  var netStatus = document.getElementById('netStatus');
+  var netText = document.getElementById('netText');
+  var hsVal = document.getElementById('hsVal');
+  var stHs = document.getElementById('stHs');
+  var stEp = document.getElementById('stEp');
+  var challVal = document.getElementById('challVal');
+  var stCh = document.getElementById('stCh');
+  var progBar = document.getElementById('progBar');
+  var diagNote = document.getElementById('diagNote');
+  var running = false;
+
+  function setS(el, txt, cls){ el.textContent = txt; el.className = 's ' + cls; }
+  function note(html){ diagNote.innerHTML = html; }
+
+  function reset(){
+    stEp.textContent = 'Connecting'; stEp.className = 's pending';
+    hsVal.textContent = '— ms'; setS(stHs,'—','pending');
+    challVal.textContent = 'Pending'; setS(stCh,'—','pending');
+    netStatus.className = 'net wait'; netText.textContent = 'Connecting';
+    progBar.style.width = '10%';
+  }
+
+  function fail(msg){
+    progBar.style.width = '100%';
+    netStatus.className = 'net wait'; netText.textContent = 'Unreachable';
+    setS(stEp,'Failed','fail');
+    setS(stHs,'—','pending');
+    setS(stCh,'—','pending');
+    challVal.textContent = 'Not received';
+    note('<b>Test could not complete.</b> ' + msg + ' This is a diagnostic result from your browser only; it is not an independent security audit and does not establish that a future chat client is secure.');
+  }
+
+  function run(){
+    if(running) return;
+    running = true;
+    runBtn.disabled = true;
+    reset();
+    var start = (window.performance && performance.now) ? performance.now() : Date.now();
+    var done = false;
+    var opened = false;
+
+    var ws;
+    try {
+      ws = new WebSocket(RELAY);
+    } catch(e){
+      running = false; runBtn.disabled = false;
+      fail('The browser refused to open a WebSocket to <span style="font-family:var(--mono)">' + RELAY + '</span>.');
+      return;
+    }
+
+    var timer = setTimeout(function(){
+      if(done) return;
+      done = true;
+      try { ws.close(); } catch(e){}
+      running = false; runBtn.disabled = false;
+      if(opened){
+        setS(stHs, 'Timeout', 'fail');
+      }
+      fail('No handshake reply arrived within the time budget.');
+    }, 8000);
+
+    ws.onopen = function(){
+      opened = true;
+      var t = ((window.performance && performance.now) ? performance.now() : Date.now()) - start;
+      hsVal.textContent = Math.round(t) + ' ms';
+      setS(stHs, 'OK', 'ok');
+      setS(stEp, 'Open', 'ok');
+      progBar.style.width = '70%';
+      netStatus.className = 'net ok'; netText.textContent = 'Connected';
+    };
+
+    ws.onmessage = function(ev){
+      if(done) return;
+      done = true;
+      clearTimeout(timer);
+      var text = typeof ev.data === 'string' ? ev.data : '';
+      var gotChallenge = /challenge/i.test(text);
+      if(gotChallenge){
+        challVal.textContent = 'auth_challenge received';
+        setS(stCh, 'OK', 'ok');
+        progBar.style.width = '100%';
+        note('<b>Handshake and relay challenge observed.</b> The diagnostic reached the relay and received an authentication challenge. This is not an independent security audit and does not establish that a future chat client is secure.');
+      } else {
+        challVal.textContent = 'Unexpected reply';
+        setS(stCh, 'Review', 'pending');
+        progBar.style.width = '100%';
+        note('<b>Relay replied, but not with the expected challenge.</b> The connection opened; the challenge wording did not match. Treat this as inconclusive, not as a security result.');
+      }
+      try { ws.close(); } catch(e){}
+      running = false; runBtn.disabled = false;
+    };
+
+    ws.onerror = function(){
+      if(done) return;
+      done = true;
+      clearTimeout(timer);
+      running = false; runBtn.disabled = false;
+      fail('The secure WebSocket connection could not be opened. Networks, firewalls or corporate proxies can block this path.');
+    };
+
+    ws.onclose = function(){
+      if(done) return;
+      done = true;
+      clearTimeout(timer);
+      running = false; runBtn.disabled = false;
+      if(!opened){
+        fail('The connection closed before a handshake completed.');
+      } else {
+        progBar.style.width = '100%';
+        note('<b>Connection closed.</b> The socket opened and then closed before a challenge arrived. Treat the result as inconclusive.');
+      }
+    };
+  }
+
+  if(runBtn){ runBtn.addEventListener('click', run); }
+})();
+</script>
+</body>
+</html>

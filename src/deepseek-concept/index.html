@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecureInChat — See what you give away. Then switch it off.</title>
+<meta name="description" content="Free privacy tools that run in your browser, plain-language privacy guides, and an end-to-end encrypted group messenger in development. Protect your privacy — a basic human right.">
+<style>
+:root{
+  --bg:#070b12;
+  --bg-2:#0b1220;
+  --bg-3:#101a2e;
+  --line:rgba(140,170,220,.14);
+  --line-2:rgba(140,170,220,.24);
+  --ink:#eaf1fb;
+  --ink-2:#a9b8d0;
+  --ink-3:#6f809c;
+  --accent:#3ef0c2;
+  --accent-2:#48a6ff;
+  --accent-3:#9b7bff;
+  --warn:#ffb547;
+  --danger:#ff6b7a;
+  --r:18px;
+  --mono:"SFMono-Regular",ui-monospace,"Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --max:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+a{color:inherit}
+img,svg{display:block;max-width:100%}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#04120e;padding:10px 16px;border-radius:0 0 10px 0;z-index:99;font-weight:600}
+.skip:focus{left:0}
+::selection{background:rgba(62,240,194,.28)}
+
+/* ---------- ambient background ---------- */
+.grid-bg{position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(1100px 600px at 78% -8%, rgba(72,166,255,.20), transparent 60%),
+    radial-gradient(900px 500px at 4% 8%, rgba(62,240,194,.12), transparent 55%),
+    radial-gradient(700px 500px at 50% 110%, rgba(155,123,255,.12), transparent 60%),
+    linear-gradient(180deg,#070b12,#060910 60%,#06212b);
+}
+.grid-bg::after{content:"";position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(140,170,220,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(140,170,220,.055) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(circle at 50% 30%,#000 0%,transparent 78%);
+  -webkit-mask-image:radial-gradient(circle at 50% 30%,#000 0%,transparent 78%);
+}
+
+/* ---------- top notice ---------- */
+.topbar{font-size:12.5px;color:var(--ink-2);border-bottom:1px solid var(--line);background:rgba(7,11,18,.7);backdrop-filter:blur(10px)}
+.topbar .wrap{display:flex;gap:14px;align-items:center;justify-content:space-between;padding-top:9px;padding-bottom:9px;flex-wrap:wrap}
+.topbar b{color:var(--ink);font-weight:600}
+.topbar .dot-ok{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;box-shadow:0 0 0 4px rgba(62,240,194,.15)}
+
+/* ---------- header ---------- */
+header.site{position:sticky;top:0;z-index:50;background:rgba(7,11,18,.72);backdrop-filter:blur(16px) saturate(140%);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:8px;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em;font-size:17px;text-decoration:none;margin-right:10px}
+.brand .mark{width:34px;height:34px;flex:none}
+.nav .links{display:flex;gap:2px;margin-left:6px}
+.nav .links a{padding:9px 13px;border-radius:10px;text-decoration:none;color:var(--ink-2);font-size:14px;font-weight:500;transition:.18s}
+.nav .links a:hover{color:var(--ink);background:rgba(140,170,220,.08)}
+.nav .links a.active{color:var(--ink);background:rgba(62,240,194,.10);box-shadow:inset 0 0 0 1px rgba(62,240,194,.22)}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.lang{display:flex;gap:2px;font-size:12.5px}
+.lang a{padding:6px 9px;border-radius:8px;color:var(--ink-3);text-decoration:none}
+.lang a:hover{color:var(--ink)}
+.lang a.on{color:var(--ink);background:rgba(140,170,220,.10)}
+.btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;border-radius:12px;font-weight:600;font-size:14px;padding:11px 18px;border:1px solid transparent;transition:.2s;cursor:pointer;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#29d6e8);color:#03130f;box-shadow:0 8px 30px -8px rgba(62,240,194,.55)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 38px -8px rgba(62,240,194,.7)}
+.btn-ghost{background:rgba(140,170,220,.06);border-color:var(--line-2);color:var(--ink)}
+.btn-ghost:hover{background:rgba(140,170,220,.12)}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:10px}
+.menu-btn{display:none;background:none;border:1px solid var(--line-2);border-radius:10px;color:var(--ink);width:40px;height:40px;align-items:center;justify-content:center;cursor:pointer}
+@media(max-width:980px){
+  .nav .links{display:none}
+  .menu-btn{display:inline-flex}
+  .nav .right .btn-primary{display:none}
+  .lang{display:none}
+}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:74px 0 40px}
+.hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:56px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;font-family:var(--mono)}
+.eyebrow::before{content:"";width:26px;height:1px;background:linear-gradient(90deg,var(--accent),transparent)}
+h1.hero-title{font-size:clamp(38px,5.2vw,64px);line-height:1.03;letter-spacing:-.03em;margin:18px 0 20px;font-weight:800}
+h1.hero-title .grad{background:linear-gradient(100deg,#eaf1fb 20%,#6fe9ff 55%,#3ef0c2 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1.hero-title .dim{color:var(--ink-2);font-weight:800}
+.lede{font-size:18.5px;color:var(--ink-2);max-width:36em;margin:0 0 30px}
+.lede b{color:var(--ink);font-weight:600}
+.cta-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.cta-row .btn{padding:15px 24px;font-size:15px}
+.cta-row .btn .arr{transition:.2s}
+.cta-row .btn:hover .arr{transform:translateX(4px)}
+.trust{display:flex;gap:22px;flex-wrap:wrap;margin-top:34px;padding-top:24px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}
+.trust span{display:inline-flex;align-items:center;gap:8px}
+.trust svg{width:15px;height:15px;flex:none}
+
+/* hero art */
+.hero-art{position:relative;aspect-ratio:1/1.02}
+.hero-art .halo{position:absolute;inset:-8%;border-radius:50%;background:radial-gradient(circle,rgba(62,240,194,.18),transparent 62%);filter:blur(6px)}
+.float{position:absolute}
+
+/* ---------- section scaffolding ---------- */
+section{position:relative;padding:80px 0}
+.sec-head{max-width:760px;margin-bottom:44px}
+.sec-head .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-2);font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-head .kicker .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:rgba(72,166,255,.12);border:1px solid rgba(72,166,255,.28);color:var(--accent-2);font-size:11px}
+h2.sec-title{font-size:clamp(28px,3.6vw,42px);line-height:1.1;letter-spacing:-.025em;margin:0 0 14px;font-weight:800}
+.sec-sub{font-size:17px;color:var(--ink-2);margin:0;max-width:60ch}
+.sec-sub b{color:var(--ink)}
+
+/* fade-in on scroll */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+
+/* ---------- feature cards (tools preview) ---------- */
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:900px){.card-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.card-grid{grid-template-columns:1fr}}
+.tool-card{position:relative;border-radius:var(--r);padding:24px;background:linear-gradient(180deg,rgba(20,30,48,.9),rgba(11,18,32,.9));border:1px solid var(--line);text-decoration:none;overflow:hidden;transition:.25s;display:flex;flex-direction:column;min-height:210px}
+.tool-card::before{content:"";position:absolute;inset:0;background:radial-gradient(400px 220px at var(--mx,80%) 0%,rgba(62,240,194,.10),transparent 60%);opacity:0;transition:.3s}
+.tool-card:hover{transform:translateY(-3px);border-color:rgba(62,240,194,.34);box-shadow:0 24px 60px -30px rgba(0,0,0,.9)}
+.tool-card:hover::before{opacity:1}
+.tool-card .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(62,240,194,.09);border:1px solid rgba(62,240,194,.22);margin-bottom:18px}
+.tool-card .ic svg{width:22px;height:22px}
+.tool-card h3{font-size:16.5px;margin:0 0 8px;letter-spacing:-.01em}
+.tool-card p{color:var(--ink-2);font-size:14px;margin:0;flex:1}
+.tool-card .go{margin-top:16px;font-size:13px;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:6px}
+.tool-card .go .arr{transition:.2s}
+.tool-card:hover .go .arr{transform:translateX(3px)}
+.badge{position:absolute;top:18px;right:18px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:20px;font-weight:700}
+.badge.local{color:var(--accent);background:rgba(62,240,194,.10);border:1px solid rgba(62,240,194,.3)}
+.badge.limited{color:var(--warn);background:rgba(255,181,71,.10);border:1px solid rgba(255,181,71,.3)}
+.badge.network{color:var(--accent-2);background:rgba(72,166,255,.10);border:1px solid rgba(72,166,255,.3)}
+.badge.soon{color:var(--accent-3);background:rgba(155,123,255,.12);border:1px solid rgba(155,123,255,.32)}
+
+/* ---------- request proof panel ---------- */
+.proof{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;border-radius:26px;padding:40px;background:linear-gradient(135deg,rgba(16,26,46,.9),rgba(9,14,25,.9));border:1px solid var(--line);position:relative;overflow:hidden}
+.proof::before{content:"";position:absolute;right:-120px;top:-120px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(72,166,255,.18),transparent 65%)}
+.proof h2{font-size:clamp(24px,3vw,34px);letter-spacing:-.02em;margin:0 0 14px;line-height:1.12}
+.proof p{color:var(--ink-2);margin:0 0 14px}
+.proof p b{color:var(--ink)}
+.proof .req-log{border-radius:14px;border:1px solid var(--line-2);background:#060a12;overflow:hidden;font-family:var(--mono);font-size:12.5px}
+.proof .req-log .bar{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--line);background:#0a111d;color:var(--ink-3);font-size:11.5px;letter-spacing:.05em}
+.proof .req-log .bar i{width:9px;height:9px;border-radius:50%;background:#2a3852;display:inline-block}
+.proof .req-log .bar i:nth-child(1){background:#ff6b7a88}.proof .req-log .bar i:nth-child(2){background:#ffb54788}.proof .req-log .bar i:nth-child(3){background:#3ef0c288}
+.proof .req-log .body{padding:16px 14px;display:flex;align-items:center;gap:12px;color:var(--accent);font-weight:600}
+.proof .req-log .body .shield{width:26px;height:26px;flex:none}
+@media(max-width:860px){.proof{grid-template-columns:1fr;padding:28px}.hero-grid{grid-template-columns:1fr;gap:30px}.hero-art{max-width:440px;margin:0 auto}}
+
+/* ---------- limits band ---------- */
+.limits{border-radius:22px;border:1px solid rgba(255,181,71,.22);background:linear-gradient(180deg,rgba(255,181,71,.06),rgba(255,181,71,.015));padding:32px 36px;display:grid;grid-template-columns:auto 1fr auto;gap:26px;align-items:center}
+.limits .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:rgba(255,181,71,.10);border:1px solid rgba(255,181,71,.3);flex:none}
+.limits h3{margin:0 0 6px;font-size:18px}
+.limits p{margin:0;color:var(--ink-2);font-size:14.5px;max-width:70ch}
+.limits p b{color:var(--ink)}
+@media(max-width:760px){.limits{grid-template-columns:1fr;padding:26px}}
+
+/* ---------- messenger teaser ---------- */
+.mess-teaser{position:relative;border-radius:26px;overflow:hidden;border:1px solid rgba(155,123,255,.24);background:linear-gradient(140deg,rgba(24,18,46,.92),rgba(9,13,24,.92))}
+.mess-teaser .inner{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:stretch}
+.mess-teaser .copy{padding:48px 46px}
+.mess-teaser .copy .tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-3);font-weight:700;margin-bottom:16px}
+.mess-teaser .copy .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent-3);box-shadow:0 0 0 4px rgba(155,123,255,.18)}
+.mess-teaser h2{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.02em;margin:0 0 14px;line-height:1.1}
+.mess-teaser p{color:var(--ink-2);margin:0 0 22px;max-width:44ch}
+.mess-teaser p b{color:var(--ink)}
+.mess-teaser .art{position:relative;min-height:320px;display:grid;place-items:center;overflow:hidden}
+@media(max-width:860px){.mess-teaser .inner{grid-template-columns:1fr}.mess-teaser .copy{padding:34px}.mess-teaser .art{min-height:260px}}
+
+/* ---------- final cta ---------- */
+.final{text-align:center;padding:40px 0 100px}
+.final .card{border-radius:28px;padding:64px 32px;background:radial-gradient(600px 300px at 50% 0%,rgba(62,240,194,.16),transparent 70%),linear-gradient(180deg,rgba(16,26,46,.9),rgba(8,12,22,.95));border:1px solid var(--line);position:relative;overflow:hidden}
+.final h2{font-size:clamp(30px,4.4vw,48px);letter-spacing:-.03em;margin:0 0 16px;line-height:1.06}
+.final p{color:var(--ink-2);max-width:52ch;margin:0 auto 30px;font-size:17px}
+.final .cta-row{justify-content:center}
+
+/* ---------- footer ---------- */
+footer.site{border-top:1px solid var(--line);background:rgba(6,9,15,.85);padding:64px 0 34px}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
+.foot-brand .brand{margin-bottom:14px}
+.foot-brand p{color:var(--ink-3);font-size:14px;max-width:30ch;margin:0 0 18px}
+.foot-brand .lang2{display:flex;gap:14px;font-size:13px;color:var(--ink-2)}
+footer.site h4{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 16px;font-weight:700}
+footer.site ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+footer.site ul a{text-decoration:none;color:var(--ink-2);font-size:14px;transition:.15s}
+footer.site ul a:hover{color:var(--accent)}
+.foot-bottom{margin-top:52px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+@media(max-width:860px){.foot-grid{grid-template-columns:1fr 1fr}.foot-brand{grid-column:1/-1}}
+@media(max-width:520px){.foot-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="topbar">
+  <div class="wrap">
+    <div><span class="dot-ok"></span><b>Free tools that run in your browser.</b> Most send nothing.</div>
+    <div>Messenger <b>in development</b> · no release date announced</div>
+  </div>
+</div>
+
+<header class="site">
+  <div class="wrap nav">
+    <a href="index.html" class="brand" aria-label="SecureInChat home">
+      <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <defs><linearGradient id="mg" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#3ef0c2"/><stop offset="1" stop-color="#48a6ff"/></linearGradient></defs>
+        <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+        <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      SecureInChat
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="tools.html">Tools</a>
+      <a href="#guides">Guides</a>
+      <a href="#checkup">Privacy checkup</a>
+      <a href="messaging.html">Messaging</a>
+      <a href="#mission">Our mission</a>
+    </nav>
+    <div class="right">
+      <div class="lang" aria-label="Language">
+        <a href="index.html" class="on">EN</a>
+        <a href="#" title="Chinese">中文</a>
+        <a href="#" title="Japanese">日本語</a>
+      </div>
+      <a href="#checkup" class="btn btn-primary btn-sm">Start a checkup <span class="arr">→</span></a>
+      <button class="menu-btn" aria-label="Open menu" onclick="document.querySelector('.nav .links').scrollIntoView()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="reveal in">
+      <span class="eyebrow">Privacy is a human right</span>
+      <h1 class="hero-title">See what you <span class="grad">give away.</span><br><span class="dim">Then switch it off.</span></h1>
+      <p class="lede">Before you send a photo, paste text into an AI chat, or open a strange link — check what you expose. <b>Everything runs in your browser.</b></p>
+      <div class="cta-row">
+        <a href="#checkup" class="btn btn-primary">Start the privacy checkup <span class="arr">→</span></a>
+        <a href="tools.html" class="btn btn-ghost">Browse all tools</a>
+      </div>
+      <div class="trust">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.5 8.6 8 9 4.5-.4 8-4 8-9V6l-8-3Z"/><path d="m8.5 12 2.5 2.5L16 9"/></svg>No account needed</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg>Runs locally, sends nothing</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2"/></svg>Plain language, honest limits</span>
+      </div>
+    </div>
+
+    <!-- HERO ILLUSTRATION: a shield made of flowing data lines, with a locked device -->
+    <div class="hero-art reveal in" aria-hidden="true">
+      <div class="halo"></div>
+      <svg viewBox="0 0 520 540" role="img" aria-label="Abstract illustration: a shield of flowing lines protecting a locked device">
+        <defs>
+          <linearGradient id="shieldStroke" x1="120" y1="60" x2="420" y2="480" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#3ef0c2"/><stop offset=".55" stop-color="#48a6ff"/><stop offset="1" stop-color="#9b7bff"/>
+          </linearGradient>
+          <radialGradient id="shieldFill" cx="50%" cy="40%" r="70%">
+            <stop offset="0" stop-color="#0e2130" stop-opacity=".9"/><stop offset="1" stop-color="#070b12" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="beam" x1="260" y1="120" x2="260" y2="470" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#3ef0c2" stop-opacity=".8"/><stop offset="1" stop-color="#48a6ff" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="soft"><feGaussianBlur stdDeviation="6"/></filter>
+          <filter id="glow"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+
+        <!-- orbit rings -->
+        <g stroke="#48a6ff" stroke-opacity=".18" fill="none">
+          <ellipse cx="260" cy="280" rx="230" ry="120" transform="rotate(-18 260 280)"/>
+          <ellipse cx="260" cy="280" rx="230" ry="120" transform="rotate(18 260 280)"/>
+          <circle cx="260" cy="280" r="205"/>
+        </g>
+
+        <!-- shield silhouette -->
+        <path d="M260 58 96 116v120c0 116 70 190 164 214 94-24 164-98 164-214V116L260 58Z"
+              fill="url(#shieldFill)" stroke="url(#shieldStroke)" stroke-width="2.4"/>
+
+        <!-- flowing data lines inside shield -->
+        <g stroke="url(#shieldStroke)" stroke-width="1.4" fill="none" opacity=".7" filter="url(#glow)">
+          <path d="M136 200c40-24 70 30 124 10s70-52 124-22"/>
+          <path d="M136 250c44-18 66 26 124 12s70-44 124-20"/>
+          <path d="M136 300c48-14 62 22 124 12s70-36 124-18"/>
+          <path d="M136 350c52-10 58 18 124 10s70-28 124-14"/>
+          <path d="M150 400c42-8 54 12 110 8s66-20 110-10"/>
+        </g>
+        <g fill="#3ef0c2">
+          <circle cx="180" cy="205" r="3.2"/><circle cx="300" cy="242" r="3.2"/><circle cx="360" cy="300" r="3.2"/>
+          <circle cx="220" cy="352" r="3.2"/><circle cx="330" cy="392" r="3.2"/>
+        </g>
+
+        <!-- central phone / device -->
+        <g transform="translate(196 150)">
+          <rect x="0" y="0" width="128" height="220" rx="22" fill="#0a1018" stroke="url(#shieldStroke)" stroke-width="2"/>
+          <rect x="10" y="16" width="108" height="188" rx="14" fill="#081019"/>
+          <!-- lock glyph -->
+          <g transform="translate(40 64)" stroke="#3ef0c2" stroke-width="2.2" fill="none" filter="url(#glow)">
+            <rect x="4" y="24" width="40" height="34" rx="7"/>
+            <path d="M12 24v-8a12 12 0 0 1 24 0v8"/>
+            <circle cx="24" cy="40" r="3.4" fill="#3ef0c2"/>
+          </g>
+          <!-- fake message lines -->
+          <g fill="#48a6ff" opacity=".55">
+            <rect x="24" y="130" width="70" height="7" rx="3.5"/>
+            <rect x="24" y="144" width="48" height="7" rx="3.5"/>
+            <rect x="34" y="166" width="64" height="7" rx="3.5" fill="#9b7bff"/>
+          </g>
+          <rect x="48" y="6" width="32" height="5" rx="2.5" fill="#2a3852"/>
+        </g>
+
+        <!-- light beam -->
+        <rect x="256" y="120" width="8" height="330" rx="4" fill="url(#beam)" filter="url(#soft)" opacity=".5"/>
+
+        <!-- floating chips -->
+        <g font-family="ui-monospace,monospace" font-size="11">
+          <g transform="translate(24 96)">
+            <rect width="146" height="34" rx="10" fill="#0c1622" stroke="#2a3852"/>
+            <circle cx="18" cy="17" r="4" fill="#3ef0c2"/>
+            <text x="32" y="21" fill="#a9b8d0">GPS removed</text>
+          </g>
+          <g transform="translate(342 70)">
+            <rect width="150" height="34" rx="10" fill="#0c1622" stroke="#2a3852"/>
+            <circle cx="18" cy="17" r="4" fill="#48a6ff"/>
+            <text x="32" y="21" fill="#a9b8d0">0 requests sent</text>
+          </g>
+          <g transform="translate(30 452)">
+            <rect width="160" height="34" rx="10" fill="#0c1622" stroke="#2a3852"/>
+            <circle cx="18" cy="17" r="4" fill="#9b7bff"/>
+            <text x="32" y="21" fill="#a9b8d0">E2EE · in design</text>
+          </g>
+          <g transform="translate(336 452)">
+            <rect width="150" height="34" rx="10" fill="#0c1622" stroke="#2a3852"/>
+            <circle cx="18" cy="17" r="4" fill="#ffb547"/>
+            <text x="32" y="21" fill="#a9b8d0">limits listed</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TOOLS PREVIEW ================= -->
+<section id="checkup">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">01</span>The local toolkit</</div>
+      <h2 class="sec-title">Start with the local tools</h2>
+      <p class="sec-sub">These tools run in your browser and <b>send nothing</b>. They only clean what the browser can read — and each page shows you what it does and does not do.</p>
+    </div>
+
+    <div class="card-grid">
+      <a class="tool-card reveal" href="tools.html#photo-metadata">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg></div>
+        <h3>Photo Metadata Remover</h3>
+        <p>Before you send a photo, remove GPS, camera model and timestamps.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#file-metadata">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/><path d="M9 13h6M9 17h4"/></svg></div>
+        <h3>File Metadata Remover</h3>
+        <p>Before you send a Word file or PDF, clear author, revision history and hidden properties.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#text-redactor">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M3 6h18M3 12h10M3 18h14"/><path d="m16 12 4 4m0-4-4 4"/></svg></div>
+        <h3>Text Redactor</h3>
+        <p>Before you paste text into an AI chat or send an email, replace emails, phone numbers and ID numbers. It replaces the text itself, not a box drawn over it.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#link-checker">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></div>
+        <h3>Link Checker</h3>
+        <p>Before you open a strange link, see its tracking parameters and host — without opening or sending it.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#fingerprint">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M12 3a9 9 0 0 0-9 9c0 2 .4 3.6 1 5"/><path d="M12 6a6 6 0 0 0-6 6c0 2 .3 3.4 1 5"/><path d="M12 9a3 3 0 0 0-3 3c0 1.6.3 3 1 4.5"/><path d="M12 21c3-2 6-5.5 6-9a6 6 0 0 0-3-5.2"/></svg></div>
+        <h3>Browser Fingerprint Test</h3>
+        <p>After you switch browsers or change settings, check which traits are still visible.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#account-check">
+        <span class="badge local">Checklist</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 1.6 1.6L12 8"/><path d="m8 15 1.6 1.6L12 14"/><path d="M15 9h3M15 15h3"/></svg></div>
+        <h3>Account Checkup</h3>
+        <p>A checklist you tick off item by item: sign-in, recovery, two-factor. It stays on your device.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PROOF: DATA FLOW ================= -->
+<section>
+  <div class="wrap">
+    <div class="proof reveal">
+      <div>
+        <h2>Check the cleaning yourself.</h2>
+        <p>Every cleaning tool page lists the network requests it makes. While a file is being cleaned, you can watch that list and see whether anything leaves the browser.</p>
+        <p>It shows which addresses the page contacted and when. <b>Use it as evidence, then decide for yourself.</b></p>
+        <a href="tools.html#data-flow" class="btn btn-ghost btn-sm" style="margin-top:6px">Read the data-flow notes <span class="arr">→</span></a>
+      </div>
+      <div class="req-log" role="img" aria-label="A network request panel showing no requests while cleaning">
+        <div class="bar"><i></i><i></i><i></i><span style="margin-left:6px">Requests from this page</span></div>
+        <div class="body">
+          <svg class="shield" viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.5 8.6 8 9 4.5-.4 8-4 8-9V6l-8-3Z"/><path d="m8.5 12 2.5 2.5L16 9"/></svg>
+          <span>none while cleaning</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LIMITS ================= -->
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="limits reveal">
+      <div class="ic"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#ffb547" stroke-width="2"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg></div>
+      <div>
+        <h3>These tools have limits.</h3>
+        <p>Local tools only clean what the browser can read. Limited-network tools send the first 5 characters of a SHA-1 hash. Network tools send your IP or URL to third-party lookup services.</p>
+      </div>
+      <a href="tools.html#data-flow" class="btn btn-ghost btn-sm">Read the label definitions and data flows <span class="arr">→</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MESSAGING TEASER ================= -->
+<section id="mission">
+  <div class="wrap">
+    <div class="mess-teaser reveal">
+      <div class="inner">
+        <div class="copy">
+          <span class="tag">Mizpah · in development</span>
+          <h2>Encrypted messaging is still being built.</h2>
+          <p>The chat client is developed separately from the privacy tools. A relay forwards only ciphertext it cannot decrypt — and the threat model says plainly what it can and cannot hide.</p>
+          <p><b>No release date has been announced. No independent audit yet.</b></p>
+          <div class="cta-row">
+            <a href="messaging.html" class="btn btn-primary">Read about messaging <span class="arr">→</span></a>
+            <a href="messaging.html#relay" class="btn btn-ghost">Test the relay</a>
+          </div>
+        </div>
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 460 360" role="img" aria-label="Abstract illustration: two devices exchanging encrypted messages through a relay">
+            <defs>
+              <linearGradient id="relayGrad" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9b7bff"/><stop offset="1" stop-color="#48a6ff"/></linearGradient>
+              <linearGradient id="pathGrad" x1="60" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#3ef0c2"/><stop offset=".5" stop-color="#9b7bff"/><stop offset="1" stop-color="#3ef0c2"/></linearGradient>
+              <filter id="g2"><feGaussianBlur stdDeviation="2"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <!-- relay node -->
+            <g transform="translate(180 130)">
+              <rect width="100" height="100" rx="24" fill="#0b1220" stroke="url(#relayGrad)" stroke-width="2"/>
+              <g stroke="url(#relayGrad)" stroke-width="2" fill="none" filter="url(#g2)">
+                <path d="M50 28v18l14 10"/>
+                <circle cx="50" cy="72" r="4" fill="#9b7bff" stroke="none"/>
+                <path d="M28 62h10M62 62h10"/>
+              </g>
+            </g>
+            <!-- connection path -->
+            <path d="M70 90 C150 90 150 180 230 180 C310 180 310 90 390 90" stroke="url(#pathGrad)" stroke-width="2" fill="none" stroke-dasharray="6 7" opacity=".8"/>
+            <path d="M70 270 C150 270 150 180 230 180 C310 180 310 270 390 270" stroke="url(#pathGrad)" stroke-width="2" fill="none" stroke-dasharray="6 7" opacity=".8"/>
+            <!-- left device -->
+            <g transform="translate(20 56)">
+              <rect width="52" height="80" rx="12" fill="#0a1018" stroke="#3ef0c2" stroke-width="1.6"/>
+              <rect x="10" y="14" width="32" height="6" rx="3" fill="#3ef0c2" opacity=".5"/>
+              <rect x="10" y="26" width="22" height="6" rx="3" fill="#3ef0c2" opacity=".3"/>
+            </g>
+            <!-- right device -->
+            <g transform="translate(388 56)">
+              <rect width="52" height="80" rx="12" fill="#0a1018" stroke="#3ef0c2" stroke-width="1.6"/>
+              <rect x="10" y="14" width="32" height="6" rx="3" fill="#9b7bff" opacity=".5"/>
+              <rect x="20" y="26" width="22" height="6" rx="3" fill="#9b7bff" opacity=".3"/>
+            </g>
+            <!-- lower devices mirrored -->
+            <g transform="translate(20 236)">
+              <rect width="52" height="80" rx="12" fill="#0a1018" stroke="#48a6ff" stroke-width="1.6"/>
+              <rect x="10" y="14" width="32" height="6" rx="3" fill="#48a6ff" opacity=".5"/>
+            </g>
+            <g transform="translate(388 236)">
+              <rect width="52" height="80" rx="12" fill="#0a1018" stroke="#48a6ff" stroke-width="1.6"/>
+              <rect x="10" y="14" width="32" height="6" rx="3" fill="#48a6ff" opacity=".5"/>
+            </g>
+            <!-- labels -->
+            <g font-family="ui-monospace,monospace" font-size="10.5">
+              <text x="200" y="256" fill="#6f809c" text-anchor="middle">relay forwards</text>
+              <text x="200" y="270" fill="#9b7bff" text-anchor="middle" font-weight="700">ciphertext only</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GUIDES ================= -->
+<section id="guides">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">02</span>Guides for everyone</div>
+      <h2 class="sec-title">Written for ordinary people.</h2>
+      <p class="sec-sub">Not a security manual. Short guides on what to do today — and what you can safely ignore.</p>
+    </div>
+    <div class="card-grid">
+      <a class="tool-card reveal" href="#guides">
+        <div class="ic" style="background:rgba(72,166,255,.09);border-color:rgba(72,166,255,.22)"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><path d="M4 5h7v16H4zM13 5h7v16h-7z"/></svg></div>
+        <h3>What your photos say about you</h3>
+        <p>Timestamps, GPS and camera model hide inside ordinary photos. A short walk through removing them.</p>
+        <span class="go" style="color:#48a6ff">Read guide <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="#guides">
+        <div class="ic" style="background:rgba(72,166,255,.09);border-color:rgba(72,166,255,.22)"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><path d="M3 5h18v11H8l-5 4z"/></svg></div>
+        <h3>Before you paste it into an AI chat</h3>
+        <p>The easiest privacy win is the one you do before you hit enter. What to strip, and why.</p>
+        <span class="go" style="color:#48a6ff">Read guide <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="#guides">
+        <div class="ic" style="background:rgba(72,166,255,.09);border-color:rgba(72,166,255,.22)"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <h3>Two-factor without the stress</h3>
+        <p>What two-factor actually protects, what it doesn't, and the settings that matter most.</p>
+        <span class="go" style="color:#48a6ff">Read guide <span class="arr">→</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FINAL CTA ================= -->
+<section class="final">
+  <div class="wrap">
+    <div class="card reveal">
+      <h2>Take the checkup.<br>Ten minutes, no account.</h2>
+      <p>See what your browser and your accounts reveal — and get a prioritised list of what to fix first.</p>
+      <div class="cta-row">
+        <a href="#checkup" class="btn btn-primary">Start the privacy checkup <span class="arr">→</span></a>
+        <a href="tools.html" class="btn btn-ghost">Browse all tools</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="index.html" class="brand">
+          <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+            <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          SecureInChat
+        </a>
+        <p>Better tools. A more private internet. Privacy is a human right.</p>
+        <div class="lang2"><a href="index.html">English</a><a href="#">中文</a><a href="#">日本語</a></div>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="#mission">Mission</a></li>
+          <li><a href="#mission">Principles</a></li>
+          <li><a href="tools.html#data-flow">Status labels</a></li>
+          <li><a href="#mission">Sponsorship &amp; affiliate disclosure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Use</h4>
+        <ul>
+          <li><a href="tools.html">Privacy tools</a></li>
+          <li><a href="#guides">Guides</a></li>
+          <li><a href="#checkup">Privacy checkup</a></li>
+          <li><a href="messaging.html">Messaging</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 SecureInChat. All rights reserved.</span>
+      <span>Privacy-conscious by design. Clear about limitations.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var items = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{rootMargin:'0px 0px -8% 0px',threshold:.08});
+    items.forEach(function(el){ io.observe(el); });
+  } else {
+    items.forEach(function(el){ el.classList.add('in'); });
+  }
+  // pointer-follow glow on tool cards
+  document.querySelectorAll('.tool-card').forEach(function(card){
+    card.addEventListener('pointermove',function(ev){
+      var r = card.getBoundingClientRect();
+      var x = (ev.clientX - r.left) / r.width * 100;
+      card.style.setProperty('--mx', x + '%');
+    });
+  });
+})();
+</script>
+</body>
+</html>

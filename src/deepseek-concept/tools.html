@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy tools — SecureInChat</title>
+<meta name="description" content="Small tools for a more private internet. Local processing, network lookups and checklists — each page explains what it checks, what stays in your browser, and when another service is involved.">
+<style>
+:root{
+  --bg:#070b12;--bg-2:#0b1220;--bg-3:#101a2e;
+  --line:rgba(140,170,220,.14);--line-2:rgba(140,170,220,.24);
+  --ink:#eaf1fb;--ink-2:#a9b8d0;--ink-3:#6f809c;
+  --accent:#3ef0c2;--accent-2:#48a6ff;--accent-3:#9b7bff;
+  --warn:#ffb547;--danger:#ff6b7a;
+  --r:18px;
+  --mono:"SFMono-Regular",ui-monospace,"Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --max:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+img,svg{display:block;max-width:100%}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#04120e;padding:10px 16px;border-radius:0 0 10px 0;z-index:99;font-weight:600}
+.skip:focus{left:0}
+::selection{background:rgba(72,166,255,.28)}
+
+.grid-bg{position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(1000px 620px at 84% -6%, rgba(72,166,255,.18), transparent 60%),
+    radial-gradient(900px 520px at 0% 6%, rgba(62,240,194,.12), transparent 58%),
+    radial-gradient(700px 500px at 50% 112%, rgba(155,123,255,.10), transparent 60%),
+    linear-gradient(180deg,#070b12,#060910 60%,#071822);
+}
+.grid-bg::after{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(140,170,220,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(140,170,220,.05) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(circle at 50% 24%,#000 0%,transparent 76%);
+  -webkit-mask-image:radial-gradient(circle at 50% 24%,#000 0%,transparent 76%);
+}
+
+.topbar{font-size:12.5px;color:var(--ink-2);border-bottom:1px solid var(--line);background:rgba(7,11,18,.7);backdrop-filter:blur(10px)}
+.topbar .wrap{display:flex;gap:14px;align-items:center;justify-content:space-between;padding-top:9px;padding-bottom:9px;flex-wrap:wrap}
+.topbar b{color:var(--ink);font-weight:600}
+.topbar .dot-ok{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;box-shadow:0 0 0 4px rgba(62,240,194,.15)}
+
+header.site{position:sticky;top:0;z-index:50;background:rgba(7,11,18,.72);backdrop-filter:blur(16px) saturate(140%);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:8px;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em;font-size:17px;text-decoration:none;margin-right:10px}
+.brand .mark{width:34px;height:34px;flex:none}
+.nav .links{display:flex;gap:2px;margin-left:6px}
+.nav .links a{padding:9px 13px;border-radius:10px;text-decoration:none;color:var(--ink-2);font-size:14px;font-weight:500;transition:.18s}
+.nav .links a:hover{color:var(--ink);background:rgba(140,170,220,.08)}
+.nav .links a.active{color:var(--ink);background:rgba(72,166,255,.12);box-shadow:inset 0 0 0 1px rgba(72,166,255,.26)}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.lang{display:flex;gap:2px;font-size:12.5px}
+.lang a{padding:6px 9px;border-radius:8px;color:var(--ink-3);text-decoration:none}
+.lang a:hover{color:var(--ink)}
+.lang a.on{color:var(--ink);background:rgba(140,170,220,.10)}
+.btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;border-radius:12px;font-weight:600;font-size:14px;padding:11px 18px;border:1px solid transparent;transition:.2s;cursor:pointer;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#29d6e8);color:#03130f;box-shadow:0 8px 30px -8px rgba(62,240,194,.55)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 38px -8px rgba(62,240,194,.7)}
+.btn-ghost{background:rgba(140,170,220,.06);border-color:var(--line-2);color:var(--ink)}
+.btn-ghost:hover{background:rgba(140,170,220,.12)}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:10px}
+.menu-btn{display:none;background:none;border:1px solid var(--line-2);border-radius:10px;color:var(--ink);width:40px;height:40px;align-items:center;justify-content:center;cursor:pointer}
+@media(max-width:980px){.nav .links{display:none}.menu-btn{display:inline-flex}.nav .right .btn-primary{display:none}.lang{display:none}}
+
+.crumb{font-size:13px;color:var(--ink-3);padding:22px 0 0}
+.crumb a{text-decoration:none;color:var(--ink-2)}
+.crumb a:hover{color:var(--accent-2)}
+
+/* hero */
+.hero{position:relative;padding:38px 0 30px}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:52px;align-items:center}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:28px}}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-2);font-weight:700;font-family:var(--mono)}
+.eyebrow::before{content:"";width:26px;height:1px;background:linear-gradient(90deg,var(--accent-2),transparent)}
+h1.hero-title{font-size:clamp(34px,4.6vw,54px);line-height:1.04;letter-spacing:-.03em;margin:18px 0 18px;font-weight:800}
+h1.hero-title .grad{background:linear-gradient(100deg,#eaf1fb 15%,#8fd8ff 55%,#48a6ff 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:18px;color:var(--ink-2);max-width:36em;margin:0 0 26px}
+.lede b{color:var(--ink)}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.cta-row .btn .arr{transition:.2s}
+.cta-row .btn:hover .arr{transform:translateX(4px)}
+
+/* section scaffold */
+section{position:relative;padding:60px 0}
+.sec-head{max-width:780px;margin-bottom:40px}
+.sec-head .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-2);font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-head .kicker .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:rgba(72,166,255,.12);border:1px solid rgba(72,166,255,.3);color:var(--accent-2);font-size:11px}
+h2.sec-title{font-size:clamp(26px,3.4vw,40px);line-height:1.1;letter-spacing:-.025em;margin:0 0 12px;font-weight:800}
+.sec-sub{font-size:17px;color:var(--ink-2);margin:0;max-width:62ch}
+.sec-sub b{color:var(--ink)}
+
+.hairline{height:1px;background:linear-gradient(90deg,transparent,var(--line-2),transparent)}
+
+/* data flow strip */
+.flow-strip{border-radius:24px;border:1px solid var(--line);background:radial-gradient(700px 300px at 50% -20%,rgba(72,166,255,.12),transparent 60%),linear-gradient(180deg,rgba(14,22,38,.9),rgba(8,12,20,.95));padding:36px;margin-bottom:8px}
+.flow-strip .bars{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}
+@media(max-width:760px){.flow-strip .bars{grid-template-columns:1fr}}
+.legend{border-radius:16px;padding:20px;border:1px solid var(--line);background:rgba(10,16,26,.7);position:relative;padding-top:24px}
+.legend::before{content:"";position:absolute;top:0;left:20px;right:20px;height:3px;border-radius:0 0 3px 3px}
+.legend.local::before{background:linear-gradient(90deg,var(--accent),transparent)}
+.legend.network::before{background:linear-gradient(90deg,var(--accent-2),transparent)}
+.legend.limited::before{background:linear-gradient(90deg,var(--warn),transparent)}
+.legend h4{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:9px}
+.legend h4 .dot{width:9px;height:9px;border-radius:50%}
+.legend.local h4 .dot{background:var(--accent)}
+.legend.network h4 .dot{background:var(--accent-2)}
+.legend.limited h4 .dot{background:var(--warn)}
+.legend p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.legend p b{color:var(--ink)}
+
+/* checkup banner */
+.checkup-banner{display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center;border-radius:26px;padding:40px;background:linear-gradient(135deg,rgba(16,26,46,.92),rgba(9,14,25,.92));border:1px solid rgba(62,240,194,.24);position:relative;overflow:hidden}
+.checkup-banner::before{content:"";position:absolute;right:-100px;top:-100px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(62,240,194,.18),transparent 65%)}
+.checkup-banner h2{margin:0 0 12px;font-size:clamp(24px,3vw,32px);letter-spacing:-.02em;line-height:1.12}
+.checkup-banner p{margin:0 0 20px;color:var(--ink-2);font-size:15px}
+.checkup-banner pb{color:var(--ink)}
+.checkup-banner .chips{display:flex;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
+.checkup-banner .chips span{padding:5px 11px;border-radius:20px;border:1px solid var(--line-2);color:var(--ink-2)}
+.checkup-banner .chips span.warn{color:var(--warn);border-color:rgba(255,181,71,.3);background:rgba(255,181,71,.06)}
+.checkup-banner .chips span.ok{color:var(--accent);border-color:rgba(62,240,194,.3);background:rgba(62,240,194,.06)}
+.checkup-banner .art{display:grid;place-items:center;min-height:220px}
+.checkup-banner .art svg{width:100%;max-width:320px;height:auto}
+@media(max-width:860px){.checkup-banner{grid-template-columns:1fr;padding:28px}}
+
+/* tool sections */
+.tool-section{margin-bottom:8px}
+.tool-section .stitle{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.tool-section .stitle .badge-big{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:20px;font-weight:700}
+.tool-section .stitle h2{font-size:clamp(22px,2.8vw,30px);letter-spacing:-.02em;margin:0;font-weight:800}
+.tool-section .slead{color:var(--ink-2);font-size:15.5px;margin:0 0 26px;max-width:70ch}
+.badge-big.local{color:var(--accent);background:rgba(62,240,194,.1);border:1px solid rgba(62,240,194,.3)}
+.badge-big.network{color:var(--accent-2);background:rgba(72,166,255,.1);border:1px solid rgba(72,166,255,.3)}
+.badge-big.limited{color:var(--warn);background:rgba(255,181,71,.1);border:1px solid rgba(255,181,71,.3)}
+
+.tool-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:820px){.tool-grid{grid-template-columns:1fr}}
+.tool{position:relative;display:flex;gap:18px;border-radius:var(--r);padding:22px;background:linear-gradient(180deg,rgba(20,30,48,.85),rgba(11,18,32,.9));border:1px solid var(--line);text-decoration:none;transition:.25s;overflow:hidden}
+.tool::after{content:"";position:absolute;inset:0;background:radial-gradient(420px 200px at var(--mx,80%) 0%,rgba(72,166,255,.08),transparent 60%);opacity:0;transition:.3s;pointer-events:none}
+.tool:hover{border-color:rgba(72,166,255,.32);transform:translateY(-2px);box-shadow:0 24px 60px -34px rgba(0,0,0,.9)}
+.tool:hover::after{opacity:1}
+.tool .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;flex:none;background:rgba(72,166,255,.09);border:1px solid rgba(72,166,255,.22)}
+.tool.local .ic{background:rgba(62,240,194,.09);border-color:rgba(62,240,194,.22)}
+.tool.limited .ic{background:rgba(255,181,71,.09);border-color:rgba(255,181,71,.22)}
+.tool .ic svg{width:22px;height:22px}
+.tool .body{flex:1;min-width:0}
+.tool .top{display:flex;align-items:center;gap:9px;margin-bottom:5px;flex-wrap:wrap}
+.tool h3{margin:0;font-size:16.5px;letter-spacing:-.01em}
+.tool .label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
+.label.local{color:var(--accent);background:rgba(62,240,194,.1);border:1px solid rgba(62,240,194,.28)}
+.label.network{color:var(--accent-2);background:rgba(72,166,255,.1);border:1px solid rgba(72,166,255,.28)}
+.label.limited{color:var(--warn);background:rgba(255,181,71,.1);border:1px solid rgba(255,181,71,.28)}
+.tool p{margin:0;font-size:14px;color:var(--ink-2)}
+.tool .open{margin-top:12px;font-size:12.5px;color:var(--accent-2);font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.tool.local .open{color:var(--accent)}
+.tool .open .arr{transition:.2s}
+.tool:hover .open .arr{transform:translateX(3px)}
+
+/* data flow notes */
+.notes{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+@media(max-width:760px){.notes{grid-template-columns:1fr}}
+.note-card{border-radius:18px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(18,27,44,.85),rgba(10,16,26,.9));padding:26px}
+.note-card .step{font-family:var(--mono);font-size:12px;color:var(--accent-2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.note-card h3{margin:0 0 8px;font-size:17px}
+.note-card p{margin:0;font-size:14px;color:var(--ink-2)}
+.note-card p b{color:var(--ink)}
+
+.callout{border-radius:16px;border:1px dashed rgba(140,170,220,.28);background:rgba(140,170,220,.03);padding:22px 26px;color:var(--ink-2);font-size:14.5px;margin-top:26px}
+.callout b{color:var(--ink)}
+
+/* CTA */
+.cta-strip{border-radius:22px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(16,26,46,.9),rgba(8,12,22,.95));padding:38px 40px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+.cta-strip h2{margin:0 0 6px;font-size:clamp(22px,3vw,30px);letter-spacing:-.02em}
+.cta-strip p{margin:0;color:var(--ink-2);font-size:14.5px}
+
+/* footer */
+footer.site{border-top:1px solid var(--line);background:rgba(6,9,15,.85);padding:64px 0 34px;margin-top:60px}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
+.foot-brand .brand{margin-bottom:14px}
+.foot-brand p{color:var(--ink-3);font-size:14px;max-width:30ch;margin:0 0 18px}
+.foot-brand .lang2{display:flex;gap:14px;font-size:13px;color:var(--ink-2)}
+footer.site h4{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 16px;font-weight:700}
+footer.site ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+footer.site ul a{text-decoration:none;color:var(--ink-2);font-size:14px;transition:.15s}
+footer.site ul a:hover{color:var(--accent-2)}
+.foot-bottom{margin-top:52px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+@media(max-width:860px){.foot-grid{grid-template-columns:1fr 1fr}.foot-brand{grid-column:1/-1}}
+@media(max-width:520px){.foot-grid{grid-template-columns:1fr}}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="topbar">
+  <div class="wrap">
+    <div><span class="dot-ok"></span><b>Free tools.</b> Choose by the question you want answered.</div>
+    <div>Each page explains what it checks and when a service is involved.</div>
+  </div>
+</div>
+
+<header class="site">
+  <div class="wrap nav">
+    <a href="index.html" class="brand" aria-label="SecureInChat home">
+      <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <defs><linearGradient id="mg" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#3ef0c2"/><stop offset="1" stop-color="#48a6ff"/></linearGradient></defs>
+        <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+        <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      SecureInChat
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="tools.html" class="active">Tools</a>
+      <a href="index.html#guides">Guides</a>
+      <a href="index.html#checkup">Privacy checkup</a>
+      <a href="messaging.html">Messaging</a>
+      <a href="index.html#mission">Our mission</a>
+    </nav>
+    <div class="right">
+      <div class="lang" aria-label="Language">
+        <a href="tools.html" class="on">EN</a>
+        <a href="#" title="Chinese">中文</a>
+        <a href="#" title="Japanese">日本語</a>
+      </div>
+      <a href="#checkup" class="btn btn-primary btn-sm">Start a checkup <span class="arr">→</span></a>
+      <button class="menu-btn" aria-label="Open menu" onclick="document.querySelector('.nav .links').scrollIntoView()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap crumb"><a href="index.html">Home</a> / Privacy tools</div>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="reveal in">
+      <span class="eyebrow">The toolkit</span>
+      <h1 class="hero-title">Small tools for a <span class="grad">more private internet.</span></h1>
+      <p class="lede">Choose a tool by the question you want answered. Each page explains what it checks, what stays in your browser, and when another service is involved.</p>
+      <div class="cta-row">
+        <a href="#checkup" class="btn btn-primary">Start with the privacy checkup <span class="arr">→</span></a>
+        <a href="#data-flow" class="btn btn-ghost">How we handle data</a>
+      </div>
+    </div>
+    <div class="reveal in" aria-hidden="true">
+      <svg viewBox="0 0 460 360" role="img" aria-label="Illustration: a grid of small privacy tools arranged around a shield">
+        <defs>
+          <linearGradient id="tg" x1="0" y1="0" x2="460" y2="360" gradientUnits="userSpaceOnUse"><stop stop-color="#48a6ff"/><stop offset="1" stop-color="#3ef0c2"/></linearGradient>
+          <radialGradient id="tglow" cx="50%" cy="50%" r="50%"><stop stop-color="#48a6ff" stop-opacity=".22"/><stop offset="1" stop-color="#48a6ff" stop-opacity="0"/></radialGradient>
+          <filter id="tglowf"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <circle cx="230" cy="180" r="150" fill="url(#tglow)"/>
+        <!-- orbit -->
+        <g stroke="#48a6ff" stroke-opacity=".16" fill="none">
+          <circle cx="230" cy="180" r="128"/>
+          <circle cx="230" cy="180" r="152" stroke-dasharray="3 8"/>
+        </g>
+        <!-- center shield -->
+        <g transform="translate(168 118)" filter="url(#tglowf)">
+          <path d="M62 3 8 23v34c0 40 26 66 54 72 28-6 54-32 54-72V23L62 3Z" fill="#0b1220" stroke="url(#tg)" stroke-width="2.2"/>
+          <path d="M38 66 54 82l36-42" stroke="url(#tg)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </g>
+        <!-- tool tiles on orbit -->
+        <g font-family="ui-monospace,monospace" font-size="10.5">
+          <g transform="translate(24 40)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#3ef0c2"/><text x="28" y="21" fill="#a9b8d0">photos</text></g>
+          <g transform="translate(344 40)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#3ef0c2"/><text x="28" y="21" fill="#a9b8d0">files</text></g>
+          <g transform="translate(8 168)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#3ef0c2"/><text x="28" y="21" fill="#a9b8d0">text</text></g>
+          <g transform="translate(360 168)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#48a6ff"/><text x="28" y="21" fill="#a9b8d0">IP</text></g>
+          <g transform="translate(60 296)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#48a6ff"/><text x="28" y="21" fill="#a9b8d0">links</text></g>
+          <g transform="translate(308 296)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#ffb547"/><text x="28" y="21" fill="#a9b8d0">breach</text></g>
+        </g>
+        <!-- spokes -->
+        <g stroke="#48a6ff" stroke-opacity=".22"><line x1="230" y1="180" x2="64" y2="57"/><line x1="230" y1="180" x2="396" y2="57"/><line x1="230" y1="180" x2="54" y2="185"/><line x1="230" y1="180" x2="406" y2="185"/><line x1="230" y1="180" x2="106" y2="313"/><line x1="230" y1="180" x2="354" y2="313"/></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHECKUP BANNER ================= -->
+<section id="checkup" style="padding-top:10px">
+  <div class="wrap">
+    <div class="checkup-banner reveal">
+      <div>
+        <h2>Not sure where to begin?</h2>
+        <p>The browser privacy report checks <b style="color:var(--ink)">12 items</b> and prioritises what to look at first. Some connection checks use external lookup services; the report explains what leaves your browser.</p>
+        <div class="chips">
+          <span class="warn">◐ Some network lookups</span>
+          <span class="ok">12 checks</span>
+        </div>
+        <div class="cta-row" style="margin-top:22px">
+          <a href="#checkup" class="btn btn-primary">Run the report <span class="arr">→</span></a>
+        </div>
+      </div>
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 320 220" role="img" aria-label="A report card showing twelve check marks with a few using external lookups">
+          <defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#3ef0c2"/><stop offset="1" stop-color="#48a6ff"/></linearGradient></defs>
+          <rect x="30" y="20" width="260" height="180" rx="18" fill="#0a1018" stroke="#2a3852"/>
+          <rect x="52" y="44" width="120" height="9" rx="4.5" fill="#48a6ff" opacity=".6"/>
+          <g font-family="ui-monospace,monospace" font-size="10.5" fill="#a9b8d0">
+            <g transform="translate(52 72)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local check</text></g>
+            <g transform="translate(52 96)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local check</text></g>
+            <g transform="translate(52 120)"><circle r="4" fill="#48a6ff"/><text x="14" y="4">network lookup</text></g>
+            <g transform="translate(52 144)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local check</text></g>
+            <g transform="translate(180 72)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local</text></g>
+            <g transform="translate(180 96)"><circle r="4" fill="#ffb547"/><text x="14" y="4">limited</text></g>
+            <g transform="translate(180 120)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local</text></g>
+            <g transform="translate(180 144)"><circle r="4" fill="#48a6ff"/><text x="14" y="4">network</text></g>
+          </g>
+          <path d="M52 170h216" stroke="#2a3852"/>
+          <rect x="52" y="180" width="90" height="6" rx="3" fill="url(#cg)"/>
+        </svg>
+      </div>
+    </div>
+    <p class="callout" style="margin-top:18px">Two distinct paths. The messaging relay and selected tool lookups are <b>not</b> one continuous request.</p>
+  </div>
+</section>
+
+<div class="wrap"><div class="hairline"></div></div>
+
+<!-- ================= CONNECTION & BROWSER SIGNALS ================= -->
+<section>
+  <div class="wrap">
+    <div class="tool-section reveal">
+      <div class="stitle">
+        <span class="badge-big network">Network &amp; signals</span>
+        <h2>Connection and browser signals</h2>
+      </div>
+      <p class="slead">Checks for what a browser or network connection may reveal. <b>Review the limits before relying on a result.</b></p>
+      <div class="tool-grid">
+        <a class="tool" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><path d="m6 6 2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>WebRTC leak test</h3><span class="label network">Network lookup</span></div>
+            <p>See whether browser real-time connections expose an address outside your expected network path.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="18" cy="17" r="3"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>IPv6 leak test</h3><span class="label network">Network lookup</span></div>
+            <p>Check whether IPv6 connectivity is visible through the available network path.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>IP leak test</h3><span class="label network">Network lookup</span></div>
+            <p>Review public IP, network and browser signals. This check contacts outside lookup services.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M12 3a9 9 0 0 0-9 9c0 2 .4 3.6 1 5"/><path d="M12 6a6 6 0 0 0-6 6c0 2 .3 3.4 1 5"/><path d="M12 9a3 3 0 0 0-3 3c0 1.6.3 3 1 4.5"/><path d="M12 21c3-2 6-5.5 6-9a6 6 0 0 0-3-5.2"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Browser fingerprint test</h3><span class="label local">Local processing</span></div>
+            <p>Inspect browser signals that may make your setup easier to distinguish.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="hairline"></div></div>
+
+<!-- ================= EVERYDAY PRIVACY ================= -->
+<section>
+  <div class="wrap">
+    <div class="tool-section reveal">
+      <div class="stitle">
+        <span class="badge-big local">Everyday tasks</span>
+        <h2>Everyday privacy tasks</h2>
+      </div>
+      <p class="slead">Inspect links and files, reduce sensitive information, and review account settings.</p>
+      <div class="tool-grid">
+        <a class="tool local" id="link-checker" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Link Checker</h3><span class="label local">Local processing</span></div>
+            <p>Inspect a URL for tracking parameters and structural warning signs without opening or sending it.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" id="photo-metadata" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Photo Metadata Remover</h3><span class="label local">Local processing</span></div>
+            <p>Inspect supported metadata and save a cleaned copy of an image on your device.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" id="file-metadata" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/><path d="M9 13h6M9 17h4"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>File Metadata Remover</h3><span class="label local">Local processing</span></div>
+            <p>Inspect and remove hidden metadata from photos, videos, PDFs and Office files on your device.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" id="text-redactor" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M3 6h18M3 12h10M3 18h14"/><path d="m16 12 4 4m0-4-4 4"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Text Redactor</h3><span class="label local">Local processing</span></div>
+            <p>Replace common sensitive patterns in pasted text before you share it.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Phone Number Privacy Checkup</h3><span class="label local">Local checklist</span></div>
+            <p>Review six protective settings without entering or sending your phone number.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool limited" id="password-check" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb547" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><circle cx="12" cy="15" r="1.4"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Password Checker</h3><span class="label limited">Limited lookup</span></div>
+            <p>Estimate strength and check a known-breach corpus using the documented lookup method.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" id="account-check" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 1.6 1.6L12 8"/><path d="m8 15 1.6 1.6L12 14"/><path d="M15 9h3M15 15h3"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Account Security Checkup</h3><span class="label local">Local checklist</span></div>
+            <p>Review common account-security settings with a checklist that stays in the page.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/><path d="M3 3l18 18"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Website Health Check</h3><span class="label network">Site request</span></div>
+            <p>Review public HTTPS, redirect, security-header and basic site-discovery signals.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="hairline"></div></div>
+
+<!-- ================= DATA FLOW ================= -->
+<section id="data-flow">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">01</span>Understand the data flow</div>
+      <h2 class="sec-title">Read the label before you trust the result.</h2>
+      <p class="sec-sub">“Local processing” means the relevant work happens in your browser. Some tests still need an external request to observe a public-facing value.</p>
+    </div>
+
+    <div class="flow-strip reveal">
+      <div class="bars">
+        <div class="legend local">
+          <h4><span class="dot"></span>Local processing</h4>
+          <p>The work happens in your browser. <b>Nothing is sent while you use it</b> for the relevant task.</p>
+        </div>
+        <div class="legend network">
+          <h4><span class="dot"></span>Network lookup</h4>
+          <p>The tool contacts an <b>external lookup service</b> to observe a public value (e.g. your IP or a URL).</p>
+        </div>
+        <div class="legend limited">
+          <h4><span class="dot"></span>Limited lookup</h4>
+          <p>Only a <b>short hash prefix</b> is sent — e.g. the first 5 characters of a SHA-1 hash — never the raw password.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top:26px">
+      <div class="note-card reveal">
+        <div class="step">1 · Read the label</div>
+        <h3>Three behaviours, three labels</h3>
+        <p>Local processing, network lookup and site request describe <b>different behaviours</b>. The label on each tool tells you which one applies.</p>
+      </div>
+      <div class="note-card reveal">
+        <div class="step">2 · Check the limitation</div>
+        <h3>A clean result is not proof</h3>
+        <p>A clean result is <b>not proof of anonymity</b>, and a URL structure check <b>cannot prove that a destination is safe</b>.</p>
+      </div>
+    </div>
+
+    <p class="callout reveal">Every cleaning tool page lists the exact network requests it makes. While a file is being cleaned, you can watch that list and see whether anything leaves the browser — <b>use it as evidence, then decide for yourself.</b></p>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section style="padding-top:10px">
+  <div class="wrap">
+    <div class="cta-strip reveal">
+      <div>
+        <h2>Ready to start?</h2>
+        <p>The privacy checkup prioritises what to fix first. No account needed.</p>
+      </div>
+      <div class="cta-row">
+        <a href="#checkup" class="btn btn-primary">Start the privacy checkup <span class="arr">→</span></a>
+        <a href="messaging.html" class="btn btn-ghost">About messaging</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="index.html" class="brand">
+          <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+            <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          SecureInChat
+        </a>
+        <p>Better tools. A more private internet. Privacy is a human right.</p>
+        <div class="lang2"><a href="tools.html">English</a><a href="#">中文</a><a href="#">日本語</a></div>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="index.html#mission">Mission</a></li>
+          <li><a href="index.html#mission">Principles</a></li>
+          <li><a href="#data-flow">Status labels</a></li>
+          <li><a href="index.html#mission">Sponsorship &amp; affiliate disclosure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Use</h4>
+        <ul>
+          <li><a href="tools.html">Privacy tools</a></li>
+          <li><a href="index.html#guides">Guides</a></li>
+          <li><a href="#checkup">Privacy checkup</a></li>
+          <li><a href="messaging.html">Messaging</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 SecureInChat. All rights reserved.</span>
+      <span>Privacy-conscious by design. Clear about limitations.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var items = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{rootMargin:'0px 0px -8% 0px',threshold:.06});
+    items.forEach(function(el){ io.observe(el); });
+  } else {
+    items.forEach(function(el){ el.classList.add('in'); });
+  }
+  document.querySelectorAll('.tool').forEach(function(card){
+    card.addEventListener('pointermove',function(ev){
+      var r = card.getBoundingClientRect();
+      var x = (ev.clientX - r.left) / r.width * 100;
+      card.style.setProperty('--mx', x + '%');
+    });
+  });
+})();
+</script>
+</body>
+</html>
