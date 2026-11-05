@@ -153,6 +153,9 @@ class MainActivity : Activity() {
             addView(ui.primaryButton(getString(R.string.intro_start)) {
                 getPreferences(Context.MODE_PRIVATE).edit().putBoolean(PREF_INTRO_DONE, true).apply()
                 showMain()
+                // "Start protection" means start it: go straight to the system VPN consent, not to an
+                // empty home screen where the user has to find the switch again.
+                if (!GuardianVpnService.isRunning && !GuardianVpnService.isLoading) onToggleClicked()
             }.apply { layoutParams = ui.matchWidth(8) })
         })
         padForSystemBars(page)
@@ -276,6 +279,10 @@ class MainActivity : Activity() {
     }
 
     fun refreshUi() {
+        if (confirmStart && GuardianVpnService.isRunning) {
+            confirmStart = false
+            android.widget.Toast.makeText(this, R.string.status_on, android.widget.Toast.LENGTH_SHORT).show()
+        }
         if (showingIntro || !::content.isInitialized) return
         tabs[current].refresh()
         refreshBadge()
@@ -296,8 +303,12 @@ class MainActivity : Activity() {
 
     // --- Actions shared by tabs ---------------------------------------------------------------------
 
+    /** Set when the user asks to start; cleared with a short "Protection is on" once it is. */
+    private var confirmStart = false
+
     fun onToggleClicked() {
         if (GuardianVpnService.isLoading) return
+        confirmStart = !GuardianVpnService.isRunning
         if (GuardianVpnService.isRunning) {
             // Plain startService: the stop path never calls startForeground, and a
             // startForegroundService() call that is not followed by startForeground() within a

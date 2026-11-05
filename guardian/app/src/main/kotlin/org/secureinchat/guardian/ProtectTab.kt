@@ -71,6 +71,12 @@ class ProtectTab(a: MainActivity) : Tab(a) {
 
         pdnsCard = ui.card(12, p.warnContainer).apply {
             addView(ui.body(s(R.string.private_dns_hint)).apply { setTextColor(p.warn) })
+            // Private DNS sits in the network settings; the documented wireless settings action leads there.
+            addView(ui.textButton(s(R.string.open_settings), p.warn) {
+                if (!a.tryStart(android.content.Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS))) {
+                    a.tryStart(android.content.Intent(android.provider.Settings.ACTION_SETTINGS))
+                }
+            })
             visibility = View.GONE
         }
         root.addView(pdnsCard)
@@ -88,11 +94,6 @@ class ProtectTab(a: MainActivity) : Tab(a) {
         }
         root.addView(dotCard)
 
-        // G19: lead people to the app checkup from the home screen.
-        root.addView(ui.card(12).apply {
-            addView(ui.body(s(R.string.protect_scan_prompt)))
-            addView(ui.textButton(s(R.string.protect_scan_button)) { a.selectTab(2) })
-        })
 
         val stats = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = ui.matchWidth(16) }
         fun tile(label: String): TextView {
@@ -121,6 +122,10 @@ class ProtectTab(a: MainActivity) : Tab(a) {
             addView(recentBox)
         })
 
+        // G19: a light pointer to the app checkup; the main action on this screen stays the switch above.
+        root.addView(ui.row(s(R.string.protect_scan_prompt), emptyList(),
+            ui.textButton(s(R.string.protect_scan_button)) { a.selectTab(2) }).apply { layoutParams = ui.matchWidth(12) })
+
         privacy = ui.caption().apply { layoutParams = ui.matchWidth(16) }
         root.addView(privacy)
     }
@@ -131,23 +136,29 @@ class ProtectTab(a: MainActivity) : Tab(a) {
         val h = GuardianVpnService.activeHandler
         val paused = running && h != null && h.isPaused()
 
-        val state = when { loading -> 3; paused -> 2; running -> 1; else -> 0 }
+        // Off although the user wants it on: killed by battery saving, a reboot without Always-on, or
+        // another VPN taking the slot. Say so instead of a plain grey "off" ("I thought it was on").
+        val unexpected = !running && !loading && ProtectionStateStore.wanted(a)
+        val state = when { loading -> 3; paused -> 2; running -> 1; unexpected -> 4; else -> 0 }
         if (state != shieldState) {
             shieldState = state
             val (icon, color) = when (state) {
                 1 -> R.drawable.ic_shield_on to p.accent
                 2 -> R.drawable.ic_shield_pause to p.warn
+                4 -> R.drawable.ic_shield_off to p.warn
                 else -> R.drawable.ic_shield_off to p.secondary
             }
             shield.setImageDrawable(ui.tinted(icon, color))
         }
         setIfChanged(statusTitle, when (state) {
+            4 -> s(R.string.status_stopped)
             3 -> s(R.string.status_loading)
             2 -> s(R.string.status_paused_until, DateFormat.getTimeFormat(a).format(Date(h!!.pausedUntilMs)))
             1 -> s(R.string.status_on)
             else -> s(R.string.status_off)
         })
         setIfChanged(statusBody, when (state) {
+            4 -> if (ProtectionStateStore.revoked(a)) s(R.string.status_stopped_revoked) else s(R.string.status_stopped_body)
             3 -> ""
             2 -> s(R.string.status_paused_body)
             1 -> s(R.string.status_on_body)
@@ -155,7 +166,11 @@ class ProtectTab(a: MainActivity) : Tab(a) {
         })
 
         toggle.isEnabled = !loading
-        setIfChanged(toggle, if (running) s(R.string.turn_off) else s(R.string.turn_on))
+        setIfChanged(toggle, when {
+            running -> s(R.string.turn_off)
+            unexpected -> s(R.string.turn_on_again)
+            else -> s(R.string.turn_on)
+        })
         showIf(pause, running && !loading)
         setIfChanged(pause, if (paused) s(R.string.resume) else s(R.string.pause_5_min))
 

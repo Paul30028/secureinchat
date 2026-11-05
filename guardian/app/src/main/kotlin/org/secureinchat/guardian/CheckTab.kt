@@ -51,6 +51,8 @@ class CheckTab(a: MainActivity) : Tab(a) {
         root.addView(ui.card(12).apply {
             addView(ui.section(s(R.string.scan_title)))
             addView(ui.caption(s(R.string.scan_intro)).apply { layoutParams = ui.matchWidth(4) })
+            // Why it asks to see every app (QUERY_ALL_PACKAGES), in one line.
+            addView(ui.caption(s(R.string.scan_read_only)).apply { layoutParams = ui.matchWidth(4) })
             scanButton = ui.primaryButton(s(R.string.scan_button)) { startScan() }
             addView(scanButton)
             scanSummary = ui.body().apply { layoutParams = ui.matchWidth(12); visibility = View.GONE }
@@ -118,14 +120,15 @@ class CheckTab(a: MainActivity) : Tab(a) {
         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg"))
 
     private fun renderScan(r: AppScanner.Result) {
-        val high = r.findings.count { it.level == AppCheckup.Level.HIGH } +
-            r.phone.count { it.level == AppCheckup.Level.HIGH }
-        val review = r.findings.count { it.level == AppCheckup.Level.REVIEW } +
-            r.phone.count { it.level == AppCheckup.Level.REVIEW }
+        // Three numbers first (apps that need attention, apps worth a look, phone settings), then the list.
+        val high = r.findings.count { it.level == AppCheckup.Level.HIGH }
+        val review = r.findings.count { it.level == AppCheckup.Level.REVIEW }
+        val phone = r.phone.size
+        val phoneHigh = r.phone.any { it.level == AppCheckup.Level.HIGH }
         showIf(scanSummary, true)
-        setIfChanged(scanSummary, if (high + review == 0) s(R.string.scan_clean, r.apps.size)
-            else s(R.string.scan_summary, high, review, r.apps.size))
-        scanSummary.setTextColor(if (high > 0) p.danger else p.text)
+        setIfChanged(scanSummary, if (high + review + phone == 0) s(R.string.scan_clean, r.apps.size)
+            else s(R.string.scan_summary, high, review, phone, r.apps.size))
+        scanSummary.setTextColor(if (high > 0 || phoneHigh) p.danger else p.text)
         scanBox.removeAllViews()
 
         // This phone's own settings first: they make every other risk easier.

@@ -73,6 +73,8 @@ class GuardianVpnService : VpnService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
+                // Every user stop (app, notification, tile) comes through here.
+                ProtectionStateStore.stoppedByUser(applicationContext)
                 stopVpnInternal()
                 stopSelf()
                 return START_NOT_STICKY
@@ -208,6 +210,7 @@ class GuardianVpnService : VpnService() {
             running = true
             isRunning = true
             isLoading = false
+            ProtectionStateStore.started(applicationContext)
             instance = this
             readAlwaysOn()
             // Let the Quick Settings tile refresh from "Starting…" to "On" without waiting for a tap.
@@ -248,6 +251,8 @@ class GuardianVpnService : VpnService() {
     }
 
     override fun onRevoke() {
+        // Another VPN took the slot; the user did not ask to stop, so the app offers to resume.
+        ProtectionStateStore.revokedBySystem(applicationContext)
         stopVpnInternal()
         stopSelf()
         super.onRevoke()

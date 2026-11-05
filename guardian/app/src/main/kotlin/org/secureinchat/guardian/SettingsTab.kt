@@ -19,8 +19,15 @@ import org.secureinchat.guardian.MainActivity.Companion.showIf
 import org.secureinchat.guardian.dns.DotProvider
 import org.secureinchat.guardian.dns.DotProviders
 
-/** Everything people rarely change, grouped: blocking, encrypted DNS, own rules, start-up, language, about. */
+/** Everything people rarely change: blocking strength, own rules, start-up, language, about; encrypted DNS and rule backup folded under "advanced". */
 class SettingsTab(a: MainActivity) : Tab(a) {
+    companion object {
+        /** Kept for the process, like the live log, so a language change does not fold it again. */
+        private var advancedShown = false
+    }
+
+    private lateinit var advancedToggle: android.widget.Button
+    private lateinit var advancedBox: LinearLayout
     private lateinit var levelGroup: RadioGroup
     private lateinit var levelStatus: TextView
     private var settingLevel = false
@@ -63,35 +70,6 @@ class SettingsTab(a: MainActivity) : Tab(a) {
             addView(levelStatus)
         })
 
-        // --- Encrypted DNS (G18) ---
-        dotChoice = DnsSettingsStore.provider(a)
-        root.addView(ui.card(12).apply {
-            addView(ui.section(s(R.string.encrypted_dns)))
-            addView(ui.caption(s(R.string.encrypted_dns_explain)).apply { layoutParams = ui.matchWidth(4) })
-            val group = RadioGroup(a).apply { orientation = RadioGroup.VERTICAL; layoutParams = ui.matchWidth(4) }
-            dotGroup = group
-            val options = listOf<DotProvider?>(null) + DotProviders.ALL
-            dotOptions = options
-            for ((i, prov) in options.withIndex()) {
-                val label = if (prov == null) s(R.string.dot_off_default) else "${prov.label}: " + providerAbout(prov)
-                group.addView(radio(label, i).apply { isChecked = prov?.id == dotChoice?.id })
-            }
-            group.setOnCheckedChangeListener { g, id ->
-                if (settingDot) return@setOnCheckedChangeListener
-                val idx = g.findViewById<View>(id)?.tag as? Int ?: return@setOnCheckedChangeListener
-                val prov = options[idx]
-                if (prov?.id == dotChoice?.id) return@setOnCheckedChangeListener
-                dotChoice = prov
-                DnsSettingsStore.setProvider(a, prov?.id)
-                // Closing the old client can wait on an in-flight query, so not on the UI thread.
-                Thread { GuardianVpnService.applyDnsSetting(a.applicationContext) }.apply { name = "guardian-dns-setting" }.start()
-                a.uiHandler.post { a.refreshUi() }
-            }
-            addView(group)
-            dotStatus = ui.caption().apply { layoutParams = ui.matchWidth(4) }
-            addView(dotStatus)
-        })
-
         // --- Your rules (G3b, G8, G10) ---
         root.addView(ui.card(12).apply {
             addView(ui.section(s(R.string.your_rules)))
@@ -126,7 +104,53 @@ class SettingsTab(a: MainActivity) : Tab(a) {
             addView(ui.body(s(R.string.allowed_by_you)).apply { layoutParams = ui.matchWidth(12) })
             allowedBox = ui.vertical()
             addView(allowedBox)
+        })
 
+        // --- Advanced (folded): encrypted DNS and rule backup are for the few who want them ---
+        root.addView(ui.card(12).apply {
+            advancedToggle = ui.textButton("") {
+                advancedShown = !advancedShown
+                a.refreshUi()
+            }
+            addView(advancedToggle)
+            addView(ui.caption(s(R.string.advanced_hint)))
+        })
+        advancedBox = ui.vertical()
+        root.addView(advancedBox)
+
+        // --- Encrypted DNS (G18) ---
+        dotChoice = DnsSettingsStore.provider(a)
+        // Opens by itself while a provider is chosen, so its status is not hidden.
+        if (dotChoice != null) advancedShown = true
+        advancedBox.addView(ui.card(12).apply {
+            addView(ui.section(s(R.string.encrypted_dns)))
+            addView(ui.caption(s(R.string.encrypted_dns_explain)).apply { layoutParams = ui.matchWidth(4) })
+            val group = RadioGroup(a).apply { orientation = RadioGroup.VERTICAL; layoutParams = ui.matchWidth(4) }
+            dotGroup = group
+            val options = listOf<DotProvider?>(null) + DotProviders.ALL
+            dotOptions = options
+            for ((i, prov) in options.withIndex()) {
+                val label = if (prov == null) s(R.string.dot_off_default) else "${prov.label}: " + providerAbout(prov)
+                group.addView(radio(label, i).apply { isChecked = prov?.id == dotChoice?.id })
+            }
+            group.setOnCheckedChangeListener { g, id ->
+                if (settingDot) return@setOnCheckedChangeListener
+                val idx = g.findViewById<View>(id)?.tag as? Int ?: return@setOnCheckedChangeListener
+                val prov = options[idx]
+                if (prov?.id == dotChoice?.id) return@setOnCheckedChangeListener
+                dotChoice = prov
+                DnsSettingsStore.setProvider(a, prov?.id)
+                // Closing the old client can wait on an in-flight query, so not on the UI thread.
+                Thread { GuardianVpnService.applyDnsSetting(a.applicationContext) }.apply { name = "guardian-dns-setting" }.start()
+                a.uiHandler.post { a.refreshUi() }
+            }
+            addView(group)
+            dotStatus = ui.caption().apply { layoutParams = ui.matchWidth(4) }
+            addView(dotStatus)
+        })
+
+        advancedBox.addView(ui.card(12).apply {
+            addView(ui.section(s(R.string.backup_rules)))
             val io = LinearLayout(a).apply { orientation = LinearLayout.HORIZONTAL; layoutParams = ui.matchWidth(8) }
             io.addView(ui.textButton(s(R.string.export_rules)) {
                 if (a.onExportClicked()) showRulesIoError(null) else showRulesIoError(s(R.string.rules_io_no_picker))
@@ -253,6 +277,8 @@ class SettingsTab(a: MainActivity) : Tab(a) {
         val running = GuardianVpnService.isRunning
         setIfChanged(levelStatus, if (GuardianVpnService.isLoading) s(R.string.status_loading) else "")
         showIf(levelStatus, GuardianVpnService.isLoading)
+        showIf(advancedBox, advancedShown)
+        setIfChanged(advancedToggle, if (advancedShown) s(R.string.advanced_hide) else s(R.string.advanced_show))
         renderDot(running)
 
         val h = GuardianVpnService.activeHandler

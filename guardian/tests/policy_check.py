@@ -24,7 +24,7 @@ for p, s in src.items():
         # G12: StatsStore.kt holds only per-day block counts (a date and an integer), never what was blocked.
         if bad in ('SharedPreferences', 'getSharedPreferences') and (
             rel.endswith('/UserRulesStore.kt') or rel.endswith('/StatsStore.kt')
-            or rel.endswith('/DnsSettingsStore.kt')
+            or rel.endswith('/DnsSettingsStore.kt') or rel.endswith('/ProtectionStateStore.kt')
         ): continue
         if bad in s: fail.append(f'{rel}: {bad} (no disk logs, no HTTP)')
     if not s.startswith('// SPDX-License-Identifier: GPL-3.0-or-later'): fail.append(f'{rel}: missing SPDX header')
@@ -44,6 +44,13 @@ for p, s in src.items():
                 fail.append(f'{rel}: forbidden identifier {pat} (DnsSettingsStore holds only the provider id)')
         if len(re.findall(r'const val KEY_', s)) != 1:
             fail.append(f'{rel}: DnsSettingsStore must define exactly one preference key')
+    # U4: ProtectionStateStore holds two booleans (protection wanted on; VPN slot taken by Android), nothing else.
+    if rel.endswith('/ProtectionStateStore.kt'):
+        for pat in (r'\bdomain\b', r'\bqname\b', r'\buid\b', r'putString', r'putLong', r'putInt'):
+            if re.search(pat, s, re.IGNORECASE):
+                fail.append(f'{rel}: forbidden identifier {pat} (ProtectionStateStore holds only two booleans)')
+        if len(re.findall(r'const val KEY_', s)) != 2:
+            fail.append(f'{rel}: ProtectionStateStore must define exactly two preference keys')
 # G19: the app checkup reads the list of installed apps. That list must never leave the phone or be stored:
 # no network or file/preference APIs in the scanner or the core rules.
 for rel in ('app/src/main/kotlin/org/secureinchat/guardian/AppScanner.kt',

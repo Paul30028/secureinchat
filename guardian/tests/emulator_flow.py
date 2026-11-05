@@ -5,7 +5,8 @@
   1. Install the APK, allow the VPN consent with `appops set ... ACTIVATE_VPN allow` (stands in for the
      user's tap on the system consent dialog), grant POST_NOTIFICATIONS on API 33+, turn Private DNS off
      (with it on, Android may send DNS over TLS and bypass a local DNS VPN; the app shows a hint for that).
-  2. Dismiss the first-run introduction, tap "Turn on" on the Protect tab: it must read "Protection is on" and the service must be a foreground service. (U2: four tabs; each step first taps the tab it needs.)
+  2. Tap "Start protection" on the first-run introduction: it starts protection at once (no second tap on
+     the Protect tab), which must read "Protection is on" with the service a foreground service. (U2: four tabs; each step first taps the tab it needs.)
   3. `ping` from adb shell resolves a listed tracker domain: it must resolve to 0.0.0.0 (Guardian's
      NULL_IP answer) and the app's log must show "BLOCK <domain>".
   4. `ping` resolves example.com: it must get a real address (forwarded to the network's own resolver)
@@ -208,6 +209,19 @@ def button_on_row(nodes, label, row_text_prefix):
 STATUS_ON = "Protection is on"
 STATUS_OFF = "Protection is off"
 STATUS_PAUSED = "Paused until"
+STATUS_STOPPED = "Protection has stopped"
+
+
+def open_advanced():
+    """Encrypted DNS and rule backup sit under a folded "advanced" section in Settings; it stays open."""
+    goto("Settings")
+    nodes = scroll_find(lambda s: "Show advanced settings" in s or "Hide advanced settings" in s,
+                        "no advanced settings toggle", tries=10)
+    b = button(nodes, "Show advanced settings")
+    if b:
+        tap(b)
+        time.sleep(1)
+    scroll_top()
 
 
 def goto(tab):
@@ -332,23 +346,27 @@ def launch():
         print("ok: introduction shown on first launch")
 
 
-def start_from_app():
+def start_from_app(label="Turn on"):
     # The status line is at the top; earlier steps (G13 level switch) may have left the page scrolled down.
     goto("Protect")
-    nodes = wait_ui(lambda s: "Protection is" in s, "main screen did not appear")
-    b = button(nodes, "Turn on")
+    nodes = wait_ui(lambda s: "Protection is" in s or STATUS_STOPPED in s, "main screen did not appear")
+    b = button(nodes, label)
     if not b:
-        fail("no Turn on button", nodes)
+        fail(f"no '{label}' button", nodes)
     tap(b)
     time.sleep(1)
     scroll_top()
     nodes = wait_ui(lambda s: STATUS_ON in s, "status did not change to on")
+    wait_foreground(nodes)
+    return nodes
+
+
+def wait_foreground(nodes):
     end = time.time() + 15
     while time.time() < end and not service_running():
         time.sleep(1)
     if not service_running():
         fail("service is not a running foreground service", nodes)
-    return nodes
 
 
 def wait_stopped(what):
@@ -380,8 +398,13 @@ def main():
 
     # 2. Start
     launch()
+    # U4: "Start protection" on the introduction starts it; the VPN consent is pre-granted by appops.
+    goto("Protect")
+    nodes = wait_ui(lambda s: STATUS_ON in s, "'Start protection' on the introduction did not turn protection on",
+                    timeout=60)
+    wait_foreground(nodes)
     snap("start-screen")
-    start_from_app()
+    print("ok: 'Start protection' on the introduction turns protection on")
     if not vpn_up():
         time.sleep(3)
     if not vpn_up():
@@ -510,6 +533,16 @@ def main():
     #     check a not-yet-cached subdomain now resolves for real, then remove the rule again.
     # Match the list row itself ("doubleclick.net (2)"), not the log line "doubleclick.net (type 1)".
     dom_row = re.compile(rf"^{re.escape(BLOCKED)} \(\d+\)$", re.M)
+    # U4: the card on top ("Is a site or app not working?") lists the names blocked just now, each with Allow.
+    # A fresh name just before looking, so background blocks cannot push it out of the last five.
+    recent_name = "u4." + BLOCKED
+    resolve(recent_name, tries=2)
+    recent_row = re.compile(rf"^{re.escape(recent_name)}$", re.M)
+    nodes = find_anywhere(lambda s: "Is a site or app not working?" in s and recent_row.search(s),
+                          f"'Is a site or app not working?' card does not list {recent_name} under Recently blocked")
+    if not button_on_row(nodes, "Allow", recent_name):
+        fail(f"no Allow button on the recent {recent_name} row", nodes)
+    print("ok: Activity starts with 'Is a site or app not working?' and the recent blocks")
     nodes = scroll_find(lambda s: dom_row.search(s), f"'Blocked most often' does not list {BLOCKED}")
     # G11: the row says which rule blocked it. The query was the bare name, so the rule is the name.
     rule_builtin = f"Rule: {BLOCKED} (built-in list)"
@@ -693,8 +726,11 @@ def main():
 
     # 4f. Export / import of your rules (G10): Export opens the system document picker (DocumentsUI);
     #     Back returns to Guardian, still running. Picking a file is not automated (no reliable adb
-    #     route); the format itself is covered by RulesTextTest.
+    #     route); the format itself is covered by RulesTextTest. U4: under "advanced", folded at first.
     goto("Settings")
+    if find_quiet(lambda s: "Export rules" in s, timeout=8):
+        fail("'Export rules' visible before opening advanced settings (should be folded)", dump())
+    open_advanced()
     nodes = scroll_find(lambda s: "Export rules" in s, "no 'Export rules' button", tries=10)
     b = button(nodes, "Export rules")
     if not b:
@@ -753,7 +789,7 @@ def main():
         fail(f"Light blocked g13a.{STRICT_ONLY} ({addr}); it is in Pro only")
     print(f"ok: Light forwards {STRICT_ONLY} ({addr})")
 
-    pick_level("Strict")
+    pick_level("Block the most")
     addr, out = resolve("g13b." + STRICT_ONLY)
     if addr not in BLOCK_ADDRS:
         fail(f"Strict did not block g13b.{STRICT_ONLY}: {addr} {out[-200:]}")
@@ -763,7 +799,7 @@ def main():
     snap("level-strict")
     print(f"ok: Strict blocks {STRICT_ONLY}")
 
-    pick_level("Light")
+    pick_level("Block less")
     addr, out = resolve("g13c." + STRICT_ONLY, tries=2)
     if addr in BLOCK_ADDRS:
         fail(f"back on Light, g13c.{STRICT_ONLY} still blocked ({addr})")
@@ -792,7 +828,7 @@ def main():
         dot_reachable = False
         print(f"UNTESTED: encrypted DNS step skipped, this CI host cannot reach {quad9_ip}:853 ({e})")
     if dot_reachable:
-        goto("Settings")
+        open_advanced()
         tap(radio("Quad9:"))
         time.sleep(2)
         dot_probe = "www.wikipedia.org"
@@ -944,6 +980,34 @@ def main():
     wait_stopped("stop from tile")
     sh("cmd statusbar collapse", check=False)
     print("ok: stopped from the Quick Settings tile")
+
+    # 6c. U4: Android stops Guardian without the user asking (here: force-stop, as a battery saver
+    #     would). The app must say so ("Protection has stopped") and offer "Turn on again", not a plain "off".
+    sh(f"cmd statusbar click-tile {tile}", check=False)
+    end = time.time() + 30
+    while time.time() < end and not (service_running() and vpn_up()):
+        time.sleep(1)
+    if not service_running():
+        fail("tile click did not start the VPN (before force-stop)")
+    sh(f"am force-stop {PKG}")
+    wait_stopped("force-stop")
+    sh("cmd statusbar collapse", check=False)
+    launch()
+    goto("Protect")
+    nodes = wait_ui(lambda s: STATUS_STOPPED in s and "Turn on again" in s,
+                    "after a force-stop the app does not say 'Protection has stopped' / 'Turn on again'")
+    snap("stopped-unexpected")
+    start_from_app("Turn on again")
+    print("ok: an unexpected stop is shown and 'Turn on again' restarts protection")
+    nodes = goto("Protect")
+    b = button(nodes, "Turn off")
+    if not b:
+        fail("no Turn off button", nodes)
+    tap(b)
+    nodes = wait_ui(lambda s: STATUS_OFF in s, "status did not change to off")
+    if STATUS_STOPPED in joined(nodes):
+        fail("a stop by the user must not show 'Protection has stopped'", nodes)
+    wait_stopped("stop after unexpected-stop check")
 
     # 7. No crash
     c = crashes()

@@ -20,7 +20,8 @@ import org.secureinchat.guardian.dns.QueryHandler
 import org.secureinchat.guardian.dns.Tracker
 
 /**
- * What was blocked, and the place to fix a false positive: each row has Allow. Not per app: on
+ * What was blocked, and the place to fix a false positive: first "something not working?" with Pause and
+ * the names blocked just now, then the names blocked most often; each row has Allow. Not per app: on
  * Android 10+ apps resolve names through the system DNS service, so every query reaching the VPN comes
  * from that service, not from the app. The live log is for the curious and starts folded.
  */
@@ -30,6 +31,9 @@ class ActivityTab(a: MainActivity) : Tab(a) {
         private var liveShown = false
     }
 
+    private lateinit var recentBox: LinearLayout
+    private lateinit var pause: Button
+    private var recentSig = ""
     private lateinit var topBox: LinearLayout
     private lateinit var history: TextView
     private lateinit var liveToggle: Button
@@ -43,7 +47,18 @@ class ActivityTab(a: MainActivity) : Tab(a) {
     override fun build(root: LinearLayout) {
         root.addView(ui.title(s(R.string.tab_activity)))
 
+        // First what people come here for after something broke: pause, or allow a name blocked just now.
         root.addView(ui.card(16).apply {
+            addView(ui.section(s(R.string.activity_broken_title)))
+            addView(ui.caption(s(R.string.activity_broken_body)).apply { layoutParams = ui.matchWidth(4) })
+            pause = ui.secondaryButton("") { a.onPauseResumeClicked() }
+            addView(pause)
+            addView(ui.body(s(R.string.recent_blocks)).apply { layoutParams = ui.matchWidth(12) })
+            recentBox = ui.vertical()
+            addView(recentBox)
+        })
+
+        root.addView(ui.card(12).apply {
             addView(ui.section(s(R.string.blocked_most_often)))
             addView(ui.caption(s(R.string.blocked_most_often_hint)).apply { layoutParams = ui.matchWidth(4) })
             // Said up front, because "which app was it?" is the first question people ask.
@@ -81,6 +96,11 @@ class ActivityTab(a: MainActivity) : Tab(a) {
 
     override fun refresh() {
         val h = GuardianVpnService.activeHandler
+        val running = GuardianVpnService.isRunning && !GuardianVpnService.isLoading
+        val paused = running && h != null && h.isPaused()
+        showIf(pause, running)
+        setIfChanged(pause, if (paused) s(R.string.resume) else s(R.string.pause_5_min))
+        renderRecent(h)
         renderTop(h)
         renderHistory()
         setIfChanged(liveToggle, if (liveShown) s(R.string.hide_live_log) else s(R.string.show_live_log))
@@ -128,6 +148,27 @@ class ActivityTab(a: MainActivity) : Tab(a) {
             if (color != null) sb.setSpan(ForegroundColorSpan(color), start, sb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
         setIfChanged(log, sb)
+    }
+
+    /** The last few distinct blocked names, newest first, each with Allow. */
+    private fun renderRecent(h: QueryHandler?) {
+        val names = h?.recent()?.filter { it.blocked }?.map { it.name }?.distinct()?.take(5) ?: emptyList()
+        val sig = (h != null).toString() + names.joinToString(";")
+        if (sig == recentSig) return
+        recentSig = sig
+        recentBox.removeAllViews()
+        if (h == null) { recentBox.addView(ui.empty(s(R.string.recent_empty_off))); return }
+        if (names.isEmpty()) { recentBox.addView(ui.empty(s(R.string.nothing_blocked_yet))); return }
+        val trackers = GuardianVpnService.trackerDb()
+        for (name in names) {
+            val lines = mutableListOf<CharSequence>()
+            trackers?.byDomain(name)?.let { lines.add(s(R.string.tracker_line, it.name)) }
+            val allow = ui.textButton(s(R.string.allow)) {
+                UserRulesStore.add(a, name)
+                a.rulesChanged()
+            }.apply { contentDescription = s(R.string.allow_domain, name) }
+            recentBox.addView(ui.row(name, lines, allow))
+        }
     }
 
     private fun renderTop(h: QueryHandler?) {
@@ -184,7 +225,7 @@ class ActivityTab(a: MainActivity) : Tab(a) {
         else -> cat
     }
 
-    override fun invalidate() { topSig = ""; historySig = "" }
+    override fun invalidate() { topSig = ""; historySig = ""; recentSig = "" }
     override fun onShown() { topSig = "" }
 
 }
