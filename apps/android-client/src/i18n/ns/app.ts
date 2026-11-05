@@ -1,6 +1,9 @@
 import type { Messages } from "../index";
 
 export const zh: Messages = {
+  "app.biometric.title": "解锁米斯巴",
+  "app.biometric.subtitle": "用指纹或面部解锁",
+  "app.biometric.cancel": "取消",
   "app.mediaLabel.image": "图片",
   "app.mediaLabel.voice": "语音",
   "app.mediaLabel.file": "文件",
@@ -20,7 +23,7 @@ export const zh: Messages = {
   "app.clientSettings.disappearOff": "关闭",
   "app.audio.receiving": "音频接收中...",
   "app.invite.defaultGroupName": "加密群聊",
-  "app.invite.fallbackGroupName": "邀群密聊",
+  "app.invite.fallbackGroupName": "米斯巴",
   "app.join.legacyFormat": "这个邀请是旧版兼容格式，暂不支持加密入群",
   "app.join.failed": "加群失败：{message}",
   "app.join.retry": "请重试",
@@ -34,6 +37,9 @@ export const zh: Messages = {
 };
 
 export const en: Messages = {
+  "app.biometric.title": "Unlock Mizpah",
+  "app.biometric.subtitle": "Use your fingerprint or face",
+  "app.biometric.cancel": "Cancel",
   "app.mediaLabel.image": "Image",
   "app.mediaLabel.voice": "Voice",
   "app.mediaLabel.file": "File",
@@ -53,7 +59,7 @@ export const en: Messages = {
   "app.clientSettings.disappearOff": "Off",
   "app.audio.receiving": "Receiving audio...",
   "app.invite.defaultGroupName": "Encrypted group",
-  "app.invite.fallbackGroupName": "Invite-only Chat",
+  "app.invite.fallbackGroupName": "Mizpah",
   "app.join.legacyFormat": "This invite uses the legacy compatibility format, which doesn't support encrypted joining yet",
   "app.join.failed": "Failed to join group: {message}",
   "app.join.retry": "Please try again",
@@ -67,6 +73,9 @@ export const en: Messages = {
 };
 
 export const es: Messages = {
+  "app.biometric.title": "Desbloquear Mizpah",
+  "app.biometric.subtitle": "Usa tu huella o tu rostro",
+  "app.biometric.cancel": "Cancelar",
   "app.mediaLabel.image": "Imagen",
   "app.mediaLabel.voice": "Voz",
   "app.mediaLabel.file": "Archivo",
@@ -86,7 +95,7 @@ export const es: Messages = {
   "app.clientSettings.disappearOff": "Desactivado",
   "app.audio.receiving": "Recibiendo audio...",
   "app.invite.defaultGroupName": "Grupo cifrado",
-  "app.invite.fallbackGroupName": "Chat por invitación",
+  "app.invite.fallbackGroupName": "Mizpah",
   "app.join.legacyFormat": "Esta invitación usa el formato de compatibilidad antiguo, que todavía no admite unirse de forma cifrada",
   "app.join.failed": "No se pudo unir al grupo: {message}",
   "app.join.retry": "Inténtalo de nuevo",

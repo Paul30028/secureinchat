@@ -1,7 +1,7 @@
 import type { Messages } from "../index";
 
 export const zh: Messages = {
-  "messageList.appName": "邀群密聊",
+  "messageList.appName": "米斯巴",
   "messageList.emptyTitle": "还没有加入任何群聊",
   "messageList.emptyHint1": "这个应用只能通过邀请码加入，",
   "messageList.emptyHint2": "没有搜索、没有好友列表、也不需要手机号。",
@@ -40,7 +40,7 @@ export const zh: Messages = {
 };
 
 export const en: Messages = {
-  "messageList.appName": "Invite-only Chat",
+  "messageList.appName": "Mizpah",
   "messageList.emptyTitle": "You haven't joined any groups yet",
   "messageList.emptyHint1": "This app is invite-only.",
   "messageList.emptyHint2": "No search, no friend list, and no phone number needed.",
@@ -79,7 +79,7 @@ export const en: Messages = {
 };
 
 export const es: Messages = {
-  "messageList.appName": "Chat por invitación",
+  "messageList.appName": "Mizpah",
   "messageList.emptyTitle": "Todavía no te uniste a ningún grupo",
   "messageList.emptyHint1": "Esta app solo se puede usar por invitación.",
   "messageList.emptyHint2": "Sin búsqueda, sin lista de contactos y sin número de teléfono.",

@@ -296,7 +296,11 @@ export function App() {
     }
     void (async () => {
       // 开启前先验证一次，避免用户开了却从没验证过
-      const ok = await authenticateBiometric();
+      const ok = await authenticateBiometric({
+        title: t("app.biometric.title"),
+        subtitle: t("app.biometric.subtitle"),
+        cancelLabel: t("app.biometric.cancel"),
+      });
       if (!ok) return;
       setBiometricEnabled(true);
       await setBiometricUnlockEnabled(true);

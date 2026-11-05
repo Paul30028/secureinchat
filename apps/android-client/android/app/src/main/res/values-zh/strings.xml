@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- 中文系统下的桌面名称。其他语言用 values/strings.xml 的 Mizpah。 -->
+<resources>
+    <string name="app_name">米斯巴</string>
+    <string name="title_activity_main">米斯巴</string>
+</resources>

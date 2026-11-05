@@ -2,7 +2,7 @@ import type { Messages } from "../index";
 
 export const zh: Messages = {
   "joinGroup.back": "返回",
-  "joinGroup.appName": "邀群密聊",
+  "joinGroup.appName": "米斯巴",
   "joinGroup.tagline": "安全 · 隐私 · 专属",
   "joinGroup.codePlaceholder": "输入邀请码",
   "joinGroup.codeAriaLabel": "邀请码输入框",
@@ -13,7 +13,7 @@ export const zh: Messages = {
 
 export const en: Messages = {
   "joinGroup.back": "Back",
-  "joinGroup.appName": "Invite-only Chat",
+  "joinGroup.appName": "Mizpah",
   "joinGroup.tagline": "Secure · Private · Yours",
   "joinGroup.codePlaceholder": "Enter invite code",
   "joinGroup.codeAriaLabel": "Invite code input",
@@ -24,7 +24,7 @@ export const en: Messages = {
 
 export const es: Messages = {
   "joinGroup.back": "Atrás",
-  "joinGroup.appName": "Chat por invitación",
+  "joinGroup.appName": "Mizpah",
   "joinGroup.tagline": "Seguro · Privado · Exclusivo",
   "joinGroup.codePlaceholder": "Ingresa el código de invitación",
   "joinGroup.codeAriaLabel": "Campo de código de invitación",

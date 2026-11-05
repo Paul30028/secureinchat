@@ -67,14 +67,23 @@ export async function setBiometricUnlockEnabled(v: boolean): Promise<void> {
  * 弹一次系统验证。成功返回 true，失败/取消/不支持都返回 false（不抛）。
  * 取消和单次不匹配都不计入 PIN 错误次数——由调用方保证。
  */
-export async function authenticateBiometric(): Promise<boolean> {
+export interface BiometricPromptText {
+  title: string;
+  subtitle: string;
+  cancelLabel: string;
+}
+
+/** 默认中文；界面层传入当前语言的文字。 */
+const DEFAULT_PROMPT: BiometricPromptText = {
+  title: "解锁米斯巴",
+  subtitle: "用指纹或面部解锁",
+  cancelLabel: "取消",
+};
+
+export async function authenticateBiometric(text: BiometricPromptText = DEFAULT_PROMPT): Promise<boolean> {
   if (!Capacitor.isNativePlatform()) return false;
   try {
-    const result = await Biometric.authenticate({
-      title: "解锁邀群密聊",
-      subtitle: "用指纹或面部解锁",
-      cancelLabel: "取消",
-    });
+    const result = await Biometric.authenticate({ ...text });
     return result.ok === true;
   } catch {
     return false;
