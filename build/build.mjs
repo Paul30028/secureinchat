@@ -32,7 +32,7 @@ const ARCH = [
   { icon: 'lock-keyhole-open', title: 'Recipient decrypts locally', copy: 'Only the intended recipient device decrypts and checks the message.', status: 'Decrypted at the edge' },
 ];
 const SEC = [
-  { title: 'Curve25519', tag: 'Key agreement', copy: 'Elliptic-curve key agreement for modern client devices.' },
+  { title: 'ECDSA P-256', tag: 'Signatures', copy: 'Signs device sign-in to the relay and admin announcements. The group key itself travels inside the invite code.' },
   { title: 'AES-256-GCM', tag: 'Authenticated encryption', copy: 'Protects both confidentiality and integrity of each message.' },
   { title: 'HKDF', tag: 'Key derivation', copy: 'Context-separated key derivation for session and message keys.' },
   { title: 'No message storage', tag: 'Data minimisation', copy: 'The relay is designed without persistent storage of message content.' },

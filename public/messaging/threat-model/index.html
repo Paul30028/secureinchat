@@ -110,7 +110,7 @@
       <div class="page-intro-copy">
        <h1 class="page-title">Messenger threat model</h1>
        <p class="page-lead">What the SecureInChat messenger is designed to protect, from whom, and what it cannot hide. The apps are in development and have not been independently audited, so this describes the design, not verified behaviour.</p>
-       <div class="article-byline"><span>Last updated: 2026-10-23</span></div>
+       <div class="article-byline"><span>Last updated: 2026-11-05</span></div>
       </div>
       <figure class="editorial-figure">
        <img alt="Sender encrypts locally, an intermediate relay forwards encrypted payloads, and recipient decrypts locally" height="340" src="/assets/illustrations/relay-architecture.svg" width="760"/>
@@ -125,6 +125,7 @@
       <h2>On this page</h2>
       <ul>
        <li><a href="#what-it-is-designed-to-protect">What it is designed to protect</a></li>
+       <li><a href="#how-a-group-key-reaches-members">How a group key reaches members</a></li>
        <li><a href="#who-it-is-designed-to-resist">Who it is designed to resist</a></li>
        <li><a href="#what-the-relay-can-still-see">What the relay can still see</a></li>
        <li><a href="#what-it-does-not-protect-against">What it does not protect against</a></li>
@@ -139,6 +140,8 @@
       <li>Group names. In the design a group's display name exists only on each device and is never sent to the relay.</li>
       <li>Announcements from the group admin. They carry a signature from the creator's key, and every client rejects announcements it cannot verify.</li>
     </ul>
+    <h2 id="how-a-group-key-reaches-members">How a group key reaches members</h2>
+    <p>There is no public-key exchange between members. When a group is created, the app generates a random group key and puts it inside the invite code (the link or QR code). Whoever has a valid invite code can join and read the group's messages. Treat an invite like a house key: share it only in person or through a channel you trust.</p>
     <h2 id="who-it-is-designed-to-resist">Who it is designed to resist</h2>
     <ul>
       <li>Someone who breaches the relay, or compels its operator to hand over data. The relay has no message content and is designed without persistent storage of message content.</li>
@@ -147,7 +150,7 @@
     <h2 id="what-the-relay-can-still-see">What the relay can still see</h2>
     <p>A relay that routes messages cannot avoid some metadata. In the current design it sees:</p>
     <ul>
-      <li>The network address each device connects from.</li>
+      <li>The network address each device connects from. The relay uses it only to limit repeated connection attempts and keeps a salted hash rather than the address itself; the hosting provider and any network or tunnel in front of the relay (currently Cloudflare) can still see it.</li>
       <li>When devices connect and when messages arrive.</li>
       <li>The size of each payload, which can hint at its type.</li>
       <li>The identifiers needed to route messages, such as which group a device joins.</li>
@@ -157,6 +160,8 @@
     <ul>
       <li>A compromised phone. Malware, or someone holding your unlocked device, can read what you can read.</li>
       <li>People in the group. Anyone who receives a message can copy it, screenshot it or forward it.</li>
+      <li>A leaked invite code. Anyone who gets it can read the group until the admin changes the key and sends a new invite only to the people who should stay.</li>
+      <li>A key that leaks later. Each group key is used for every message until it is changed, so there is no forward secrecy within that period: if the key leaks, recorded messages from that period can be decrypted.</li>
       <li>Removed members keeping old messages. Removal moves the group to new keys, so later messages are unreadable to them, but messages already delivered stay on their device.</li>
       <li>Losing the admin key. Admin rights belong to whoever holds the creator's signing key, so losing it needs a recovery step.</li>
     </ul>
@@ -164,9 +169,9 @@
     <p>Group key changes on removal are weaker than the continuous key ratcheting that the Signal protocol or MLS provide. We do not claim equivalent security.</p>
     <h2 id="building-blocks">Building blocks</h2>
     <ul>
-      <li>Curve25519 for key agreement.</li>
       <li>AES-256-GCM for authenticated encryption of each message.</li>
-      <li>HKDF for context-separated derivation of session and message keys.</li>
+      <li>HKDF-SHA-256 to derive each key period's encryption key from the group key in the invite.</li>
+      <li>ECDSA P-256 signatures for device sign-in to the relay and for admin announcements.</li>
     </ul>
     <p>These name the primitives in the design. They are not a certification. More detail: <a href="/blog/what-a-blind-relay-can-and-cannot-know/">what a blind relay can and cannot know</a>. You can <a href="/messaging/">check the live relay connection</a> from your browser.</p>
      </article>
