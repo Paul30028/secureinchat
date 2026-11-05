@@ -1,0 +1,2127 @@
+=== FILE: src/deepseek-concept/index.html ===
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SecureInChat — See what you give away. Then switch it off.</title>
+<meta name="description" content="Free privacy tools that run in your browser, plain-language privacy guides, and an end-to-end encrypted group messenger in development. Protect your privacy — a basic human right.">
+<style>
+:root{
+  --bg:#070b12;
+  --bg-2:#0b1220;
+  --bg-3:#101a2e;
+  --line:rgba(140,170,220,.14);
+  --line-2:rgba(140,170,220,.24);
+  --ink:#eaf1fb;
+  --ink-2:#a9b8d0;
+  --ink-3:#6f809c;
+  --accent:#3ef0c2;
+  --accent-2:#48a6ff;
+  --accent-3:#9b7bff;
+  --warn:#ffb547;
+  --danger:#ff6b7a;
+  --r:18px;
+  --mono:"SFMono-Regular",ui-monospace,"Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --max:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+a{color:inherit}
+img,svg{display:block;max-width:100%}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#04120e;padding:10px 16px;border-radius:0 0 10px 0;z-index:99;font-weight:600}
+.skip:focus{left:0}
+::selection{background:rgba(62,240,194,.28)}
+
+/* ---------- ambient background ---------- */
+.grid-bg{position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(1100px 600px at 78% -8%, rgba(72,166,255,.20), transparent 60%),
+    radial-gradient(900px 500px at 4% 8%, rgba(62,240,194,.12), transparent 55%),
+    radial-gradient(700px 500px at 50% 110%, rgba(155,123,255,.12), transparent 60%),
+    linear-gradient(180deg,#070b12,#060910 60%,#06212b);
+}
+.grid-bg::after{content:"";position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(140,170,220,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(140,170,220,.055) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(circle at 50% 30%,#000 0%,transparent 78%);
+  -webkit-mask-image:radial-gradient(circle at 50% 30%,#000 0%,transparent 78%);
+}
+
+/* ---------- top notice ---------- */
+.topbar{font-size:12.5px;color:var(--ink-2);border-bottom:1px solid var(--line);background:rgba(7,11,18,.7);backdrop-filter:blur(10px)}
+.topbar .wrap{display:flex;gap:14px;align-items:center;justify-content:space-between;padding-top:9px;padding-bottom:9px;flex-wrap:wrap}
+.topbar b{color:var(--ink);font-weight:600}
+.topbar .dot-ok{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;box-shadow:0 0 0 4px rgba(62,240,194,.15)}
+
+/* ---------- header ---------- */
+header.site{position:sticky;top:0;z-index:50;background:rgba(7,11,18,.72);backdrop-filter:blur(16px) saturate(140%);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:8px;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em;font-size:17px;text-decoration:none;margin-right:10px}
+.brand .mark{width:34px;height:34px;flex:none}
+.nav .links{display:flex;gap:2px;margin-left:6px}
+.nav .links a{padding:9px 13px;border-radius:10px;text-decoration:none;color:var(--ink-2);font-size:14px;font-weight:500;transition:.18s}
+.nav .links a:hover{color:var(--ink);background:rgba(140,170,220,.08)}
+.nav .links a.active{color:var(--ink);background:rgba(62,240,194,.10);box-shadow:inset 0 0 0 1px rgba(62,240,194,.22)}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.lang{display:flex;gap:2px;font-size:12.5px}
+.lang a{padding:6px 9px;border-radius:8px;color:var(--ink-3);text-decoration:none}
+.lang a:hover{color:var(--ink)}
+.lang a.on{color:var(--ink);background:rgba(140,170,220,.10)}
+.btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;border-radius:12px;font-weight:600;font-size:14px;padding:11px 18px;border:1px solid transparent;transition:.2s;cursor:pointer;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#29d6e8);color:#03130f;box-shadow:0 8px 30px -8px rgba(62,240,194,.55)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 38px -8px rgba(62,240,194,.7)}
+.btn-ghost{background:rgba(140,170,220,.06);border-color:var(--line-2);color:var(--ink)}
+.btn-ghost:hover{background:rgba(140,170,220,.12)}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:10px}
+.menu-btn{display:none;background:none;border:1px solid var(--line-2);border-radius:10px;color:var(--ink);width:40px;height:40px;align-items:center;justify-content:center;cursor:pointer}
+@media(max-width:980px){
+  .nav .links{display:none}
+  .menu-btn{display:inline-flex}
+  .nav .right .btn-primary{display:none}
+  .lang{display:none}
+}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:74px 0 40px}
+.hero-grid{display:grid;grid-template-columns:1.08fr .92fr;gap:56px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;font-family:var(--mono)}
+.eyebrow::before{content:"";width:26px;height:1px;background:linear-gradient(90deg,var(--accent),transparent)}
+h1.hero-title{font-size:clamp(38px,5.2vw,64px);line-height:1.03;letter-spacing:-.03em;margin:18px 0 20px;font-weight:800}
+h1.hero-title .grad{background:linear-gradient(100deg,#eaf1fb 20%,#6fe9ff 55%,#3ef0c2 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+h1.hero-title .dim{color:var(--ink-2);font-weight:800}
+.lede{font-size:18.5px;color:var(--ink-2);max-width:36em;margin:0 0 30px}
+.lede b{color:var(--ink);font-weight:600}
+.cta-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.cta-row .btn{padding:15px 24px;font-size:15px}
+.cta-row .btn .arr{transition:.2s}
+.cta-row .btn:hover .arr{transform:translateX(4px)}
+.trust{display:flex;gap:22px;flex-wrap:wrap;margin-top:34px;padding-top:24px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}
+.trust span{display:inline-flex;align-items:center;gap:8px}
+.trust svg{width:15px;height:15px;flex:none}
+
+/* hero art */
+.hero-art{position:relative;aspect-ratio:1/1.02}
+.hero-art .halo{position:absolute;inset:-8%;border-radius:50%;background:radial-gradient(circle,rgba(62,240,194,.18),transparent 62%);filter:blur(6px)}
+.float{position:absolute}
+
+/* ---------- section scaffolding ---------- */
+section{position:relative;padding:80px 0}
+.sec-head{max-width:760px;margin-bottom:44px}
+.sec-head .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-2);font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-head .kicker .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:rgba(72,166,255,.12);border:1px solid rgba(72,166,255,.28);color:var(--accent-2);font-size:11px}
+h2.sec-title{font-size:clamp(28px,3.6vw,42px);line-height:1.1;letter-spacing:-.025em;margin:0 0 14px;font-weight:800}
+.sec-sub{font-size:17px;color:var(--ink-2);margin:0;max-width:60ch}
+.sec-sub b{color:var(--ink)}
+
+/* fade-in on scroll */
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+
+/* ---------- feature cards (tools preview) ---------- */
+.card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:900px){.card-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.card-grid{grid-template-columns:1fr}}
+.tool-card{position:relative;border-radius:var(--r);padding:24px;background:linear-gradient(180deg,rgba(20,30,48,.9),rgba(11,18,32,.9));border:1px solid var(--line);text-decoration:none;overflow:hidden;transition:.25s;display:flex;flex-direction:column;min-height:210px}
+.tool-card::before{content:"";position:absolute;inset:0;background:radial-gradient(400px 220px at var(--mx,80%) 0%,rgba(62,240,194,.10),transparent 60%);opacity:0;transition:.3s}
+.tool-card:hover{transform:translateY(-3px);border-color:rgba(62,240,194,.34);box-shadow:0 24px 60px -30px rgba(0,0,0,.9)}
+.tool-card:hover::before{opacity:1}
+.tool-card .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(62,240,194,.09);border:1px solid rgba(62,240,194,.22);margin-bottom:18px}
+.tool-card .ic svg{width:22px;height:22px}
+.tool-card h3{font-size:16.5px;margin:0 0 8px;letter-spacing:-.01em}
+.tool-card p{color:var(--ink-2);font-size:14px;margin:0;flex:1}
+.tool-card .go{margin-top:16px;font-size:13px;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:6px}
+.tool-card .go .arr{transition:.2s}
+.tool-card:hover .go .arr{transform:translateX(3px)}
+.badge{position:absolute;top:18px;right:18px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:20px;font-weight:700}
+.badge.local{color:var(--accent);background:rgba(62,240,194,.10);border:1px solid rgba(62,240,194,.3)}
+.badge.limited{color:var(--warn);background:rgba(255,181,71,.10);border:1px solid rgba(255,181,71,.3)}
+.badge.network{color:var(--accent-2);background:rgba(72,166,255,.10);border:1px solid rgba(72,166,255,.3)}
+.badge.soon{color:var(--accent-3);background:rgba(155,123,255,.12);border:1px solid rgba(155,123,255,.32)}
+
+/* ---------- request proof panel ---------- */
+.proof{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;border-radius:26px;padding:40px;background:linear-gradient(135deg,rgba(16,26,46,.9),rgba(9,14,25,.9));border:1px solid var(--line);position:relative;overflow:hidden}
+.proof::before{content:"";position:absolute;right:-120px;top:-120px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(72,166,255,.18),transparent 65%)}
+.proof h2{font-size:clamp(24px,3vw,34px);letter-spacing:-.02em;margin:0 0 14px;line-height:1.12}
+.proof p{color:var(--ink-2);margin:0 0 14px}
+.proof p b{color:var(--ink)}
+.proof .req-log{border-radius:14px;border:1px solid var(--line-2);background:#060a12;overflow:hidden;font-family:var(--mono);font-size:12.5px}
+.proof .req-log .bar{display:flex;align-items:center;gap:7px;padding:10px 14px;border-bottom:1px solid var(--line);background:#0a111d;color:var(--ink-3);font-size:11.5px;letter-spacing:.05em}
+.proof .req-log .bar i{width:9px;height:9px;border-radius:50%;background:#2a3852;display:inline-block}
+.proof .req-log .bar i:nth-child(1){background:#ff6b7a88}.proof .req-log .bar i:nth-child(2){background:#ffb54788}.proof .req-log .bar i:nth-child(3){background:#3ef0c288}
+.proof .req-log .body{padding:16px 14px;display:flex;align-items:center;gap:12px;color:var(--accent);font-weight:600}
+.proof .req-log .body .shield{width:26px;height:26px;flex:none}
+@media(max-width:860px){.proof{grid-template-columns:1fr;padding:28px}.hero-grid{grid-template-columns:1fr;gap:30px}.hero-art{max-width:440px;margin:0 auto}}
+
+/* ---------- limits band ---------- */
+.limits{border-radius:22px;border:1px solid rgba(255,181,71,.22);background:linear-gradient(180deg,rgba(255,181,71,.06),rgba(255,181,71,.015));padding:32px 36px;display:grid;grid-template-columns:auto 1fr auto;gap:26px;align-items:center}
+.limits .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:rgba(255,181,71,.10);border:1px solid rgba(255,181,71,.3);flex:none}
+.limits h3{margin:0 0 6px;font-size:18px}
+.limits p{margin:0;color:var(--ink-2);font-size:14.5px;max-width:70ch}
+.limits p b{color:var(--ink)}
+@media(max-width:760px){.limits{grid-template-columns:1fr;padding:26px}}
+
+/* ---------- messenger teaser ---------- */
+.mess-teaser{position:relative;border-radius:26px;overflow:hidden;border:1px solid rgba(155,123,255,.24);background:linear-gradient(140deg,rgba(24,18,46,.92),rgba(9,13,24,.92))}
+.mess-teaser .inner{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:stretch}
+.mess-teaser .copy{padding:48px 46px}
+.mess-teaser .copy .tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-3);font-weight:700;margin-bottom:16px}
+.mess-teaser .copy .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent-3);box-shadow:0 0 0 4px rgba(155,123,255,.18)}
+.mess-teaser h2{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.02em;margin:0 0 14px;line-height:1.1}
+.mess-teaser p{color:var(--ink-2);margin:0 0 22px;max-width:44ch}
+.mess-teaser p b{color:var(--ink)}
+.mess-teaser .art{position:relative;min-height:320px;display:grid;place-items:center;overflow:hidden}
+@media(max-width:860px){.mess-teaser .inner{grid-template-columns:1fr}.mess-teaser .copy{padding:34px}.mess-teaser .art{min-height:260px}}
+
+/* ---------- final cta ---------- */
+.final{text-align:center;padding:40px 0 100px}
+.final .card{border-radius:28px;padding:64px 32px;background:radial-gradient(600px 300px at 50% 0%,rgba(62,240,194,.16),transparent 70%),linear-gradient(180deg,rgba(16,26,46,.9),rgba(8,12,22,.95));border:1px solid var(--line);position:relative;overflow:hidden}
+.final h2{font-size:clamp(30px,4.4vw,48px);letter-spacing:-.03em;margin:0 0 16px;line-height:1.06}
+.final p{color:var(--ink-2);max-width:52ch;margin:0 auto 30px;font-size:17px}
+.final .cta-row{justify-content:center}
+
+/* ---------- footer ---------- */
+footer.site{border-top:1px solid var(--line);background:rgba(6,9,15,.85);padding:64px 0 34px}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
+.foot-brand .brand{margin-bottom:14px}
+.foot-brand p{color:var(--ink-3);font-size:14px;max-width:30ch;margin:0 0 18px}
+.foot-brand .lang2{display:flex;gap:14px;font-size:13px;color:var(--ink-2)}
+footer.site h4{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 16px;font-weight:700}
+footer.site ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+footer.site ul a{text-decoration:none;color:var(--ink-2);font-size:14px;transition:.15s}
+footer.site ul a:hover{color:var(--accent)}
+.foot-bottom{margin-top:52px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+@media(max-width:860px){.foot-grid{grid-template-columns:1fr 1fr}.foot-brand{grid-column:1/-1}}
+@media(max-width:520px){.foot-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="topbar">
+  <div class="wrap">
+    <div><span class="dot-ok"></span><b>Free tools that run in your browser.</b> Most send nothing.</div>
+    <div>Messenger <b>in development</b> · no release date announced</div>
+  </div>
+</div>
+
+<header class="site">
+  <div class="wrap nav">
+    <a href="index.html" class="brand" aria-label="SecureInChat home">
+      <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <defs><linearGradient id="mg" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#3ef0c2"/><stop offset="1" stop-color="#48a6ff"/></linearGradient></defs>
+        <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+        <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      SecureInChat
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="tools.html">Tools</a>
+      <a href="#guides">Guides</a>
+      <a href="#checkup">Privacy checkup</a>
+      <a href="messaging.html">Messaging</a>
+      <a href="#mission">Our mission</a>
+    </nav>
+    <div class="right">
+      <div class="lang" aria-label="Language">
+        <a href="index.html" class="on">EN</a>
+        <a href="#" title="Chinese">中文</a>
+        <a href="#" title="Japanese">日本語</a>
+      </div>
+      <a href="#checkup" class="btn btn-primary btn-sm">Start a checkup <span class="arr">→</span></a>
+      <button class="menu-btn" aria-label="Open menu" onclick="document.querySelector('.nav .links').scrollIntoView()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="reveal in">
+      <span class="eyebrow">Privacy is a human right</span>
+      <h1 class="hero-title">See what you <span class="grad">give away.</span><br><span class="dim">Then switch it off.</span></h1>
+      <p class="lede">Before you send a photo, paste text into an AI chat, or open a strange link — check what you expose. <b>Everything runs in your browser.</b></p>
+      <div class="cta-row">
+        <a href="#checkup" class="btn btn-primary">Start the privacy checkup <span class="arr">→</span></a>
+        <a href="tools.html" class="btn btn-ghost">Browse all tools</a>
+      </div>
+      <div class="trust">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.5 8.6 8 9 4.5-.4 8-4 8-9V6l-8-3Z"/><path d="m8.5 12 2.5 2.5L16 9"/></svg>No account needed</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg>Runs locally, sends nothing</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2"/></svg>Plain language, honest limits</span>
+      </div>
+    </div>
+
+    <!-- HERO ILLUSTRATION: a shield made of flowing data lines, with a locked device -->
+    <div class="hero-art reveal in" aria-hidden="true">
+      <div class="halo"></div>
+      <svg viewBox="0 0 520 540" role="img" aria-label="Abstract illustration: a shield of flowing lines protecting a locked device">
+        <defs>
+          <linearGradient id="shieldStroke" x1="120" y1="60" x2="420" y2="480" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#3ef0c2"/><stop offset=".55" stop-color="#48a6ff"/><stop offset="1" stop-color="#9b7bff"/>
+          </linearGradient>
+          <radialGradient id="shieldFill" cx="50%" cy="40%" r="70%">
+            <stop offset="0" stop-color="#0e2130" stop-opacity=".9"/><stop offset="1" stop-color="#070b12" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="beam" x1="260" y1="120" x2="260" y2="470" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#3ef0c2" stop-opacity=".8"/><stop offset="1" stop-color="#48a6ff" stop-opacity="0"/>
+          </linearGradient>
+          <filter id="soft"><feGaussianBlur stdDeviation="6"/></filter>
+          <filter id="glow"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+
+        <!-- orbit rings -->
+        <g stroke="#48a6ff" stroke-opacity=".18" fill="none">
+          <ellipse cx="260" cy="280" rx="230" ry="120" transform="rotate(-18 260 280)"/>
+          <ellipse cx="260" cy="280" rx="230" ry="120" transform="rotate(18 260 280)"/>
+          <circle cx="260" cy="280" r="205"/>
+        </g>
+
+        <!-- shield silhouette -->
+        <path d="M260 58 96 116v120c0 116 70 190 164 214 94-24 164-98 164-214V116L260 58Z"
+              fill="url(#shieldFill)" stroke="url(#shieldStroke)" stroke-width="2.4"/>
+
+        <!-- flowing data lines inside shield -->
+        <g stroke="url(#shieldStroke)" stroke-width="1.4" fill="none" opacity=".7" filter="url(#glow)">
+          <path d="M136 200c40-24 70 30 124 10s70-52 124-22"/>
+          <path d="M136 250c44-18 66 26 124 12s70-44 124-20"/>
+          <path d="M136 300c48-14 62 22 124 12s70-36 124-18"/>
+          <path d="M136 350c52-10 58 18 124 10s70-28 124-14"/>
+          <path d="M150 400c42-8 54 12 110 8s66-20 110-10"/>
+        </g>
+        <g fill="#3ef0c2">
+          <circle cx="180" cy="205" r="3.2"/><circle cx="300" cy="242" r="3.2"/><circle cx="360" cy="300" r="3.2"/>
+          <circle cx="220" cy="352" r="3.2"/><circle cx="330" cy="392" r="3.2"/>
+        </g>
+
+        <!-- central phone / device -->
+        <g transform="translate(196 150)">
+          <rect x="0" y="0" width="128" height="220" rx="22" fill="#0a1018" stroke="url(#shieldStroke)" stroke-width="2"/>
+          <rect x="10" y="16" width="108" height="188" rx="14" fill="#081019"/>
+          <!-- lock glyph -->
+          <g transform="translate(40 64)" stroke="#3ef0c2" stroke-width="2.2" fill="none" filter="url(#glow)">
+            <rect x="4" y="24" width="40" height="34" rx="7"/>
+            <path d="M12 24v-8a12 12 0 0 1 24 0v8"/>
+            <circle cx="24" cy="40" r="3.4" fill="#3ef0c2"/>
+          </g>
+          <!-- fake message lines -->
+          <g fill="#48a6ff" opacity=".55">
+            <rect x="24" y="130" width="70" height="7" rx="3.5"/>
+            <rect x="24" y="144" width="48" height="7" rx="3.5"/>
+            <rect x="34" y="166" width="64" height="7" rx="3.5" fill="#9b7bff"/>
+          </g>
+          <rect x="48" y="6" width="32" height="5" rx="2.5" fill="#2a3852"/>
+        </g>
+
+        <!-- light beam -->
+        <rect x="256" y="120" width="8" height="330" rx="4" fill="url(#beam)" filter="url(#soft)" opacity=".5"/>
+
+        <!-- floating chips -->
+        <g font-family="ui-monospace,monospace" font-size="11">
+          <g transform="translate(24 96)">
+            <rect width="146" height="34" rx="10" fill="#0c1622" stroke="#2a3852"/>
+            <circle cx="18" cy="17" r="4" fill="#3ef0c2"/>
+            <text x="32" y="21" fill="#a9b8d0">GPS removed</text>
+          </g>
+          <g transform="translate(342 70)">
+            <rect width="150" height="34" rx="10" fill="#0c1622" stroke="#2a3852"/>
+            <circle cx="18" cy="17" r="4" fill="#48a6ff"/>
+            <text x="32" y="21" fill="#a9b8d0">0 requests sent</text>
+          </g>
+          <g transform="translate(30 452)">
+            <rect width="160" height="34" rx="10" fill="#0c1622" stroke="#2a3852"/>
+            <circle cx="18" cy="17" r="4" fill="#9b7bff"/>
+            <text x="32" y="21" fill="#a9b8d0">E2EE · in design</text>
+          </g>
+          <g transform="translate(336 452)">
+            <rect width="150" height="34" rx="10" fill="#0c1622" stroke="#2a3852"/>
+            <circle cx="18" cy="17" r="4" fill="#ffb547"/>
+            <text x="32" y="21" fill="#a9b8d0">limits listed</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TOOLS PREVIEW ================= -->
+<section id="checkup">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">01</span>The local toolkit</</div>
+      <h2 class="sec-title">Start with the local tools</h2>
+      <p class="sec-sub">These tools run in your browser and <b>send nothing</b>. They only clean what the browser can read — and each page shows you what it does and does not do.</p>
+    </div>
+
+    <div class="card-grid">
+      <a class="tool-card reveal" href="tools.html#photo-metadata">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg></div>
+        <h3>Photo Metadata Remover</h3>
+        <p>Before you send a photo, remove GPS, camera model and timestamps.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#file-metadata">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/><path d="M9 13h6M9 17h4"/></svg></div>
+        <h3>File Metadata Remover</h3>
+        <p>Before you send a Word file or PDF, clear author, revision history and hidden properties.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#text-redactor">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M3 6h18M3 12h10M3 18h14"/><path d="m16 12 4 4m0-4-4 4"/></svg></div>
+        <h3>Text Redactor</h3>
+        <p>Before you paste text into an AI chat or send an email, replace emails, phone numbers and ID numbers. It replaces the text itself, not a box drawn over it.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#link-checker">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></div>
+        <h3>Link Checker</h3>
+        <p>Before you open a strange link, see its tracking parameters and host — without opening or sending it.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#fingerprint">
+        <span class="badge local">Local</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M12 3a9 9 0 0 0-9 9c0 2 .4 3.6 1 5"/><path d="M12 6a6 6 0 0 0-6 6c0 2 .3 3.4 1 5"/><path d="M12 9a3 3 0 0 0-3 3c0 1.6.3 3 1 4.5"/><path d="M12 21c3-2 6-5.5 6-9a6 6 0 0 0-3-5.2"/></svg></div>
+        <h3>Browser Fingerprint Test</h3>
+        <p>After you switch browsers or change settings, check which traits are still visible.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="tools.html#account-check">
+        <span class="badge local">Checklist</span>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 1.6 1.6L12 8"/><path d="m8 15 1.6 1.6L12 14"/><path d="M15 9h3M15 15h3"/></svg></div>
+        <h3>Account Checkup</h3>
+        <p>A checklist you tick off item by item: sign-in, recovery, two-factor. It stays on your device.</p>
+        <span class="go">Open tool <span class="arr">→</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PROOF: DATA FLOW ================= -->
+<section>
+  <div class="wrap">
+    <div class="proof reveal">
+      <div>
+        <h2>Check the cleaning yourself.</h2>
+        <p>Every cleaning tool page lists the network requests it makes. While a file is being cleaned, you can watch that list and see whether anything leaves the browser.</p>
+        <p>It shows which addresses the page contacted and when. <b>Use it as evidence, then decide for yourself.</b></p>
+        <a href="tools.html#data-flow" class="btn btn-ghost btn-sm" style="margin-top:6px">Read the data-flow notes <span class="arr">→</span></a>
+      </div>
+      <div class="req-log" role="img" aria-label="A network request panel showing no requests while cleaning">
+        <div class="bar"><i></i><i></i><i></i><span style="margin-left:6px">Requests from this page</span></div>
+        <div class="body">
+          <svg class="shield" viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="M12 3 4 6v6c0 5 3.5 8.6 8 9 4.5-.4 8-4 8-9V6l-8-3Z"/><path d="m8.5 12 2.5 2.5L16 9"/></svg>
+          <span>none while cleaning</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LIMITS ================= -->
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="limits reveal">
+      <div class="ic"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#ffb547" stroke-width="2"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg></div>
+      <div>
+        <h3>These tools have limits.</h3>
+        <p>Local tools only clean what the browser can read. Limited-network tools send the first 5 characters of a SHA-1 hash. Network tools send your IP or URL to third-party lookup services.</p>
+      </div>
+      <a href="tools.html#data-flow" class="btn btn-ghost btn-sm">Read the label definitions and data flows <span class="arr">→</span></a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= MESSAGING TEASER ================= -->
+<section id="mission">
+  <div class="wrap">
+    <div class="mess-teaser reveal">
+      <div class="inner">
+        <div class="copy">
+          <span class="tag">Mizpah · in development</span>
+          <h2>Encrypted messaging is still being built.</h2>
+          <p>The chat client is developed separately from the privacy tools. A relay forwards only ciphertext it cannot decrypt — and the threat model says plainly what it can and cannot hide.</p>
+          <p><b>No release date has been announced. No independent audit yet.</b></p>
+          <div class="cta-row">
+            <a href="messaging.html" class="btn btn-primary">Read about messaging <span class="arr">→</span></a>
+            <a href="messaging.html#relay" class="btn btn-ghost">Test the relay</a>
+          </div>
+        </div>
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 460 360" role="img" aria-label="Abstract illustration: two devices exchanging encrypted messages through a relay">
+            <defs>
+              <linearGradient id="relayGrad" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9b7bff"/><stop offset="1" stop-color="#48a6ff"/></linearGradient>
+              <linearGradient id="pathGrad" x1="60" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#3ef0c2"/><stop offset=".5" stop-color="#9b7bff"/><stop offset="1" stop-color="#3ef0c2"/></linearGradient>
+              <filter id="g2"><feGaussianBlur stdDeviation="2"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <!-- relay node -->
+            <g transform="translate(180 130)">
+              <rect width="100" height="100" rx="24" fill="#0b1220" stroke="url(#relayGrad)" stroke-width="2"/>
+              <g stroke="url(#relayGrad)" stroke-width="2" fill="none" filter="url(#g2)">
+                <path d="M50 28v18l14 10"/>
+                <circle cx="50" cy="72" r="4" fill="#9b7bff" stroke="none"/>
+                <path d="M28 62h10M62 62h10"/>
+              </g>
+            </g>
+            <!-- connection path -->
+            <path d="M70 90 C150 90 150 180 230 180 C310 180 310 90 390 90" stroke="url(#pathGrad)" stroke-width="2" fill="none" stroke-dasharray="6 7" opacity=".8"/>
+            <path d="M70 270 C150 270 150 180 230 180 C310 180 310 270 390 270" stroke="url(#pathGrad)" stroke-width="2" fill="none" stroke-dasharray="6 7" opacity=".8"/>
+            <!-- left device -->
+            <g transform="translate(20 56)">
+              <rect width="52" height="80" rx="12" fill="#0a1018" stroke="#3ef0c2" stroke-width="1.6"/>
+              <rect x="10" y="14" width="32" height="6" rx="3" fill="#3ef0c2" opacity=".5"/>
+              <rect x="10" y="26" width="22" height="6" rx="3" fill="#3ef0c2" opacity=".3"/>
+            </g>
+            <!-- right device -->
+            <g transform="translate(388 56)">
+              <rect width="52" height="80" rx="12" fill="#0a1018" stroke="#3ef0c2" stroke-width="1.6"/>
+              <rect x="10" y="14" width="32" height="6" rx="3" fill="#9b7bff" opacity=".5"/>
+              <rect x="20" y="26" width="22" height="6" rx="3" fill="#9b7bff" opacity=".3"/>
+            </g>
+            <!-- lower devices mirrored -->
+            <g transform="translate(20 236)">
+              <rect width="52" height="80" rx="12" fill="#0a1018" stroke="#48a6ff" stroke-width="1.6"/>
+              <rect x="10" y="14" width="32" height="6" rx="3" fill="#48a6ff" opacity=".5"/>
+            </g>
+            <g transform="translate(388 236)">
+              <rect width="52" height="80" rx="12" fill="#0a1018" stroke="#48a6ff" stroke-width="1.6"/>
+              <rect x="10" y="14" width="32" height="6" rx="3" fill="#48a6ff" opacity=".5"/>
+            </g>
+            <!-- labels -->
+            <g font-family="ui-monospace,monospace" font-size="10.5">
+              <text x="200" y="256" fill="#6f809c" text-anchor="middle">relay forwards</text>
+              <text x="200" y="270" fill="#9b7bff" text-anchor="middle" font-weight="700">ciphertext only</text>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GUIDES ================= -->
+<section id="guides">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">02</span>Guides for everyone</div>
+      <h2 class="sec-title">Written for ordinary people.</h2>
+      <p class="sec-sub">Not a security manual. Short guides on what to do today — and what you can safely ignore.</p>
+    </div>
+    <div class="card-grid">
+      <a class="tool-card reveal" href="#guides">
+        <div class="ic" style="background:rgba(72,166,255,.09);border-color:rgba(72,166,255,.22)"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><path d="M4 5h7v16H4zM13 5h7v16h-7z"/></svg></div>
+        <h3>What your photos say about you</h3>
+        <p>Timestamps, GPS and camera model hide inside ordinary photos. A short walk through removing them.</p>
+        <span class="go" style="color:#48a6ff">Read guide <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="#guides">
+        <div class="ic" style="background:rgba(72,166,255,.09);border-color:rgba(72,166,255,.22)"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><path d="M3 5h18v11H8l-5 4z"/></svg></div>
+        <h3>Before you paste it into an AI chat</h3>
+        <p>The easiest privacy win is the one you do before you hit enter. What to strip, and why.</p>
+        <span class="go" style="color:#48a6ff">Read guide <span class="arr">→</span></span>
+      </a>
+      <a class="tool-card reveal" href="#guides">
+        <div class="ic" style="background:rgba(72,166,255,.09);border-color:rgba(72,166,255,.22)"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <h3>Two-factor without the stress</h3>
+        <p>What two-factor actually protects, what it doesn't, and the settings that matter most.</p>
+        <span class="go" style="color:#48a6ff">Read guide <span class="arr">→</span></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FINAL CTA ================= -->
+<section class="final">
+  <div class="wrap">
+    <div class="card reveal">
+      <h2>Take the checkup.<br>Ten minutes, no account.</h2>
+      <p>See what your browser and your accounts reveal — and get a prioritised list of what to fix first.</p>
+      <div class="cta-row">
+        <a href="#checkup" class="btn btn-primary">Start the privacy checkup <span class="arr">→</span></a>
+        <a href="tools.html" class="btn btn-ghost">Browse all tools</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="index.html" class="brand">
+          <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+            <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          SecureInChat
+        </a>
+        <p>Better tools. A more private internet. Privacy is a human right.</p>
+        <div class="lang2"><a href="index.html">English</a><a href="#">中文</a><a href="#">日本語</a></div>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="#mission">Mission</a></li>
+          <li><a href="#mission">Principles</a></li>
+          <li><a href="tools.html#data-flow">Status labels</a></li>
+          <li><a href="#mission">Sponsorship &amp; affiliate disclosure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Use</h4>
+        <ul>
+          <li><a href="tools.html">Privacy tools</a></li>
+          <li><a href="#guides">Guides</a></li>
+          <li><a href="#checkup">Privacy checkup</a></li>
+          <li><a href="messaging.html">Messaging</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 SecureInChat. All rights reserved.</span>
+      <span>Privacy-conscious by design. Clear about limitations.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var items = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{rootMargin:'0px 0px -8% 0px',threshold:.08});
+    items.forEach(function(el){ io.observe(el); });
+  } else {
+    items.forEach(function(el){ el.classList.add('in'); });
+  }
+  // pointer-follow glow on tool cards
+  document.querySelectorAll('.tool-card').forEach(function(card){
+    card.addEventListener('pointermove',function(ev){
+      var r = card.getBoundingClientRect();
+      var x = (ev.clientX - r.left) / r.width * 100;
+      card.style.setProperty('--mx', x + '%');
+    });
+  });
+})();
+</script>
+</body>
+</html>
+=== END FILE ===
+=== FILE: src/deepseek-concept/messaging.html ===
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Messaging — SecureInChat</title>
+<meta name="description" content="SecureInChat messaging is in development. A relay that forwards ciphertext it cannot decrypt, devices that hold the keys. No independent audit yet. Test the live relay from your browser.">
+<style>
+:root{
+  --bg:#070b12;--bg-2:#0b1220;--bg-3:#101a2e;
+  --line:rgba(140,170,220,.14);--line-2:rgba(140,170,220,.24);
+  --ink:#eaf1fb;--ink-2:#a9b8d0;--ink-3:#6f809c;
+  --accent:#3ef0c2;--accent-2:#48a6ff;--accent-3:#9b7bff;
+  --warn:#ffb547;--danger:#ff6b7a;
+  --r:18px;
+  --mono:"SFMono-Regular",ui-monospace,"Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --max:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+img,svg{display:block;max-width:100%}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#04120e;padding:10px 16px;border-radius:0 0 10px 0;z-index:99;font-weight:600}
+.skip:focus{left:0}
+::selection{background:rgba(155,123,255,.3)}
+
+.grid-bg{position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(1000px 600px at 82% -6%, rgba(155,123,255,.22), transparent 62%),
+    radial-gradient(900px 560px at 2% 6%, rgba(72,166,255,.16), transparent 58%),
+    radial-gradient(700px 500px at 50% 112%, rgba(62,240,194,.12), transparent 60%),
+    linear-gradient(180deg,#070b12,#060910 60%,#0a1726);
+}
+.grid-bg::after{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(140,170,220,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(140,170,220,.05) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(circle at 50% 26%,#000 0%,transparent 76%);
+  -webkit-mask-image:radial-gradient(circle at 50% 26%,#000 0%,transparent 76%);
+}
+
+.topbar{font-size:12.5px;color:var(--ink-2);border-bottom:1px solid var(--line);background:rgba(7,11,18,.7);backdrop-filter:blur(10px)}
+.topbar .wrap{display:flex;gap:14px;align-items:center;justify-content:space-between;padding-top:9px;padding-bottom:9px;flex-wrap:wrap}
+.topbar b{color:var(--ink);font-weight:600}
+.topbar .dot-warn{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-right:7px;box-shadow:0 0 0 4px rgba(255,181,71,.15)}
+
+header.site{position:sticky;top:0;z-index:50;background:rgba(7,11,18,.72);backdrop-filter:blur(16px) saturate(140%);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:8px;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em;font-size:17px;text-decoration:none;margin-right:10px}
+.brand .mark{width:34px;height:34px;flex:none}
+.nav .links{display:flex;gap:2px;margin-left:6px}
+.nav .links a{padding:9px 13px;border-radius:10px;text-decoration:none;color:var(--ink-2);font-size:14px;font-weight:500;transition:.18s}
+.nav .links a:hover{color:var(--ink);background:rgba(140,170,220,.08)}
+.nav .links a.active{color:var(--ink);background:rgba(155,123,255,.12);box-shadow:inset 0 0 0 1px rgba(155,123,255,.26)}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.lang{display:flex;gap:2px;font-size:12.5px}
+.lang a{padding:6px 9px;border-radius:8px;color:var(--ink-3);text-decoration:none}
+.lang a:hover{color:var(--ink)}
+.lang a.on{color:var(--ink);background:rgba(140,170,220,.10)}
+.btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;border-radius:12px;font-weight:600;font-size:14px;padding:11px 18px;border:1px solid transparent;transition:.2s;cursor:pointer;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#29d6e8);color:#03130f;box-shadow:0 8px 30px -8px rgba(62,240,194,.55)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 38px -8px rgba(62,240,194,.7)}
+.btn-ghost{background:rgba(140,170,220,.06);border-color:var(--line-2);color:var(--ink)}
+.btn-ghost:hover{background:rgba(140,170,220,.12)}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:10px}
+.menu-btn{display:none;background:none;border:1px solid var(--line-2);border-radius:10px;color:var(--ink);width:40px;height:40px;align-items:center;justify-content:center;cursor:pointer}
+@media(max-width:980px){.nav .links{display:none}.menu-btn{display:inline-flex}.nav .right .btn-primary{display:none}.lang{display:none}}
+
+.crumb{font-size:13px;color:var(--ink-3);padding:22px 0 0}
+.crumb a{text-decoration:none;color:var(--ink-2)}
+.crumb a:hover{color:var(--accent-3)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:38px 0 20px}
+.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:52px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:9px;padding:7px 14px;border-radius:100px;font-size:12.5px;font-weight:600;color:var(--accent-3);background:rgba(155,123,255,.1);border:1px solid rgba(155,123,255,.28);font-family:var(--mono);letter-spacing:.02em}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--accent-3);box-shadow:0 0 0 4px rgba(155,123,255,.16)}
+h1.hero-title{font-size:clamp(34px,4.6vw,56px);line-height:1.03;letter-spacing:-.03em;margin:20px 0 18px;font-weight:800}
+h1.hero-title .grad{background:linear-gradient(100deg,#eaf1fb 15%,#b7a6ff 55%,#48a6ff 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:18px;color:var(--ink-2);max-width:36em;margin:0 0 26px}
+.lede b{color:var(--ink)}
+.notice{border-left:2px solid var(--warn);padding:2px 0 2px 16px;color:var(--ink-2);font-size:14.5px;margin:0 0 28px}
+.notice b{color:var(--ink)}
+.status-chips{display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;font-family:var(--mono)}
+.status-chips span{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:9px;border:1px solid var(--line)}
+.status-chips .warn{color:var(--warn);border-color:rgba(255,181,71,.28);background:rgba(255,181,71,.06)}
+.status-chips .done{color:var(--accent);border-color:rgba(62,240,194,.26);background:rgba(62,240,194,.06)}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:28px}}
+
+/* ---------- section scaffold ---------- */
+section{position:relative;padding:64px 0}
+.sec-head{max-width:780px;margin-bottom:38px}
+.sec-head .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-3);font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-head .kicker .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:rgba(155,123,255,.12);border:1px solid rgba(155,123,255,.3);color:var(--accent-3);font-size:11px}
+h2.sec-title{font-size:clamp(26px,3.4vw,40px);line-height:1.1;letter-spacing:-.025em;margin:0 0 12px;font-weight:800}
+.sec-sub{font-size:17px;color:var(--ink-2);margin:0;max-width:62ch}
+.sec-sub b{color:var(--ink)}
+
+.hairline{height:1px;background:linear-gradient(90deg,transparent,var(--line-2),transparent)}
+
+/* ---------- relay diagnostic ---------- */
+.diag{border-radius:26px;border:1px solid rgba(72,166,255,.24);background:linear-gradient(140deg,rgba(12,22,36,.96),rgba(8,12,22,.96));overflow:hidden;box-shadow:0 40px 120px -60px rgba(0,0,0,.9)}
+.diag .head{display:flex;align-items:center;gap:12px;padding:16px 24px;border-bottom:1px solid var(--line);background:rgba(72,166,255,.04)}
+.diag .head .lbl{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-2);font-weight:700}
+.diag .head .net{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.diag .head .net i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.diag .head .net.ok i{background:var(--accent);box-shadow:0 0 0 4px rgba(62,240,194,.16)}
+.diag .head .net.wait i{background:var(--warn);box-shadow:0 0 0 4px rgba(255,181,71,.16)}
+.diag .body{padding:28px;display:grid;grid-template-columns:1fr 1.15fr;gap:32px}
+@media(max-width:900px){.diag .body{grid-template-columns:1fr}}
+.diag .body h3{font-size:22px;margin:0 0 12px;letter-spacing:-.01em}
+.diag .body p{color:var(--ink-2);font-size:14.5px;margin:0 0 20px}
+.diag .body p b{color:var(--ink)}
+.diag .rows{border-radius:14px;border:1px solid var(--line);background:#070c15;overflow:hidden;font-family:var(--mono);font-size:13px}
+.row{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row .k{color:var(--ink-3;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.row .v{color:var(--ink);font-weight:500;word-break:break-all}
+.row .s{font-size:11.5px;padding:3px 9px;border-radius:20px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.row .s.pending{color:var(--warn);background:rgba(255,181,71,.1);border:1px solid rgba(255,181,71,.28)}
+.row .s.ok{color:var(--accent);background:rgba(62,240,194,.1);border:1px solid rgba(62,240,194,.3)}
+.row .s.fail{color:var(--danger);background:rgba(255,107,122,.1);border:1px solid rgba(255,107,122,.3)}
+.diag .runbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:20px}
+.diag .note{font-size:12.5px;color:var(--ink-3);padding:16px 24px;border-top:1px solid var(--line);background:rgba(0,0,0,.2)}
+.diag .note b{color:var(--ink-2)}
+.progress{flex:1;min-width:120px;height:6px;border-radius:4px;background:rgba(140,170,220,.12);overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .5s}
+
+/* ---------- three measures ---------- */
+.measures{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:860px){.measures{grid-template-columns:1fr}}
+.measure{border-radius:var(--r);border:1px solid var(--line);background:linear-gradient(180deg,rgba(20,30,48,.85),rgba(11,18,32,.9));padding:26px;position:relative}
+.measure .n{font-family:var(--mono);font-size:30px;font-weight:700;background:linear-gradient(135deg,var(--accent-3),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1;margin-bottom:16px}
+.measure h3{font-size:16.5px;margin:0 0 8px}
+.measure p{color:var(--ink-2);font-size:14px;margin:0}
+.measure p b{color:var(--ink)}
+
+/* ---------- three steps diagram ---------- */
+.flow{border-radius:26px;border:1px solid var(--line);background:radial-gradient(700px 340px at 50% -10%,rgba(155,123,255,.12),transparent 60%),linear-gradient(180deg,rgba(14,22,38,.9),rgba(8,12,20,.95));padding:44px 32px;position:relative;overflow:hidden}
+.flow .stages{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:stretch;margin-top:30px}
+@media(max-width:900px){.flow .stages{grid-template-columns:1fr;gap:16px}.flow .arrow-h{display:none}}
+.stage{border-radius:16px;border:1px solid var(--line-2);background:rgba(10,16,26,.8);padding:22px;text-align:center;position:relative}
+.stage .ico{width:56px;height:56px;margin:0 auto 14px;border-radius:14px;display:grid;place-items:center}
+.stage.device .ico{background:rgba(62,240,194,.1);border:1px solid rgba(62,240,194,.3)}
+.stage.relay .ico{background:rgba(72,166,255,.1);border:1px solid rgba(72,166,255,.3)}
+.stage h4{margin:0 0 6px;font-size:15.5px}
+.stage p{margin:0;font-size:13px;color:var(--ink-2)}
+.stage .tag{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:#0b1220;border:1px solid var(--line-2);color:var(--ink-3)}
+.arrow-h{display:grid;place-items:center;padding:0 12px;color:var(--accent-3)}
+.arrow-h svg{width:34px;height:34px}
+.stage .keyflag{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(62,240,194,.08);border:1px solid rgba(62,240,194,.24);padding:4px 9px;border-radius:20px}
+.stage .keyflag.relay{color:var(--accent-2);background:rgba(72,166,255,.08);border-color:rgba(72,166,255,.24)}
+/* lock + ciphertext picture */
+.cipher-strip{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:30px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.cipher-strip .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 13px;border-radius:10px;background:#0a1018;border:1px solid var(--line)}
+.cipher-strip .chip.plain{color:var(--accent)}
+.cipher-strip .chip.cipher{color:var(--accent-2)}
+.cipher-strip .chip.relayc{color:var(--ink-2)}
+.cipher-strip .arrow{color:var(--ink-3)}
+
+/* ---------- threat model grid ---------- */
+.tm-top{display:grid;grid-template-columns:1.15fr .85fr;gap:24px;margin-bottom:24px}
+@media(max-width:900px){.tm-top{grid-template-columns:1fr}}
+.panel{border-radius:20px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(18,27,44,.9),rgba(10,16,26,.92));padding:28px;position:relative;overflow:hidden}
+.panel.protect{border-color:rgba(62,240,194,.24)}
+.panel.protect::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--accent),transparent)}
+.panel.resist{border-color:rgba(72,166,255,.24)}
+.panel.resist::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--accent-2),transparent)}
+.panel h3{margin:0 0 16px;font-size:18px;display:flex;align-items:center;gap:11px}
+.panel h3 .b{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
+.panel.protect h3 .b{background:rgba(62,240,194,.12);border:1px solid rgba(62,240,194,.3)}
+.panel.resist h3 .b{background:rgba(72,166,255,.12);border:1px solid rgba(72,166,255,.3)}
+.panel ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:13px}
+.panel ul li{display:flex;gap:12px;font-size:14.5px;color:var(--ink-2);line-height:1.5}
+.panel ul li b{color:var(--ink)}
+.panel ul li svg{width:18px;height:18px;flex:none;margin-top:2px}
+
+/* reveal-on-scroll for limited facts */
+.limits-list{border-radius:20px;border:1px solid rgba(255,181,71,.24);background:linear-gradient(180deg,rgba(255,181,71,.05),rgba(255,181,71,.01));padding:30px}
+.limits-list h3{margin:0 0 8px;font-size:19px;display:flex;align-items:center;gap:10px}
+.limits-list > p.lead{margin:0 0 22px;color:var(--ink-2);font-size:14.5px;max-width:66ch}
+.limits-list .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:760px){.limits-list .grid{grid-template-columns:1fr}.tm-grid{grid-template-columns:1fr}}
+.limits-list .grid .item{border-radius:13px;border:1px solid rgba(255,181,71,.18);background:rgba(255,181,71,.03);padding:16px}
+.limits-list .grid .item b{display:block;margin-bottom:4px;font-size:14px;color:var(--ink)}
+.limits-list .grid .item span{font-size:13.5px;color:var(--ink-2)}
+.meta-note{margin-top:20px;border-radius:14px;border:1px dashed rgba(140,170,220,.24);padding:18px 20px;color:var(--ink-2);font-size:14px;background:rgba(140,170,220,.03)}
+.meta-note b{color:var(--ink)}
+
+/* invite key callout */
+.invite-callout{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;border-radius:18px;padding:24px 28px;margin:24px 0 0;background:linear-gradient(135deg,rgba(155,123,255,.10),rgba(72,166,255,.06));border:1px solid rgba(155,123,255,.26)}
+@media(max-width:640px){.invite-callout{grid-template-columns:1fr}}
+.invite-callout .keyart{width:88px;height:88px;flex:none;display:grid;place-items:center;border-radius:16px;background:rgba(7,11,18,.7);border:1px solid rgba(155,123,255,.3)}
+.invite-callout p{margin:0;color:var(--ink-2);font-size:14.5px}
+.invite-callout p b{color:var(--ink)}
+
+/* building blocks */
+.blocks{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:860px){.blocks{grid-template-columns:1fr}}
+.block{border-radius:var(--r);border:1px solid var(--line);background:linear-gradient(180deg,rgba(20,30,48,.85),rgba(11,18,32,.9));padding:26px}
+.block .name{font-family:var(--mono);font-size:14px;color:var(--accent-2);font-weight:700;letter-spacing:.02em;margin-bottom:12px;display:flex;align-items:center;gap:9px}
+.block .name .dot{width:8px;height:8px;border-radius:2px;background:var(--accent-2);transform:rotate(45deg)}
+.block p{margin:0;color:var(--ink-2);font-size:14px}
+.block p b{color:var(--ink)}
+.disclaim{margin-top:18px;font-size:13px;color:var(--ink-3);font-family:var(--mono);border-left:2px solid var(--line-2);padding-left:14px}
+
+/* CTA strip */
+.cta-strip{border-radius:22px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(16,26,46,.9),rgba(8,12,22,.95));padding:38px 40px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+.cta-strip h2{margin:0 0 6px;font-size:clamp(22px,3vw,30px);letter-spacing:-.02em}
+.cta-strip p{margin:0;color:var(--ink-2);font-size:14.5px}
+.cta-strip .cta-row{display:flex;gap:12px;flex-wrap:wrap}
+
+/* footer */
+footer.site{border-top:1px solid var(--line);background:rgba(6,9,15,.85);padding:64px 0 34px;margin-top:60px}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
+.foot-brand .brand{margin-bottom:14px}
+.foot-brand p{color:var(--ink-3);font-size:14px;max-width:30ch;margin:0 0 18px}
+.foot-brand .lang2{display:flex;gap:14px;font-size:13px;color:var(--ink-2)}
+footer.site h4{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 16px;font-weight:700}
+footer.site ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+footer.site ul a{text-decoration:none;color:var(--ink-2);font-size:14px;transition:.15s}
+footer.site ul a:hover{color:var(--accent-3)}
+.foot-bottom{margin-top:52px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+@media(max-width:860px){.foot-grid{grid-template-columns:1fr 1fr}.foot-brand{grid-column:1/-1}}
+@media(max-width:520px){.foot-grid{grid-template-columns:1fr}}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="topbar">
+  <div class="wrap">
+    <div><span class="dot-warn"></span><b>Messaging is in development.</b> No release date · no independent audit yet.</div>
+    <div>The relay can be tested from your browser.</div>
+  </div>
+</div>
+
+<header class="site">
+  <div class="wrap nav">
+    <a href="index.html" class="brand" aria-label="SecureInChat home">
+      <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <defs><linearGradient id="mg" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#3ef0c2"/><stop offset="1" stop-color="#48a6ff"/></linearGradient></defs>
+        <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+        <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      SecureInChat
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="tools.html">Tools</a>
+      <a href="index.html#guides">Guides</a>
+      <a href="index.html#checkup">Privacy checkup</a>
+      <a href="messaging.html" class="active">Messaging</a>
+      <a href="index.html#mission">Our mission</a>
+    </nav>
+    <div class="right">
+      <div class="lang" aria-label="Language">
+        <a href="messaging.html" class="on">EN</a>
+        <a href="#" title="Chinese">中文</a>
+        <a href="#" title="Japanese">日本語</a>
+      </div>
+      <a href="index.html#checkup" class="btn btn-primary btn-sm">Start a checkup <span class="arr">→</span></a>
+      <button class="menu-btn" aria-label="Open menu" onclick="document.querySelector('.nav .links').scrollIntoView()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap crumb"><a href="index.html">Home</a> / Messaging</div>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="reveal in">
+      <span class="pill"><i></i>Mizpah · encrypted group messenger</span>
+      <h1 class="hero-title">A relay that forwards.<br><span class="grad">Devices that hold the keys.</span></h1>
+      <p class="lede">SecureInChat messaging is a private noticeboard and group chat for small circles. The relay only forwards ciphertext it cannot decrypt. <b>It is still being built.</b></p>
+      <p class="notice">The client apps are <b>not released yet</b>, and there has been <b>no independent third-party security audit</b>. The production relay can be tested from your browser today.</p>
+      <div class="status-chips">
+        <span class="warn">◐ Apps in development</span>
+        <span class="warn">◐ No third-party audit yet</span>
+      </div>
+      <p style="font-size:13px;color:var(--ink-3);margin:20px 0 0;max-width:44em">Message content is designed to be encrypted at the device edge; routing metadata can still exist.</p>
+    </div>
+
+    <!-- HERO ART: devices & blind relay -->
+    <div class="reveal in" aria-hidden="true">
+      <svg viewBox="0 0 520 460" role="img" aria-label="Illustration: two devices send ciphertext through a blind relay that cannot read it">
+        <defs>
+          <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9b7bff"/><stop offset="1" stop-color="#48a6ff"/></linearGradient>
+          <linearGradient id="pg" x1="40" y1="0" x2="480" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#3ef0c2"/><stop offset=".5" stop-color="#9b7bff"/><stop offset="1" stop-color="#3ef0c2"/></linearGradient>
+          <filter id="glow3"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <radialGradient id="cglow" cx="50%" cy="50%" r="50%"><stop stop-color="#9b7bff" stop-opacity=".28"/><stop offset="1" stop-color="#9b7bff" stop-opacity="0"/></radialGradient>
+        </defs>
+        <circle cx="260" cy="230" r="180" fill="url(#cglow)"/>
+        <!-- orbit rings -->
+        <g stroke="#48a6ff" stroke-opacity=".16" fill="none">
+          <circle cx="260" cy="230" r="150"/>
+          <circle cx="260" cy="230" r="188" stroke-dasharray="3 8"/>
+        </g>
+        <!-- relay node in center -->
+        <g transform="translate(200 170)">
+          <rect width="120" height="120" rx="28" fill="#0b1220" stroke="url(#rg)" stroke-width="2.2"/>
+          <g stroke="url(#rg)" stroke-width="2" fill="none" filter="url(#glow3)">
+            <rect x="34" y="40" width="52" height="40" rx="7"/>
+            <path d="M46 40v-8h28v8"/>
+            <path d="M60 60 v0"/>
+          </g>
+          <text x="60" y="100" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#9b7bff" letter-spacing="1">BLIND RELAY</text>
+        </g>
+        <!-- left / right devices -->
+        <g transform="translate(28 60)">
+          <rect width="120" height="200" rx="22" fill="#0a1018" stroke="#3ef0c2" stroke-width="1.8"/>
+          <rect x="14" y="18" width="92" height="164" rx="14" fill="#081019"/>
+          <rect x="28" y="42" width="64" height="8" rx="4" fill="#3ef0c2" opacity=".6"/>
+          <rect x="28" y="58" width="44" height="8" rx="4" fill="#3ef0c2" opacity=".35"/>
+          <text x="60" y="150" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#3ef0c2">has key</text>
+        </g>
+        <g transform="translate(372 60)">
+          <rect width="120" height="200" rx="22" fill="#0a1018" stroke="#48a6ff" stroke-width="1.8"/>
+          <rect x="14" y="18" width="92" height="164" rx="14" fill="#081019"/>
+          <rect x="28" y="42" width="64" height="8" rx="4" fill="#48a6ff" opacity=".6"/>
+          <rect x="28" y="58" width="44" height="8" rx="4" fill="#48a6ff" opacity=".35"/>
+          <text x="60" y="150" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#48a6ff">has key</text>
+        </g>
+        <!-- ciphertext paths -->
+        <path d="M148 180 C220 180 200 230 260 230" fill="none" stroke="url(#pg)" stroke-width="2" stroke-dasharray="5 6"/>
+        <path d="M372 180 C300 180 320 230 260 230" fill="none" stroke="url(#pg)" stroke-width="2" stroke-dasharray="5 6"/>
+        <!-- forward path marker -->
+        <g transform="translate(238 224)">
+          <circle r="5" fill="#3ef0c2" filter="url(#glow3)"/>
+        </g>
+        <!-- ciphertext chip -->
+        <g transform="translate(160 300)">
+          <rect width="200" height="34" rx="10" fill="#0a1018" stroke="#2a3852"/>
+          <text x="16" y="22" font-family="ui-monospace,monospace" font-size="11" fill="#6f809c">0x9f…ciphertext</text>
+          <circle cx="170" cy="17" r="4" fill="#9b7bff"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LIVE RELAY DIAGNOSTIC ================= -->
+<section id="relay">
+  <div class="wrap">
+    <div class="diag reveal">
+      <div class="head">
+        <span class="lbl">Live relay diagnostic</span>
+        <span class="net wait" id="netStatus"><i></i><span id="netText">Checking</span></span>
+      </div>
+      <div class="body">
+        <div>
+          <h3>Check the relay from your browser.</h3>
+          <p>Your browser opens a real secure WebSocket to the relay, measures the handshake time and checks the relay challenge. <b>No message content is involved.</b></p>
+          <div class="runbar">
+            <button class="btn btn-primary" id="runBtn" type="button">Run the relay test <span class="arr">→</span></button>
+            <div class="progress" aria-hidden="true"><i id="progBar"></i></div>
+          </div>
+        </div>
+        <div class="rows" aria-live="polite">
+          <div class="row"><span class="k">Relay endpoint</span><span class="v mono">wss://ws.secureinchat.com</span><span class="s pending" id="stEp">Awaiting</span></div>
+          <div class="row"><span class="k">Handshake time</span><span class="v mono" id="hsVal">— ms</span><span class="s pending" id="stHs">—</span></div>
+          <div class="row"><span class="k">Transport</span><span class="v mono">WSS / TLS</span><span class="s ok">TLS</span></div>
+          <div class="row"><span class="k">Relay challenge</span><span class="v mono" id="challVal">Pending</span><span class="s pending" id="stCh">—</span></div>
+        </div>
+      </div>
+      <div class="note" id="diagNote"><b>Ready to test the blind relay endpoint.</b> A successful connection confirms this diagnostic path can reach the relay. It is not an independent security audit and does not establish that a future chat client is secure.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= WHAT THE TEST MEASURES ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">01</span>What the test measures</div>
+      <h2 class="sec-title">Three things, and nothing more.</h2>
+      <p class="sec-sub">Each line is what the page can honestly observe. None of them is a security guarantee.</p>
+    </div>
+    <div class="measures reveal">
+      <div class="measure">
+        <div class="n">1</div>
+        <h3>Network connection</h3>
+        <p>Whether a <b>secure WebSocket connection</b> can be opened from this browser.</p>
+      </div>
+      <div class="measure">
+        <div class="n">2</div>
+        <h3>Handshake time</h3>
+        <p>Browser-to-relay open time in milliseconds; it is <b>not</b> an end-to-end message latency measurement.</p>
+      </div>
+      <div class="measure">
+        <div class="n">3</div>
+        <h3>Relay challenge</h3>
+        <p>Whether the relay sends the expected <b>authentication challenge</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= READ THE LIMITS ================= -->
+<section>
+  <div class="wrap">
+    <div class="limits-list reveal">
+      <h3><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffb547" stroke-width="2"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg> Read the limits</h3>
+      <p class="lead">A successful relay test is <b>not</b> an independent security audit, and it does <b>not</b> prove that a future client is secure.</p>
+      <div class="grid">
+        <div class="item"><b>What a green result means</b><span>This diagnostic path reached the relay and got the expected challenge.</span></div>
+        <div class="item"><b>What it does not mean</b><span>That the app, the keys, or the encryption are audited or verified.</span></div>
+        <div class="item"><b>No content involved</b><span>The test sends no message and no account data.</span></div>
+        <div class="item"><b>Read further</b><span><a href="#blind-relay" style="color:var(--accent-2)">The blind-relay guide</a> · <a href="#threat-model" style="color:var(--accent-2)">the threat model</a></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="hairline"></div></div>
+
+<!-- ================= THREE STEPS AT DEVICE EDGE ================= -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">02</span>How it works</div>
+      <h2 class="sec-title">Three steps at the device edge.</h2>
+      <p class="sec-sub">The diagram describes <b>the client design</b>, not a claim of third-party certification.</p>
+    </div>
+    <div class="flow reveal">
+      <div class="stages">
+        <div class="stage device">
+          <span class="tag">On your device</span>
+          <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 7h6M9 11h6M9 15h3"/></svg></div>
+          <h4>Write in plaintext</h4>
+          <p>Your message and its session keys never leave the phone.</p>
+          <span class="keyflag">● keys stay local</span>
+        </div>
+        <div class="arrow-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="stage relay">
+          <span class="tag">The relay</span>
+          <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/><circle cx="8" cy="7.5" r="1"/><circle cx="8" cy="16.5" r="1"/></svg></div>
+          <h4>Forward ciphertext</h4>
+          <p>The relay routes encrypted payloads it cannot decrypt.</p>
+          <span class="keyflag relay">● no message content</span>
+        </div>
+        <div class="arrow-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="stage device">
+          <span class="tag">Their device</span>
+          <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 7h6M9 11h6M9 15h3"/></svg></div>
+          <h4>Decrypt locally</h4>
+          <p>Only a member holding the key can read it.</p>
+          <span class="keyflag">● keys stay local</span>
+        </div>
+      </div>
+      <div class="cipher-strip">
+        <span class="chip plain">plaintext</span>
+        <span class="arrow">→</span>
+        <span class="chip cipher">AES-256-GCM</span>
+        <span class="arrow">→</span>
+        <span class="chip relayc">relay · sees ciphertext</span>
+        <span class="arrow">→</span>
+        <span class="chip cipher">decrypt on device</span>
+      </div>
+      <p style="text-align:center;color:var(--ink-3);font-size:13px;font-family:var(--mono);margin:26px 0 0">Design intent. Plaintext and session keys are intended to remain on client devices. Network and timing metadata may remain visible to systems involved in transport.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= THREAT MODEL ================= -->
+<section id="threat-model">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">03</span>Threat model</div>
+      <h2 class="sec-title">What it protects, from whom, and what it cannot hide.</h2>
+      <p class="sec-sub">The apps are in development and have not been independently audited, so this describes <b>the design</b>, not verified behaviour. Last updated 2026-11-05.</p>
+    </div>
+
+    <div class="tm-top reveal">
+      <div class="panel protect">
+        <h3><span class="b"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="M12 3 4 6v6c0 5 3..5 8.6 8 9 4.5-.4 8-4 8-9V6l-8-3Z"/><path d="m8.5 12 2.5 2.5L16 9"/></svg></span>Designed to protect</h3>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Message and file content.</b> Keys stay on the devices, and the relay only forwards encrypted payloads it cannot decrypt.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Group names.</b> In the design a group's display name exists only on each device and is never sent to the relay.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Announcements from the group admin.</b> They carry a signature from the creator's key, and every client rejects announcements it cannot verify.</span></li>
+        </ul>
+      </div>
+      <div class="panel resist">
+        <h3><span class="b"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg></span>Designed to resist</h3>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Someone who breaches the relay, or compels its operator to hand over data.</b> The relay has no message content and is designed without persistent storage of message content.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg><span><b>Someone watching the network between a device and the relay.</b> Connections use TLS, and the payload inside is encrypted again end to end.</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- How a group key reaches members -->
+    <div class="reveal">
+      <h3 style="font-size:20px;letter-spacing:-.01em;margin:12px 0 10px">How a group key reaches members</h3>
+      <p style="color:var(--ink-2);font-size:15px;max-width:74ch;margin:0">There is no public-key exchange between members. When a group is created, the app generates a random group key and puts it inside the invite code (the link or QR code). <b style="color:var(--ink)">Whoever has a valid invite code can join and read the group's messages.</b></p>
+      <div class="invite-callout">
+        <div class="keyart" aria-hidden="true">
+          <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+            <g stroke="#9b7bff" stroke-width="2"><rect x="6" y="6" width="40" height="40" rx="8"/><rect x="14" y="14" width="7" height="7" fill="#9b7bff" stroke="none"/><rect x="31" y="14" width="7" height="7" fill="#9b7bff" stroke="none"/><rect x="14" y="31" width="7" height="7" fill="#9b7bff" stroke="none"/><rect x="31" y="31" width="7" height="7" fill="#9b7bff" stroke="none"/></g>
+            <path d="M40 14v6M43 17h-6" stroke="#3ef0c2" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p>Treat an invite like a <b>house key</b>: share it only in person or through a channel you trust.</p>
+      </div>
+    </div>
+
+    <!-- What the relay can still see -->
+    <div class="reveal" style="margin-top:38px">
+      <div class="panel" style="border-color:rgba(72,166,255,.24)">
+        <h3><span class="b" style="background:rgba(72,166,255,.12);border:1px solid rgba(72,166,255,.3);width:30px;height:30px;border-radius:9px;display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></span>What the relay can still see</h3>
+        <p style="color:var(--ink-2);font-size:14.5px;margin:0 0 16px;max-width:74ch">A relay that routes messages cannot avoid some metadata. In the current design it sees:</p>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px">
+          <div class="limititem" style="border-radius:13px;border:1px solid var(--line);background:rgba(72,166,255,.03);padding:16px"><b style="display:block;margin-bottom:5px;font-size:14px">Your network address</b><span style="font-size:13.5px;color:var(--ink-2)">The relay uses it only to limit repeated connection attempts and keeps a salted hash rather than the address itself; the hosting provider and any network or tunnel in front of the relay (currently Cloudflare) can still see it.</span></div>
+          <div class="limititem" style="border-radius:13px;border:1px solid var(--line);background:rgba(72,166,255,.03);padding:16px"><b style="display:block;margin-bottom:5px;font-size:14px">When devices connect</b><span style="font-size:13.5px;color:var(--ink-2)">When devices connect and when messages arrive.</span></div>
+          <div class="limititem" style="border-radius:13px;border:1px solid var(--line);background:rgba(72,166,255,.03);padding:16px"><b style="display:block;margin-bottom:5px;font-size:14px">Payload size</b><span style="font-size:13.5px;color:var(--ink-2)">The size of each payload, which can hint at its type.</span></div>
+          <div class="limititem" style="border-radius:13px;border:1px solid var(--line);background:rgba(72,166,255,.03);padding:16px"><b style="display:block;margin-bottom:5px;font-size:14px">Routing identifiers</b><span style="font-size:13.5px;color:var(--ink-2)">The identifiers needed to route messages, such as which group a device joins.</span></div>
+        </div>
+        <p class="meta-note" style="margin:20px 0 0">Not keeping connection history is a design goal. Removing this metadata entirely is <b>not realistic</b> for a server that routes messages.</p>
+      </div>
+    </div>
+
+    <!-- What it does not protect against -->
+    <div class="reveal" style="margin-top:38px">
+      <div class="limits-list">
+        <h3><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffb547" stroke-width="2"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17.5v.5"/></svg> What it does not protect against</h3>
+        <p class="lead">These are the honest boundaries of the design. Every item here is a place where privacy depends on you.</p>
+        <div class="grid">
+          <div class="item"><b>A compromised phone</b><span>Malware, or someone holding your unlocked device, can read what you can read.</span></div>
+          <div class="item"><b>People in the group</b><span>Anyone who receives a message can copy it, screenshot it or forward it.</span></div>
+          <div class="item"><b>A leaked invite code</b><span>Anyone who gets it can read the group until the admin changes the key and sends a new invite only to the people who should stay.</span></div>
+          <div class="item"><b>A key that leaks later</b><span>Each group key is used for every message until it is changed, so there is no forward secrecy within that period: if the key leaks, recorded messages from that period can be decrypted.</span></div>
+          <div class="item"><b>Removed members keeping old messages</b><span>Removal moves the group to new keys, so later messages are unreadable to them, but messages already delivered stay on their device.</span></div>
+          <div class="item"><b>Losing the admin key</b><span>Admin rights belong to whoever holds the creator's signing key, so losing it needs a recovery step.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it compares -->
+    <div class="reveal" style="margin-top:38px">
+      <div class="panel" style="border-color:var(--line)">
+        <h3><span class="b" style="background:rgba(155,123,255,.12);border:1px solid rgba(155,123,255,.3);width:30px;height:30px;border-radius:9px;display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9b7bff" stroke-width="2"><path d="M4 20V8m8 12V4m8 16v-6"/></svg></span>How it compares</h3>
+        <p style="color:var(--ink-2);font-size:14.5px;margin:0">Group key changes on removal are weaker than the continuous key ratcheting that the Signal protocol or MLS provide. <b style="color:var(--ink)">We do not claim equivalent security.</b></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BUILDING BLOCKS ================= -->
+<section id="blind-relay">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">04</span>Building blocks</div>
+      <h2 class="sec-title">The cryptographic primitives named in the design.</h2>
+      <p class="sec-sub">These describe the design, <b>not</b> an independent audit or a legal certification.</p>
+    </div>
+    <div class="blocks reveal">
+      <div class="block">
+        <div class="name"><span class="dot"></span>ECDSA P-256</div>
+        <p>Signatures for device sign-in to the relay and admin announcements. <b>The group key itself travels inside the invite code.</b></p>
+      </div>
+      <div class="block">
+        <div class="name"><span class="dot"></span>AES-256-GCM</div>
+        <p>Authenticated encryption intended to protect <b>confidentiality and integrity</b> of message payloads.</p>
+      </div>
+      <div class="block">
+        <div class="name"><span class="dot"></span>HKDF</div>
+        <p><b>Context-separated</b> derivation of session and message keys.</p>
+      </div>
+    </div>
+    <p class="disclaim">These name the primitives in the design. They are not a certification. More detail: what a blind relay can and cannot know. You can check the live relay connection from your browser.</p>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section style="padding-top:20px">
+  <div class="wrap">
+    <div class="cta-strip reveal">
+      <div>
+        <h2>Curious what the relay reveals?</h2>
+        <p>The diagnostic runs in your browser and sends no message content.</p>
+      </div>
+      <div class="cta-row">
+        <a href="#relay" class="btn btn-primary">Run the relay test <span class="arr">→</span></a>
+        <a href="tools.html" class="btn btn-ghost">Explore the privacy tools</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="index.html" class="brand">
+          <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+            <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          SecureInChat
+        </a>
+        <p>Better tools. A more private internet. Privacy is a human right.</p>
+        <div class="lang2"><a href="messaging.html">English</a><a href="#">中文</a><a href="#">日本語</a></div>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="index.html#mission">Mission</a></li>
+          <li><a href="index.html#mission">Principles</a></li>
+          <li><a href="tools.html#data-flow">Status labels</a></li>
+          <li><a href="index.html#mission">Sponsorship &amp; affiliate disclosure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Use</h4>
+        <ul>
+          <li><a href="tools.html">Privacy tools</a></li>
+          <li><a href="index.html#guides">Guides</a></li>
+          <li><a href="index.html#checkup">Privacy checkup</a></li>
+          <li><a href="messaging.html">Messaging</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 SecureInChat. All rights reserved.</span>
+      <span>Privacy-conscious by design. Clear about limitations.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* reveal */
+  var items = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{rootMargin:'0px 0px -8% 0px',threshold:.06});
+    items.forEach(function(el){ io.observe(el); });
+  } else {
+    items.forEach(function(el){ el.classList.add('in'); });
+  }
+
+  /* ---- live relay diagnostic ----
+     Uses the public WebSocket API only. Sends no message content.
+     Some networks/browsers block cross-origin WebSockets; a failure
+     here is reported honestly as "unreachable", not as a security result. */
+  var RELAY = 'wss://ws.secureinchat.com';
+  var runBtn = document.getElementById('runBtn');
+  var netStatus = document.getElementById('netStatus');
+  var netText = document.getElementById('netText');
+  var hsVal = document.getElementById('hsVal');
+  var stHs = document.getElementById('stHs');
+  var stEp = document.getElementById('stEp');
+  var challVal = document.getElementById('challVal');
+  var stCh = document.getElementById('stCh');
+  var progBar = document.getElementById('progBar');
+  var diagNote = document.getElementById('diagNote');
+  var running = false;
+
+  function setS(el, txt, cls){ el.textContent = txt; el.className = 's ' + cls; }
+  function note(html){ diagNote.innerHTML = html; }
+
+  function reset(){
+    stEp.textContent = 'Connecting'; stEp.className = 's pending';
+    hsVal.textContent = '— ms'; setS(stHs,'—','pending');
+    challVal.textContent = 'Pending'; setS(stCh,'—','pending');
+    netStatus.className = 'net wait'; netText.textContent = 'Connecting';
+    progBar.style.width = '10%';
+  }
+
+  function fail(msg){
+    progBar.style.width = '100%';
+    netStatus.className = 'net wait'; netText.textContent = 'Unreachable';
+    setS(stEp,'Failed','fail');
+    setS(stHs,'—','pending');
+    setS(stCh,'—','pending');
+    challVal.textContent = 'Not received';
+    note('<b>Test could not complete.</b> ' + msg + ' This is a diagnostic result from your browser only; it is not an independent security audit and does not establish that a future chat client is secure.');
+  }
+
+  function run(){
+    if(running) return;
+    running = true;
+    runBtn.disabled = true;
+    reset();
+    var start = (window.performance && performance.now) ? performance.now() : Date.now();
+    var done = false;
+    var opened = false;
+
+    var ws;
+    try {
+      ws = new WebSocket(RELAY);
+    } catch(e){
+      running = false; runBtn.disabled = false;
+      fail('The browser refused to open a WebSocket to <span style="font-family:var(--mono)">' + RELAY + '</span>.');
+      return;
+    }
+
+    var timer = setTimeout(function(){
+      if(done) return;
+      done = true;
+      try { ws.close(); } catch(e){}
+      running = false; runBtn.disabled = false;
+      if(opened){
+        setS(stHs, 'Timeout', 'fail');
+      }
+      fail('No handshake reply arrived within the time budget.');
+    }, 8000);
+
+    ws.onopen = function(){
+      opened = true;
+      var t = ((window.performance && performance.now) ? performance.now() : Date.now()) - start;
+      hsVal.textContent = Math.round(t) + ' ms';
+      setS(stHs, 'OK', 'ok');
+      setS(stEp, 'Open', 'ok');
+      progBar.style.width = '70%';
+      netStatus.className = 'net ok'; netText.textContent = 'Connected';
+    };
+
+    ws.onmessage = function(ev){
+      if(done) return;
+      done = true;
+      clearTimeout(timer);
+      var text = typeof ev.data === 'string' ? ev.data : '';
+      var gotChallenge = /challenge/i.test(text);
+      if(gotChallenge){
+        challVal.textContent = 'auth_challenge received';
+        setS(stCh, 'OK', 'ok');
+        progBar.style.width = '100%';
+        note('<b>Handshake and relay challenge observed.</b> The diagnostic reached the relay and received an authentication challenge. This is not an independent security audit and does not establish that a future chat client is secure.');
+      } else {
+        challVal.textContent = 'Unexpected reply';
+        setS(stCh, 'Review', 'pending');
+        progBar.style.width = '100%';
+        note('<b>Relay replied, but not with the expected challenge.</b> The connection opened; the challenge wording did not match. Treat this as inconclusive, not as a security result.');
+      }
+      try { ws.close(); } catch(e){}
+      running = false; runBtn.disabled = false;
+    };
+
+    ws.onerror = function(){
+      if(done) return;
+      done = true;
+      clearTimeout(timer);
+      running = false; runBtn.disabled = false;
+      fail('The secure WebSocket connection could not be opened. Networks, firewalls or corporate proxies can block this path.');
+    };
+
+    ws.onclose = function(){
+      if(done) return;
+      done = true;
+      clearTimeout(timer);
+      running = false; runBtn.disabled = false;
+      if(!opened){
+        fail('The connection closed before a handshake completed.');
+      } else {
+        progBar.style.width = '100%';
+        note('<b>Connection closed.</b> The socket opened and then closed before a challenge arrived. Treat the result as inconclusive.');
+      }
+    };
+  }
+
+  if(runBtn){ runBtn.addEventListener('click', run); }
+})();
+</script>
+</body>
+</html>
+=== END FILE ===
+=== FILE: src/deepseek-concept/tools.html ===
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy tools — SecureInChat</title>
+<meta name="description" content="Small tools for a more private internet. Local processing, network lookups and checklists — each page explains what it checks, what stays in your browser, and when another service is involved.">
+<style>
+:root{
+  --bg:#070b12;--bg-2:#0b1220;--bg-3:#101a2e;
+  --line:rgba(140,170,220,.14);--line-2:rgba(140,170,220,.24);
+  --ink:#eaf1fb;--ink-2:#a9b8d0;--ink-3:#6f809c;
+  --accent:#3ef0c2;--accent-2:#48a6ff;--accent-3:#9b7bff;
+  --warn:#ffb547;--danger:#ff6b7a;
+  --r:18px;
+  --mono:"SFMono-Regular",ui-monospace,"Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --max:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+img,svg{display:block;max-width:100%}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+.skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:#04120e;padding:10px 16px;border-radius:0 0 10px 0;z-index:99;font-weight:600}
+.skip:focus{left:0}
+::selection{background:rgba(72,166,255,.28)}
+
+.grid-bg{position:fixed;inset:0;z-index:-2;
+  background:
+    radial-gradient(1000px 620px at 84% -6%, rgba(72,166,255,.18), transparent 60%),
+    radial-gradient(900px 520px at 0% 6%, rgba(62,240,194,.12), transparent 58%),
+    radial-gradient(700px 500px at 50% 112%, rgba(155,123,255,.10), transparent 60%),
+    linear-gradient(180deg,#070b12,#060910 60%,#071822);
+}
+.grid-bg::after{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(140,170,220,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(140,170,220,.05) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(circle at 50% 24%,#000 0%,transparent 76%);
+  -webkit-mask-image:radial-gradient(circle at 50% 24%,#000 0%,transparent 76%);
+}
+
+.topbar{font-size:12.5px;color:var(--ink-2);border-bottom:1px solid var(--line);background:rgba(7,11,18,.7);backdrop-filter:blur(10px)}
+.topbar .wrap{display:flex;gap:14px;align-items:center;justify-content:space-between;padding-top:9px;padding-bottom:9px;flex-wrap:wrap}
+.topbar b{color:var(--ink);font-weight:600}
+.topbar .dot-ok{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:7px;box-shadow:0 0 0 4px rgba(62,240,194,.15)}
+
+header.site{position:sticky;top:0;z-index:50;background:rgba(7,11,18,.72);backdrop-filter:blur(16px) saturate(140%);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:8px;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;letter-spacing:-.01em;font-size:17px;text-decoration:none;margin-right:10px}
+.brand .mark{width:34px;height:34px;flex:none}
+.nav .links{display:flex;gap:2px;margin-left:6px}
+.nav .links a{padding:9px 13px;border-radius:10px;text-decoration:none;color:var(--ink-2);font-size:14px;font-weight:500;transition:.18s}
+.nav .links a:hover{color:var(--ink);background:rgba(140,170,220,.08)}
+.nav .links a.active{color:var(--ink);background:rgba(72,166,255,.12);box-shadow:inset 0 0 0 1px rgba(72,166,255,.26)}
+.nav .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.lang{display:flex;gap:2px;font-size:12.5px}
+.lang a{padding:6px 9px;border-radius:8px;color:var(--ink-3);text-decoration:none}
+.lang a:hover{color:var(--ink)}
+.lang a.on{color:var(--ink);background:rgba(140,170,220,.10)}
+.btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;border-radius:12px;font-weight:600;font-size:14px;padding:11px 18px;border:1px solid transparent;transition:.2s;cursor:pointer;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#29d6e8);color:#03130f;box-shadow:0 8px 30px -8px rgba(62,240,194,.55)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 12px 38px -8px rgba(62,240,194,.7)}
+.btn-ghost{background:rgba(140,170,220,.06);border-color:var(--line-2);color:var(--ink)}
+.btn-ghost:hover{background:rgba(140,170,220,.12)}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:10px}
+.menu-btn{display:none;background:none;border:1px solid var(--line-2);border-radius:10px;color:var(--ink);width:40px;height:40px;align-items:center;justify-content:center;cursor:pointer}
+@media(max-width:980px){.nav .links{display:none}.menu-btn{display:inline-flex}.nav .right .btn-primary{display:none}.lang{display:none}}
+
+.crumb{font-size:13px;color:var(--ink-3);padding:22px 0 0}
+.crumb a{text-decoration:none;color:var(--ink-2)}
+.crumb a:hover{color:var(--accent-2)}
+
+/* hero */
+.hero{position:relative;padding:38px 0 30px}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:52px;align-items:center}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:28px}}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-2);font-weight:700;font-family:var(--mono)}
+.eyebrow::before{content:"";width:26px;height:1px;background:linear-gradient(90deg,var(--accent-2),transparent)}
+h1.hero-title{font-size:clamp(34px,4.6vw,54px);line-height:1.04;letter-spacing:-.03em;margin:18px 0 18px;font-weight:800}
+h1.hero-title .grad{background:linear-gradient(100deg,#eaf1fb 15%,#8fd8ff 55%,#48a6ff 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:18px;color:var(--ink-2);max-width:36em;margin:0 0 26px}
+.lede b{color:var(--ink)}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.cta-row .btn .arr{transition:.2s}
+.cta-row .btn:hover .arr{transform:translateX(4px)}
+
+/* section scaffold */
+section{position:relative;padding:60px 0}
+.sec-head{max-width:780px;margin-bottom:40px}
+.sec-head .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-2);font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-head .kicker .num{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;background:rgba(72,166,255,.12);border:1px solid rgba(72,166,255,.3);color:var(--accent-2);font-size:11px}
+h2.sec-title{font-size:clamp(26px,3.4vw,40px);line-height:1.1;letter-spacing:-.025em;margin:0 0 12px;font-weight:800}
+.sec-sub{font-size:17px;color:var(--ink-2);margin:0;max-width:62ch}
+.sec-sub b{color:var(--ink)}
+
+.hairline{height:1px;background:linear-gradient(90deg,transparent,var(--line-2),transparent)}
+
+/* data flow strip */
+.flow-strip{border-radius:24px;border:1px solid var(--line);background:radial-gradient(700px 300px at 50% -20%,rgba(72,166,255,.12),transparent 60%),linear-gradient(180deg,rgba(14,22,38,.9),rgba(8,12,20,.95));padding:36px;margin-bottom:8px}
+.flow-strip .bars{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:26px}
+@media(max-width:760px){.flow-strip .bars{grid-template-columns:1fr}}
+.legend{border-radius:16px;padding:20px;border:1px solid var(--line);background:rgba(10,16,26,.7);position:relative;padding-top:24px}
+.legend::before{content:"";position:absolute;top:0;left:20px;right:20px;height:3px;border-radius:0 0 3px 3px}
+.legend.local::before{background:linear-gradient(90deg,var(--accent),transparent)}
+.legend.network::before{background:linear-gradient(90deg,var(--accent-2),transparent)}
+.legend.limited::before{background:linear-gradient(90deg,var(--warn),transparent)}
+.legend h4{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:9px}
+.legend h4 .dot{width:9px;height:9px;border-radius:50%}
+.legend.local h4 .dot{background:var(--accent)}
+.legend.network h4 .dot{background:var(--accent-2)}
+.legend.limited h4 .dot{background:var(--warn)}
+.legend p{margin:0;font-size:13.5px;color:var(--ink-2)}
+.legend p b{color:var(--ink)}
+
+/* checkup banner */
+.checkup-banner{display:grid;grid-template-columns:1.1fr .9fr;gap:32px;align-items:center;border-radius:26px;padding:40px;background:linear-gradient(135deg,rgba(16,26,46,.92),rgba(9,14,25,.92));border:1px solid rgba(62,240,194,.24);position:relative;overflow:hidden}
+.checkup-banner::before{content:"";position:absolute;right:-100px;top:-100px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(62,240,194,.18),transparent 65%)}
+.checkup-banner h2{margin:0 0 12px;font-size:clamp(24px,3vw,32px);letter-spacing:-.02em;line-height:1.12}
+.checkup-banner p{margin:0 0 20px;color:var(--ink-2);font-size:15px}
+.checkup-banner pb{color:var(--ink)}
+.checkup-banner .chips{display:flex;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
+.checkup-banner .chips span{padding:5px 11px;border-radius:20px;border:1px solid var(--line-2);color:var(--ink-2)}
+.checkup-banner .chips span.warn{color:var(--warn);border-color:rgba(255,181,71,.3);background:rgba(255,181,71,.06)}
+.checkup-banner .chips span.ok{color:var(--accent);border-color:rgba(62,240,194,.3);background:rgba(62,240,194,.06)}
+.checkup-banner .art{display:grid;place-items:center;min-height:220px}
+.checkup-banner .art svg{width:100%;max-width:320px;height:auto}
+@media(max-width:860px){.checkup-banner{grid-template-columns:1fr;padding:28px}}
+
+/* tool sections */
+.tool-section{margin-bottom:8px}
+.tool-section .stitle{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.tool-section .stitle .badge-big{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:5px 11px;border-radius:20px;font-weight:700}
+.tool-section .stitle h2{font-size:clamp(22px,2.8vw,30px);letter-spacing:-.02em;margin:0;font-weight:800}
+.tool-section .slead{color:var(--ink-2);font-size:15.5px;margin:0 0 26px;max-width:70ch}
+.badge-big.local{color:var(--accent);background:rgba(62,240,194,.1);border:1px solid rgba(62,240,194,.3)}
+.badge-big.network{color:var(--accent-2);background:rgba(72,166,255,.1);border:1px solid rgba(72,166,255,.3)}
+.badge-big.limited{color:var(--warn);background:rgba(255,181,71,.1);border:1px solid rgba(255,181,71,.3)}
+
+.tool-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+@media(max-width:820px){.tool-grid{grid-template-columns:1fr}}
+.tool{position:relative;display:flex;gap:18px;border-radius:var(--r);padding:22px;background:linear-gradient(180deg,rgba(20,30,48,.85),rgba(11,18,32,.9));border:1px solid var(--line);text-decoration:none;transition:.25s;overflow:hidden}
+.tool::after{content:"";position:absolute;inset:0;background:radial-gradient(420px 200px at var(--mx,80%) 0%,rgba(72,166,255,.08),transparent 60%);opacity:0;transition:.3s;pointer-events:none}
+.tool:hover{border-color:rgba(72,166,255,.32);transform:translateY(-2px);box-shadow:0 24px 60px -34px rgba(0,0,0,.9)}
+.tool:hover::after{opacity:1}
+.tool .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;flex:none;background:rgba(72,166,255,.09);border:1px solid rgba(72,166,255,.22)}
+.tool.local .ic{background:rgba(62,240,194,.09);border-color:rgba(62,240,194,.22)}
+.tool.limited .ic{background:rgba(255,181,71,.09);border-color:rgba(255,181,71,.22)}
+.tool .ic svg{width:22px;height:22px}
+.tool .body{flex:1;min-width:0}
+.tool .top{display:flex;align-items:center;gap:9px;margin-bottom:5px;flex-wrap:wrap}
+.tool h3{margin:0;font-size:16.5px;letter-spacing:-.01em}
+.tool .label{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:20px;font-weight:700;white-space:nowrap}
+.label.local{color:var(--accent);background:rgba(62,240,194,.1);border:1px solid rgba(62,240,194,.28)}
+.label.network{color:var(--accent-2);background:rgba(72,166,255,.1);border:1px solid rgba(72,166,255,.28)}
+.label.limited{color:var(--warn);background:rgba(255,181,71,.1);border:1px solid rgba(255,181,71,.28)}
+.tool p{margin:0;font-size:14px;color:var(--ink-2)}
+.tool .open{margin-top:12px;font-size:12.5px;color:var(--accent-2);font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.tool.local .open{color:var(--accent)}
+.tool .open .arr{transition:.2s}
+.tool:hover .open .arr{transform:translateX(3px)}
+
+/* data flow notes */
+.notes{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+@media(max-width:760px){.notes{grid-template-columns:1fr}}
+.note-card{border-radius:18px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(18,27,44,.85),rgba(10,16,26,.9));padding:26px}
+.note-card .step{font-family:var(--mono);font-size:12px;color:var(--accent-2);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.note-card h3{margin:0 0 8px;font-size:17px}
+.note-card p{margin:0;font-size:14px;color:var(--ink-2)}
+.note-card p b{color:var(--ink)}
+
+.callout{border-radius:16px;border:1px dashed rgba(140,170,220,.28);background:rgba(140,170,220,.03);padding:22px 26px;color:var(--ink-2);font-size:14.5px;margin-top:26px}
+.callout b{color:var(--ink)}
+
+/* CTA */
+.cta-strip{border-radius:22px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(16,26,46,.9),rgba(8,12,22,.95));padding:38px 40px;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+.cta-strip h2{margin:0 0 6px;font-size:clamp(22px,3vw,30px);letter-spacing:-.02em}
+.cta-strip p{margin:0;color:var(--ink-2);font-size:14.5px}
+
+/* footer */
+footer.site{border-top:1px solid var(--line);background:rgba(6,9,15,.85);padding:64px 0 34px;margin-top:60px}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px}
+.foot-brand .brand{margin-bottom:14px}
+.foot-brand p{color:var(--ink-3);font-size:14px;max-width:30ch;margin:0 0 18px}
+.foot-brand .lang2{display:flex;gap:14px;font-size:13px;color:var(--ink-2)}
+footer.site h4{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:0 0 16px;font-weight:700}
+footer.site ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:11px}
+footer.site ul a{text-decoration:none;color:var(--ink-2);font-size:14px;transition:.15s}
+footer.site ul a:hover{color:var(--accent-2)}
+.foot-bottom{margin-top:52px;padding-top:26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+@media(max-width:860px){.foot-grid{grid-template-columns:1fr 1fr}.foot-brand{grid-column:1/-1}}
+@media(max-width:520px){.foot-grid{grid-template-columns:1fr}}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="topbar">
+  <div class="wrap">
+    <div><span class="dot-ok"></span><b>Free tools.</b> Choose by the question you want answered.</div>
+    <div>Each page explains what it checks and when a service is involved.</div>
+  </div>
+</div>
+
+<header class="site">
+  <div class="wrap nav">
+    <a href="index.html" class="brand" aria-label="SecureInChat home">
+      <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <defs><linearGradient id="mg" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#3ef0c2"/><stop offset="1" stop-color="#48a6ff"/></linearGradient></defs>
+        <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+        <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      SecureInChat
+    </a>
+    <nav class="links" aria-label="Primary">
+      <a href="tools.html" class="active">Tools</a>
+      <a href="index.html#guides">Guides</a>
+      <a href="index.html#checkup">Privacy checkup</a>
+      <a href="messaging.html">Messaging</a>
+      <a href="index.html#mission">Our mission</a>
+    </nav>
+    <div class="right">
+      <div class="lang" aria-label="Language">
+        <a href="tools.html" class="on">EN</a>
+        <a href="#" title="Chinese">中文</a>
+        <a href="#" title="Japanese">日本語</a>
+      </div>
+      <a href="#checkup" class="btn btn-primary btn-sm">Start a checkup <span class="arr">→</span></a>
+      <button class="menu-btn" aria-label="Open menu" onclick="document.querySelector('.nav .links').scrollIntoView()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<div class="wrap crumb"><a href="index.html">Home</a> / Privacy tools</div>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="reveal in">
+      <span class="eyebrow">The toolkit</span>
+      <h1 class="hero-title">Small tools for a <span class="grad">more private internet.</span></h1>
+      <p class="lede">Choose a tool by the question you want answered. Each page explains what it checks, what stays in your browser, and when another service is involved.</p>
+      <div class="cta-row">
+        <a href="#checkup" class="btn btn-primary">Start with the privacy checkup <span class="arr">→</span></a>
+        <a href="#data-flow" class="btn btn-ghost">How we handle data</a>
+      </div>
+    </div>
+    <div class="reveal in" aria-hidden="true">
+      <svg viewBox="0 0 460 360" role="img" aria-label="Illustration: a grid of small privacy tools arranged around a shield">
+        <defs>
+          <linearGradient id="tg" x1="0" y1="0" x2="460" y2="360" gradientUnits="userSpaceOnUse"><stop stop-color="#48a6ff"/><stop offset="1" stop-color="#3ef0c2"/></linearGradient>
+          <radialGradient id="tglow" cx="50%" cy="50%" r="50%"><stop stop-color="#48a6ff" stop-opacity=".22"/><stop offset="1" stop-color="#48a6ff" stop-opacity="0"/></radialGradient>
+          <filter id="tglowf"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <circle cx="230" cy="180" r="150" fill="url(#tglow)"/>
+        <!-- orbit -->
+        <g stroke="#48a6ff" stroke-opacity=".16" fill="none">
+          <circle cx="230" cy="180" r="128"/>
+          <circle cx="230" cy="180" r="152" stroke-dasharray="3 8"/>
+        </g>
+        <!-- center shield -->
+        <g transform="translate(168 118)" filter="url(#tglowf)">
+          <path d="M62 3 8 23v34c0 40 26 66 54 72 28-6 54-32 54-72V23L62 3Z" fill="#0b1220" stroke="url(#tg)" stroke-width="2.2"/>
+          <path d="M38 66 54 82l36-42" stroke="url(#tg)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </g>
+        <!-- tool tiles on orbit -->
+        <g font-family="ui-monospace,monospace" font-size="10.5">
+          <g transform="translate(24 40)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#3ef0c2"/><text x="28" y="21" fill="#a9b8d0">photos</text></g>
+          <g transform="translate(344 40)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#3ef0c2"/><text x="28" y="21" fill="#a9b8d0">files</text></g>
+          <g transform="translate(8 168)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#3ef0c2"/><text x="28" y="21" fill="#a9b8d0">text</text></g>
+          <g transform="translate(360 168)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#48a6ff"/><text x="28" y="21" fill="#a9b8d0">IP</text></g>
+          <g transform="translate(60 296)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#48a6ff"/><text x="28" y="21" fill="#a9b8d0">links</text></g>
+          <g transform="translate(308 296)"><rect width="92" height="34" rx="9" fill="#0c1622" stroke="#2a3852"/><circle cx="16" cy="17" r="4" fill="#ffb547"/><text x="28" y="21" fill="#a9b8d0">breach</text></g>
+        </g>
+        <!-- spokes -->
+        <g stroke="#48a6ff" stroke-opacity=".22"><line x1="230" y1="180" x2="64" y2="57"/><line x1="230" y1="180" x2="396" y2="57"/><line x1="230" y1="180" x2="54" y2="185"/><line x1="230" y1="180" x2="406" y2="185"/><line x1="230" y1="180" x2="106" y2="313"/><line x1="230" y1="180" x2="354" y2="313"/></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHECKUP BANNER ================= -->
+<section id="checkup" style="padding-top:10px">
+  <div class="wrap">
+    <div class="checkup-banner reveal">
+      <div>
+        <h2>Not sure where to begin?</h2>
+        <p>The browser privacy report checks <b style="color:var(--ink)">12 items</b> and prioritises what to look at first. Some connection checks use external lookup services; the report explains what leaves your browser.</p>
+        <div class="chips">
+          <span class="warn">◐ Some network lookups</span>
+          <span class="ok">12 checks</span>
+        </div>
+        <div class="cta-row" style="margin-top:22px">
+          <a href="#checkup" class="btn btn-primary">Run the report <span class="arr">→</span></a>
+        </div>
+      </div>
+      <div class="art" aria-hidden="true">
+        <svg viewBox="0 0 320 220" role="img" aria-label="A report card showing twelve check marks with a few using external lookups">
+          <defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#3ef0c2"/><stop offset="1" stop-color="#48a6ff"/></linearGradient></defs>
+          <rect x="30" y="20" width="260" height="180" rx="18" fill="#0a1018" stroke="#2a3852"/>
+          <rect x="52" y="44" width="120" height="9" rx="4.5" fill="#48a6ff" opacity=".6"/>
+          <g font-family="ui-monospace,monospace" font-size="10.5" fill="#a9b8d0">
+            <g transform="translate(52 72)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local check</text></g>
+            <g transform="translate(52 96)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local check</text></g>
+            <g transform="translate(52 120)"><circle r="4" fill="#48a6ff"/><text x="14" y="4">network lookup</text></g>
+            <g transform="translate(52 144)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local check</text></g>
+            <g transform="translate(180 72)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local</text></g>
+            <g transform="translate(180 96)"><circle r="4" fill="#ffb547"/><text x="14" y="4">limited</text></g>
+            <g transform="translate(180 120)"><circle r="4" fill="#3ef0c2"/><text x="14" y="4">local</text></g>
+            <g transform="translate(180 144)"><circle r="4" fill="#48a6ff"/><text x="14" y="4">network</text></g>
+          </g>
+          <path d="M52 170h216" stroke="#2a3852"/>
+          <rect x="52" y="180" width="90" height="6" rx="3" fill="url(#cg)"/>
+        </svg>
+      </div>
+    </div>
+    <p class="callout" style="margin-top:18px">Two distinct paths. The messaging relay and selected tool lookups are <b>not</b> one continuous request.</p>
+  </div>
+</section>
+
+<div class="wrap"><div class="hairline"></div></div>
+
+<!-- ================= CONNECTION & BROWSER SIGNALS ================= -->
+<section>
+  <div class="wrap">
+    <div class="tool-section reveal">
+      <div class="stitle">
+        <span class="badge-big network">Network &amp; signals</span>
+        <h2>Connection and browser signals</h2>
+      </div>
+      <p class="slead">Checks for what a browser or network connection may reveal. <b>Review the limits before relying on a result.</b></p>
+      <div class="tool-grid">
+        <a class="tool" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><path d="m6 6 2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>WebRTC leak test</h3><span class="label network">Network lookup</span></div>
+            <p>See whether browser real-time connections expose an address outside your expected network path.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="18" cy="17" r="3"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>IPv6 leak test</h3><span class="label network">Network lookup</span></div>
+            <p>Check whether IPv6 connectivity is visible through the available network path.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>IP leak test</h3><span class="label network">Network lookup</span></div>
+            <p>Review public IP, network and browser signals. This check contacts outside lookup services.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M12 3a9 9 0 0 0-9 9c0 2 .4 3.6 1 5"/><path d="M12 6a6 6 0 0 0-6 6c0 2 .3 3.4 1 5"/><path d="M12 9a3 3 0 0 0-3 3c0 1.6.3 3 1 4.5"/><path d="M12 21c3-2 6-5.5 6-9a6 6 0 0 0-3-5.2"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Browser fingerprint test</h3><span class="label local">Local processing</span></div>
+            <p>Inspect browser signals that may make your setup easier to distinguish.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="hairline"></div></div>
+
+<!-- ================= EVERYDAY PRIVACY ================= -->
+<section>
+  <div class="wrap">
+    <div class="tool-section reveal">
+      <div class="stitle">
+        <span class="badge-big local">Everyday tasks</span>
+        <h2>Everyday privacy tasks</h2>
+      </div>
+      <p class="slead">Inspect links and files, reduce sensitive information, and review account settings.</p>
+      <div class="tool-grid">
+        <a class="tool local" id="link-checker" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Link Checker</h3><span class="label local">Local processing</span></div>
+            <p>Inspect a URL for tracking parameters and structural warning signs without opening or sending it.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" id="photo-metadata" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 18 5-5 4 4 3-3 4 4"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Photo Metadata Remover</h3><span class="label local">Local processing</span></div>
+            <p>Inspect supported metadata and save a cleaned copy of an image on your device.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" id="file-metadata" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/><path d="M9 13h6M9 17h4"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>File Metadata Remover</h3><span class="label local">Local processing</span></div>
+            <p>Inspect and remove hidden metadata from photos, videos, PDFs and Office files on your device.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" id="text-redactor" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><path d="M3 6h18M3 12h10M3 18h14"/><path d="m16 12 4 4m0-4-4 4"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Text Redactor</h3><span class="label local">Local processing</span></div>
+            <p>Replace common sensitive patterns in pasted text before you share it.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Phone Number Privacy Checkup</h3><span class="label local">Local checklist</span></div>
+            <p>Review six protective settings without entering or sending your phone number.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool limited" id="password-check" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#ffb547" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><circle cx="12" cy="15" r="1.4"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Password Checker</h3><span class="label limited">Limited lookup</span></div>
+            <p>Estimate strength and check a known-breach corpus using the documented lookup method.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool local" id="account-check" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#3ef0c2" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 9 1.6 1.6L12 8"/><path d="m8 15 1.6 1.6L12 14"/><path d="M15 9h3M15 15h3"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Account Security Checkup</h3><span class="label local">Local checklist</span></div>
+            <p>Review common account-security settings with a checklist that stays in the page.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+        <a class="tool" href="#">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#48a6ff" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/><path d="M3 3l18 18"/></svg></div>
+          <div class="body">
+            <div class="top"><h3>Website Health Check</h3><span class="label network">Site request</span></div>
+            <p>Review public HTTPS, redirect, security-header and basic site-discovery signals.</p>
+            <span class="open">Open tool <span class="arr">→</span></span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="hairline"></div></div>
+
+<!-- ================= DATA FLOW ================= -->
+<section id="data-flow">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker"><span class="num">01</span>Understand the data flow</div>
+      <h2 class="sec-title">Read the label before you trust the result.</h2>
+      <p class="sec-sub">“Local processing” means the relevant work happens in your browser. Some tests still need an external request to observe a public-facing value.</p>
+    </div>
+
+    <div class="flow-strip reveal">
+      <div class="bars">
+        <div class="legend local">
+          <h4><span class="dot"></span>Local processing</h4>
+          <p>The work happens in your browser. <b>Nothing is sent while you use it</b> for the relevant task.</p>
+        </div>
+        <div class="legend network">
+          <h4><span class="dot"></span>Network lookup</h4>
+          <p>The tool contacts an <b>external lookup service</b> to observe a public value (e.g. your IP or a URL).</p>
+        </div>
+        <div class="legend limited">
+          <h4><span class="dot"></span>Limited lookup</h4>
+          <p>Only a <b>short hash prefix</b> is sent — e.g. the first 5 characters of a SHA-1 hash — never the raw password.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top:26px">
+      <div class="note-card reveal">
+        <div class="step">1 · Read the label</div>
+        <h3>Three behaviours, three labels</h3>
+        <p>Local processing, network lookup and site request describe <b>different behaviours</b>. The label on each tool tells you which one applies.</p>
+      </div>
+      <div class="note-card reveal">
+        <div class="step">2 · Check the limitation</div>
+        <h3>A clean result is not proof</h3>
+        <p>A clean result is <b>not proof of anonymity</b>, and a URL structure check <b>cannot prove that a destination is safe</b>.</p>
+      </div>
+    </div>
+
+    <p class="callout reveal">Every cleaning tool page lists the exact network requests it makes. While a file is being cleaned, you can watch that list and see whether anything leaves the browser — <b>use it as evidence, then decide for yourself.</b></p>
+  </div>
+</section>
+
+<!-- ================= CTA ================= -->
+<section style="padding-top:10px">
+  <div class="wrap">
+    <div class="cta-strip reveal">
+      <div>
+        <h2>Ready to start?</h2>
+        <p>The privacy checkup prioritises what to fix first. No account needed.</p>
+      </div>
+      <div class="cta-row">
+        <a href="#checkup" class="btn btn-primary">Start the privacy checkup <span class="arr">→</span></a>
+        <a href="messaging.html" class="btn btn-ghost">About messaging</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="index.html" class="brand">
+          <svg class="mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+            <path d="M20 3 5 9v10c0 9.5 6.2 16.6 15 18 8.8-1.4 15-8.5 15-18V9L20 3Z" stroke="url(#mg)" stroke-width="2.2" fill="rgba(62,240,194,.06)"/>
+            <path d="M12.5 20.5 18 26l9.5-11" stroke="url(#mg)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          SecureInChat
+        </a>
+        <p>Better tools. A more private internet. Privacy is a human right.</p>
+        <div class="lang2"><a href="tools.html">English</a><a href="#">中文</a><a href="#">日本語</a></div>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="index.html#mission">Mission</a></li>
+          <li><a href="index.html#mission">Principles</a></li>
+          <li><a href="#data-flow">Status labels</a></li>
+          <li><a href="index.html#mission">Sponsorship &amp; affiliate disclosure</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Use</h4>
+        <ul>
+          <li><a href="tools.html">Privacy tools</a></li>
+          <li><a href="index.html#guides">Guides</a></li>
+          <li><a href="#checkup">Privacy checkup</a></li>
+          <li><a href="messaging.html">Messaging</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 SecureInChat. All rights reserved.</span>
+      <span>Privacy-conscious by design. Clear about limitations.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var items = document.querySelectorAll('.reveal');
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    },{rootMargin:'0px 0px -8% 0px',threshold:.06});
+    items.forEach(function(el){ io.observe(el); });
+  } else {
+    items.forEach(function(el){ el.classList.add('in'); });
+  }
+  document.querySelectorAll('.tool').forEach(function(card){
+    card.addEventListener('pointermove',function(ev){
+      var r = card.getBoundingClientRect();
+      var x = (ev.clientX - r.left) / r.width * 100;
+      card.style.setProperty('--mx', x + '%');
+    });
+  });
+})();
+</script>
+</body>
+</html>
+=== END FILE ===
+=== FILE: src/deepseek-concept/DESIGN.md ===
+# SecureInChat 概念稿 · 设计说明
+
+## 1. 设计理念
+
+目标：让 SecureInChat 看起来像一家**可靠的一流科技公司**，而不是一个"工具收藏夹"。
+核心策略是 **"深空暗色 + 发光青绿 + 玻璃质感 + 精密的代码化线条插图"**，把"隐私"这件事从"焦虑"翻译成"掌控"。
+
+三条设计原则贯穿全站：
+
+1. **一眼看懂**——首页第一屏只有一句话和一个主按钮："See what you give away. Then switch it off." 以及 "Start the privacy checkup"。
+2. **诚实即信任**——黄色警示条、清晰的"in development / no audit"标签、"Local processing / Network lookup / Limited lookup"三色标签，让读者第一眼看到的是"这个团队说真话"，而不是营销辞令。
+3. **视觉分层**——每个页面都用同一套"信息层"：氛围网格背景 → 吸顶玻璃导航 → 主视觉（发光 SVG 插图）→ 内容卡片 → 收束 CTA → 页脚。
+
+## 2. 配色
+
+| 角色 | 颜色 | 用途 |
+|---|---|---|
+| 背景 | `#070b12` / `#060910` | 深空底色，营造纵深 |
+| 表面 | `#0b1220` / `#101a2e` | 卡片、面板 |
+| 主强调 | `#3ef0c2`（青绿） | 本地工具、成功、主按钮、hero 高光 |
+| 次强调 | `#48a6ff`（电蓝） | 网络工具、连接、数据流 |
+| 第三强调 | `#9b7bff`（紫罗兰） | Messaging、邀请/密钥、威胁模型 |
+| 警示 | `#ffb547`（琥珀） | 限制、limited lookup、in development |
+| 危险 | `#ff6b7a`（珊瑚） | 失败状态（诊断） |
+| 正文 | `#eaf1fb` | 高对比白 |
+| 次文 | `#a9b8d0` | 说明文字 |
+| 弱文 | `#6f809c` | 元信息、标注 |
+
+**三色强调的分工是刻意的**：青绿 = 你能掌控的（本地）、电蓝 = 需要联网的（外部）、紫罗兰 = 未来的（Messaging）。颜色的含义在三个页面都是稳定的。
+
+**背景**：固定定位的 `.grid-bg`，叠加三层径向渐变（右上主色、左上辅色、底部辉光）和一层 64px 网格（带径向 mask），给暗色页面"深空"与"仪表盘"两种气质。
+
+## 3. 字体
+
+- 正文与标题：系统无衬线字族 **Inter → Segoe UI → system-ui**，避免加载第三方字体，保证隐私（不向 Google Fonts 发请求）。
+- 数字、代码、标签、状态：**等宽字族**（SFMono / ui-monospace / Menlo…）。所有 `badge`、`status chip`、`data-flow`、`relay diagnostic` 面板的数字都用等宽字体，强化"这是可验证的技术信息"的观感。
+- 大小层级：`clamp()` 全站响应式。H1 最大 64px，正文 18–18.5px，说明文字 14–15px，标签 10–12.5px。
+
+## 4. 插图风格
+
+全部用 **内联 SVG** 绘制，共 5 张插图，风格统一：
+
+- **发光描边 + 深浅渐变**：`linearGradient`（青绿→电蓝→紫罗兰）配合 `feGaussianBlur` 柔光滤镜，让线条有"光在流动"的感觉。
+- **精密线稿**：轨道环、网格、刻度、虚线路径、`ui-monospace` 标注的小 chip（如"GPS removed"、"0 requests sent"、"BLIND RELAY"）。
+- **主题化**：
+  - 首页 hero：**盾牌 + 数据流线 + 手机构成的锁**——把"保护"变成可视化的"数据被盾牌包裹"。
+  - 首页 messaging teaser：**四台设备围绕一个中继节点**——直观展示"设备握钥匙，中继只转发"。
+  - Messaging hero：**两台设备 / 盲中继 / 虚线密文路径**。
+  - Messaging 3 步流程：**CSS 卡片 + 连接箭头 + 密文条带**（plaintext → AES-256-GCM → relay → decrypt）。
+  - Tools hero：**轨道上的六个工具 chip 围绕中心盾牌**——把"工具集合"可视化成"围绕保护运转的卫星"。
+  - Tools checkup banner：**报告卡片**（12 个勾选、彩点区分数据类型）。
+  - Messaging 邀请码 callout：**QR 样式的密钥方块**。
+
+所有装饰性 SVG 都带 `aria-hidden="true"`，有语义的带 `<title>` 或 `aria-label`，插图不影响可访问性。
+
+## 5. 动效
+
+- **滚动渐显**：`.reveal` + `IntersectionObserver`，位移 20–22px + 透明度 0→1，时长 0.7s；`prefers-reduced-motion` 时全部关闭。
+- **卡片指针光晕**：工具卡片跟随鼠标水平位置更新 `--mx`，导致径向高光移动，纯 CSS 响应，无 JS 动画循环。
+- **按钮/箭头**：hover 时主按钮上浮 1px，箭头 `translateX(4px)`。
+- **Live relay diagnostic**：点击后从 0→10%→70%→100% 的进度条，配合真实 WebSocket 事件驱动状态；有 8s 超时保底，失败时诚实显示 "Unreachable / failed"，不伪装成功。
+
+## 6. 三个页面各自的重点
+
+- **首页**：一句话首屏 → 本地工具 6 卡 → 数据流证明面板 → 限制警告条 → Messaging teaser → 面向普通人的指南区 → 收束 CTA。
+- **Messaging**：状态横幅（在开发 / 无审计）→ 主视觉 → **Live relay diagnostic**（真实 WebSocket，无内容）→ 三步设备边缘流程 → 完整威胁模型（保护 vs 抵抗 vs 副作用 vs 免责）→ 密码学构建块 → CTA。
+- **Tools**：工具英雄 → **Privacy checkup banner**（12 项 / 含网络查找）→ 连接类工具（4 卡）→ 日常工具（8 卡）→ **数据流三种标签** 图例 → 收束 CTA。
+
+## 7. 如何推广到网站其他页面
+
+因为三个页面共享同一套"组件语法"，扩展到 Guides、单个工具页、About、Privacy、Contact 都很简单：
+
+1. **复用 `<style>` 里的 block**（每页自包含，但内容一致）：
+   - `.grid-bg` / `.topbar` / `header.site` / `.wrap` / `.btn` / `footer.site`。
+2. **新增页面即复制头部 + 页脚**，中间换成：
+   - **Guides 列表页**：直接复用 `.tool-grid` + `.tool`（把"Open tool"换成"Read guide"）。
+   - **单个工具页**：左栏 `tool-grid` 单卡样式 + 右栏"Requests from this page"面板（复用首页 `.proof .req-log`）。
+   - **About / Mission**：复用 `.panel` + `.limits-list` + `.cta-strip`。
+3. **新工具接入**：只需填三样——`icon`、`title`、`label`（local / network / limited），卡片自动继承视觉体系。
+4. **新增语言**：`.lang` 已预留中/日切换位置，将来接入 i18n 时只需给页面加 `lang` 变体。
+5. **配色扩展**：危险红只用于"失败/风险"，警示琥珀只用于"限制/开发中"，新颜色出现前先确认不破坏"三色分工"。
+
+## 8. 内容诚实性核对清单
+
+为保证"内容必须真实"，以下事实点都从原始内容或威胁模型中**原样保留**，不做美化：
+
+- 聊天 App **in development**、**no release date**、**no independent audit**。
+- 中继目前由 **Cloudflare** 前置；网络地址只保留 **加盐哈希**（salted hash）。
+- 群密钥通过**邀请码**传递；成员之间**没有公钥交换**。
+- 群名**只在本设备**，从不发给中继。
+- 管理员公告带**ECDSA P-256 签名**；客户端拒绝无法验证的公告。
+- **没有前向保密**（同一周期内所有消息共用群密钥）。
+- **被移除成员仍保留历史消息**；**丢失管理员签名密钥需要恢复步骤**。
+- 与 Signal / MLS 相比，移除时的密钥轮换**更弱**；**不宣称等同安全**。
+- **Limited lookup** 只发送 SHA-1 前 5 字符；**Network lookup** 会把 IP/URL 发给第三方。
+- **Live relay diagnostic** 只检查：网络连接 / 握手时间 / relay challenge；**不是安全审计**。
+- 所有"清楚说明限制"的文案（Privacy-conscious by design. Clear about limitations.）保留。
+=== END FILE ===
