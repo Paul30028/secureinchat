@@ -150,19 +150,22 @@ class ActivityTab(a: MainActivity) : Tab(a) {
         setIfChanged(log, sb)
     }
 
-    /** The last few distinct blocked names, newest first, each with Allow. */
+    /** The last ten distinct blocked names, newest first, with the time and Allow. */
     private fun renderRecent(h: QueryHandler?) {
-        val names = h?.recent()?.filter { it.blocked }?.map { it.name }?.distinct()?.take(5) ?: emptyList()
-        val sig = (h != null).toString() + names.joinToString(";")
+        val entries = h?.recent()?.filter { it.blocked }?.distinctBy { it.name }?.take(10) ?: emptyList()
+        val names = entries.map { it.name }
+        val sig = (h != null).toString() + entries.joinToString(";") { "${it.timeMs}:${it.name}" }
         if (sig == recentSig) return
         recentSig = sig
         recentBox.removeAllViews()
         if (h == null) { recentBox.addView(ui.empty(s(R.string.recent_empty_off))); return }
         if (names.isEmpty()) { recentBox.addView(ui.empty(s(R.string.nothing_blocked_yet))); return }
         val trackers = GuardianVpnService.trackerDb()
-        for (name in names) {
-            val lines = mutableListOf<CharSequence>()
-            trackers?.byDomain(name)?.let { lines.add(s(R.string.tracker_line, it.name)) }
+        val fmt = android.text.format.DateFormat.getTimeFormat(a)
+        for (e in entries) {
+            val name = e.name
+            val lines = mutableListOf<CharSequence>(fmt.format(Date(e.timeMs)))
+            trackers?.byDomain(e.via ?: name)?.let { lines.add(0, s(R.string.tracker_line, it.name)) }
             val allow = ui.textButton(s(R.string.allow)) {
                 UserRulesStore.add(a, name)
                 a.rulesChanged()

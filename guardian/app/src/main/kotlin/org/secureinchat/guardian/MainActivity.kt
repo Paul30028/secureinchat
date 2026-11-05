@@ -107,7 +107,8 @@ class MainActivity : Activity() {
 
     // --- Layout -------------------------------------------------------------------------------------
 
-    private fun showIntro() {
+    /** [replay]: opened again from Settings, so the button only goes back (no second start). */
+    private fun showIntro(replay: Boolean = false) {
         showingIntro = true
         val root = ui.vertical(24).apply { gravity = Gravity.CENTER_HORIZONTAL }
         root.addView(ImageView(this).apply {
@@ -150,7 +151,8 @@ class MainActivity : Activity() {
         })
         page.addView(ui.vertical(16).apply {
             setPadding(ui.dp(24), 0, ui.dp(24), ui.dp(16))
-            addView(ui.primaryButton(getString(R.string.intro_start)) {
+            addView(ui.primaryButton(getString(if (replay) R.string.back else R.string.intro_start)) {
+                if (replay) { showMain(); return@primaryButton }
                 getPreferences(Context.MODE_PRIVATE).edit().putBoolean(PREF_INTRO_DONE, true).apply()
                 showMain()
                 // "Start protection" means start it: go straight to the system VPN consent, not to an
@@ -163,7 +165,7 @@ class MainActivity : Activity() {
     }
 
     /** Settings → "How Guardian works" shows the intro again. */
-    fun replayIntro() = showIntro()
+    fun replayIntro() = showIntro(replay = true)
 
     private fun showMain() {
         showingIntro = false

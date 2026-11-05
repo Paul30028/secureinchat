@@ -959,6 +959,9 @@ def main():
     if not b:
         fail("notification Stop action not found", nodes)
     snap("notification")
+    if not button(nodes, "Pause 5 min"):
+        fail("notification has Stop but no 'Pause 5 min' action", nodes)
+    print("ok: notification offers Pause 5 min next to Stop")
     tap(b)
     wait_stopped("stop from notification")
     sh("cmd statusbar collapse", check=False)
@@ -998,6 +1001,12 @@ def main():
     nodes = wait_ui(lambda s: STATUS_STOPPED in s and "Turn on again" in s,
                     "after a force-stop the app does not say 'Protection has stopped' / 'Turn on again'")
     snap("stopped-unexpected")
+    resolvable = "No activity found" not in sh(
+        "cmd package resolve-activity -a android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS", check=False)
+    has_battery = "Open battery settings" in joined(nodes)
+    if resolvable != has_battery:
+        fail(f"'Open battery settings' shown={has_battery}, but the settings page resolvable={resolvable}", nodes)
+    print(f"ok: battery settings link {'shown' if has_battery else 'hidden (no such page)'}")
     start_from_app("Turn on again")
     print("ok: an unexpected stop is shown and 'Turn on again' restarts protection")
     nodes = goto("Protect")
@@ -1009,6 +1018,28 @@ def main():
     if STATUS_STOPPED in joined(nodes):
         fail("a stop by the user must not show 'Protection has stopped'", nodes)
     wait_stopped("stop after unexpected-stop check")
+
+    # 6d. U4: Settings → "How Guardian works" shows the introduction again with "Back", which must not start
+    #     protection (it is off here).
+    goto("Settings")
+    nodes = scroll_find(lambda s: "How Guardian works" in s, "no 'How Guardian works' button", tries=12)
+    b = button(nodes, "How Guardian works")
+    if not b:
+        fail("'How Guardian works' is not a button", nodes)
+    tap(b)
+    nodes = wait_ui(lambda s: "Your phone. Your business." in s, "'How Guardian works' did not show the introduction")
+    if button(nodes, "Start protection"):
+        fail("replayed introduction offers 'Start protection' instead of 'Back'", nodes)
+    b = button(nodes, "Back")
+    if not b:
+        fail("no 'Back' button on the replayed introduction", nodes)
+    tap(b)
+    time.sleep(2)
+    goto("Protect")
+    wait_ui(lambda s: STATUS_OFF in s, "'Back' on the replayed introduction changed the protection state")
+    if service_running():
+        fail("'Back' on the replayed introduction started protection")
+    print("ok: replayed introduction has Back and does not start protection")
 
     # 7. No crash
     c = crashes()

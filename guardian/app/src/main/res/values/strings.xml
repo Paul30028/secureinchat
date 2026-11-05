@@ -59,7 +59,7 @@
     <string name="status_paused_body">Nothing is blocked until then.</string>
     <string name="turn_on">Turn on</string>
     <string name="status_stopped">Protection has stopped</string>
-    <string name="status_stopped_body">Android stopped Guardian (for example to save battery, or after a restart). Tap below to turn it back on. To keep it on, see Settings → Start automatically.</string>
+    <string name="status_stopped_body">Android stopped Guardian (for example to save battery, or after a restart). Tap below to turn it back on. To keep it on, allow Guardian in battery settings and see Settings → Start automatically.</string>
     <string name="status_stopped_revoked">Android turned Guardian\'s VPN off: another VPN app started, or it was disconnected in system settings. Android runs only one VPN at a time, so Guardian cannot run next to another VPN.</string>
     <string name="turn_on_again">Turn on again</string>
     <string name="activity_broken_title">Is a site or app not working?</string>
@@ -69,6 +69,10 @@
     <string name="advanced_hide">Hide advanced settings</string>
     <string name="advanced_hint">Encrypted DNS and backing up your rules.</string>
     <string name="backup_rules">Back up your rules</string>
+    <string name="back">Back</string>
+    <string name="open_battery_settings">Open battery settings</string>
+    <string name="scan_review_show">Show the list (%1$d)</string>
+    <string name="scan_review_hide">Hide the list</string>
     <string name="turn_off">Turn off</string>
     <string name="pause_5_min">Pause 5 min</string>
     <string name="resume">Resume</string>

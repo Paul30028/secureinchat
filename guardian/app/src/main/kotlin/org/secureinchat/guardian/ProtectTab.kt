@@ -24,6 +24,7 @@ class ProtectTab(a: MainActivity) : Tab(a) {
     private lateinit var statusBody: TextView
     private lateinit var toggle: Button
     private lateinit var pause: Button
+    private lateinit var battery: Button
     private lateinit var alertCard: LinearLayout
     private lateinit var alertText: TextView
     private lateinit var pdnsCard: LinearLayout
@@ -55,6 +56,12 @@ class ProtectTab(a: MainActivity) : Tab(a) {
         root.addView(statusTitle)
         statusBody = ui.caption().apply { gravity = Gravity.CENTER; layoutParams = ui.matchWidth(4) }
         root.addView(statusBody)
+
+        // Shown with "Protection has stopped" when Android (not another VPN) stopped it.
+        battery = ui.textButton(s(R.string.open_battery_settings)) {
+            a.tryStart(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+        }.apply { visibility = View.GONE; layoutParams = ui.matchWidth(4).apply { gravity = Gravity.CENTER_HORIZONTAL } }
+        root.addView(battery)
 
         toggle = ui.primaryButton("") { a.onToggleClicked() }
         root.addView(toggle)
@@ -165,6 +172,8 @@ class ProtectTab(a: MainActivity) : Tab(a) {
             else -> s(R.string.status_off_body)
         })
 
+        // Only where this phone has the battery optimisation list (resolvable), and not when another VPN is the cause.
+        showIf(battery, state == 4 && !ProtectionStateStore.revoked(a) && batterySettingsAvailable)
         toggle.isEnabled = !loading
         setIfChanged(toggle, when {
             running -> s(R.string.turn_off)
@@ -210,6 +219,11 @@ class ProtectTab(a: MainActivity) : Tab(a) {
             if (company != null) lines.add(0, s(R.string.tracker_line, company))
             recentBox.addView(ui.row(e.name, lines))
         }
+    }
+
+    private val batterySettingsAvailable: Boolean by lazy {
+        android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+            .resolveActivity(a.packageManager) != null
     }
 
     override fun invalidate() { recentSig = "" }

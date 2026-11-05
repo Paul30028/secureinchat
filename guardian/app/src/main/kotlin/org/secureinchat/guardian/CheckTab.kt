@@ -148,8 +148,18 @@ class CheckTab(a: MainActivity) : Tab(a) {
             }
         }
         if (reviewList.isNotEmpty()) {
+            // Folded: "needs attention" first; the longer, calmer list one tap away.
             scanBox.addView(ui.body(s(R.string.scan_review)).apply { layoutParams = ui.matchWidth(12); textSize = 15f })
-            for (f in reviewList) scanBox.addView(findingRow(f))
+            val box = ui.vertical().apply { visibility = View.GONE }
+            lateinit var toggle: android.widget.Button
+            toggle = ui.textButton(s(R.string.scan_review_show, reviewList.size)) {
+                val show = box.visibility != View.VISIBLE
+                showIf(box, show)
+                toggle.text = if (show) s(R.string.scan_review_hide) else s(R.string.scan_review_show, reviewList.size)
+            }
+            scanBox.addView(toggle)
+            for (f in reviewList) box.addView(findingRow(f))
+            scanBox.addView(box)
         }
 
         // Browse by kind of access: how many apps, and which.

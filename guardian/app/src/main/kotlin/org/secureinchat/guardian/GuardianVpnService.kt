@@ -194,6 +194,9 @@ class GuardianVpnService : VpnService() {
                 return
             }
             if (pfd == null) {
+                // Usually another VPN holds the system's one VPN slot (e.g. set to Always-on). Protect
+                // then says so instead of silently showing "off".
+                ProtectionStateStore.revokedBySystem(applicationContext)
                 isLoading = false
                 stopSelf()
                 return
@@ -294,6 +297,12 @@ class GuardianVpnService : VpnService() {
             builder.addAction(0, getString(R.string.resume), resumePi)
         } else {
             builder.setContentText(getString(R.string.notif_active))
+            // Pause next to Stop: when a site breaks, pausing is what people need, not stopping.
+            val pausePi = PendingIntent.getService(
+                this, 3, Intent(this, GuardianVpnService::class.java).setAction(ACTION_PAUSE),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(0, getString(R.string.pause_5_min), pausePi)
         }
         builder.addAction(0, getString(R.string.notif_stop), stopPi)
         return builder.build()

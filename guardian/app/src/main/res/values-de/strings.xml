@@ -59,7 +59,7 @@
     <string name="status_paused_body">Bis dahin wird nichts blockiert.</string>
     <string name="turn_on">Einschalten</string>
     <string name="status_stopped">Schutz wurde beendet</string>
-    <string name="status_stopped_body">Android hat Guardian beendet (etwa zum Akkusparen oder nach einem Neustart). Tippe unten, um ihn wieder einzuschalten. Damit er an bleibt: Optionen → Automatisch starten.</string>
+    <string name="status_stopped_body">Android hat Guardian beendet (etwa zum Akkusparen oder nach einem Neustart). Tippe unten, um ihn wieder einzuschalten. Damit er an bleibt: Guardian in den Akku-Einstellungen erlauben und Optionen → Automatisch starten ansehen.</string>
     <string name="status_stopped_revoked">Android hat das VPN von Guardian beendet: Eine andere VPN-App wurde gestartet oder es wurde in den Systemeinstellungen getrennt. Android erlaubt nur ein VPN zur gleichen Zeit, daher kann Guardian nicht neben einem anderen VPN laufen.</string>
     <string name="turn_on_again">Wieder einschalten</string>
     <string name="activity_broken_title">Funktioniert eine Website oder App nicht?</string>
@@ -69,6 +69,10 @@
     <string name="advanced_hide">Erweiterte Optionen ausblenden</string>
     <string name="advanced_hint">Verschlüsseltes DNS und Sichern deiner Regeln.</string>
     <string name="backup_rules">Regeln sichern</string>
+    <string name="back">Zurück</string>
+    <string name="open_battery_settings">Akku-Einstellungen öffnen</string>
+    <string name="scan_review_show">Liste zeigen (%1$d)</string>
+    <string name="scan_review_hide">Liste ausblenden</string>
     <string name="turn_off">Ausschalten</string>
     <string name="pause_5_min">5 Min. pausieren</string>
     <string name="resume">Fortsetzen</string>

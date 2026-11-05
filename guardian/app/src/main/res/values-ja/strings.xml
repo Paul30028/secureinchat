@@ -59,7 +59,7 @@
     <string name="status_paused_body">それまでは何もブロックしません。</string>
     <string name="turn_on">オンにする</string>
     <string name="status_stopped">保護が停止しました</string>
-    <string name="status_stopped_body">Android が Guardian を停止しました（省電力や再起動の後など）。下をタップして再びオンにしてください。常にオンにするには「設定 → 自動で開始」を参照してください。</string>
+    <string name="status_stopped_body">Android が Guardian を停止しました（省電力や再起動の後など）。下をタップして再びオンにしてください。常にオンにするには、電池の設定で Guardian を許可し、「設定 → 自動で開始」を確認してください。</string>
     <string name="status_stopped_revoked">Android が Guardian の VPN をオフにしました。別の VPN アプリが起動したか、システム設定で切断されました。Android では同時に 1 つの VPN しか動かせないため、Guardian は他の VPN と同時に使えません。</string>
     <string name="turn_on_again">もう一度オンにする</string>
     <string name="activity_broken_title">サイトやアプリがうまく動かない？</string>
@@ -69,6 +69,10 @@
     <string name="advanced_hide">詳細設定を隠す</string>
     <string name="advanced_hint">暗号化 DNS とルールのバックアップ。</string>
     <string name="backup_rules">ルールのバックアップ</string>
+    <string name="back">戻る</string>
+    <string name="open_battery_settings">電池の設定を開く</string>
+    <string name="scan_review_show">リストを表示（%1$d）</string>
+    <string name="scan_review_hide">リストを隠す</string>
     <string name="turn_off">オフにする</string>
     <string name="pause_5_min">5 分間一時停止</string>
     <string name="resume">再開</string>
