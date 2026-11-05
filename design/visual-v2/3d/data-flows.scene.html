@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#FAF8F3}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head><body>
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+const W=1520,H=800;
+const r=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+r.setSize(W,H); r.setPixelRatio(1); r.shadowMap.enabled=true; r.shadowMap.type=THREE.PCFSoftShadowMap;
+r.toneMapping=THREE.NoToneMapping; r.outputColorSpace=THREE.SRGBColorSpace;
+document.body.appendChild(r.domElement);
+const sc=new THREE.Scene(); sc.background=new THREE.Color('#FAF8F3');
+const asp=W/H, d=8.3;
+const cam=new THREE.OrthographicCamera(-d*asp,d*asp,d,-d,0.1,200);
+cam.position.set(18,20,22); cam.lookAt(0.0,1.6,0.3);
+sc.add(new THREE.HemisphereLight('#ffffff','#c9d8d2',1.15));
+const rim=new THREE.DirectionalLight('#dfeee8',0.6);rim.position.set(20,8,-14);sc.add(rim);
+const sun=new THREE.DirectionalLight('#fff8ee',1.9); sun.position.set(-8,22,14); sun.castShadow=true;
+sun.shadow.mapSize.set(4096,4096); Object.assign(sun.shadow.camera,{left:-22,right:22,top:22,bottom:-22}); sun.shadow.radius=8; sun.shadow.bias=-0.0004; sc.add(sun);
+const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:o.r??0.55,metalness:o.m??0,emissive:o.e??'#000',emissiveIntensity:o.ei??0});
+const box=(w,h,dp,rad,mat,x,y,z)=>{const m=new THREE.Mesh(new RoundedBoxGeometry(w,h,dp,6,rad),mat);m.position.set(x,y+h/2,z);m.castShadow=true;m.receiveShadow=true;sc.add(m);return m;};
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({opacity:0.16}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;sc.add(ground);
+const C={mint:'#C9DDD6',deep:'#123B3A',teal:'#2D6B60',sage:'#8DB5AA',amber:'#E3A23B',white:'#FFFFFF',paper:'#F4F1EA'};
+// lane z: back = -3.2 (messages), front = 4 (tool)
+const zb=-3.6, zf=4.2;
+// platforms
+box(5.2,0.35,4.6,0.3,M(C.mint),-9,0,zb);
+box(5.2,0.35,4.6,0.3,M(C.mint),9,0,zb);
+// phones (standing, slightly tilted)
+function phone(x,z,ry){const g=new THREE.Group();
+  const body=new THREE.Mesh(new RoundedBoxGeometry(1.9,3.7,0.28,8,0.14),M(C.white,{r:0.35,e:'#FFFFFF',ei:0.15}));body.castShadow=true;g.add(body);
+  const scr=new THREE.Mesh(new RoundedBoxGeometry(1.66,3.4,0.05,6,0.12),M('#FBFAF6',{r:0.2,e:'#FFFFFF',ei:0.35}));scr.position.z=0.15;g.add(scr);
+  const b=(w,y,xo,c)=>{const m=new THREE.Mesh(new RoundedBoxGeometry(w,0.34,0.06,4,0.15),M(c,{r:0.4}));m.position.set(xo,y,0.2);g.add(m);};
+  b(1.0,0.9,-0.18,C.mint);b(0.7,0.4,-0.33,C.mint);b(1.0,-0.15,0.2,C.teal);b(0.8,-0.65,-0.25,C.mint);
+  g.position.set(x,0.35+1.85,z);g.rotation.order='YXZ';g.rotation.y=ry;g.rotation.x=-0.28;sc.add(g);return g;}
+phone(-9.4,zb+0.2,0.25); phone(9.4,zb+0.2,0.25);
+// relay: dark block with inner recess
+box(4.6,2.6,3.6,0.35,M(C.deep,{r:0.45}),0,0,zb);
+box(3.6,0.08,2.6,0.04,M('#1B4D4A',{r:0.6}),0,2.6,zb);
+// sealed envelopes
+function env(x,y,z,s=1){const g=new THREE.Group();
+  const e=new THREE.Mesh(new RoundedBoxGeometry(1.3*s,0.22*s,0.9*s,4,0.06*s),M(C.white,{r:0.3}));e.castShadow=true;g.add(e);
+  const seal=new THREE.Mesh(new THREE.CylinderGeometry(0.17*s,0.17*s,0.06*s,32),M(C.amber,{r:0.35,m:0.1}));seal.position.set(0.3*s,0.13*s,0.2*s);g.add(seal);
+  const flap=new THREE.Mesh(new THREE.BoxGeometry(0.9*s,0.02*s,0.04*s),M(C.sage));flap.position.set(-0.05*s,0.12*s,-0.05*s);flap.rotation.y=0.55;g.add(flap);
+  const flap2=flap.clone();flap2.rotation.y=-0.55;flap2.position.x=-0.05*s+0.0;g.add(flap2);
+  g.position.set(x,y,z);sc.add(g);return g;}
+// encrypted path: raised glowing tube
+const pathMat=M(C.teal,{r:0.3,e:C.teal,ei:0.25});
+const tube=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,16.6,24),pathMat);tube.rotation.z=Math.PI/2;tube.position.set(0,1.45,zb);tube.castShadow=true;sc.add(tube);
+env(-4.6,1.45,zb,1.35); env(4.6,1.45,zb,1.35); env(0,2.75,zb,1.5);
+// tool lane: browser panel lying on a platform
+box(10.5,0.35,5.0,0.3,M(C.mint),-6.2,0,zf);
+box(8.6,0.5,3.8,0.22,M(C.white,{r:0.35}),-6.2,0.35,zf);
+box(8.6,0.06,0.55,0.03,M('#EEF2EF'),-6.2,0.85,zf-1.6);
+[-10,-9.6,-9.2].forEach(x=>{const dot=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,0.05,20),M(C.sage));dot.position.set(x,0.9,zf-1.6);sc.add(dot);});
+// documents: before -> after
+function doc(x,z,c,lines){box(1.9,0.14,2.4,0.08,M(C.paper,{r:0.5}),x,0.85,z);
+  lines.forEach((w,i)=>box(w,0.05,0.16,0.04,M(c),x-(1.3-w)/2,0.99,z-0.7+i*0.45));}
+doc(-8.6,zf+0.35,C.sage,[1.3,1.0,1.2,0.8]);
+doc(-3.9,zf+0.35,C.teal,[1.3,0.9]);
+const arr=new THREE.Mesh(new THREE.ConeGeometry(0.22,0.5,24),M(C.teal));arr.rotation.z=-Math.PI/2;arr.position.set(-5.7,1.1,zf+0.35);sc.add(arr);
+const sh=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1.2,16),M(C.teal));sh.rotation.z=Math.PI/2;sh.position.set(-6.5,1.1,zf+0.35);sc.add(sh);
+// the one request that leaves: amber capsules (dashed) with a small tag
+for(let x=-0.6;x<6.4;x+=0.75){const c=new THREE.Mesh(new THREE.CapsuleGeometry(0.07,0.32,6,16),M(C.amber,{r:0.4,e:C.amber,ei:0.15}));c.rotation.z=Math.PI/2;c.position.set(x,0.9,zf+0.35);c.castShadow=true;sc.add(c);}
+box(1.0,0.5,0.12,0.06,M(C.white),2.9,1.15,zf+0.35).material=M(C.white);
+const tagLine=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.06,0.02),M(C.amber));tagLine.position.set(2.9,1.4,zf+0.42);sc.add(tagLine);
+// outside service: server stack in an outlined zone (ring of segments on the ground)
+for(let i=0;i<3;i++){box(2.4,0.62,2.4,0.14,M(C.white,{r:0.4}),9,0.05+i*0.72,zf);const led=new THREE.Mesh(new THREE.SphereGeometry(0.08,16,16),M(C.sage,{e:C.sage,ei:0.3}));led.position.set(8.2,0.38+i*0.72,zf+1.22);sc.add(led);}
+const seg=M(C.deep);for(let a=0;a<Math.PI*2;a+=Math.PI/14){const s=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.03,0.08),seg);const R=3.1;s.position.set(9+R*Math.cos(a),0.02,zf+R*Math.sin(a));s.rotation.y=-a+Math.PI/2;sc.add(s);}
+r.render(sc,cam); window.done=true;
+</script></body></html>
