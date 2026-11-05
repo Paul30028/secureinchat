@@ -128,6 +128,9 @@ class GuardianVpnService : VpnService() {
                         return START_NOT_STICKY
                     }
                     isLoading = true
+                    // Wanted from the moment it is asked for: if Android kills us while the list loads,
+                    // that is still a stop the user did not ask for.
+                    ProtectionStateStore.started(applicationContext)
                     val gen = ++startGeneration
                     Thread { startVpnBackground(gen) }.apply { name = "guardian-start" }.start()
                 }

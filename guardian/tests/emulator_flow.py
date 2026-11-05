@@ -989,6 +989,7 @@ def main():
         time.sleep(1)
     if not service_running():
         fail("tile click did not start the VPN (before force-stop)")
+    time.sleep(3)  # a battery saver kills a service that has been running a while, not one just starting
     sh(f"am force-stop {PKG}")
     wait_stopped("force-stop")
     sh("cmd statusbar collapse", check=False)

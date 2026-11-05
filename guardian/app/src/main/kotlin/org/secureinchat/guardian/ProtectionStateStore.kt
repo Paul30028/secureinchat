@@ -16,14 +16,18 @@ object ProtectionStateStore {
     fun wanted(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_WANTED, false)
     fun revoked(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_REVOKED, false)
 
-    /** Protection came up. */
-    fun started(ctx: Context) = prefs(ctx).edit().putBoolean(KEY_WANTED, true).putBoolean(KEY_REVOKED, false).apply()
+    /**
+     * Protection came up. commit(), not apply(): the process can be killed right after (that is the case
+     * this store exists for), and an apply() still waiting to reach the disk is lost with it. Called on
+     * the service's start thread, not the UI thread.
+     */
+    fun started(ctx: Context) { prefs(ctx).edit().putBoolean(KEY_WANTED, true).putBoolean(KEY_REVOKED, false).commit() }
 
     /** The user stopped it (app, notification or tile): nothing to warn about. */
     fun stoppedByUser(ctx: Context) = prefs(ctx).edit().putBoolean(KEY_WANTED, false).putBoolean(KEY_REVOKED, false).apply()
 
     /** Android took the VPN slot away (another VPN app was turned on). The user still wants protection. */
-    fun revokedBySystem(ctx: Context) = prefs(ctx).edit().putBoolean(KEY_REVOKED, true).apply()
+    fun revokedBySystem(ctx: Context) { prefs(ctx).edit().putBoolean(KEY_REVOKED, true).commit() }
 
     private fun prefs(ctx: Context) = ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 }
