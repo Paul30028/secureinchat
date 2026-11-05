@@ -104,6 +104,11 @@ class CheckTab(a: MainActivity) : Tab(a) {
                 } else {
                     lastScan = result
                     renderScan(result)
+                    // Results start below the fold when a safety alert is shown: bring them into view.
+                    scanSummary.post {
+                        val card = scanSummary.parent as? View ?: return@post
+                        (view as? android.widget.ScrollView)?.smoothScrollTo(0, (card.top + scanSummary.top - ui.dp(16)).coerceAtLeast(0))
+                    }
                 }
             }
         }.apply { name = "guardian-app-checkup" }.start()

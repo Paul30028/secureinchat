@@ -461,9 +461,11 @@ def main():
     nodes = find_anywhere(lambda s: re.search(r"\d+ apps checked", s), "app checkup did not finish", timeout=60)
     find_anywhere(lambda s: "No screen lock" in s, "app checkup does not report the missing screen lock")
     find_anywhere(lambda s: "USB debugging is on" in s, "app checkup does not report USB debugging")
+    nodes = find_anywhere(lambda s: "No screen lock" in s, "app checkup results not reachable")
+    snap("app-checkup-results")
     find_anywhere(lambda s: "Which apps have access" in s, "app checkup has no 'Which apps have access' section")
+    snap("app-checkup-by-permission")
     goto("Check")
-    snap("app-checkup")
     print("ok: app checkup finishes and reports the screen lock and USB debugging")
 
     # Screenshots for review (U2): each tab in English; on API 33+ also in Chinese (per-app language)
@@ -480,6 +482,10 @@ def main():
             for en, zh in (("Protect", "保护"), ("Activity", "记录"), ("Check", "检查"), ("Settings", "设置")):
                 goto(zh)
                 snap(f"tab-{en.lower()}-zh")
+            # The checkup results in Chinese (kept in memory across the language change).
+            goto("检查")
+            if find_quiet(lambda s: "这台手机" in s, timeout=20):
+                snap("app-checkup-zh")
             sh("cmd uimode night yes", check=False)
             time.sleep(3)
             launch()
