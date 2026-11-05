@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
+  <title>聊天应用威胁模型 | SecureInChat</title>
+  <meta content="SecureInChat 聊天应用设计上保护什么、防范谁、中继仍能看到什么，以及保护不了什么。" name="description"/>
+  <link href="https://secureinchat.com/zh/messaging/threat-model/" rel="canonical"/>
+  <meta content="website" property="og:type"/>
+  <meta content="SecureInChat" property="og:site_name"/>
+  <meta content="聊天应用威胁模型 | SecureInChat" property="og:title"/>
+  <meta content="SecureInChat 聊天应用设计上保护什么、防范谁、中继仍能看到什么，以及保护不了什么。" property="og:description"/>
+  <meta content="https://secureinchat.com/zh/messaging/threat-model/" property="og:url"/>
+  <link rel="alternate" hreflang="en" href="https://secureinchat.com/messaging/threat-model/"/>
+  <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/messaging/threat-model/"/>
+  <link rel="alternate" hreflang="es" href="https://secureinchat.com/es/messaging/threat-model/"/>
+  <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/messaging/threat-model/"/>
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+   <link href="/assets/css/v4.css" rel="stylesheet"/>
+ </head>
+ <body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+   <div class="container header-inner">
+    <a aria-label="SecureInChat 首页" class="brand" href="/zh/">
+     <svg class="brand-mark" viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg>
+     <span class="brand-copy">
+      <span class="brand-name">
+       SecureInChat
+      </span>
+      <span class="brand-tagline">
+       更实用的工具，更私密的互联网
+      </span>
+     </span>
+    </a>
+    <nav aria-label="主导航" class="desktop-navigation">
+     <a href="/zh/tools/">
+      隐私工具
+     </a>
+     <a href="/blog/">
+      使用指南
+     </a>
+     <a href="/zh/checkup/">
+      隐私体检
+     </a>
+     <a href="/messaging/">
+      加密通信
+     </a>
+     <a href="/mission/">
+      我们的使命
+     </a>
+    </nav>
+    <div class="header-actions">
+     <a class="language-link" href="/tools/" lang="en">
+      EN
+     </a>
+     <a class="language-link" href="/ja/" lang="ja">
+      日本語
+     </a>
+     <a class="button button--small button--primary" href="/zh/checkup/">
+      开始体检
+     </a>
+    </div>
+    <details class="mobile-navigation">
+     <summary aria-label="打开导航菜单">
+      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
+       </path>
+      </svg>
+     </summary>
+     <nav aria-label="移动端导航">
+      <a href="/zh/tools/">
+       隐私工具
+      </a>
+      <a href="/blog/">
+       使用指南
+      </a>
+      <a href="/zh/checkup/">
+       隐私体检
+      </a>
+      <a href="/messaging/">
+       加密通信
+      </a>
+      <a href="/mission/">
+       我们的使命
+      </a>
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </nav>
+    </details>
+   </div>
+  </header>
+  <main class="subpage-main" id="main">
+   <section class="page-intro">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑导航" class="breadcrumbs">
+       <a href="/zh/">首页</a>
+       <span aria-hidden="true" class="breadcrumb-separator">/</span>
+       <span aria-current="page">聊天应用威胁模型</span>
+      </nav>
+     <div class="page-intro-grid">
+      <div class="page-intro-copy">
+       <h1 class="page-title">聊天应用威胁模型</h1>
+       <p class="page-lead">SecureInChat 聊天应用旨在保护什么、防范谁，以及它无法隐藏什么。这些应用仍在开发中，尚未经过独立审计，因此本文描述的是设计，而非经过验证的行为。</p>
+       <div class="article-byline"><span>最后更新：2026-11-05</span><span><a href="/messaging/threat-model/" hreflang="en" lang="en">English</a></span><span><a href="/es/messaging/threat-model/" hreflang="es" lang="es">Español</a></span></div>
+      </div>
+      <figure class="editorial-figure">
+       <img alt="Sender encrypts locally, an intermediate relay forwards encrypted payloads, and recipient decrypts locally" height="340" src="/assets/illustrations/relay-architecture.svg" width="760"/>
+       
+      </figure>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell info-layout">
+     <nav aria-label="本页内容" class="info-nav">
+      <h2>本页内容</h2>
+      <ul>
+       <li><a href="#它旨在保护什么">它旨在保护什么</a></li>
+       <li><a href="#群组密钥如何到达成员手中">群组密钥如何到达成员手中</a></li>
+       <li><a href="#它旨在防范谁">它旨在防范谁</a></li>
+       <li><a href="#中继仍然能看到什么">中继仍然能看到什么</a></li>
+       <li><a href="#它不能防范什么">它不能防范什么</a></li>
+       <li><a href="#对比">对比</a></li>
+       <li><a href="#构建模块">构建模块</a></li>
+      </ul>
+     </nav>
+     <article class="info-content">
+<h2 id="它旨在保护什么">它旨在保护什么</h2>
+    <ul>
+      <li>消息和文件的内容。密钥保留在设备上，中继只转发它无法解密的加密负载。</li>
+      <li>群组名称。在设计上，群组的显示名称只存在于每台设备上，从不发送给中继。</li>
+      <li>群组管理员发布的公告。公告带有来自创建者密钥的签名，每个客户端都会拒绝无法验证的公告。</li>
+    </ul>
+    <h2 id="群组密钥如何到达成员手中">群组密钥如何到达成员手中</h2>
+    <p>成员之间不进行公钥交换。创建群组时，应用会生成一个随机的群组密钥，并将其放入邀请码（链接或二维码）中。任何持有有效邀请码的人都能加入并读取该群组的消息。请把邀请当作房门钥匙：只在当面或通过你信任的渠道分享。</p>
+    <h2 id="它旨在防范谁">它旨在防范谁</h2>
+    <ul>
+      <li>入侵中继的人，或强迫其运营者交出数据的人。中继不持有消息内容，其设计不持久存储消息内容。</li>
+      <li>监视设备与中继之间网络的人。连接使用 TLS，其中承载的负载又在端到端层面再次加密。</li>
+    </ul>
+    <h2 id="中继仍然能看到什么">中继仍然能看到什么</h2>
+    <p>负责路由消息的中继无法避免某些元数据。在当前设计中，它能看到：</p>
+    <ul>
+      <li>每台设备连接时使用的网络地址。中继仅用它来限制重复的连接尝试，并且只保留加盐哈希而非地址本身；托管服务商以及中继前方的任何网络或隧道（目前为 Cloudflare）仍然可以看到该地址。</li>
+      <li>设备何时连接，以及消息何时到达。</li>
+      <li>每个负载的大小，这可能暗示其类型。</li>
+      <li>路由消息所需的标识符，例如某台设备加入了哪个群组。</li>
+    </ul>
+    <p>不保留连接历史是一项设计目标。对于一台路由消息的服务器来说，完全消除这些元数据并不现实。</p>
+    <h2 id="它不能防范什么">它不能防范什么</h2>
+    <ul>
+      <li>被攻破的手机。恶意软件，或拿着你已解锁设备的人，能读取你所能读取的一切。</li>
+      <li>群组内的人。任何收到消息的人都可以复制、截图或转发它。</li>
+      <li>泄露的邀请码。任何拿到它的人都能读取该群组，直到管理员更换密钥，并只向应当留下的人发送新邀请。</li>
+      <li>日后泄露的密钥。每个群组密钥在更换之前用于每一条消息，因此在此期间没有前向保密：如果密钥泄露，该时间段内录下的消息就可以被解密。</li>
+      <li>被移除的成员保留旧消息。移除操作会把群组切换到新密钥，因此之后的消息对他们不可读，但已经送达的消息仍留在他们的设备上。</li>
+      <li>丢失管理员密钥。管理员权限属于持有创建者签名密钥的人，因此丢失它需要经过恢复步骤。</li>
+    </ul>
+    <h2 id="对比">对比</h2>
+    <p>移除成员时更换群组密钥，弱于 Signal 协议或 MLS 所提供的持续密钥棘轮机制。我们不声称具有同等的安全性。</p>
+    <h2 id="构建模块">构建模块</h2>
+    <ul>
+      <li>AES-256-GCM，用于对每条消息进行认证加密。</li>
+      <li>HKDF-SHA-256，用于从邀请中的群组密钥派生每个密钥周期的加密密钥。</li>
+      <li>ECDSA P-256 签名，用于设备登录中继以及管理员公告。</li>
+    </ul>
+    <p>以上仅列出设计中所用的基础算法。它们不是一种认证。更多细节：<a href="/blog/what-a-blind-relay-can-and-cannot-know/" hreflang="en">盲中继能知道什么、不能知道什么</a>。你可以在浏览器中<a href="/messaging/" hreflang="en">检查实时中继连接</a>。</p>
+     </article>
+    </div>
+   </section>
+  </main>
+  <footer class="site-footer">
+   <div class="container">
+    <div class="footer-main">
+     <a aria-label="SecureInChat 首页" class="brand brand--footer" href="/zh/">
+      <svg class="brand-mark" viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg>
+      <span class="brand-copy">
+       <span class="brand-name">
+        SecureInChat
+       </span>
+       <span class="brand-tagline">
+        更实用的工具，更私密的互联网
+       </span>
+      </span>
+     </a>
+     <nav aria-label="页脚导航" class="footer-links">
+      <a href="/mission/">
+       使命
+      </a>
+      <a href="/principles/">
+       原则
+      </a>
+      <a href="/privacy/">
+       隐私
+      </a>
+      <a href="/principles/#labels">
+       状态标签
+      </a>
+      <a href="/sponsor/">
+       赞助与联盟披露
+      </a>
+      <a href="/contact/">
+       联系
+      </a>
+     </nav>
+     <div class="footer-language">
+      <a href="/" lang="en">
+       English
+      </a>
+      <a href="/ja/" lang="ja">
+       日本語
+      </a>
+     </div>
+    </div>
+    <div class="footer-bottom">
+     <p>
+      © 2026 SecureInChat。保留所有权利。
+     </p>
+     <p>
+      重视隐私，明确说明局限。
+     </p>
+    </div>
+   </div>
+  </footer>
+ </body>
+</html>

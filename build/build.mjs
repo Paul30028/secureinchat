@@ -6,6 +6,7 @@ import { PRODUCTS, validateProduct, productBody, shopIndexBody } from './shop.mj
 import { infoPage, articlePage, mapTags, shell as kitShell } from './subshell.mjs';
 import { toolPage, scopeLegacyCss } from './toolshell.mjs';
 import { SECURITY_TXT, SECURITY, TESTING, THREAT_MODEL } from './trust.mjs';
+import { THREAT_MODEL_ZH, THREAT_MODEL_ES } from './threat_model_i18n.mjs';
 import { MISSION, MISSION_SHORT, LAYERS, layerBody, layerTags, protectIndexBody, SITUATIONS, situationBody, startIndexBody } from './protect.mjs';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -737,7 +738,24 @@ for (const p of PRODUCTS) write(`shop/${p.slug}/index.html`, docPage({ slug: `sh
 write('security/index.html', docPage({ slug: 'security', title: 'Report a security problem', desc: 'How to report a security problem in SecureInChat tools, services or the Android app, what is in scope, and the rules for good-faith research.', body: SECURITY, current: 'about' }));
 write('.well-known/security.txt', SECURITY_TXT);
 write('testing/index.html', docPage({ slug: 'testing', title: 'How we test', desc: 'The automated tests every SecureInChat release runs before it goes live, and what they do not prove.', body: TESTING, current: 'about' }));
-write('messaging/threat-model/index.html', docPage({ slug: 'messaging/threat-model', title: 'Messenger threat model', desc: 'What the SecureInChat messenger is designed to protect, from whom, what the relay can still see, and what it cannot protect against.', body: THREAT_MODEL, current: 'messaging' }));
+// R3: the threat model in three languages, linked to each other with hreflang. The Spanish page uses the English
+// header and footer (the site has no Spanish navigation yet); only its content and <html lang> are Spanish.
+const TM_ALT = { en: '/messaging/threat-model/', 'zh-CN': '/zh/messaging/threat-model/', es: '/es/messaging/threat-model/' };
+const tmAlt = Object.entries(TM_ALT).map(([l, u]) => `  <link rel="alternate" hreflang="${l}" href="${SITE}${u}"/>\n`).join('') + `  <link rel="alternate" hreflang="x-default" href="${SITE}${TM_ALT.en}"/>\n`;
+const TM = [
+  { lang: 'en', htmlLang: 'en', canonical: TM_ALT.en, title: 'Messenger threat model', desc: 'What the SecureInChat messenger is designed to protect, from whom, what the relay can still see, and what it cannot protect against.', body: THREAT_MODEL, current: KIT_CURRENT.messaging, crumbs: crumbsFor('messaging/threat-model', 'Messenger threat model') },
+  { lang: 'zh', htmlLang: 'zh-CN', canonical: TM_ALT['zh-CN'], title: '聊天应用威胁模型', desc: 'SecureInChat 聊天应用设计上保护什么、防范谁、中继仍能看到什么，以及保护不了什么。', body: THREAT_MODEL_ZH, current: undefined, crumbs: [['/zh/', '首页'], [TM_ALT['zh-CN'], '聊天应用威胁模型']] },
+  { lang: 'es', htmlLang: 'es', canonical: TM_ALT.es, title: 'Modelo de amenazas de la app de mensajería', desc: 'Qué está diseñada para proteger la app de mensajería de SecureInChat, frente a quién, qué puede ver todavía el relay y qué no puede proteger.', body: THREAT_MODEL_ES, current: undefined, crumbs: [['/', 'Home'], [TM_ALT.es, 'Modelo de amenazas']] },
+];
+const TM_LANGS = [['en', 'English', TM_ALT.en], ['zh-CN', '中文', TM_ALT['zh-CN']], ['es', 'Español', TM_ALT.es]];
+for (const P of TM) {
+  const full = `${P.title} | SecureInChat`;
+  const others = TM_LANGS.filter(([, , u]) => u !== P.canonical).map(([l, n, u]) => `<a href="${u}" hreflang="${l}" lang="${l}">${n}</a>`).join(' · ');
+  P.body = P.body.replace(/(<p class="meta">[^<]*)<\/p>/, `$1 · ${others}</p>`);
+  write(`${P.canonical.slice(1)}index.html`, infoPage({ lang: P.lang, htmlLang: P.htmlLang, title: full, desc: P.desc, canonical: P.canonical, current: P.current,
+    headExtra: headExtra({ canonical: P.canonical, title: full, desc: P.desc }) + tmAlt, crumbs: P.crumbs, body: P.body, figure: figFor('messaging/threat-model') })
+    .replace(/href="\/zh\/blog\/"/g, 'href="/blog/"')); // /zh/blog/ does not exist yet (same as the other Chinese pages)
+}
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT, current: 'about' }));
 
 // /guides/, /refund/ and /terms/ removed 2026-10-22 (owner decision: AI build guides do not belong on this site).
@@ -1098,7 +1116,7 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
+  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/zh/messaging/threat-model/', 0], ['/es/messaging/threat-model/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -1114,7 +1132,7 @@ const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflar
 // so a per-page exception under /tools/* is not possible; it is set for the whole /tools/ section.
 const TOOLS_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
-const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
+const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 

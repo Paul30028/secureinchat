@@ -103,7 +103,7 @@ ${main}
 }
 
 // Info layout (mission, privacy, about, contact, sponsor, principles, protect, start, shop, blog index).
-export function infoPage({ lang = 'en', title, desc, canonical, headExtra, current, crumbs, body, figure, tocLabel }) {
+export function infoPage({ lang = 'en', htmlLang, title, desc, canonical, headExtra, current, crumbs, body, figure, tocLabel }) {
   const { title: h1, byline, lead, rest } = splitBody(mapTags(body));
   const [content, toc] = anchorH2(rest);
   const L = lang === 'zh' ? 'zh' : 'en';
@@ -134,7 +134,7 @@ ${content}
      </article>
     </div>
    </section>`;
-  return shell({ lang, title, desc, canonical, headExtra, current, main });
+  return shell({ lang, htmlLang, title, desc, canonical, headExtra, current, main });
 }
 
 // Article layout (blog posts).

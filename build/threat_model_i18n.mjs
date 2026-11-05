@@ -1,4 +1,3 @@
-=== FILE: build/threat_model_i18n.mjs ===
 export const THREAT_MODEL_ZH = `    <h1>聊天应用威胁模型</h1>
     <p class="meta">最后更新：2026-11-05</p>
     <p class="lead">SecureInChat 聊天应用旨在保护什么、防范谁，以及它无法隐藏什么。这些应用仍在开发中，尚未经过独立审计，因此本文描述的是设计，而非经过验证的行为。</p>
@@ -86,4 +85,3 @@ export const THREAT_MODEL_ES = `    <h1>Modelo de amenazas de la app de mensajer
       <li>Firmas ECDSA P-256 para el inicio de sesión de los dispositivos en el relay y para los anuncios del administrador.</li>
     </ul>
     <p>Estos son los primitivos que se nombran en el diseño. No son una certificación. Más detalles: <a href="/blog/what-a-blind-relay-can-and-cannot-know/" hreflang="en">qué puede y qué no puede saber un relay ciego</a>. Puedes <a href="/messaging/" hreflang="en">comprobar la conexión con el relay en vivo</a> desde tu navegador.</p>`;
-=== END FILE ===
