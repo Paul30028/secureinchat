@@ -33,7 +33,7 @@ BASE = f'http://127.0.0.1:{srv.server_address[1]}'
 WS_OK = """(()=>{class W{constructor(u){this.u=u;setTimeout(()=>{this.onopen&&this.onopen();setTimeout(()=>{this.onmessage&&this.onmessage({data:JSON.stringify({type:'auth_challenge',challenge:'abcdef0123456789abcdef'})})},40)},60)}close(){}}window.WebSocket=W})();"""
 WS_BAD = """(()=>{class W{constructor(u){setTimeout(()=>{this.onerror&&this.onerror();this.onclose&&this.onclose({code:1006})},60)}close(){}}window.WebSocket=W})();"""
 
-PAGES = ['/', '/zh/', '/ja/', '/messaging/', '/start/', '/start/being-tracked/', '/start/account-hacked/', '/start/less-tracking/', '/start/network-down/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/tools/privacy-report/', '/tools/account-checkup/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/link-checker/', '/tools/site-health-check/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/checkup/', '/zh/checkup/', '/tools/phone-checkup/', '/zh/tools/phone-checkup/', '/zh/tools/text-redactor/', '/zh/tools/file-metadata-remover/', '/zh/tools/password-checker/', '/zh/tools/account-checkup/', '/zh/tools/link-checker/', '/zh/tools/browser-fingerprint-test/', '/zh/tools/site-health-check/', '/blog/encrypted-messaging-when-networks-fail/', '/blog/check-app-permissions-android-iphone/', '/blog/ai-apps-permissions-and-data/', '/blog/move-to-encrypted-email/', '/blog/email-aliases-hide-your-address/', '/blog/protect-your-phone-number-sim-swap/', '/blog/privacy-reset-checklist-iphone-android/', '/blog/data-broker-opt-out-guide/', '/shop/', '/messaging/threat-model/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/']
+PAGES = ['/', '/workspace/', '/zh/', '/ja/', '/messaging/', '/start/', '/start/being-tracked/', '/start/account-hacked/', '/start/less-tracking/', '/start/network-down/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/tools/privacy-report/', '/tools/account-checkup/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/link-checker/', '/tools/site-health-check/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/checkup/', '/zh/checkup/', '/tools/phone-checkup/', '/zh/tools/phone-checkup/', '/zh/tools/text-redactor/', '/zh/tools/file-metadata-remover/', '/zh/tools/password-checker/', '/zh/tools/account-checkup/', '/zh/tools/link-checker/', '/zh/tools/browser-fingerprint-test/', '/zh/tools/site-health-check/', '/blog/encrypted-messaging-when-networks-fail/', '/blog/check-app-permissions-android-iphone/', '/blog/ai-apps-permissions-and-data/', '/blog/move-to-encrypted-email/', '/blog/email-aliases-hide-your-address/', '/blog/protect-your-phone-number-sim-swap/', '/blog/privacy-reset-checklist-iphone-android/', '/blog/data-broker-opt-out-guide/', '/shop/', '/messaging/threat-model/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/']
 fails = []
 def check(cond, msg):
     print(('ok   ' if cond else 'FAIL ') + msg)
@@ -120,6 +120,70 @@ with sync_playwright() as p:
     pg3.wait_for_timeout(300)
     check(pg3.inner_text('#ro-cookies') in ('許可', 'ブロック'), '/ja/ readout localized')
     check(pg3.locator('main a[href^="/"]:not([hreflang="en"])').count() == 0, '/ja/ every internal link marked hreflang=en')
+
+    # Workspace: local-only text/link review, keyboard tabs, undo, blocked copy and no storage.
+    ctxw = b.new_context(viewport={'width': 1280, 'height': 800})
+    pw = ctxw.new_page()
+    w_ext, w_viol = [], []
+    pw.on('request', lambda r: w_ext.append(r.url) if not r.url.startswith(BASE) and not r.url.startswith('data:') else None)
+    pw.add_init_script("document.addEventListener('securitypolicyviolation',e=>{(window.__v=window.__v||[]).push(e.violatedDirective+' '+e.blockedURI)})")
+    pw.goto(BASE + '/workspace/', wait_until='load')
+    check(pw.is_visible('#workspace-app'), 'workspace app visible with JS')
+    pw.focus('#tab-text')
+    pw.keyboard.press('ArrowRight')
+    check(pw.is_visible('#panel-link'), 'workspace tabs work with arrow keys')
+    pw.keyboard.press('ArrowLeft')
+    check(pw.is_visible('#panel-text'), 'workspace tabs return with arrow keys')
+    pw.fill('#draft', 'Mail bob@example.com, call +1 415-555-0132, key sk-' + 'a' * 20)
+    pw.click('#inspect-text')
+    check('3 pattern matches' in pw.inner_text('#text-result'), 'workspace text result counts three categories')
+    check(pw.locator('#text-result input[type=checkbox]').count() == 3, 'workspace text result offers category checkboxes')
+    check(pw.is_enabled('#copy-preview') and pw.is_enabled('#use-preview'), 'workspace preview actions enabled')
+    pw.locator('#text-result input[value="phone"]').uncheck()
+    check('[PHONE_1]' not in pw.input_value('#clean-preview'), 'workspace unchecked category is not replaced')
+    pw.locator('#text-result input[value="phone"]').check()
+    pw.click('#use-preview')
+    check(pw.input_value('#draft').startswith('Mail [EMAIL_1]'), 'workspace replaces the draft only after the user chooses')
+    check(pw.is_visible('#undo-bar'), 'workspace offers undo after replacement')
+    pw.click('#undo-draft')
+    check('bob@example.com' in pw.input_value('#draft'), 'workspace undo restores the previous draft')
+    pw.once('dialog', lambda d: d.accept())
+    pw.click('#tab-link')
+    check(pw.is_visible('#panel-link'), 'workspace link mode opens and clears the previous input')
+    pw.fill('#link-url', 'https://example.com/a?utm_source=x&token=secret&id=42')
+    pw.click('#inspect-link')
+    check('utm_source' in pw.inner_text('#link-result'), 'workspace link result lists tracking keys')
+    check('token' in pw.inner_text('#link-result'), 'workspace link result lists session-like keys')
+    check(pw.locator('#copy-clean').is_disabled(), 'workspace blocks quick copy for session-like keys')
+    check('did not contact' in pw.inner_text('#link-result'), 'workspace link result says the host was not contacted')
+    check(not w_ext, f'workspace no external requests {w_ext[:3]}')
+    check(not pw.evaluate('window.__v||[]'), 'workspace no CSP violations')
+    check(pw.evaluate("(()=>{try{return localStorage.length+sessionStorage.length+document.cookie.length}catch(e){return -1}})()") == 0, 'workspace uses no storage or cookies')
+    pw.screenshot(path=f'{OUT}/workspace-desktop.png', full_page=True)
+    ctxw.close()
+
+    # 320 px is the narrowest supported phone width.
+    ctxn = b.new_context(viewport={'width': 320, 'height': 800})
+    pn = ctxn.new_page(); pn.goto(BASE + '/workspace/', wait_until='load')
+    ov = pn.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
+    check(ov <= 0, f'workspace 320px no horizontal overflow ({ov})')
+    check(pn.is_visible('#workspace-app'), 'workspace app visible at 320px')
+    pn.screenshot(path=f'{OUT}/workspace-320.png', full_page=True)
+    ctxn.close()
+
+    # No-JS fallback is readable and no broken controls are shown.
+    ctxj = b.new_context(java_script_enabled=False, viewport={'width': 1280, 'height': 800})
+    pj = ctxj.new_page(); pj.goto(BASE + '/workspace/', wait_until='load')
+    check(pj.is_visible('#nojs-fallback'), 'workspace no-JS fallback visible')
+    check(not pj.is_visible('#workspace-app'), 'workspace app hidden without JS')
+    check('pattern matching' in pj.inner_text('#nojs-fallback').lower(), 'workspace no-JS fallback explains pattern matching')
+    ctxj.close()
+
+    # Dark mode follows the system preference without a toggle or stored choice.
+    ctxd = b.new_context(viewport={'width': 1280, 'height': 800}, color_scheme='dark')
+    pd = ctxd.new_page(); pd.goto(BASE + '/workspace/', wait_until='load')
+    check(pd.evaluate("getComputedStyle(document.body).backgroundColor") == 'rgb(17, 19, 14)', 'workspace dark mode background')
+    ctxd.close()
     b.close()
 
 # Internal links: every href="/..." in every built page must resolve to a file, a page, a redirect or the tools API.

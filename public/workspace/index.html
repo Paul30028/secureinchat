@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Private workspace: check text and links before you send | SecureInChat</title>
+<meta name="description" content="Inspect text or a link in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review. No upload, no storage, no automatic send or open.">
+<meta name="theme-color" content="#F0EFE7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11130E" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/workspace/assets/workspace.css">
+  <link rel="canonical" href="https://secureinchat.com/workspace/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="Private workspace: check text and links before you send | SecureInChat" />
+  <meta property="og:description" content="Inspect text or a link in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review. No upload, no storage, no automatic send or open." />
+  <meta property="og:url" content="https://secureinchat.com/workspace/" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"SecureInChat private workspace","url":"https://secureinchat.com/workspace/","applicationCategory":"SecurityApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript.","isAccessibleForFree":true,"description":"Inspect text or a link in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review. No upload, no storage, no automatic send or open.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Local text pattern review with category-level replacement preview","Local link structure review with tracking-parameter and session-like key flags","No upload, no account, no storage"]}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="top-strip"><span>SECUREINCHAT / PRIVATE WORKSPACE</span><span>YOUR INPUT STAYS IN THIS TAB</span></div>
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="/" aria-label="SecureInChat home"><span class="brand-mark" aria-hidden="true"><span>+</span></span>SecureInChat</a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="/workspace/" aria-current="page">Workspace</a>
+      <a href="/tools/">Tools</a>
+      <a href="/blog/">Learn</a>
+      <a href="/about/">About</a>
+    </nav>
+    <a class="locale-link" href="/zh/" hreflang="zh-CN" lang="zh-CN">中文首页</a>
+  </div>
+</header>
+<main id="main">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">A LOCAL CHECK BEFORE YOU SHARE</p>
+        <h1 id="hero-title">Check it once more,<br><span class="accent">before you send.</span></h1>
+        <p class="hero-lead">Paste text or a link. This page inspects it in your browser, shows what it found and what it can miss, and waits for you to decide.</p>
+        <ul class="promises">
+          <li>No upload and no account</li>
+          <li>No automatic send, open or copy</li>
+          <li>Pattern matching, with its limits written next to the result</li>
+        </ul>
+      </div>
+      <div class="hero-workspace">
+        <div id="workspace-app" class="workbench" hidden>
+          <div class="workbench-top"><span>SECUREINCHAT / PRIVATE WORKSPACE</span><span class="workbench-status">ON-DEVICE SESSION</span></div>
+          <div class="workbench-body">
+            <h2 id="workspace-title" class="sr-only">Private workspace</h2>
+            <div class="workbench-label"><span>01 / CHOOSE WHAT YOU ARE ABOUT TO SHARE</span><span>NO ACCOUNT</span></div>
+            <div class="tabs" role="tablist" aria-label="Content type">
+              <button class="tab is-active" id="tab-text" type="button" role="tab" aria-selected="true" aria-controls="panel-text" tabindex="0" data-mode="text">Text</button>
+              <button class="tab" id="tab-link" type="button" role="tab" aria-selected="false" aria-controls="panel-link" tabindex="-1" data-mode="link">Link</button>
+            </div>
+            <div class="context">
+              <label for="recipient">Preparing to send to</label>
+              <select id="recipient" autocomplete="off">
+                <option value="ai">AI assistant</option>
+                <option value="work">Work / email</option>
+                <option value="public">Public post</option>
+                <option value="known">Someone I know</option>
+              </select>
+            </div>
+            <p id="recipient-note" class="recipient-note" aria-live="polite">For an AI tool: after you send it, that service's retention and training settings apply. This page cannot check them.</p>
+            <div id="panel-text" role="tabpanel" aria-labelledby="tab-text" tabindex="0">
+              <label class="field-label" for="draft">Text to inspect</label>
+              <p class="hint" id="draft-hint">Paste a draft. It stays in this tab. Nothing is checked until you press Inspect locally.</p>
+              <textarea class="field" id="draft" spellcheck="false" autocomplete="off" aria-describedby="draft-hint" placeholder="Paste an email, a log or a message here."></textarea>
+              <div class="actions">
+                <button class="btn btn--primary" id="inspect-text" type="button">Inspect locally</button>
+                <button class="btn" id="clear-session" type="button">Clear session</button>
+              </div>
+              <div class="undo-bar" id="undo-bar" hidden><span>Draft replaced with the cleaned preview.</span><button class="btn btn--small" id="undo-draft" type="button">Undo last replacement</button></div>
+            </div>
+            <div id="panel-link" role="tabpanel" aria-labelledby="tab-link" tabindex="0" hidden>
+              <label class="field-label" for="link-url">Link to inspect</label>
+              <p class="hint" id="link-hint">Paste a web address. This page parses it. It does not open it, contact the site, or follow redirects.</p>
+              <input class="field" id="link-url" type="text" inputmode="url" autocomplete="off" spellcheck="false" aria-describedby="link-hint" placeholder="https://example.com/page?utm_source=newsletter">
+              <div class="actions">
+                <button class="btn btn--primary" id="inspect-link" type="button">Inspect locally</button>
+                <button class="btn" id="clear-session-link" type="button">Clear session</button>
+              </div>
+            </div>
+            <p class="status" id="status" role="status" aria-live="polite" aria-atomic="true" data-tone="info">Ready. Nothing is uploaded.</p>
+            <div class="results">
+              <div class="result" id="text-result" role="region" aria-label="Text inspection result" hidden></div>
+              <div class="result" id="link-result" role="region" aria-label="Link inspection result" hidden></div>
+            </div>
+          </div>
+          <div class="workbench-foot"><span>VOLATILE SESSION / CLEARED WHEN YOU LEAVE</span><span>NO STORAGE</span></div>
+        </div>
+        <noscript>
+          <section class="nojs" id="nojs-fallback" aria-labelledby="nojs-title">
+            <h2 id="nojs-title">The workspace needs JavaScript</h2>
+            <p>This page inspects text and links inside your browser, so it cannot run with JavaScript off. The method and limits are still readable here and in the section below.</p>
+            <h3>Text mode checks common formats</h3>
+            <p>Email addresses, phone-like numbers, Chinese resident ID numbers and US SSN-like formats, common access keys and tokens, payment card numbers that pass the Luhn check, and IPv4 addresses. It is pattern matching, not semantic review. Names, addresses, context and unusual formats can be missed.</p>
+            <h3>Link mode reads the address only</h3>
+            <p>Scheme, host, path and query parameters, with common tracking keys and key names that often carry session or identity data. It never opens or contacts the link and cannot tell whether the destination is safe.</p>
+            <p>Without JavaScript you can read the <a href="/principles/">principles and data-flow notes</a>, or use the older single-purpose pages: <a href="/tools/text-redactor/">text redactor</a> and <a href="/tools/link-checker/">link checker</a>. They also need JavaScript to process input.</p>
+          </section>
+        </noscript>
+      </div>
+    </div>
+  </section>
+  <section class="limits" aria-labelledby="limits-title">
+    <div class="wrap">
+      <p class="eyebrow">METHOD AND LIMITS</p>
+      <h2 id="limits-title">What this page can and cannot tell you.</h2>
+      <div class="limits-grid">
+        <article class="limit-card">
+          <h3>Text mode: pattern matching only</h3>
+          <p>It recognises a small set of common formats. It is not a semantic review and does not understand the context of a sentence.</p>
+          <ul>
+            <li>Email addresses.</li>
+            <li>Phone-like numbers, including Chinese mainland mobile formats.</li>
+            <li>Chinese resident ID numbers with a valid birth date and check character, and US SSN-like formats.</li>
+            <li>Common access-key, token, JWT and private-key formats.</li>
+            <li>Payment card numbers that pass the Luhn check.</li>
+            <li>IPv4 addresses.</li>
+          </ul>
+          <p>Names, street addresses, account numbers in other formats, context and secrets in other formats are not detected.</p>
+        </article>
+        <article class="limit-card">
+          <h3>Link mode: structure, not a safety verdict</h3>
+          <p>It reads the scheme, host, path and query without contacting the host. It marks common tracking parameters and key names that often carry session or identity data.</p>
+          <ul>
+            <li>It does not open the link, follow redirects, or make a request to the destination.</li>
+            <li>It does not know what a query value contains or whether a site is trustworthy.</li>
+            <li>A link with no tracking parameters can still be malicious. A short or clean-looking address is not a safety signal.</li>
+            <li>Quick copy is withheld when the query has session or identity-like key names.</li>
+          </ul>
+        </article>
+      </div>
+      <div class="boundary">
+        <h3>Where the data goes</h3>
+        <p>The workspace runs in this tab. The page code makes no network request after it loads and uses no localStorage, sessionStorage or cookies. Your text or link is cleared when you switch modes, press Clear session, or leave the page. Copy and replacement happen only when you press the button. The page loads its own CSS, JavaScript and, when present, self-hosted font files from this site.</p>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="site-footer">
+  <div class="wrap site-footer__inner">
+    <p>© 2026 SecureInChat. A private workspace before you send.</p>
+    <nav aria-label="Footer">
+      <a href="/privacy/">Privacy</a>
+      <a href="/principles/">Principles</a>
+      <a href="/about/">About</a>
+      <a href="/contact/">Contact</a>
+    </nav>
+  </div>
+</footer>
+<script src="/workspace/assets/text-review.js" defer></script>
+<script src="/workspace/assets/link-review.js" defer></script>
+<script src="/workspace/assets/workspace.js" defer></script>
+</body>
+</html>

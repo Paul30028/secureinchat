@@ -633,8 +633,10 @@ ${FUNDING_CHANNELS.map(([name, url]) => `      <li><a href="${url}" rel="noopene
 // HTML page re-skins the whole site without rewriting each page's markup.
 const V4_LINK = '<link href="/assets/css/v4.css" rel="stylesheet"/>';
 const ICO_LINK = '<link rel="icon" href="/favicon.ico" sizes="32x32">';
+// The workspace has its own 2026-11 design system; do not add the legacy v4 re-skin.
+const V4_EXEMPT = new Set(['workspace/index.html']);
 function write(rel, content) {
-  if (rel.endsWith('.html') && typeof content === 'string' && content.includes('</head>') && !content.includes(V4_LINK)) {
+  if (rel.endsWith('.html') && typeof content === 'string' && content.includes('</head>') && !content.includes(V4_LINK) && !V4_EXEMPT.has(rel)) {
     content = content.replace('</head>', `  ${V4_LINK}\n </head>`);
   }
   // Pixel-fitted 16/32 px bitmaps for tabs and bookmarks; browsers that support SVG icons use the SVG after it.
@@ -1067,6 +1069,50 @@ write('blog/index.html', blogIndex());
 
 write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 76"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg>`);
 
+// Private workspace (Phase 1): a new route with its own source, shell and design system. Old tool
+// pages and old URLs are left exactly as they are.
+{
+  const WS_DIR = path.join(ROOT, 'src/workspace');
+  const WS_FONT_DIR = path.join(WS_DIR, 'fonts');
+  const WS_FONTS = ['dm-sans-regular.woff2', 'dm-sans-medium.woff2', 'dm-sans-bold.woff2', 'dm-mono-regular.woff2', 'dm-mono-medium.woff2'];
+  // DM Sans / DM Mono are self-hosted only. They are not in the repository yet, so the page keeps
+  // the system stack until these files are added; @font-face in workspace.css points at /fonts/.
+  const hasWorkspaceFonts = WS_FONTS.every((f) => fs.existsSync(path.join(WS_FONT_DIR, f)));
+  const wsTitle = 'Private workspace: check text and links before you send | SecureInChat';
+  const wsDesc = 'Inspect text or a link in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review. No upload, no storage, no automatic send or open.';
+  const wsJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'SecureInChat private workspace',
+    url: SITE + '/workspace/',
+    applicationCategory: 'SecurityApplication',
+    operatingSystem: 'Any',
+    browserRequirements: 'Requires JavaScript.',
+    isAccessibleForFree: true,
+    description: wsDesc,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    featureList: ['Local text pattern review with category-level replacement preview', 'Local link structure review with tracking-parameter and session-like key flags', 'No upload, no account, no storage'],
+  };
+  const wsMeta = `  <link rel="canonical" href="${SITE}/workspace/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SecureInChat" />
+  <meta property="og:title" content="${esc(wsTitle)}" />
+  <meta property="og:description" content="${esc(wsDesc)}" />
+  <meta property="og:url" content="${SITE}/workspace/" />
+  <meta property="og:locale" content="en_US" />
+  <meta name="twitter:card" content="summary" />
+  <script type="application/ld+json">${JSON.stringify(wsJsonLd)}</script>`;
+  let wsHtml = fs.readFileSync(path.join(WS_DIR, 'workspace.html'), 'utf8').replace('<!-- WORKSPACE_META -->', wsMeta);
+  if (hasWorkspaceFonts) {
+    wsHtml = wsHtml.replace('<html lang="en">', '<html lang="en" class="has-dm">');
+    for (const f of WS_FONTS) write('fonts/' + f, fs.readFileSync(path.join(WS_FONT_DIR, f)));
+  }
+  write('workspace/index.html', wsHtml);
+  for (const f of ['workspace.css', 'workspace.js', 'text-review.js', 'link-review.js']) {
+    write('workspace/assets/' + f, fs.readFileSync(path.join(WS_DIR, f)));
+  }
+}
+
 // fonts + script
 const fonts = [
 ];
@@ -1116,7 +1162,7 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
 
 // sitemap, robots, headers
 const urls = [
-  ['/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/zh/messaging/threat-model/', 0], ['/es/messaging/threat-model/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
+  ['/', 1], ['/workspace/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/zh/messaging/threat-model/', 0], ['/es/messaging/threat-model/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
@@ -1131,10 +1177,17 @@ const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflar
 // compilation only; JavaScript eval stays blocked. Cloudflare joins repeated CSP headers rather than replacing them,
 // so a per-page exception under /tools/* is not possible; it is set for the whole /tools/ section.
 const TOOLS_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+// The workspace is local-only: no analytics, no fetch/XHR/WebSocket, no inline script or style.
+const WORKSPACE_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
 const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
+
+# Workspace: self-hosted assets only. connect-src 'none' blocks fetch, XHR and WebSocket.
+/workspace/*
+  Content-Security-Policy: ${WORKSPACE_CSP}
+${common}
 
 # Tools: no analytics, only the lookups the tests need.
 /tools/*
@@ -1176,11 +1229,15 @@ ${common}
 
 /assets/fonts/*
   Cache-Control: public, max-age=31536000, immutable
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
 /tools/fonts/*
   Cache-Control: public, max-age=31536000, immutable
 /assets/*
   Cache-Control: public, max-age=0, must-revalidate
 /tools/assets/*
+  Cache-Control: public, max-age=0, must-revalidate
+/workspace/assets/*
   Cache-Control: public, max-age=0, must-revalidate
 `);
 
