@@ -172,6 +172,47 @@ with sync_playwright() as p:
     pn.screenshot(path=f'{OUT}/workspace-320.png', full_page=True)
     ctxn.close()
 
+    # 320 px is the narrowest supported phone width. Check the global navigation there too:
+    # four items, the current section marked, and the mobile disclosure operable from the keyboard.
+    NAV_CASES = {
+        '/': ['Workspace', 'Tools', 'Learn', 'About'],
+        '/zh/': ['工作台', '工具', '学习', '关于'],
+        '/ja/': ['ワークスペース', 'ツール', '学ぶ', '概要'],
+        '/tools/': ['Workspace', 'Tools', 'Learn', 'About'],
+        '/zh/tools/': ['工作台', '工具', '学习', '关于'],
+        '/blog/': ['Workspace', 'Tools', 'Learn', 'About'],
+        '/about/': ['Workspace', 'Tools', 'Learn', 'About'],
+        '/es/messaging/threat-model/': ['Espacio de trabajo', 'Herramientas', 'Aprender', 'Acerca de'],
+        '/workspace/': ['Workspace', 'Tools', 'Learn', 'About'],
+    }
+    for nav_path, nav_labels in NAV_CASES.items():
+        ctxn = b.new_context(viewport={'width': 320, 'height': 800})
+        pn = ctxn.new_page(); pn.goto(BASE + nav_path, wait_until='load')
+        nav = pn.locator('nav.desktop-navigation, nav.site-nav, nav.nav').first
+        got = [t.strip() for t in nav.locator('a').all_text_contents()]
+        check(got == nav_labels, f'{nav_path} [nav 320] four localized items {got}')
+        ov = pn.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
+        check(ov <= 0, f'{nav_path} [nav 320] no horizontal overflow ({ov})')
+        if nav_path in ('/tools/', '/zh/tools/', '/blog/', '/about/', '/workspace/'):
+            cur = nav.locator('a[aria-current="page"]')
+            check(cur.count() == 1, f'{nav_path} [nav 320] current item marked ({cur.count()})')
+        details = pn.locator('details.mobile-navigation')
+        if details.count():
+            summary = details.locator('summary')
+            summary.focus()
+            check(pn.evaluate("document.activeElement && document.activeElement.tagName === 'SUMMARY'"),
+                  f'{nav_path} [nav 320] menu summary receives keyboard focus')
+            pn.keyboard.press('Enter')
+            check(details.evaluate('(e) => e.open'), f'{nav_path} [nav 320] menu opens with Enter')
+            mobile = [t.strip() for t in details.locator('nav a').all_inner_texts()]
+            check(mobile[:4] == nav_labels, f'{nav_path} [nav 320] mobile menu starts with the four items {mobile[:6]}')
+            ov = pn.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
+            check(ov <= 0, f'{nav_path} [nav 320] open menu does not overflow ({ov})')
+            details.locator('nav a').first.focus()
+            check(pn.evaluate("document.activeElement && document.activeElement.tagName === 'A'"),
+                  f'{nav_path} [nav 320] mobile menu links are keyboard reachable')
+        ctxn.close()
+
     # No-JS fallback is readable and no broken controls are shown.
     ctxj = b.new_context(java_script_enabled=False, viewport={'width': 1280, 'height': 800})
     pj = ctxj.new_page(); pj.goto(BASE + '/workspace/', wait_until='load')

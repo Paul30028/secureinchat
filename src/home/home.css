@@ -407,7 +407,9 @@ p:last-child { margin-bottom: 0; }
 }
 
 @media (max-width: 24rem) {
-  .header-actions .button { padding-inline: .65rem; }
+  /* At 320px the brand, the header action and the menu button do not fit together.
+     The same action remains in the page body; the four-item menu stays reachable here. */
+  .header-actions .button { display: none; }
   .brand-name { font-size: .98rem; }
   .hero-annotation { width: 70vw; }
   .hero-badge span:last-child { font-size: .6875rem; }

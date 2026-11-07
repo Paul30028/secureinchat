@@ -5,6 +5,7 @@ import { POSTS } from './posts.mjs';
 import { PRODUCTS, validateProduct, productBody, shopIndexBody } from './shop.mjs';
 import { infoPage, articlePage, mapTags, shell as kitShell } from './subshell.mjs';
 import { toolPage, scopeLegacyCss } from './toolshell.mjs';
+import { applyPrimaryNav } from './nav.mjs';
 import { SECURITY_TXT, SECURITY, TESTING, THREAT_MODEL } from './trust.mjs';
 import { THREAT_MODEL_ZH, THREAT_MODEL_ES } from './threat_model_i18n.mjs';
 import { MISSION, MISSION_SHORT, LAYERS, layerBody, layerTags, protectIndexBody, SITUATIONS, situationBody, startIndexBody } from './protect.mjs';
@@ -106,7 +107,7 @@ ${alternateHead(canonical)}  <link rel="stylesheet" href="/assets/site.css" />
 ${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ''}`;
 }
 
-const NAV = [['/protect/', 'Protect', 'protect'], ['/tools/', 'Tools', 'tools'], ['/blog/', 'Guides', 'blog'], ['/messaging/', 'Messaging', 'messaging'], ['/about/', 'About', 'about']];
+const NAV = [['/workspace/', 'Workspace', 'workspace'], ['/tools/', 'Tools', 'tools'], ['/blog/', 'Learn', 'learn'], ['/about/', 'About', 'about']];
 function header(current) {
   return `<header class="top">
     <div class="wrap top__in">
@@ -281,7 +282,7 @@ const LOCAL = {
     notice: '这是中文概览页。下面链接的指南和工具界面目前只有英文版，链接旁标有“英文”。',
     h1: '看清你暴露了什么，然后关掉它。',
     sub: '你的手机、浏览器、账号和 AI 工具泄露的信息比你想象的多。我们告诉你具体是哪些，并带你一层一层把它关掉。',
-    cta1: '从哪里开始', cta2: '免费检查一下',
+    cta1: '打开工作台', cta2: '免费检查一下',
     promise: ['不用 Cookie', '不用注册账号', '检查在你的设备上运行', '没实测的步骤会标出来'],
     roH: '本页能读到你的哪些信息', roP: '任何网站都能在不询问你的情况下读到这些。',
     ro: ['时区', '语言', '屏幕', '设备', '处理器核心数', '触摸屏', 'Cookie', '请勿追踪（DNT）'],
@@ -314,7 +315,7 @@ const LOCAL = {
     notice: 'これは日本語の概要ページです。リンク先のガイドとツール画面は現在英語のみで、リンクの横に「英語」と表示しています。',
     h1: '何が漏れているかを知り、それを止める。',
     sub: 'スマートフォン、ブラウザ、アカウント、AI ツールは、思っている以上に情報を漏らしています。何が漏れているかを具体的に示し、一層ずつ止める手順を案内します。',
-    cta1: 'どこから始めるか', cta2: '無料でチェック',
+    cta1: 'ワークスペースを開く', cta2: '無料でチェック',
     promise: ['Cookie なし', 'アカウント不要', 'チェックは端末内で実行', '未検証の手順は明記'],
     roH: 'このページが読み取れるあなたの情報', roP: 'どのウェブサイトも、許可なくこれらを読み取れます。',
     ro: ['タイムゾーン', '言語', '画面', 'デバイス', 'CPU コア数', 'タッチスクリーン', 'Cookie', 'トラッキング拒否（DNT）'],
@@ -364,7 +365,7 @@ function localPage(code) {
         <p class="notice">${esc(t.notice)}</p>
         <h1>${esc(t.h1)}</h1>
         <p class="hero__sub">${esc(t.sub)}</p>
-        <div class="hero__cta">${enA('/start/', `${esc(t.cta1)}（${t.en}）`, 'btn btn--p')}${enA('/tools/', `${esc(t.cta2)}（${t.en}）`, 'btn btn--s')}</div>
+        <div class="hero__cta">${enA('/workspace/', `${esc(t.cta1)}（${t.en}）`, 'btn btn--p')}${enA('/tools/', `${esc(t.cta2)}（${t.en}）`, 'btn btn--s')}</div>
         <ul class="hero__promise">${t.promise.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       </div>
       <aside class="readout" aria-labelledby="readout-h">
@@ -665,6 +666,8 @@ function write(rel, content) {
   if (rel.endsWith('.html') && typeof content === 'string' && !content.includes(ICO_LINK)) {
     content = content.replace(/<link[^>]*favicon\.svg[^>]*>/, (m) => `${ICO_LINK}\n  ${m}`);
   }
+  // Every generated page gets the same four-item global navigation, localized from one table.
+  if (rel.endsWith('.html') && typeof content === 'string') content = applyPrimaryNav(content, rel);
   const f = path.join(PUB, rel);
   fs.mkdirSync(path.dirname(f), { recursive: true });
   fs.writeFileSync(f, content);
