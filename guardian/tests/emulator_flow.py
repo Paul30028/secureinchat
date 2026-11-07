@@ -300,13 +300,13 @@ def main():
     # Guardian's NULL_IP answer; the "before" check above showed a real address without Guardian.
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{BLOCKED} should resolve to 0.0.0.0 through Guardian, got {addr}: {out}")
-    nodes = wait_ui(lambda s: f"BLOCK {BLOCKED}" in s, f"log does not show BLOCK {BLOCKED}")
+    nodes = find_anywhere(lambda s: f"BLOCK {BLOCKED}" in s, f"log does not show BLOCK {BLOCKED}"); scroll_top()
     print(f"ok: {BLOCKED} blocked (0.0.0.0) and logged")
     addr, out = resolve(BLOCKED_HAGEZI)
     print(f"guardian: {BLOCKED_HAGEZI} -> {addr}")
     if addr not in ("0.0.0.0", "127.0.0.1"):
         fail(f"{BLOCKED_HAGEZI} (HaGeZi snapshot) should be blocked, got {addr}: {out}")
-    wait_ui(lambda s: f"BLOCK {BLOCKED_HAGEZI}" in s, f"log does not show BLOCK {BLOCKED_HAGEZI}")
+    find_anywhere(lambda s: f"BLOCK {BLOCKED_HAGEZI}" in s, f"log does not show BLOCK {BLOCKED_HAGEZI}"); scroll_top()
     print(f"ok: {BLOCKED_HAGEZI} blocked from the bundled snapshot")
 
     # 4. Allowed domain is forwarded to the network's resolver
@@ -383,7 +383,7 @@ def main():
     print(f"guardian paused: {probe3} -> {addr}")
     if addr is None or addr in ("0.0.0.0", "127.0.0.1", "::"):
         fail(f"{probe3} should resolve for real while paused, got {addr}: {out}")
-    wait_ui(lambda s: f"PAUSE {probe3}" in s, f"log does not show PAUSE {probe3}")
+    find_anywhere(lambda s: f"PAUSE {probe3}" in s, f"log does not show PAUSE {probe3}"); scroll_top()
     nodes = dump()
     b = button(nodes, "Resume")
     if not b:
