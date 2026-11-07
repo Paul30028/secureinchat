@@ -51,16 +51,18 @@
               <button class="tab" id="tab-link" type="button" role="tab" aria-selected="false" aria-controls="panel-link" tabindex="-1" data-mode="link">Link</button>
               <button class="tab" id="tab-image" type="button" role="tab" aria-selected="false" aria-controls="panel-image" tabindex="-1" data-mode="image">Image</button>
             </div>
-            <div class="context">
-              <label for="recipient">Preparing to send to</label>
-              <select id="recipient" autocomplete="off">
-                <option value="ai">AI assistant</option>
-                <option value="work">Work / email</option>
-                <option value="public">Public post</option>
-                <option value="known">Someone I know</option>
-              </select>
+            <fieldset class="context" id="recipient">
+              <legend>Preparing to send to <span class="context-optional">(optional)</span></legend>
+              <div class="recipient-options">
+                <label class="recipient-option"><input type="radio" name="recipient" value="ai"> <span>AI assistant</span></label>
+                <label class="recipient-option"><input type="radio" name="recipient" value="work"> <span>Work / email</span></label>
+                <label class="recipient-option"><input type="radio" name="recipient" value="public"> <span>Public post</span></label>
+                <label class="recipient-option"><input type="radio" name="recipient" value="known"> <span>Someone I know</span></label>
+              </div>
+            </fieldset>
+            <div id="recipient-note" class="recipient-note" aria-live="polite">
+              <p>No recipient selected. The local check works the same way. Choose one to see what to review for that situation.</p>
             </div>
-            <p id="recipient-note" class="recipient-note" aria-live="polite">For an AI tool: after you send it, that service's retention and training settings apply. This page cannot check them.</p>
             <div id="panel-text" role="tabpanel" aria-labelledby="tab-text" tabindex="0">
               <label class="field-label" for="draft">Text to inspect</label>
               <p class="hint" id="draft-hint">Paste a draft. It stays in this tab. Nothing is checked until you press Inspect locally.</p>
@@ -107,6 +109,15 @@
               <div class="result" id="link-result" role="region" aria-label="Link inspection result" hidden></div>
               <div class="result" id="image-result" role="region" aria-label="Image re-encode result" hidden></div>
             </div>
+            <section class="receipt" id="receipt-panel" aria-labelledby="receipt-title" hidden>
+              <h3 id="receipt-title">Local processing receipt</h3>
+              <p class="receipt-note">Unsigned and not proof: this is only your own record of a local check. It never contains your text, link, file name or matched values.</p>
+              <p class="receipt-format">JSON / aggregate counts and method only</p>
+              <div class="actions actions--tight">
+                <button class="btn" id="download-receipt" type="button">Download receipt (JSON)</button>
+              </div>
+              <p class="hint" id="receipt-status" role="status" aria-live="polite"></p>
+            </section>
           </div>
           <div class="workbench-foot"><span>VOLATILE SESSION / CLEARED WHEN YOU LEAVE</span><span>NO STORAGE</span></div>
         </div>
@@ -187,6 +198,7 @@
 <script src="/workspace/assets/text-review.js" defer></script>
 <script src="/workspace/assets/link-review.js" defer></script>
 <script src="/workspace/assets/image-review.js" defer></script>
+<script src="/workspace/assets/receipt.js" defer></script>
 <script src="/workspace/assets/workspace.js" defer></script>
 </body>
 </html>

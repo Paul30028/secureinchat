@@ -1108,7 +1108,7 @@ write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 
     for (const f of WS_FONTS) write('fonts/' + f, fs.readFileSync(path.join(WS_FONT_DIR, f)));
   }
   write('workspace/index.html', wsHtml);
-  for (const f of ['workspace.css', 'workspace.js', 'text-review.js', 'link-review.js', 'image-review.js']) {
+  for (const f of ['workspace.css', 'workspace.js', 'text-review.js', 'link-review.js', 'image-review.js', 'receipt.js']) {
     write('workspace/assets/' + f, fs.readFileSync(path.join(WS_DIR, f)));
   }
 }

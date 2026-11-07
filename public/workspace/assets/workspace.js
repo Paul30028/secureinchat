@@ -4,6 +4,8 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var imageToken = 0;
+  var receiptUrl = '';
+  var receiptTimer = 0;
   function emptyImage() {
     return {
       name: '', format: '', beforeSize: 0, beforeWidth: 0, beforeHeight: 0,
@@ -14,14 +16,8 @@
     mode: 'text',
     text: { source: '', analysis: null, selected: new Set(), preview: '', undo: [] },
     link: { raw: '', analysis: null },
-    image: emptyImage()
-  };
-
-  var RECIPIENT_NOTES = {
-    ai: 'For an AI tool: after you send it, that service\'s retention and training settings apply. This page cannot check them.',
-    work: 'For work or email: colleagues and mail systems may keep a copy. Remove details about other people unless they are needed.',
-    public: 'For a public post: assume copied text can persist and be indexed after you delete the post.',
-    known: 'For direct sharing: the other person gets their own copy. Include only what they need.'
+    image: emptyImage(),
+    receipt: null
   };
 
   function make(tag, className, text) {
@@ -52,11 +48,90 @@
     return !!($('draft').value.trim() || $('link-url').value.trim() || state.image.name || state.image.busy);
   }
 
+  function selectedRecipient() {
+    var input = document.querySelector('input[name="recipient"]:checked');
+    return input ? input.value : '';
+  }
+
+  // The recipient only changes this local reminder. It does not change the check, score the
+  // content or produce a safe/unsafe verdict.
   function updateRecipientNote() {
-    var select = $('recipient');
     var note = $('recipient-note');
-    if (!select || !note) return;
-    note.textContent = RECIPIENT_NOTES[select.value] || RECIPIENT_NOTES.ai;
+    if (!note) return;
+    clearNode(note);
+    var info = window.WSReceipt ? window.WSReceipt.recipientById(selectedRecipient()) : null;
+    if (!info) {
+      note.appendChild(make('p', null, 'No recipient selected. The local check works the same way. Choose one to see what to review for that situation.'));
+      return;
+    }
+    note.appendChild(make('p', null, 'For ' + info.label + ', review these points. They are reminders, not a safety score.'));
+    var list = make('ul', 'recipient-points');
+    info.tips.forEach(function (tip) { list.appendChild(make('li', null, tip)); });
+    note.appendChild(list);
+  }
+
+  function revokeReceiptUrl() {
+    if (receiptTimer) {
+      window.clearTimeout(receiptTimer);
+      receiptTimer = 0;
+    }
+    if (receiptUrl) {
+      try { URL.revokeObjectURL(receiptUrl); } catch (e) { /* nothing to release */ }
+      receiptUrl = '';
+    }
+  }
+
+  function clearReceipt() {
+    state.receipt = null;
+    revokeReceiptUrl();
+    var panel = $('receipt-panel');
+    if (panel) panel.hidden = true;
+    var receiptStatus = $('receipt-status');
+    if (receiptStatus) receiptStatus.textContent = '';
+  }
+
+  // Builds a receipt from aggregate counts. Source text, URL values and file names are never
+  // passed in, and the receipt builder ignores any extra fields.
+  function offerReceipt(checkType, summary) {
+    if (!window.WSReceipt) return;
+    var receipt = window.WSReceipt.build({
+      checkType: checkType,
+      recipient: selectedRecipient(),
+      summary: summary,
+      now: new Date()
+    });
+    if (!receipt) {
+      clearReceipt();
+      return;
+    }
+    state.receipt = receipt;
+    var panel = $('receipt-panel');
+    if (panel) panel.hidden = false;
+    var receiptStatus = $('receipt-status');
+    if (receiptStatus) receiptStatus.textContent = 'Receipt ready. It is unsigned and not proof. Nothing is downloaded until you press the button.';
+  }
+
+  function downloadReceipt() {
+    if (!state.receipt || !window.WSReceipt) return;
+    var text = window.WSReceipt.toJSON(state.receipt);
+    if (!text) return;
+    try {
+      var blob = new Blob([text], { type: 'application/json' });
+      revokeReceiptUrl();
+      receiptUrl = URL.createObjectURL(blob);
+      var link = document.createElement('a');
+      link.href = receiptUrl;
+      link.download = 'secureinchat-local-receipt.json';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      receiptTimer = window.setTimeout(revokeReceiptUrl, 1000);
+      setStatus('Receipt download requested. It contains counts and method only, not your input.', 'info');
+    } catch (e) {
+      revokeReceiptUrl();
+      setStatus('The browser blocked the receipt download. Nothing was uploaded. Try again or use another browser.', 'alert');
+    }
   }
 
   function updateUndoBar() {
@@ -115,6 +190,7 @@
     resetImage();
     hideTextResult();
     hideLinkResult();
+    clearReceipt();
     updateUndoBar();
   }
 
@@ -136,6 +212,7 @@
       resetImage();
       hideTextResult();
       hideLinkResult();
+      clearReceipt();
     } catch (e) { /* the page is leaving */ }
   }
 
@@ -308,6 +385,7 @@
   }
 
   function inspectText() {
+    clearReceipt();
     var source = $('draft').value;
     if (!source.trim()) {
       setStatus('Paste some text first. Nothing was inspected.', 'warn');
@@ -329,6 +407,9 @@
     setStatus(analysis.total
       ? 'Inspected locally: ' + analysis.total + ' ' + plural(analysis.total, 'match', 'matches') + ' in ' + types + ' ' + plural(types, 'category', 'categories') + '. Nothing was uploaded. Choose categories, then preview.'
       : 'No matching formats found. This is not a clean bill of health: names, addresses, context and unusual formats can be missed.', analysis.total ? 'info' : 'warn');
+    var counts = {};
+    analysis.categories.forEach(function (category) { counts[category.id] = category.count; });
+    offerReceipt('text', { counts: counts });
   }
 
   function usePreviewInDraft() {
@@ -340,6 +421,7 @@
     state.text.source = replacement;
     state.text.preview = '';
     hideTextResult();
+    clearReceipt();
     updateUndoBar();
     setStatus('Draft replaced with the cleaned preview. Review it before you copy or send. Undo is available.', 'info');
     $('draft').focus();
@@ -353,6 +435,7 @@
     state.text.source = previous.value;
     state.text.preview = '';
     hideTextResult();
+    clearReceipt();
     updateUndoBar();
     setStatus('Previous draft restored. Nothing from the replacement was kept.', 'info');
     $('draft').focus();
@@ -507,6 +590,7 @@
   }
 
   function inspectLink() {
+    clearReceipt();
     var raw = $('link-url').value;
     if (!raw.trim()) {
       setStatus('Paste a link first. Nothing was contacted.', 'warn');
@@ -525,6 +609,12 @@
     if (analysis.sensitiveKeys.length) parts.push(analysis.sensitiveKeys.length + ' ' + plural(analysis.sensitiveKeys.length, 'key', 'keys') + ' to review');
     if (analysis.fragmentSensitive) parts.push('a fragment that needs review');
     setStatus('Parsed locally: ' + analysis.host + '. ' + (parts.length ? parts.join('; ') + '. ' : '') + 'Nothing was contacted.', (analysis.sensitiveKeys.length || analysis.fragmentSensitive) ? 'warn' : 'info');
+    offerReceipt('link', {
+      queryParameters: analysis.queryCount,
+      trackingParameters: analysis.trackingKeys.length,
+      reviewParameters: analysis.sensitiveKeys.length,
+      fragmentReview: analysis.fragmentSensitive ? 1 : 0
+    });
   }
 
   function imageStale(token) {
@@ -542,6 +632,7 @@
   }
 
   function imageFailure(message) {
+    clearReceipt();
     imageToken++;
     releaseImageOutput();
     state.image = emptyImage();
@@ -643,6 +734,7 @@
       return;
     }
     var token = ++imageToken;
+    clearReceipt();
     releaseImageOutput();
     state.image = emptyImage();
     state.image.name = file.name || 'image';
@@ -751,6 +843,10 @@
       };
       renderImageResult();
       setStatus('Re-encoded locally: ' + width + ' × ' + height + ', ' + I.formatBytes(info.size) + ' → ' + I.formatBytes(blob.size) + '. Nothing was uploaded. The copy is downloaded only when you press the button.', 'info');
+      offerReceipt('image', {
+        before: { width: width, height: height, bytes: info.size },
+        after: { width: width, height: height, bytes: blob.size }
+      });
     } catch (e) {
       if (!imageStale(token)) imageFailure('The browser could not finish the local re-encode. Nothing was uploaded or downloaded. Try a smaller image or another browser.');
     } finally {
@@ -811,6 +907,7 @@
     }
     if ($('clear-session')) $('clear-session').addEventListener('click', clearSession);
     if ($('undo-draft')) $('undo-draft').addEventListener('click', undoDraft);
+    if ($('download-receipt')) $('download-receipt').addEventListener('click', downloadReceipt);
   }
 
   function bindLink() {
