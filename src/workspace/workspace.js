@@ -3,10 +3,18 @@
   'use strict';
 
   var $ = function (id) { return document.getElementById(id); };
+  var imageToken = 0;
+  function emptyImage() {
+    return {
+      name: '', format: '', beforeSize: 0, beforeWidth: 0, beforeHeight: 0,
+      afterSize: 0, width: 0, height: 0, outputUrl: '', outputName: '', busy: false
+    };
+  }
   var state = {
     mode: 'text',
     text: { source: '', analysis: null, selected: new Set(), preview: '', undo: [] },
-    link: { raw: '', analysis: null }
+    link: { raw: '', analysis: null },
+    image: emptyImage()
   };
 
   var RECIPIENT_NOTES = {
@@ -41,7 +49,7 @@
   function plural(n, one, many) { return n === 1 ? one : many; }
 
   function hasContent() {
-    return !!($('draft').value.trim() || $('link-url').value.trim());
+    return !!($('draft').value.trim() || $('link-url').value.trim() || state.image.name || state.image.busy);
   }
 
   function updateRecipientNote() {
@@ -71,12 +79,40 @@
     clearNode(host);
   }
 
+  function hideImageResult() {
+    var host = $('image-result');
+    if (!host) return;
+    host.hidden = true;
+    clearNode(host);
+  }
+
+  function releaseImageOutput() {
+    if (state.image.outputUrl) {
+      try { URL.revokeObjectURL(state.image.outputUrl); } catch (e) { /* nothing to release */ }
+    }
+    state.image.outputUrl = '';
+    state.image.outputName = '';
+    state.image.afterSize = 0;
+  }
+
+  function resetImage() {
+    imageToken++;
+    releaseImageOutput();
+    state.image = emptyImage();
+    var input = $('image-file');
+    if (input) input.value = '';
+    var zone = $('image-drop');
+    if (zone) zone.classList.remove('is-dragover');
+    hideImageResult();
+  }
+
   function clearContent() {
     var draft = $('draft'), link = $('link-url');
     if (draft) draft.value = '';
     if (link) link.value = '';
     state.text = { source: '', analysis: null, selected: new Set(), preview: '', undo: [] };
     state.link = { raw: '', analysis: null };
+    resetImage();
     hideTextResult();
     hideLinkResult();
     updateUndoBar();
@@ -86,7 +122,8 @@
     clearContent();
     setStatus('Session cleared. Nothing was kept.', 'info');
     if (state.mode === 'text' && $('draft')) $('draft').focus();
-    else if ($('link-url')) $('link-url').focus();
+    else if (state.mode === 'link' && $('link-url')) $('link-url').focus();
+    else if (state.mode === 'image' && $('image-file')) $('image-file').focus();
   }
 
   function clearForExit() {
@@ -96,22 +133,23 @@
       if (link) link.value = '';
       state.text = { source: '', analysis: null, selected: new Set(), preview: '', undo: [] };
       state.link = { raw: '', analysis: null };
+      resetImage();
       hideTextResult();
       hideLinkResult();
     } catch (e) { /* the page is leaving */ }
   }
 
   function activateMode(next, initial) {
-    if (next !== 'text' && next !== 'link') return false;
+    if (next !== 'text' && next !== 'link' && next !== 'image') return false;
     if (!initial && next !== state.mode) {
-      if (hasContent() && !window.confirm('Switching modes clears the current text or link. Continue?')) return false;
+      if (hasContent() && !window.confirm('Switching modes clears the current text, link or image. Continue?')) return false;
       clearContent();
-      setStatus(next === 'text'
-        ? 'Text mode. The previous input was cleared. Nothing is uploaded.'
-        : 'Link mode. The previous input was cleared. Nothing is opened or contacted.', 'info');
+      if (next === 'text') setStatus('Text mode. The previous input was cleared. Nothing is uploaded.', 'info');
+      else if (next === 'link') setStatus('Link mode. The previous input was cleared. Nothing is opened or contacted.', 'info');
+      else setStatus('Image mode. The previous input was cleared. Nothing is uploaded or downloaded.', 'info');
     }
     state.mode = next;
-    var tabs = [$('tab-text'), $('tab-link')];
+    var tabs = [$('tab-text'), $('tab-link'), $('tab-image')];
     for (var i = 0; i < tabs.length; i++) {
       var tab = tabs[i];
       if (!tab) continue;
@@ -122,11 +160,12 @@
     }
     setHidden($('panel-text'), state.mode !== 'text');
     setHidden($('panel-link'), state.mode !== 'link');
+    setHidden($('panel-image'), state.mode !== 'image');
     return true;
   }
 
   function bindTabs() {
-    var tabs = [$('tab-text'), $('tab-link')];
+    var tabs = [$('tab-text'), $('tab-link'), $('tab-image')];
     for (var i = 0; i < tabs.length; i++) {
       if (!tabs[i]) continue;
       tabs[i].addEventListener('click', function () { activateMode(this.getAttribute('data-mode')); });
@@ -488,6 +527,278 @@
     setStatus('Parsed locally: ' + analysis.host + '. ' + (parts.length ? parts.join('; ') + '. ' : '') + 'Nothing was contacted.', (analysis.sensitiveKeys.length || analysis.fragmentSensitive) ? 'warn' : 'info');
   }
 
+  function imageStale(token) {
+    return token !== imageToken;
+  }
+
+  function readBlob(blob) {
+    if (blob.arrayBuffer) return blob.arrayBuffer();
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(reader.result); };
+      reader.onerror = function () { reject(reader.error || new Error('read failed')); };
+      reader.readAsArrayBuffer(blob);
+    });
+  }
+
+  function imageFailure(message) {
+    imageToken++;
+    releaseImageOutput();
+    state.image = emptyImage();
+    var input = $('image-file');
+    if (input) input.value = '';
+    hideImageResult();
+    var host = $('image-result');
+    if (host) {
+      var title = make('h3', 'result-title', 'Image not processed');
+      title.id = 'image-result-title';
+      host.appendChild(title);
+      host.appendChild(make('p', 'result-note', message));
+      host.appendChild(make('p', 'result-note', 'Nothing was uploaded or downloaded. Choose one JPEG, PNG or WebP file and try again.'));
+      host.hidden = false;
+    }
+    setStatus(message, 'alert');
+  }
+
+  function imageFact(label, value) {
+    var row = make('div', 'image-fact');
+    row.appendChild(make('dt', null, label));
+    row.appendChild(make('dd', null, value));
+    return row;
+  }
+
+  function imageCard(title, info) {
+    var card = make('section', 'image-card');
+    card.appendChild(make('h4', null, title));
+    var facts = make('dl', 'image-facts');
+    facts.appendChild(imageFact('Dimensions', info.width.toLocaleString('en-US') + ' × ' + info.height.toLocaleString('en-US') + ' px'));
+    facts.appendChild(imageFact('File size', info.size));
+    facts.appendChild(imageFact('Format', info.format));
+    card.appendChild(facts);
+    return card;
+  }
+
+  function downloadImage() {
+    if (!state.image.outputUrl) return;
+    var name = state.image.outputName || 'image-cleaned';
+    var link = document.createElement('a');
+    link.href = state.image.outputUrl;
+    link.download = name;
+    link.rel = 'noopener';
+    try {
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setStatus('Download requested: ' + name + '. The copy stays in this tab until you clear the session or leave.', 'info');
+    } catch (e) {
+      link.remove();
+      setStatus('The browser blocked the download. Nothing was uploaded. Try again or use another browser.', 'alert');
+    }
+  }
+
+  function renderImageResult() {
+    var host = $('image-result');
+    if (!host) return;
+    clearNode(host);
+    host.hidden = false;
+    var image = state.image;
+    var formats = window.WSImage.FORMATS;
+    var label = (formats[image.format] && formats[image.format].label) || image.format.toUpperCase();
+
+    var title = make('h3', 'result-title', 'Re-encoded copy ready');
+    title.id = 'image-result-title';
+    host.appendChild(title);
+    host.appendChild(make('p', 'result-note', 'Downloading creates a new copy with a new name. The original file on your device is not changed.'));
+
+    var grid = make('div', 'image-grid');
+    grid.appendChild(imageCard('Before', {
+      width: image.beforeWidth, height: image.beforeHeight,
+      size: window.WSImage.formatBytes(image.beforeSize), format: label
+    }));
+    grid.appendChild(imageCard('After', {
+      width: image.width, height: image.height,
+      size: window.WSImage.formatBytes(image.afterSize), format: label
+    }));
+    host.appendChild(grid);
+
+    var caveat = make('div', 'callout');
+    caveat.appendChild(make('strong', null, 'Check the picture before you share it'));
+    caveat.appendChild(make('p', null, 'Re-encoding drops most metadata chunks, but it does not prove every block is gone. Quality, colour and transparency can change, and an animated file becomes one still frame. It does not inspect faces, house numbers, screens or anything else visible in the picture.'));
+    host.appendChild(caveat);
+
+    var actions = make('div', 'actions actions--tight');
+    var button = make('button', 'btn btn--primary', 'Download ' + image.outputName);
+    button.type = 'button';
+    button.id = 'download-image';
+    button.setAttribute('aria-describedby', 'image-result-title');
+    button.addEventListener('click', downloadImage);
+    actions.appendChild(button);
+    host.appendChild(actions);
+  }
+
+  async function processImage(file) {
+    var I = window.WSImage;
+    if (!I) {
+      imageFailure('The image checks did not load, so this file was not processed. Reload the page and try again.');
+      return;
+    }
+    var token = ++imageToken;
+    releaseImageOutput();
+    state.image = emptyImage();
+    state.image.name = file.name || 'image';
+    state.image.busy = true;
+    hideImageResult();
+    setStatus('Checking the file type, size and pixel limit locally…', 'info');
+
+    // Refuse unsupported or oversized files before reading all their bytes.
+    var pre = I.inspect({ type: file.type, size: file.size, bytes: new Uint8Array(0) });
+    if (!pre.ok && pre.error !== 'empty') {
+      imageFailure(pre.message);
+      return;
+    }
+
+    var bytes;
+    try {
+      var buffer = await readBlob(file);
+      if (imageStale(token)) return;
+      bytes = new Uint8Array(buffer);
+    } catch (e) {
+      if (!imageStale(token)) imageFailure('The browser could not read this file locally. Nothing was uploaded. Try choosing it again.');
+      return;
+    }
+
+    if (imageStale(token)) return;
+    var info = I.inspect({ type: file.type, size: file.size, bytes: bytes });
+    if (!info.ok) {
+      imageFailure(info.message);
+      return;
+    }
+    // The input no longer needs to hold the original file; the bytes are read.
+    var input = $('image-file');
+    if (input) input.value = '';
+
+    if (typeof window.createImageBitmap !== 'function') {
+      imageFailure('This browser cannot decode images locally (createImageBitmap is unavailable). Nothing was uploaded. Use a current browser or the file-metadata tool.');
+      return;
+    }
+
+    setStatus('Decoding the image in this tab…', 'info');
+    var bitmap;
+    try {
+      bitmap = await window.createImageBitmap(new Blob([bytes], { type: info.mime }));
+    } catch (e) {
+      if (!imageStale(token)) imageFailure('The browser could not decode this ' + info.label + ' file. It may be damaged or use a variant this browser does not support. Nothing was uploaded.');
+      return;
+    }
+    if (imageStale(token)) {
+      if (bitmap && bitmap.close) bitmap.close();
+      return;
+    }
+
+    try {
+      var width = Number(bitmap.width) || 0;
+      var height = Number(bitmap.height) || 0;
+      if (!width || !height || I.tooManyPixels(width, height)) {
+        imageFailure('The decoded image is ' + width.toLocaleString('en-US') + ' × ' + height.toLocaleString('en-US') + ' pixels (' + (width * height).toLocaleString('en-US') + ' total). The limit is 40,000,000 pixels. It was not processed.');
+        return;
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      var context = canvas.getContext('2d');
+      if (!context) throw new Error('canvas');
+      context.drawImage(bitmap, 0, 0);
+
+      var options = I.encodeOptions(info.format);
+      var blob = await new Promise(function (resolve) {
+        try { canvas.toBlob(resolve, options.type, options.quality === null ? undefined : options.quality); }
+        catch (e) { resolve(null); }
+      });
+      if (imageStale(token)) return;
+      if (!blob || !blob.size) {
+        imageFailure('The browser could not encode the new ' + info.label + ' copy. Nothing was uploaded or downloaded. The file may be too large for this device.');
+        return;
+      }
+
+      var head = new Uint8Array(await readBlob(blob.slice(0, 16)));
+      if (imageStale(token)) return;
+      var outMagic = I.sniff(head);
+      if (!outMagic.ok || outMagic.format !== info.format) {
+        imageFailure('This browser did not produce a real ' + info.label + ' file, so the copy was discarded. Nothing was uploaded or downloaded. Try another browser.');
+        return;
+      }
+
+      var outputUrl;
+      try {
+        outputUrl = URL.createObjectURL(blob);
+      } catch (e) {
+        imageFailure('The browser could not prepare the new copy in memory. Nothing was uploaded. Try again.');
+        return;
+      }
+
+      state.image = {
+        name: file.name || 'image',
+        format: info.format,
+        beforeSize: info.size,
+        beforeWidth: width,
+        beforeHeight: height,
+        afterSize: blob.size,
+        width: width,
+        height: height,
+        outputUrl: outputUrl,
+        outputName: I.outputName(info.format),
+        busy: false
+      };
+      renderImageResult();
+      setStatus('Re-encoded locally: ' + width + ' × ' + height + ', ' + I.formatBytes(info.size) + ' → ' + I.formatBytes(blob.size) + '. Nothing was uploaded. The copy is downloaded only when you press the button.', 'info');
+    } catch (e) {
+      if (!imageStale(token)) imageFailure('The browser could not finish the local re-encode. Nothing was uploaded or downloaded. Try a smaller image or another browser.');
+    } finally {
+      if (bitmap && bitmap.close) bitmap.close();
+    }
+  }
+
+  function onImageChange(event) {
+    var files = event.target.files;
+    if (!files || !files.length) return;
+    if (files.length > 1) {
+      imageFailure('Choose one image at a time. Nothing was processed.');
+      return;
+    }
+    processImage(files[0]);
+  }
+
+  function bindImage() {
+    if ($('image-file')) $('image-file').addEventListener('change', onImageChange);
+    if ($('clear-session-image')) $('clear-session-image').addEventListener('click', clearSession);
+    var zone = $('image-drop');
+    if (!zone) return;
+    ['dragenter', 'dragover'].forEach(function (name) {
+      zone.addEventListener(name, function (event) {
+        event.preventDefault();
+        zone.classList.add('is-dragover');
+      });
+    });
+    ['dragleave', 'dragend', 'drop'].forEach(function (name) {
+      zone.addEventListener(name, function (event) {
+        event.preventDefault();
+        zone.classList.remove('is-dragover');
+      });
+    });
+    zone.addEventListener('drop', function (event) {
+      var files = event.dataTransfer && event.dataTransfer.files;
+      if (!files || !files.length) {
+        setStatus('The drop did not contain a file. Use the file field to choose a JPEG, PNG or WebP image.', 'warn');
+        return;
+      }
+      if (files.length > 1) {
+        imageFailure('Choose one image at a time. Nothing was processed.');
+        return;
+      }
+      processImage(files[0]);
+    });
+  }
+
   function bindText() {
     if ($('inspect-text')) $('inspect-text').addEventListener('click', inspectText);
     if ($('draft')) {
@@ -521,6 +832,7 @@
     bindTabs();
     bindText();
     bindLink();
+    bindImage();
     if ($('recipient')) {
       $('recipient').addEventListener('change', updateRecipientNote);
     }
@@ -529,6 +841,7 @@
     try {
       var params = new URLSearchParams(window.location.search);
       if (params.get('mode') === 'link') mode = 'link';
+      else if (params.get('mode') === 'image') mode = 'image';
     } catch (e) { /* keep text */ }
     activateMode(mode, true);
     window.addEventListener('pagehide', clearForExit);

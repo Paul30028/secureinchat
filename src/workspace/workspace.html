@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Private workspace: check text and links before you send | SecureInChat</title>
-<meta name="description" content="Inspect text or a link in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review. No upload, no storage, no automatic send or open.">
+<title>Private workspace: check text, links and images before you send | SecureInChat</title>
+<meta name="description" content="Inspect text, a link or an image in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review; local JPEG, PNG and WebP re-encoding. No upload, no storage, no automatic send, open or download.">
 <meta name="theme-color" content="#F0EFE7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#11130E" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -33,10 +33,10 @@
       <div class="hero-copy">
         <p class="eyebrow">A LOCAL CHECK BEFORE YOU SHARE</p>
         <h1 id="hero-title">Check it once more,<br><span class="accent">before you send.</span></h1>
-        <p class="hero-lead">Paste text or a link. This page inspects it in your browser, shows what it found and what it can miss, and waits for you to decide.</p>
+        <p class="hero-lead">Paste text or a link, or choose an image. This page inspects it in your browser, shows what it found and what it can miss, and waits for you to decide.</p>
         <ul class="promises">
           <li>No upload and no account</li>
-          <li>No automatic send, open or copy</li>
+          <li>No automatic send, open, copy or download</li>
           <li>Pattern matching, with its limits written next to the result</li>
         </ul>
       </div>
@@ -49,6 +49,7 @@
             <div class="tabs" role="tablist" aria-label="Content type">
               <button class="tab is-active" id="tab-text" type="button" role="tab" aria-selected="true" aria-controls="panel-text" tabindex="0" data-mode="text">Text</button>
               <button class="tab" id="tab-link" type="button" role="tab" aria-selected="false" aria-controls="panel-link" tabindex="-1" data-mode="link">Link</button>
+              <button class="tab" id="tab-image" type="button" role="tab" aria-selected="false" aria-controls="panel-image" tabindex="-1" data-mode="image">Image</button>
             </div>
             <div class="context">
               <label for="recipient">Preparing to send to</label>
@@ -79,10 +80,32 @@
                 <button class="btn" id="clear-session-link" type="button">Clear session</button>
               </div>
             </div>
+            <div id="panel-image" role="tabpanel" aria-labelledby="tab-image" tabindex="0" hidden>
+              <label class="field-label" for="image-file">Image to re-encode</label>
+              <p class="hint" id="image-hint">Choose one JPEG, PNG or WebP image. The file is read in this tab; it is not uploaded or stored.</p>
+              <div class="file-zone" id="image-drop">
+                <input class="field file-input" id="image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="image-hint image-limits image-caveat">
+                <p class="drop-note" id="image-drop-note">You can also drop one file here. The file field always works with a keyboard. Processing starts as soon as you choose a file.</p>
+              </div>
+              <p class="hint" id="image-limits">Limits: 25 MB and 40,000,000 pixels. The page checks the MIME type and the first bytes before decoding. A copy is made only in memory; you download it with a button.</p>
+              <div class="image-caveat" id="image-caveat">
+                <strong>What re-encoding does and does not do</strong>
+                <ul>
+                  <li>It writes a new file and drops most metadata chunks, including common EXIF and text chunks. It does not verify that every metadata block is gone.</li>
+                  <li>It can change quality, colour and transparency. JPEG and WebP are encoded at quality 0.92; PNG is lossless but its bytes and colour profile can still change.</li>
+                  <li>Animated PNG or WebP files become a single still frame.</li>
+                  <li>It does not inspect what is visible in the picture: faces, house numbers, screens or other private details remain in the image.</li>
+                </ul>
+              </div>
+              <div class="actions">
+                <button class="btn" id="clear-session-image" type="button">Clear session</button>
+              </div>
+            </div>
             <p class="status" id="status" role="status" aria-live="polite" aria-atomic="true" data-tone="info">Ready. Nothing is uploaded.</p>
             <div class="results">
               <div class="result" id="text-result" role="region" aria-label="Text inspection result" hidden></div>
               <div class="result" id="link-result" role="region" aria-label="Link inspection result" hidden></div>
+              <div class="result" id="image-result" role="region" aria-label="Image re-encode result" hidden></div>
             </div>
           </div>
           <div class="workbench-foot"><span>VOLATILE SESSION / CLEARED WHEN YOU LEAVE</span><span>NO STORAGE</span></div>
@@ -90,11 +113,13 @@
         <noscript>
           <section class="nojs" id="nojs-fallback" aria-labelledby="nojs-title">
             <h2 id="nojs-title">The workspace needs JavaScript</h2>
-            <p>This page inspects text and links inside your browser, so it cannot run with JavaScript off. The method and limits are still readable here and in the section below.</p>
+            <p>This page inspects text, links and images inside your browser, so it cannot run with JavaScript off. The method and limits are still readable here and in the section below.</p>
             <h3>Text mode checks common formats</h3>
             <p>Email addresses, phone-like numbers, Chinese resident ID numbers and US SSN-like formats, common access keys and tokens, payment card numbers that pass the Luhn check, and IPv4 addresses. It is pattern matching, not semantic review. Names, addresses, context and unusual formats can be missed.</p>
             <h3>Link mode reads the address only</h3>
             <p>Scheme, host, path and query parameters, with common tracking keys and key names that often carry session or identity data. It never opens or contacts the link and cannot tell whether the destination is safe.</p>
+            <h3>Image mode re-encodes a local copy</h3>
+            <p>JPEG, PNG and WebP only, up to 25 MB and 40,000,000 pixels. It checks the MIME type and the first bytes, decodes the image in the tab and encodes a copy. The download happens only when you press its button. It does not inspect faces, house numbers or anything else visible in the picture.</p>
             <p>Without JavaScript you can read the <a href="/principles/">principles and data-flow notes</a>, or use the older single-purpose pages: <a href="/tools/text-redactor/">text redactor</a> and <a href="/tools/link-checker/">link checker</a>. They also need JavaScript to process input.</p>
           </section>
         </noscript>
@@ -129,10 +154,21 @@
             <li>Quick copy is withheld when the query has session or identity-like key names.</li>
           </ul>
         </article>
+        <article class="limit-card">
+          <h3>Image mode: re-encoding, not a privacy check</h3>
+          <p>It reads one JPEG, PNG or WebP file up to 25 MB and 40,000,000 pixels, checks the reported MIME type and the first bytes, then decodes and re-encodes the picture in this tab.</p>
+          <ul>
+            <li>Re-encoding drops most metadata chunks, including common EXIF and text chunks, but it does not prove that every metadata block is gone.</li>
+            <li>Quality, colour and transparency can change. JPEG and WebP are encoded at quality 0.92; PNG is lossless and has no quality setting.</li>
+            <li>Animated PNG or WebP files become a single still frame.</li>
+            <li>It does not detect faces, house numbers, screens, documents or anything else visible in the picture.</li>
+            <li>The copy is downloaded only after you press its button. The page does not open, upload or send the image.</li>
+          </ul>
+        </article>
       </div>
       <div class="boundary">
         <h3>Where the data goes</h3>
-        <p>The workspace runs in this tab. The page code makes no network request after it loads and uses no localStorage, sessionStorage or cookies. Your text or link is cleared when you switch modes, press Clear session, or leave the page. Copy and replacement happen only when you press the button. The page loads its own CSS, JavaScript and, when present, self-hosted font files from this site.</p>
+        <p>The workspace runs in this tab. The page code makes no network request after it loads and uses no localStorage, sessionStorage or cookies. Your text, link or image state is cleared when you switch modes, press Clear session, or leave the page. Copy, replacement and download happen only when you press the relevant button. The in-memory download URL is revoked on the same clear, mode switch or exit; a file you have already downloaded is outside this page. The page loads its own CSS, JavaScript and, when present, self-hosted font files from this site.</p>
       </div>
     </div>
   </section>
@@ -150,6 +186,7 @@
 </footer>
 <script src="/workspace/assets/text-review.js" defer></script>
 <script src="/workspace/assets/link-review.js" defer></script>
+<script src="/workspace/assets/image-review.js" defer></script>
 <script src="/workspace/assets/workspace.js" defer></script>
 </body>
 </html>
