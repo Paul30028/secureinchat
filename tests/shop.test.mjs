@@ -95,7 +95,9 @@ const sitemap = fs.readFileSync(path.join(PUB, 'sitemap.xml'), 'utf8');
 const headers = fs.readFileSync(path.join(PUB, '_headers'), 'utf8');
 t('built /shop/ is noindex while empty', () => assert.ok(shop.includes('<meta name="robots" content="noindex" />')));
 t('/shop/ is not in the navigation or linked from home', () => {
-  assert.ok(!/<nav class="nav"[\s\S]*?\/shop\/[\s\S]*?<\/nav>/.test(home));
+  const header = /<header\b[\s\S]*?<\/header>/.exec(home);
+  assert.ok(header, 'home page has no header');
+  assert.ok(!header[0].includes('/shop/'));
   assert.ok(!home.includes('href="/shop/"'));
 });
 t('/shop/ is not in the sitemap while empty', () => assert.ok(!sitemap.includes('/shop/')));

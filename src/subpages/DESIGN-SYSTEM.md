@@ -1,110 +1,128 @@
-# SecureInChat — Secondary & Tertiary Page Design System v2
+# SecureInChat — Shared Design System v3
 
-## Design intent
+This document replaces the v2 palette and the old "home.css first" rule. The canonical source is
+`src/tokens/tokens.css`, built to `/assets/css/tokens.css`. The workspace and the global header and
+footer consume those tokens today; page batches move over one class of pages at a time.
 
-The homepage establishes the brand. Below it, pages should feel like the same publication, but their layouts should respond to the job of the page instead of repeating the homepage's cards.
+## Scope and migration status
 
-- **Level 2 pages orient.** A visitor should understand the section, see the available paths, and choose one next step.
-- **Level 3 tool pages let people act.** The working interface is the main content; data handling and limitations sit close to it, not buried in the footer.
-- **Level 3 articles help people understand.** Reading width, hierarchy, contents, sources and related actions take precedence over promotional blocks.
-- **Principles and architecture pages make the invisible legible.** Data paths and trust boundaries need diagrams and exact explanations, not broad security claims.
+- **Shared now:** design tokens, the base layer (`/assets/css/base.css`, used by the workspace), and
+  the global header/footer (`/assets/css/shell.css`).
+- **Still on the old stylesheets:** home, tools, guides, blog, checkup and information-page content.
+  Their body markup and content styles are intentionally unchanged until their own migration step.
+- Do not add a second palette or a page-specific font stack. New or migrated components use the
+  semantic tokens below.
+- The old light-only brand colours (`#F7F5EF`, `#173D32`, `#C6A15B`, etc.) are no longer the target
+  system. They remain only inside old page styles during migration.
 
-## Brand tokens
+## Product and privacy boundaries
 
-Use the existing production `/assets/css/home.css` first, then load `/assets/css/subpages.css`. Do not introduce a separate brand palette or a new typography system for the subpages.
+- No tracking, analytics, telemetry, third-party fonts, CDNs or remote images.
+- Every font, stylesheet, script and SVG is served from `/assets/` on this origin.
+- Status labels and copy describe verified implementation, not design intent.
+- No account, automatic upload, automatic send or automatic open is implied by the shell.
+- URLs, APIs, tool behaviour, legal text and language limits stay unchanged during visual migration.
 
-- Warm ivory: `#F7F5EF`
-- Card surface: `#FFFFFF` / editorial surface `#FBFAF6`
-- Forest green: `#173D32`
-- Body text: `#20312B`
-- Muted text: `#4F5D56`
-- Soft sage: `#E7E9E2`
-- Decorative wheat gold: `#C6A15B` (not body text on light backgrounds)
-- Readable deep gold: `#79551B`
-- Dark footer: `#0B241F`
-- Dark-surface text: `#F7F5EF` and secondary `#D1DDD6`
+## Tokens
 
-Atkinson Hyperlegible Next remains the body font. Noto Serif is reserved for editorial headlines and a few section titles. All font files remain self-hosted. Body copy should generally stay at 16px; status labels and metadata must not fall below 12px.
+Colour is semantic, never named after a hue. Dark is the default mapping; light is available through
+`<html data-theme="light">` or, while there is no theme switch, the OS `prefers-color-scheme`.
 
-## Level 2 page patterns
+| Token | Dark | Light | Use |
+|---|---|---|---|
+| `--sc-canvas` | `#11130E` | `#F0EFE7` | Page background |
+| `--sc-surface` | `#1B1E18` | `#FAF9F2` | Cards, forms, surfaces |
+| `--sc-surface-raised` | `#242820` | `#E7E7DC` | Floating menus, emphasis |
+| `--sc-surface-subtle` | `#23261F` | `#F4F2E9` | Quiet panels and secondary blocks |
+| `--sc-ink` | `#F0EFE7` | `#171912` | Primary text |
+| `--sc-ink-muted` | `#C3C7BA` | `#45483F` | Secondary text |
+| `--sc-ink-subtle` | `#A2A69A` | `#55594F` | Metadata and notes |
+| `--sc-accent` | `#D8F361` | `#52651A` | Primary action, emphasis |
+| `--sc-accent-ink` | `#171912` | `#FFFFFF` | Text on the accent |
+| `--sc-link` | `#D8F361` | `#3F5311` | Body links (always underlined) |
+| `--sc-rule` | `#35392F` | `#C6C7B9` | Dividers and borders |
+| `--sc-focus` | `#D8F361` | `#34470A` | Focus ring |
+| `--sc-danger` | `#FF806B` | `#A93222` | Error text and icons |
+| `--sc-danger-surface` | `#321D19` | `#FCE9E4` | Error background |
+| `--sc-success` | `#B8DB73` | `#355719` | Success text and icons |
+| `--sc-success-surface` | `#20291B` | `#EAF2DC` | Success background |
 
-### Section landing — tools, checkup and guide library
+The global shell is always deep. It uses fixed shell tokens (`--sc-shell-*`) derived from the dark
+mapping, so the header and footer do not turn pale when a content page is in light mode.
 
-1. Breadcrumbs are small and quiet; they help orientation but are not the page's headline.
-2. The hero uses one large serif title, a short plain-language lead, and one primary action (a secondary action is optional).
-3. The illustration or side note should answer a real question. It is not a decorative photo slot.
-4. Main content is organised by intent and priority. Use one featured tool or guide where it helps people begin; do not force every item into a same-size card grid.
-5. Status labels use approved wording such as `Local processing`, `Network lookup`, `Tested`, `Documented`, `Untested` and `Limitations`. Never use labels as decoration.
-6. Related guidance follows the primary choices instead of competing with them.
+Contrast targets: 4.5:1 for normal text and controls, 3:1 for large text and non-text UI boundaries.
+Do not use the bright accent as small text on a light background, or white text on the bright accent.
+Status is never conveyed by colour alone: include an icon or a word.
 
-### Principles / architecture
+## Typography
 
-- Keep a readable secondary navigation beside the main content on desktop; move it above the content on mobile.
-- Draw messaging and tool lookups as separate paths. Do not imply every tool request uses the chat relay.
-- Pair every diagram with a plain-language caption and a limit statement.
-- Put the tool-by-tool data-flow inventory and status definitions in scannable rows, not a large wall of text.
+- Sans: `--sc-font-sans`, `"DM Sans", "Atkinson Hyperlegible Next", system-ui, sans-serif`.
+- Mono: `--sc-font-mono`, `"DM Mono", "Cascadia Code", ui-monospace, monospace`.
+- Editorial: `--sc-font-editorial`.
+- All DM Sans and DM Mono weights are self-hosted WOFF2 files under `/assets/fonts/`, with their
+  licences. No remote font request.
+- Sizes are `rem`-based and respond to the user's font size: `--sc-text-xs` (12px) through
+  `--sc-text-4xl` and `--sc-text-display` (clamped). Body leading is 1.6; headings 1.08–1.2.
+- English UI copy uses Sans. Paths, request fields and status labels may use Mono. Long guides never
+  set the whole body in Mono or all caps.
+- CJK: the stack falls back to system Noto Sans SC/JP or the operating system's CJK font. Chinese
+  body text is at least 16px with 1.75 leading; Japanese 16px with 1.8. CJK headings use
+  `letter-spacing: 0` (never English-style negative tracking), natural wrapping and full-width
+  punctuation. Use `lang="zh-Hans"` (or the site's `zh-CN`) and `lang="ja"`; mark inline English
+  phrases with `lang="en"`.
 
-### Informational pages
+## Spacing, layout and motion
 
-Mission, privacy, contact and sponsorship pages share an editorial shell: narrow readable content, meaningful section headings, simple action rows and source links where relevant. Do not inflate these pages with empty cards or hero imagery just to make them look full.
+- Spacing: `--sc-space-1` 4px, 2 8px, 3 12px, 4 16px, 5 24px, 6 32px, 7 48px, 8 64px, 9 96px.
+- Content maximum: `1200px`. Reading maximum: `68ch` (about `36em` for CJK, verified against the
+  real font). Gutter: `clamp(20px, 5vw, 72px)`. Touch targets: at least 44×44px.
+- Radius: `4px` small controls, `8px` medium, `12px` large, `18px` extra large, pill for tags only.
+  The visual direction is geometric; large decorative pills are not the default.
+- Shadows follow the theme: dark relies on borders and surface contrast; light cards use a soft
+  `0 2px 8px`, floating panels `0 12px 32px`. Never use shadow as the only control boundary.
+- Motion: 120ms fast, 180ms normal, 260ms slow. Animate colour, border and small displacement only.
+  No parallax, autoplay or flashing. `prefers-reduced-motion: reduce` stops non-essential motion and
+  smooth scrolling.
 
-## Level 3 page patterns
+## Global shell
 
-### Tool detail
+The header and footer are generated once by `build/nav.mjs` and applied to every page by
+`build/build.mjs`; `build/subshell.mjs` uses the same renderers.
 
-1. **Tool hero:** Breadcrumbs, clear verb-led title, one-sentence description and verified processing/status labels.
-2. **Working task:** Preserve the existing production form, result panel, IDs, `data-*` hooks and JavaScript. The task must be the main visual anchor.
-3. **How to read results:** Numbered next steps that explain what a result means, rather than repeating the interface labels.
-4. **Handling and limits:** A nearby aside explains local processing or each network request, plus what the tool cannot determine.
-5. **Related next step:** A real related guide or a different relevant tool.
+- Deep header, 72px desktop. Brand mark plus SecureInChat on the left.
+- Four primary items: Workspace / Tools / Learn / About (localized). Workspace appears once in the
+  navigation. The right-hand action says **Open workspace** (localized) and is not another
+  title-style "Workspace" button.
+- Current section uses `aria-current="page"` on the exact page and `aria-current="true"` on a parent
+  section. A language menu lists only languages that have a real destination: the page's own
+  `hreflang` alternates when they exist, otherwise the real locale home page. No slug is guessed.
+- The language control and the mobile menu are native `<details>` elements, so they work without
+  JavaScript. `assets/js/shell.js` adds Escape and outside-click closing, and keeps one menu open.
+- At 320–900px the main navigation moves into the menu; brand, language and menu stay visible.
+  Desktop navigation must not wrap because of the language control.
+- Footer: brand and "Practical privacy tools. Clear about limits."; Explore (Workspace, Tools &
+  diagnostics, Privacy checkup, Guides, Messaging); About & policy (Mission, Principles, Status
+  labels, Privacy & legal, Contact, Sponsorship & affiliate disclosure). It stacks vertically on
+  narrow screens and keeps 44px targets. No old footer entry is silently dropped.
 
-Tool shells in this kit contain a marked integration slot. It is a handoff marker for developers and must never be published in place of a functioning tool.
+## Page patterns
 
-### Article detail
+- **Level 2 landing pages** orient: small breadcrumbs, one clear title, a short lead and one primary
+  action. Organize by intent, not by forcing every item into an identical card grid.
+- **Tool detail pages** let people act. Preserve form IDs, `data-*` hooks and scripts. Put the data
+  flow and limitations next to the tool, not in the footer. Results use a polite live region.
+- **Article pages** keep a readable measure, real metadata, sources and a table of contents on long
+  pieces. The article body stays on its existing editorial surface inside the new shell.
+- **About and policy pages** use a deep title area, a readable body and a deep principles band. Keep
+  legal, privacy and sponsorship text unchanged unless a separate content task changes it.
+- Images are local; non-decorative images need meaningful alternative text. Decorative SVGs are
+  hidden from assistive technology.
 
-- Keep body text around `46rem` maximum width and line-height around `1.8`.
-- The title, deck, date/read time and article-specific diagram establish context before the article body begins.
-- Table of contents is sticky on larger screens where it is useful; it becomes a normal block above the article on mobile.
-- Use notes for safety-critical caveats, not for every paragraph.
-- Clearly separate sources, last-updated details and related next steps.
-- Keep source destinations real and specific. A generic vendor homepage should not be substituted for the exact source page when that page exists.
+## Accessibility
 
-### Interactive checklist pages
-
-The phone-number checkup is a self-review checklist, not a device scan. Keep the privacy note, progress count, checklist explanations, official-source slot, and reset behavior visible. Do not ask the visitor to enter a phone number. Preserve the existing page-memory-only state logic; never add storage or analytics to make the checklist look more sophisticated.
-
-## Illustration system
-
-The local SVG library has been redrawn as a consistent family of original line diagrams. The pictures deliberately contain no tiny in-image legend text: explanatory words remain in HTML so they can be translated and remain readable on mobile.
-
-- `privacy-layers.svg`: six connected symbols for the six-layer privacy model.
-- `data-flows.svg`: separate visual lanes for encrypted messaging and a tool lookup.
-- `relay-architecture.svg`: endpoint → relay → endpoint, with encrypted payload motifs.
-- `url-anatomy.svg`: the host, path and query parameter portions of an address bar.
-- `photo-metadata.svg`: an image and examples of possible device/time/location fields.
-- `text-redaction.svg`: sensitive spans before and after redaction.
-- `account-recovery.svg`: one account connected to multiple sign-in and recovery routes.
-- `data-broker.svg`: separate data sources linked to a profile and broker record.
-- `sim-swap.svg`: device-level and carrier-level protection as separate control points.
-
-SVG rules: only local files, no external references, no inline `<style>`, no `style` attributes, no gradients, consistent rounded line caps, forest-green strokes, sage fills and restrained deep-gold paths. Colour is never the only way information is distinguished. Each SVG has a `title`, `desc` and corresponding HTML `alt` text.
-
-## Responsive behaviour
-
-- Content shell: maximum `75rem` (1200px).
-- Page gutter: `clamp(1.25rem, 3vw, 2rem)`.
-- Tablet breakpoint: `64rem`; content grids simplify and sidebars may move below the main area.
-- Mobile breakpoint: `48rem`; one-column tool interfaces, stacked heroes, non-sticky article contents and full-width primary actions.
-- Small-phone breakpoint: `24rem`; remove two-column clusters that become cramped.
-- Never let horizontal overflow be the mechanism for reading important content.
-- Keep hover as enhancement only; all actions must remain visible and keyboard accessible.
-
-## Trust and accessibility
-
-- Status labels represent real implementation and test evidence.
-- A local checklist is not presented as a technical scan of device settings.
-- URL structure checks never claim that the destination is safe.
-- Relay diagnostics do not constitute an independent cryptographic audit.
-- Do not imply that unreleased client interfaces already exist.
-- Body-text contrast should meet WCAG 2.2 AA (at least 4.5:1 for normal text). Gold is decorative on pale backgrounds; deep gold is the readable text shade.
-- Preserve visible focus indicators, semantic headings, labelled controls, reduced-motion support and meaningful alt text.
+- WCAG 2.2 AA: contrast, visible focus, keyboard operation, no keyboard traps, reduced motion.
+- Support 320px without horizontal scrolling; test desktop and narrow widths.
+- Headings stay in order; controls have labels; errors are not colour-only.
+- Language switch, menus, tabs, forms and result panels must be usable with a screen reader and
+  without JavaScript where the underlying control supports it.
+- Test the actual generated page, not only the source template.

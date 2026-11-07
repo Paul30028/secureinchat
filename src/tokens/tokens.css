@@ -1,0 +1,205 @@
+/* SecureInChat shared design tokens (site shell + workspace).
+   Source: docs/site-shell-redesign-2026-11-07.md sections 1.1-1.4.
+   Only colour, type, spacing, radius, shadow and motion values live here.
+   Every font and image is self-hosted from /assets/; no remote imports. */
+
+@font-face {
+  font-family: 'DM Sans';
+  src: url('/assets/fonts/dm-sans-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DM Sans';
+  src: url('/assets/fonts/dm-sans-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DM Sans';
+  src: url('/assets/fonts/dm-sans-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DM Mono';
+  src: url('/assets/fonts/dm-mono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'DM Mono';
+  src: url('/assets/fonts/dm-mono-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Colour: dark is the default; light is selected automatically while there is no theme switch. */
+  --sc-canvas: #11130e;
+  --sc-surface: #1b1e18;
+  --sc-surface-raised: #242820;
+  --sc-surface-subtle: #23261f;
+  --sc-ink: #f0efe7;
+  --sc-ink-muted: #c3c7ba;
+  --sc-ink-subtle: #a2a69a;
+  --sc-accent: #d8f361;
+  --sc-accent-ink: #171912;
+  --sc-link: #d8f361;
+  --sc-rule: #35392f;
+  --sc-focus: #d8f361;
+  --sc-danger: #ff806b;
+  --sc-danger-surface: #321d19;
+  --sc-success: #b8db73;
+  --sc-success-surface: #20291b;
+
+  /* The global shell is always deep. These values do not follow the page theme. */
+  --sc-shell-bg: #11130e;
+  --sc-shell-surface: #1b1e18;
+  --sc-shell-surface-raised: #242820;
+  --sc-shell-ink: #f0efe7;
+  --sc-shell-muted: #c3c7ba;
+  --sc-shell-accent: #d8f361;
+  --sc-shell-rule: #35392f;
+  --sc-shell-focus: #d8f361;
+  --sc-shell-accent-ink: #171912;
+
+  /* Type */
+  --sc-font-sans: 'DM Sans', 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  --sc-font-mono: 'DM Mono', 'Cascadia Code', ui-monospace, monospace;
+  --sc-font-editorial: 'DM Sans', 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  --sc-font-cjk: 'DM Sans', 'Noto Sans SC', 'Noto Sans JP', 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+
+  --sc-text-xs: 0.75rem;
+  --sc-text-sm: 0.875rem;
+  --sc-text-base: 1rem;
+  --sc-text-lg: 1.125rem;
+  --sc-text-xl: 1.25rem;
+  --sc-text-2xl: 1.5rem;
+  --sc-text-3xl: clamp(1.875rem, 3vw, 2.5rem);
+  --sc-text-4xl: clamp(2.5rem, 5vw, 4rem);
+  --sc-text-display: clamp(3rem, 7vw, 6rem);
+
+  --sc-leading-body: 1.6;
+  --sc-leading-cjk: 1.75;
+  --sc-leading-ja: 1.8;
+  --sc-leading-heading: 1.15;
+  --sc-leading-tight: 1.25;
+
+  /* Spacing, layout, touch */
+  --sc-space-1: 4px;
+  --sc-space-2: 8px;
+  --sc-space-3: 12px;
+  --sc-space-4: 16px;
+  --sc-space-5: 24px;
+  --sc-space-6: 32px;
+  --sc-space-7: 48px;
+  --sc-space-8: 64px;
+  --sc-space-9: 96px;
+  --sc-content-max: 1200px;
+  --sc-reading-max: 68ch;
+  --sc-gutter: clamp(20px, 5vw, 72px);
+  --sc-touch: 44px;
+  --sc-header-height: 72px;
+
+  /* Radius */
+  --sc-radius-sm: 4px;
+  --sc-radius-md: 8px;
+  --sc-radius-lg: 12px;
+  --sc-radius-xl: 18px;
+  --sc-radius-pill: 999px;
+
+  /* Shadow: borders and surface contrast carry depth in the dark theme. */
+  --sc-shadow-card: none;
+  --sc-shadow-float: 0 16px 48px rgb(0 0 0 / 28%);
+
+  /* Motion */
+  --sc-motion-fast: 120ms;
+  --sc-motion-normal: 180ms;
+  --sc-motion-slow: 260ms;
+}
+
+/* Light theme: explicit data-theme override, or the OS preference while no switch exists. */
+:root[data-theme='light'] {
+  --sc-canvas: #f0efe7;
+  --sc-surface: #faf9f2;
+  --sc-surface-raised: #e7e7dc;
+  --sc-surface-subtle: #f4f2e9;
+  --sc-ink: #171912;
+  --sc-ink-muted: #45483f;
+  --sc-ink-subtle: #55594f;
+  --sc-accent: #52651a;
+  --sc-accent-ink: #ffffff;
+  --sc-link: #3f5311;
+  --sc-rule: #c6c7b9;
+  --sc-focus: #34470a;
+  --sc-danger: #a93222;
+  --sc-danger-surface: #fce9e4;
+  --sc-success: #355719;
+  --sc-success-surface: #eaf2dc;
+  --sc-shadow-card: 0 2px 8px rgb(23 25 18 / 8%);
+  --sc-shadow-float: 0 12px 32px rgb(23 25 18 / 14%);
+}
+
+/* Explicit dark override wins even when the OS preference is light. */
+:root[data-theme='dark'] {
+  --sc-canvas: #11130e;
+  --sc-surface: #1b1e18;
+  --sc-surface-raised: #242820;
+  --sc-surface-subtle: #23261f;
+  --sc-ink: #f0efe7;
+  --sc-ink-muted: #c3c7ba;
+  --sc-ink-subtle: #a2a69a;
+  --sc-accent: #d8f361;
+  --sc-accent-ink: #171912;
+  --sc-link: #d8f361;
+  --sc-rule: #35392f;
+  --sc-focus: #d8f361;
+  --sc-danger: #ff806b;
+  --sc-danger-surface: #321d19;
+  --sc-success: #b8db73;
+  --sc-success-surface: #20291b;
+  --sc-shadow-card: none;
+  --sc-shadow-float: 0 16px 48px rgb(0 0 0 / 28%);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --sc-canvas: #f0efe7;
+    --sc-surface: #faf9f2;
+    --sc-surface-raised: #e7e7dc;
+    --sc-surface-subtle: #f4f2e9;
+    --sc-ink: #171912;
+    --sc-ink-muted: #45483f;
+    --sc-ink-subtle: #55594f;
+    --sc-accent: #52651a;
+    --sc-accent-ink: #ffffff;
+    --sc-link: #3f5311;
+    --sc-rule: #c6c7b9;
+    --sc-focus: #34470a;
+    --sc-danger: #a93222;
+    --sc-danger-surface: #fce9e4;
+    --sc-success: #355719;
+    --sc-success-surface: #eaf2dc;
+    --sc-shadow-card: 0 2px 8px rgb(23 25 18 / 8%);
+    --sc-shadow-float: 0 12px 32px rgb(23 25 18 / 14%);
+  }
+}
+
+/* CJK pages use the CJK stack and slightly taller body leading. */
+:lang(zh),
+:lang(ja) {
+  --sc-font-sans: var(--sc-font-cjk);
+  --sc-font-editorial: var(--sc-font-cjk);
+}
+
+@media (max-width: 360px) {
+  :root {
+    --sc-text-display: 2.75rem;
+  }
+}

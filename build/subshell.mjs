@@ -1,21 +1,14 @@
 // Subpage shell: header, footer and page layouts from ChatGPT's Subpages Design Kit v2 (src/subpages/).
 // Design and markup belong to ChatGPT (design owner); this file only fills the kit's layouts with production copy.
-import fs from 'node:fs';
-import path from 'node:path';
+// The surrounding header and footer come from the one global shell in build/nav.mjs.
+import { renderShellFooter, renderShellHeader } from './nav.mjs';
 
-const KIT = path.resolve(import.meta.dirname, '../src/subpages/templates');
-const read = (f) => fs.readFileSync(path.join(KIT, f), 'utf8');
-const between = (s, a, b) => { const i = s.indexOf(a); const j = s.indexOf(b, i); return s.slice(i, j + b.length); };
-
-const T = { en: read('info-page.en.html'), zh: read('info-page.zh.html') };
-const HEADER = { en: between(T.en, '<header class="site-header">', '</header>'), zh: between(T.zh, '<header class="site-header">', '</header>') };
-const FOOTER = { en: between(T.en, '<footer class="site-footer">', '</footer>'), zh: between(T.zh, '<footer class="site-footer">', '</footer>') };
-
-function header(lang, current) {
-  let h = HEADER[lang].replace(/ aria-current="page"/g, '');
-  if (current) h = h.replace(`<a href="${current}">`, `<a aria-current="page" href="${current}">`);
-  return h;
-}
+const LOCALE_LABEL = {
+  en: { crumb: 'Breadcrumb', toc: 'On this page', skip: 'Skip to content' },
+  zh: { crumb: '面包屑导航', toc: '本页内容', skip: '跳到正文' },
+  ja: { crumb: 'パンくずリスト', toc: 'このページの内容', skip: '本文へ移動' },
+  es: { crumb: 'Ruta de navegación', toc: 'En esta página', skip: 'Saltar al contenido' },
+};
 
 export const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const strip = (s) => s.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
@@ -63,7 +56,7 @@ export function splitBody(body) {
   return { title, byline, lead, rest: b, crumbMeta };
 }
 
-const crumbsHtml = (lang, crumbs) => `<nav aria-label="${lang === 'zh' ? '面包屑导航' : 'Breadcrumb'}" class="breadcrumbs">
+const crumbsHtml = (lang, crumbs) => `<nav aria-label="${(LOCALE_LABEL[lang] || LOCALE_LABEL.en).crumb}" class="breadcrumbs">
        ${crumbs.map(([href, t], i) => (i === crumbs.length - 1
     ? `<span aria-current="page">${t}</span>`
     : `<a href="${href}">${t}</a>\n       <span aria-hidden="true" class="breadcrumb-separator">/</span>`)).join('\n       ')}
@@ -75,9 +68,11 @@ const figureHtml = (fig, cls = 'editorial-figure') => fig ? `<figure class="${cl
       </figure>` : '';
 
 function shell({ lang = 'en', htmlLang, title, desc, canonical, headExtra = '', current, main }) {
-  const L = lang === 'zh' ? 'zh' : 'en';
+  const L = ['en', 'zh', 'ja', 'es'].includes(lang) ? lang : 'en';
+  const labels = LOCALE_LABEL[L];
+  const pathname = canonical || '/';
   return `<!DOCTYPE html>
-<html lang="${htmlLang || (L === 'zh' ? 'zh-CN' : 'en')}">
+<html lang="${htmlLang || (L === 'zh' ? 'zh-CN' : L)}">
  <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
@@ -91,12 +86,12 @@ ${headExtra}  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
   <link href="/assets/css/subpages.css" rel="stylesheet"/>
  </head>
  <body>
-  <a class="skip-link" href="#main">${L === 'zh' ? '跳到正文' : 'Skip to content'}</a>
-  ${header(L, current)}
+  <a class="skip-link" href="#main">${labels.skip}</a>
+  ${renderShellHeader({ lang: L, pathname })}
   <main class="subpage-main" id="main">
 ${main}
   </main>
-  ${FOOTER[L]}
+  ${renderShellFooter({ lang: L, pathname })}
  </body>
 </html>
 `;
@@ -106,9 +101,10 @@ ${main}
 export function infoPage({ lang = 'en', htmlLang, title, desc, canonical, headExtra, current, crumbs, body, figure, tocLabel }) {
   const { title: h1, byline, lead, rest } = splitBody(mapTags(body));
   const [content, toc] = anchorH2(rest);
-  const L = lang === 'zh' ? 'zh' : 'en';
-  const nav = toc.length >= 2 ? `<nav aria-label="${L === 'zh' ? '本页内容' : 'On this page'}" class="info-nav">
-      <h2>${tocLabel || (L === 'zh' ? '本页内容' : 'On this page')}</h2>
+  const L = ['en', 'zh', 'ja', 'es'].includes(lang) ? lang : 'en';
+  const labels = LOCALE_LABEL[L];
+  const nav = toc.length >= 2 ? `<nav aria-label="${labels.toc}" class="info-nav">
+      <h2>${tocLabel || labels.toc}</h2>
       <ul>
 ${toc.map(([id, t]) => `       <li><a href="#${id}">${t}</a></li>`).join('\n')}
       </ul>

@@ -1,296 +1,38 @@
 /* SecureInChat private workspace.
-   Visual system: 2026-11 prototype (dark base, acid accent, cream canvas, hard rules).
-   DM Sans / DM Mono are self-hosted only. The files are not in the repository yet, so the page
-   uses the system stack until the build finds the woff2 files and adds .has-dm to <html>. */
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/assets/fonts/dm-sans-400.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/assets/fonts/dm-sans-500.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'DM Sans';
-  src: url('/assets/fonts/dm-sans-700.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'DM Mono';
-  src: url('/assets/fonts/dm-mono-400.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'DM Mono';
-  src: url('/assets/fonts/dm-mono-500.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
+   Visual system: shared 2026-11 tokens (dark base, acid accent, cream canvas, hard rules).
+   DM Sans / DM Mono are self-hosted from /assets/fonts/ and come from tokens.css. */
+@import url('/assets/css/tokens.css');
+@import url('/assets/css/base.css');
 
+/* Workspace-specific aliases. Fixed shell colours stay dark in both themes; text and surfaces
+   follow the shared semantic tokens so the workspace keeps responding to the OS theme. */
 :root {
-  --black: #11130e;
-  --black-2: #1b1e18;
-  --cream: #f0efe7;
-  --white: #faf9f2;
-  --ink: #171912;
-  --muted: #5b6256;
-  --line: #d5d6c9;
-  --rule: #35392f;
-  --acid: #d8f361;
-  --alert: #ff674d;
-  --tracking-ink: #3f520c;
-  --review-ink: #8a2414;
-  --warn-border: #8a5a00;
-  --warn-bg: #fff4d6;
-  --danger-ink: #9b2c18;
-  --warning-bg: #fff0e9;
-  --canvas: var(--cream);
-  --surface: var(--white);
-  --surface-2: #f4f2e9;
-  --field: var(--white);
-  --focus: var(--ink);
-  --shadow: var(--acid);
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-  --gutter: clamp(20px, 5vw, 72px);
-  --max: 1200px;
-  color-scheme: light;
-}
-
-html.has-dm {
-  --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-mono: 'DM Mono', ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #f0efe7;
-    --muted: #b9bdad;
-    --line: #35392f;
-    --canvas: #11130e;
-    --surface: #1b1e18;
-    --surface-2: #23261f;
-    --field: #23261f;
-    --focus: var(--acid);
-    --shadow: var(--acid);
-    --tracking-ink: #d8f361;
-    --review-ink: #ff9a86;
-    --warn-border: #e0b25a;
-    --warn-bg: #2b2415;
-    --danger-ink: #ff9a86;
-    --warning-bg: #2a1b16;
-    color-scheme: dark;
-  }
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  background: var(--canvas);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.55;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-img,
-svg {
-  max-width: 100%;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-a {
-  color: inherit;
-  text-underline-offset: 3px;
-}
-
-[hidden] {
-  display: none !important;
-}
-
-::selection {
-  background: var(--acid);
-  color: var(--black);
-}
-
-:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-
-.skip-link {
-  position: absolute;
-  left: 12px;
-  top: -90px;
-  z-index: 100;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 10px 16px;
-  background: var(--acid);
-  color: var(--black);
-  font: 600 12px/1.4 var(--font-mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-decoration: none;
-}
-
-.skip-link:focus {
-  top: 12px;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.wrap {
-  width: min(100% - (var(--gutter) * 2), var(--max));
-  margin-inline: auto;
-}
-
-.top-strip {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 6px 18px;
-  padding: 8px var(--gutter);
-  background: var(--acid);
-  color: var(--black);
-  font: 12px/1.4 var(--font-mono);
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.top-strip span:last-child {
-  opacity: 0.78;
-}
-
-.site-header {
-  --focus: var(--acid);
-  background: var(--black);
-  color: var(--cream);
-  border-bottom: 1px solid #31342c;
-}
-
-.site-header__inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px 28px;
-  max-width: 1400px;
-  margin-inline: auto;
-  padding: 16px var(--gutter);
-}
-
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 44px;
-  margin-right: auto;
-  color: var(--cream);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  text-decoration: none;
-}
-
-.brand-mark {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  background: var(--acid);
-  color: var(--black);
-  font: 17px/1 var(--font-mono);
-  transform: rotate(45deg);
-}
-
-.brand-mark span {
-  transform: rotate(-45deg);
-}
-
-.site-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px 20px;
-}
-
-.site-nav a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 6px 0;
-  color: #b6baae;
-  font: 12px/1.4 var(--font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-decoration: none;
-}
-
-.site-nav a:hover {
-  color: var(--acid);
-}
-
-.site-nav a[aria-current='page'] {
-  color: var(--acid);
-  border-bottom: 2px solid var(--acid);
-}
-
-.locale-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: #c6cabb;
-  font: 12px/1.4 var(--font-mono);
-  text-decoration: none;
-}
-
-.locale-link:hover {
-  color: var(--acid);
+  --black: var(--sc-shell-bg);
+  --black-2: var(--sc-shell-surface);
+  --cream: var(--sc-shell-ink);
+  --ink: var(--sc-ink);
+  --muted: var(--sc-ink-muted);
+  --line: var(--sc-rule);
+  --rule: var(--sc-shell-rule);
+  --acid: var(--sc-shell-accent);
+  --alert: var(--sc-danger);
+  --tracking-ink: var(--sc-link);
+  --review-ink: var(--sc-danger);
+  --warn-border: var(--sc-danger);
+  --warn-bg: var(--sc-danger-surface);
+  --danger-ink: var(--sc-danger);
+  --warning-bg: var(--sc-danger-surface);
+  --canvas: var(--sc-canvas);
+  --surface: var(--sc-surface);
+  --surface-2: var(--sc-surface-subtle);
+  --field: var(--sc-surface);
+  --focus: var(--sc-focus);
+  --shadow: var(--sc-shell-accent);
+  --font-sans: var(--sc-font-sans);
+  --font-mono: var(--sc-font-mono);
+  --gutter: var(--sc-gutter);
+  --max: var(--sc-content-max);
+  color-scheme: light dark;
 }
 
 .hero {
@@ -1278,46 +1020,6 @@ input.field {
   line-height: 1.6;
 }
 
-.site-footer {
-  --focus: var(--acid);
-  padding: 24px 0;
-  background: var(--black);
-  color: var(--cream);
-  border-top: 1px solid #31342c;
-}
-
-.site-footer__inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 28px;
-  font: 12px/1.6 var(--font-mono);
-}
-
-.site-footer p {
-  margin: 0;
-  color: #c6cabb;
-}
-
-.site-footer nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 18px;
-}
-
-.site-footer a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  color: #c6cabb;
-  text-decoration: none;
-}
-
-.site-footer a:hover {
-  color: var(--acid);
-}
-
 @media (max-width: 930px) {
   .hero-grid {
     grid-template-columns: 1fr;
@@ -1342,15 +1044,6 @@ input.field {
 }
 
 @media (max-width: 700px) {
-  .site-header__inner {
-    padding-block: 12px;
-  }
-
-  .site-nav {
-    width: 100%;
-    gap: 2px 14px;
-  }
-
   .hero {
     padding-top: 32px;
   }
@@ -1378,18 +1071,6 @@ input.field {
 }
 
 @media (max-width: 430px) {
-  .top-strip {
-    font-size: 12px;
-  }
-
-  .brand {
-    font-size: 15px;
-  }
-
-  .site-nav a {
-    font-size: 12px;
-  }
-
   .hero h1 {
     font-size: clamp(2.35rem, 12vw, 3.2rem);
   }
@@ -1431,21 +1112,6 @@ input.field {
 
   .limit-card {
     padding: 16px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
   }
 }
 

@@ -40,6 +40,10 @@ def check(cond, msg):
     print(('ok   ' if cond else 'FAIL ') + msg)
     if not cond: fails.append(msg)
 
+def target_exists(href):
+    path = os.path.join(ROOT, href.lstrip('/'))
+    return os.path.isfile(path) or os.path.isfile(os.path.join(path, 'index.html'))
+
 with sync_playwright() as p:
     b = p.chromium.launch()
     for vpname, vp, mobile in [('desktop', {'width': 1280, 'height': 800}, False), ('mobile', {'width': 390, 'height': 844}, True)]:
@@ -172,8 +176,9 @@ with sync_playwright() as p:
     pn.screenshot(path=f'{OUT}/workspace-320.png', full_page=True)
     ctxn.close()
 
-    # 320 px is the narrowest supported phone width. Check the global navigation there too:
-    # four items, the current section marked, and the mobile disclosure operable from the keyboard.
+    # 320 px is the narrowest supported phone width. Check the global shell there too:
+    # four items, one Workspace entry, the current section marked, real language targets, and the
+    # native mobile disclosure operable from the keyboard (and without JavaScript below).
     NAV_CASES = {
         '/': ['Workspace', 'Tools', 'Learn', 'About'],
         '/zh/': ['工作台', '工具', '学习', '关于'],
@@ -188,15 +193,31 @@ with sync_playwright() as p:
     for nav_path, nav_labels in NAV_CASES.items():
         ctxn = b.new_context(viewport={'width': 320, 'height': 800})
         pn = ctxn.new_page(); pn.goto(BASE + nav_path, wait_until='load')
-        nav = pn.locator('nav.desktop-navigation, nav.site-nav, nav.nav').first
+        nav = pn.locator('header nav.sc-nav').first
         got = [t.strip() for t in nav.locator('a').all_text_contents()]
         check(got == nav_labels, f'{nav_path} [nav 320] four localized items {got}')
+        check(nav.locator('a[href="/workspace/"]').count() == 1, f'{nav_path} [nav 320] Workspace appears once in the nav')
+        cta = pn.locator('header .sc-cta').first
+        check(cta.count() == 1, f'{nav_path} [nav 320] Open workspace action present')
+        if cta.count():
+            cta_text = (cta.text_content() or '').strip()
+            check(cta.get_attribute('href') == '/workspace/', f'{nav_path} [nav 320] action opens /workspace/')
+            check(cta_text and cta_text != nav_labels[0], f'{nav_path} [nav 320] action is not another Workspace title ({cta_text})')
+        lang_hrefs = pn.locator('header .sc-lang__menu a[href]').evaluate_all('as => as.map(a => a.getAttribute("href"))')
+        check(len(lang_hrefs) > 0, f'{nav_path} [nav 320] language menu has real options')
+        for href in lang_hrefs:
+            check(target_exists(href), f'{nav_path} [nav 320] language target exists {href}')
+            check(href != nav_path, f'{nav_path} [nav 320] language menu does not link to itself')
+        footer_lang = pn.locator('footer .sc-footer__lang a[href]').evaluate_all('as => as.map(a => a.getAttribute("href"))')
+        check(len(footer_lang) > 0, f'{nav_path} [nav 320] footer language menu has real options')
+        for href in footer_lang:
+            check(target_exists(href), f'{nav_path} [nav 320] footer language target exists {href}')
         ov = pn.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
         check(ov <= 0, f'{nav_path} [nav 320] no horizontal overflow ({ov})')
         if nav_path in ('/tools/', '/zh/tools/', '/blog/', '/about/', '/workspace/'):
             cur = nav.locator('a[aria-current="page"]')
             check(cur.count() == 1, f'{nav_path} [nav 320] current item marked ({cur.count()})')
-        details = pn.locator('details.mobile-navigation')
+        details = pn.locator('details.sc-menu')
         if details.count():
             summary = details.locator('summary')
             summary.focus()
@@ -204,6 +225,11 @@ with sync_playwright() as p:
                   f'{nav_path} [nav 320] menu summary receives keyboard focus')
             pn.keyboard.press('Enter')
             check(details.evaluate('(e) => e.open'), f'{nav_path} [nav 320] menu opens with Enter')
+            pn.keyboard.press('Escape')
+            check(not details.evaluate('(e) => e.open'), f'{nav_path} [nav 320] menu closes with Escape')
+            summary.focus()
+            pn.keyboard.press('Enter')
+            check(details.evaluate('(e) => e.open'), f'{nav_path} [nav 320] menu reopens with Enter')
             mobile = [t.strip() for t in details.locator('nav a').all_inner_texts()]
             check(mobile[:4] == nav_labels, f'{nav_path} [nav 320] mobile menu starts with the four items {mobile[:6]}')
             ov = pn.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
@@ -212,6 +238,16 @@ with sync_playwright() as p:
             check(pn.evaluate("document.activeElement && document.activeElement.tagName === 'A'"),
                   f'{nav_path} [nav 320] mobile menu links are keyboard reachable')
         ctxn.close()
+
+    # No-JS fallback: the native <details> menu still opens and exposes the four items.
+    ctxnj = b.new_context(java_script_enabled=False, viewport={'width': 320, 'height': 800})
+    pnj = ctxnj.new_page(); pnj.goto(BASE + '/tools/', wait_until='load')
+    dnj = pnj.locator('details.sc-menu')
+    check(dnj.count() == 1, 'no-JS: mobile menu present')
+    if dnj.count():
+        dnj.locator('summary').click()
+        check(pnj.locator('details.sc-menu nav a[href="/tools/"]').is_visible(), 'no-JS: mobile menu opens and exposes the current tool item')
+    ctxnj.close()
 
     # No-JS fallback is readable and no broken controls are shown.
     ctxj = b.new_context(java_script_enabled=False, viewport={'width': 1280, 'height': 800})

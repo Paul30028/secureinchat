@@ -668,6 +668,11 @@ function write(rel, content) {
   }
   // Every generated page gets the same four-item global navigation, localized from one table.
   if (rel.endsWith('.html') && typeof content === 'string') content = applyPrimaryNav(content, rel);
+  // One deep shell stylesheet and one progressive-enhancement script for every page. The stylesheet
+  // imports the shared tokens itself; the script only adds Escape/outside-click to native <details>.
+  if (rel.endsWith('.html') && typeof content === 'string' && content.includes('</head>') && !content.includes('/assets/css/shell.css')) {
+    content = content.replace('</head>', `  <link href="/assets/css/shell.css" rel="stylesheet"/>\n  <script defer src="/assets/js/shell.js"></script>\n </head>`);
+  }
   const f = path.join(PUB, rel);
   fs.mkdirSync(path.dirname(f), { recursive: true });
   fs.writeFileSync(f, content);
@@ -722,6 +727,11 @@ write('tools/phone-checkup/index.html', gptPage('src/checkup/phone-en.html', '/t
 write('zh/tools/phone-checkup/index.html', gptPage('src/checkup/phone-zh.html', '/zh/tools/phone-checkup/', 'zh_CN', '手机号隐私自查', '六项自查，保护手机号免受换卡诈骗和泄露。无需输入号码，不保存、不发送。', null));
 write('assets/css/subpages.css', fs.readFileSync(path.join(ROOT, 'src/subpages/subpages.css')));
 write('assets/css/v4.css', fs.readFileSync(path.join(ROOT, 'src/design-v4/v4.css')));
+// Shared design tokens, base layer and site shell (step 1-2 of the 2026-11 redesign).
+write('assets/css/tokens.css', fs.readFileSync(path.join(ROOT, 'src/tokens/tokens.css'), 'utf8'));
+write('assets/css/base.css', fs.readFileSync(path.join(ROOT, 'src/base/base.css'), 'utf8'));
+write('assets/css/shell.css', fs.readFileSync(path.join(ROOT, 'src/shell/shell.css'), 'utf8'));
+write('assets/js/shell.js', fs.readFileSync(path.join(ROOT, 'src/shell/shell.js'), 'utf8'));
 for (const f of fs.readdirSync(path.join(ROOT, 'src/subpages/illustrations'))) write(`assets/illustrations/${f}`, fs.readFileSync(path.join(ROOT, 'src/subpages/illustrations', f)));
 write('assets/css/checkup.css', fs.readFileSync(path.join(ROOT, 'src/checkup/checkup.css')));
 write('assets/js/phone-checkup.js', fs.readFileSync(path.join(ROOT, 'src/checkup/phone-checkup.js')));

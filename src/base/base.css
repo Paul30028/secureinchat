@@ -1,0 +1,122 @@
+/* SecureInChat shared base layer.
+   Loaded by workspace.css today; later page batches opt in as they migrate.
+   Old pages keep their own stylesheet so their body styling does not change. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--sc-canvas);
+  color: var(--sc-ink);
+  font-family: var(--sc-font-sans);
+  font-size: var(--sc-text-base);
+  line-height: var(--sc-leading-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:lang(zh) body {
+  line-height: var(--sc-leading-cjk);
+}
+
+:lang(ja) body {
+  line-height: var(--sc-leading-ja);
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+::selection {
+  background: var(--sc-accent);
+  color: var(--sc-accent-ink);
+}
+
+:focus-visible {
+  outline: 3px solid var(--sc-focus);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -90px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--sc-touch);
+  padding: 10px 16px;
+  background: var(--sc-accent);
+  color: var(--sc-accent-ink);
+  font: 600 var(--sc-text-xs) / 1.4 var(--sc-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.wrap {
+  width: min(100% - (var(--sc-gutter) * 2), var(--sc-content-max));
+  margin-inline: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

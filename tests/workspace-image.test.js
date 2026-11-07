@@ -221,6 +221,8 @@ t('formatBytes is readable and does not round a limit down', () => {
 const html = read('public/workspace/index.html');
 const js = read('public/workspace/assets/workspace.js');
 const css = read('public/workspace/assets/workspace.css');
+const baseCss = read('public/assets/css/base.css');
+const tokenCss = read('public/assets/css/tokens.css');
 
 t('the built page has an image tab and panel wired like text and link', () => {
   assert.match(html, /id="tab-image"[^>]*data-mode="image"/);
@@ -262,11 +264,14 @@ t('workspace.js uses a canvas re-encode and revokes its object URL', () => {
 
 t('workspace CSS has no type below 12px, 16px body copy and 44px controls', () => {
   const sizes = [];
-  for (const m of css.matchAll(/font-size:\s*([0-9.]+)px/g)) sizes.push(Number(m[1]));
-  for (const m of css.matchAll(/font:\s*[^;{}]*?([0-9.]+)px/g)) sizes.push(Number(m[1]));
+  for (const m of (css + '\n' + baseCss).matchAll(/font-size:\s*([0-9.]+)px/g)) sizes.push(Number(m[1]));
+  for (const m of (css + '\n' + baseCss).matchAll(/font:\s*[^;{}]*?([0-9.]+)px/g)) sizes.push(Number(m[1]));
   assert.ok(sizes.length > 0, 'font sizes parsed');
   assert.deepStrictEqual(sizes.filter((v) => v < 12), []);
-  assert.match(css, /body\s*\{[^}]*font-size:\s*16px/);
+  // Body copy moved to the shared base layer; 1rem is the 16px token it consumes.
+  assert.match(tokenCss, /--sc-text-base:\s*1rem/);
+  assert.match(baseCss, /font-size:\s*var\(--sc-text-base\)/);
+  assert.match(css, /@import url\('\/assets\/css\/base\.css'\)/);
   assert.match(css, /\.btn\s*\{[^}]*min-height:\s*44px/);
   assert.match(css, /\.btn--small\s*\{[^}]*min-height:\s*44px/);
   assert.match(css, /\.tab\s*\{[^}]*min-height:\s*48px/);

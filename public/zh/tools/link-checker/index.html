@@ -81,50 +81,51 @@
   <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
   <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>
    <link href="/assets/css/v4.css" rel="stylesheet"/>
+   <link href="/assets/css/shell.css" rel="stylesheet"/>
+  <script defer src="/assets/js/shell.js"></script>
  </head>
  <body>
   <a class="skip-link" href="#main">跳到正文</a>
-  <header class="site-header">
-   <div class="container header-inner">
-    <a aria-label="SecureInChat 首页" class="brand" href="/zh/">
-     <svg class="brand-mark" viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg>
-     <span class="brand-copy">
-      <span class="brand-name">
-       SecureInChat
-      </span>
-      <span class="brand-tagline">
-       更实用的工具，更私密的互联网
-      </span>
-     </span>
+  <header class="sc-header">
+  <div class="sc-header__inner">
+    <a class="sc-brand" href="/zh/" aria-label="SecureInChat 首页">
+      <span class="sc-brand__mark" aria-hidden="true"><svg viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="18" fill="#D8F361"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#11130E"/><circle cx="43" cy="53" r="4.6" fill="#D8F361"/><circle cx="54" cy="53" r="4.6" fill="#D8F361"/><circle cx="65" cy="53" r="4.6" fill="#D8F361"/></g></svg></span>
+      <span class="sc-brand__name">SecureInChat</span>
     </a>
-    <nav aria-label="主导航" class="desktop-navigation">
+    <nav class="sc-nav" aria-label="主导航">
         <a hreflang="en" href="/workspace/">工作台</a>
         <a aria-current="true" href="/zh/tools/">工具</a>
         <a hreflang="en" href="/blog/">学习</a>
         <a hreflang="en" href="/about/">关于</a>
-      </nav>
-    <div class="header-actions">
-     <a class="language-link" href="/tools/" lang="en">
-      EN
-     </a>
-     <a class="language-link" href="/ja/" lang="ja">
-      日本語
-     </a>
-     <a class="button button--small button--primary" href="/zh/checkup/">
-      开始体检
-     </a>
+    </nav>
+    <div class="sc-header__actions">
+      <details class="sc-lang">
+        <summary aria-label="语言：中文">
+          <span>中文</span>
+          <svg class="sc-chevron" viewBox="0 0 12 8" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="sc-lang__menu" role="group" aria-label="语言">
+          <a href="/tools/link-checker/" hreflang="en" lang="en">English</a>
+        </div>
+      </details>
+      <a class="sc-cta" href="/workspace/" hreflang="en">打开工作台</a>
     </div>
-    <details class="mobile-navigation">
-      <summary aria-label="打开导航菜单">
-      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
-       </path>
-      </svg>
-     </summary>
-      <nav aria-label="移动端导航"><a hreflang="en" href="/workspace/">工作台</a><a aria-current="true" href="/zh/tools/">工具</a><a hreflang="en" href="/blog/">学习</a><a hreflang="en" href="/about/">关于</a><a href="/" hreflang="en" lang="en">English</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a></nav>
+    <details class="sc-menu">
+      <summary aria-label="导航菜单">
+        <svg class="sc-menu__icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </summary>
+      <nav aria-label="移动端导航">
+        <a hreflang="en" href="/workspace/">工作台</a>
+        <a aria-current="true" href="/zh/tools/">工具</a>
+        <a hreflang="en" href="/blog/">学习</a>
+        <a hreflang="en" href="/about/">关于</a>
+        <div class="sc-menu__locale" role="group" aria-label="语言">
+          <a href="/tools/link-checker/" hreflang="en" lang="en">English</a>
+        </div>
+      </nav>
     </details>
-   </div>
-  </header>
+  </div>
+</header>
   <main class="subpage-main" id="main">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
@@ -218,59 +219,45 @@
     </div>
    </section>
   </main>
-  <footer class="site-footer">
-   <div class="container">
-    <div class="footer-main">
-     <a aria-label="SecureInChat 首页" class="brand brand--footer" href="/zh/">
-      <svg class="brand-mark" viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg>
-      <span class="brand-copy">
-       <span class="brand-name">
-        SecureInChat
-       </span>
-       <span class="brand-tagline">
-        更实用的工具，更私密的互联网
-       </span>
-      </span>
-     </a>
-     <nav aria-label="页脚导航" class="footer-links">
-      <a href="/mission/">
-       使命
+  <footer class="sc-footer">
+  <div class="sc-footer__inner">
+    <div class="sc-footer__brand">
+      <a class="sc-brand" href="/zh/" aria-label="SecureInChat 首页">
+        <span class="sc-brand__mark" aria-hidden="true"><svg viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="18" fill="#D8F361"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#11130E"/><circle cx="43" cy="53" r="4.6" fill="#D8F361"/><circle cx="54" cy="53" r="4.6" fill="#D8F361"/><circle cx="65" cy="53" r="4.6" fill="#D8F361"/></g></svg></span>
+        <span class="sc-brand__name">SecureInChat</span>
       </a>
-      <a href="/principles/">
-       原则
-      </a>
-      <a href="/privacy/">
-       隐私
-      </a>
-      <a href="/principles/#labels">
-       状态标签
-      </a>
-      <a href="/sponsor/">
-       赞助与联盟披露
-      </a>
-      <a href="/contact/">
-       联系
-      </a>
-     </nav>
-     <div class="footer-language">
-      <a href="/" lang="en">
-       English
-      </a>
-      <a href="/ja/" lang="ja">
-       日本語
-      </a>
-     </div>
+      <p class="sc-footer__note">实用的隐私工具，清楚说明边界。</p>
+      <div class="sc-footer__lang" role="group" aria-label="语言">
+        <a href="/tools/link-checker/" hreflang="en" lang="en">English</a>
+      </div>
     </div>
-    <div class="footer-bottom">
-     <p>
-      © 2026 SecureInChat。保留所有权利。
-     </p>
-     <p>
-      重视隐私，明确说明局限。
-     </p>
-    </div>
-   </div>
-  </footer>
+    <nav class="sc-footer__col" aria-label="探索">
+      <h2>探索</h2>
+      <ul>
+          <li><a hreflang="en" href="/workspace/">工作台</a></li>
+          <li><a href="/zh/tools/">工具与诊断</a></li>
+          <li><a href="/zh/checkup/">隐私体检</a></li>
+          <li><a hreflang="en" href="/blog/">指南</a></li>
+          <li><a hreflang="en" href="/messaging/">加密聊天</a></li>
+      </ul>
+    </nav>
+    <nav class="sc-footer__col" aria-label="关于与政策">
+      <h2>关于与政策</h2>
+      <ul>
+          <li><a hreflang="en" href="/mission/">使命</a></li>
+          <li><a hreflang="en" href="/principles/">原则</a></li>
+          <li><a hreflang="en" href="/principles/#labels">状态标签</a></li>
+          <li><a hreflang="en" href="/privacy/">隐私与法律</a></li>
+          <li><a hreflang="en" href="/contact/">联系</a></li>
+          <li><a hreflang="en" href="/sponsor/">赞助与联盟披露</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="sc-footer__bottom">
+    <p>© 2026 SecureInChat</p>
+    <p>不追踪，不需要账户。</p>
+  </div>
+</footer>
   <script src="/tools/assets/link.js" defer></script>
   <script src="/tools/assets/link-app.js" defer></script>
  </body>

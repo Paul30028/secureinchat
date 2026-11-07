@@ -103,50 +103,51 @@
   <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
   <link href="/assets/css/tool-widgets.css" rel="stylesheet"/>
    <link href="/assets/css/v4.css" rel="stylesheet"/>
+   <link href="/assets/css/shell.css" rel="stylesheet"/>
+  <script defer src="/assets/js/shell.js"></script>
  </head>
  <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header">
-   <div class="container header-inner">
-    <a aria-label="SecureInChat home" class="brand" href="/">
-     <svg class="brand-mark" viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg>
-     <span class="brand-copy">
-      <span class="brand-name">
-       SecureInChat
-      </span>
-      <span class="brand-tagline">
-       Better tools. A more private internet.
-      </span>
-     </span>
+  <header class="sc-header">
+  <div class="sc-header__inner">
+    <a class="sc-brand" href="/" aria-label="SecureInChat home">
+      <span class="sc-brand__mark" aria-hidden="true"><svg viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="18" fill="#D8F361"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#11130E"/><circle cx="43" cy="53" r="4.6" fill="#D8F361"/><circle cx="54" cy="53" r="4.6" fill="#D8F361"/><circle cx="65" cy="53" r="4.6" fill="#D8F361"/></g></svg></span>
+      <span class="sc-brand__name">SecureInChat</span>
     </a>
-    <nav aria-label="Main navigation" class="desktop-navigation">
+    <nav class="sc-nav" aria-label="Main navigation">
         <a href="/workspace/">Workspace</a>
         <a aria-current="true" href="/tools/">Tools</a>
         <a href="/blog/">Learn</a>
         <a href="/about/">About</a>
-      </nav>
-    <div class="header-actions">
-     <a class="language-link" href="/zh/" lang="zh">
-      中文
-     </a>
-     <a class="language-link" href="/ja/" lang="ja">
-      日本語
-     </a>
-     <a class="button button--small button--primary" href="/checkup/">
-      Start a checkup
-     </a>
+    </nav>
+    <div class="sc-header__actions">
+      <details class="sc-lang">
+        <summary aria-label="Language: English">
+          <span>English</span>
+          <svg class="sc-chevron" viewBox="0 0 12 8" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="sc-lang__menu" role="group" aria-label="Language">
+          <a href="/zh/tools/photo-metadata-remover/" hreflang="zh-CN" lang="zh-CN">中文</a>
+        </div>
+      </details>
+      <a class="sc-cta" href="/workspace/">Open workspace</a>
     </div>
-    <details class="mobile-navigation">
-      <summary aria-label="Open navigation">
-      <svg aria-hidden="true" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-       <path d="M4 7H20M4 12H20M4 17H20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="2">
-       </path>
-      </svg>
-     </summary>
-      <nav aria-label="Mobile navigation"><a href="/workspace/">Workspace</a><a aria-current="true" href="/tools/">Tools</a><a href="/blog/">Learn</a><a href="/about/">About</a><a href="/zh/" hreflang="zh" lang="zh">中文</a><a href="/ja/" hreflang="ja" lang="ja">日本語</a></nav>
+    <details class="sc-menu">
+      <summary aria-label="Navigation menu">
+        <svg class="sc-menu__icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </summary>
+      <nav aria-label="Mobile navigation">
+        <a href="/workspace/">Workspace</a>
+        <a aria-current="true" href="/tools/">Tools</a>
+        <a href="/blog/">Learn</a>
+        <a href="/about/">About</a>
+        <div class="sc-menu__locale" role="group" aria-label="Language">
+          <a href="/zh/tools/photo-metadata-remover/" hreflang="zh-CN" lang="zh-CN">中文</a>
+        </div>
+      </nav>
     </details>
-   </div>
-  </header>
+  </div>
+</header>
   <main class="subpage-main" id="main">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
@@ -280,59 +281,45 @@
     </div>
    </section>
   </main>
-  <footer class="site-footer">
-   <div class="container">
-    <div class="footer-main">
-     <a aria-label="SecureInChat home" class="brand brand--footer" href="/">
-      <svg class="brand-mark" viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg>
-      <span class="brand-copy">
-       <span class="brand-name">
-        SecureInChat
-       </span>
-       <span class="brand-tagline">
-        Better tools. A more private internet.
-       </span>
-      </span>
-     </a>
-     <nav aria-label="Footer navigation" class="footer-links">
-      <a href="/mission/">
-       Mission
+  <footer class="sc-footer">
+  <div class="sc-footer__inner">
+    <div class="sc-footer__brand">
+      <a class="sc-brand" href="/" aria-label="SecureInChat home">
+        <span class="sc-brand__mark" aria-hidden="true"><svg viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="18" fill="#D8F361"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#11130E"/><circle cx="43" cy="53" r="4.6" fill="#D8F361"/><circle cx="54" cy="53" r="4.6" fill="#D8F361"/><circle cx="65" cy="53" r="4.6" fill="#D8F361"/></g></svg></span>
+        <span class="sc-brand__name">SecureInChat</span>
       </a>
-      <a href="/principles/">
-       Principles
-      </a>
-      <a href="/privacy/">
-       Privacy
-      </a>
-      <a href="/principles/#labels">
-       Status labels
-      </a>
-      <a href="/sponsor/">
-       Sponsorship &amp; affiliate disclosure
-      </a>
-      <a href="/contact/">
-       Contact
-      </a>
-     </nav>
-     <div class="footer-language">
-      <a href="/zh/" lang="zh">
-       中文
-      </a>
-      <a href="/ja/" lang="ja">
-       日本語
-      </a>
-     </div>
+      <p class="sc-footer__note">Practical privacy tools. Clear about limits.</p>
+      <div class="sc-footer__lang" role="group" aria-label="Language">
+        <a href="/zh/tools/photo-metadata-remover/" hreflang="zh-CN" lang="zh-CN">中文</a>
+      </div>
     </div>
-    <div class="footer-bottom">
-     <p>
-      © 2026 SecureInChat. All rights reserved.
-     </p>
-     <p>
-      Privacy-conscious by design. Clear about limitations.
-     </p>
-    </div>
-   </div>
-  </footer>
+    <nav class="sc-footer__col" aria-label="Explore">
+      <h2>Explore</h2>
+      <ul>
+          <li><a href="/workspace/">Workspace</a></li>
+          <li><a href="/tools/">Tools &amp; diagnostics</a></li>
+          <li><a href="/checkup/">Privacy checkup</a></li>
+          <li><a href="/blog/">Guides</a></li>
+          <li><a href="/messaging/">Messaging</a></li>
+      </ul>
+    </nav>
+    <nav class="sc-footer__col" aria-label="About &amp; policy">
+      <h2>About &amp; policy</h2>
+      <ul>
+          <li><a href="/mission/">Mission</a></li>
+          <li><a href="/principles/">Principles</a></li>
+          <li><a href="/principles/#labels">Status labels</a></li>
+          <li><a href="/privacy/">Privacy &amp; legal</a></li>
+          <li><a href="/contact/">Contact</a></li>
+          <li><a href="/sponsor/">Sponsorship &amp; affiliate disclosure</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="sc-footer__bottom">
+    <p>© 2026 SecureInChat</p>
+    <p>No tracking. No accounts.</p>
+  </div>
+</footer>
   <script src="/tools/assets/exif.js" defer></script>
   <script src="/tools/assets/exif-app.js" defer></script>
   <script src="/tools/assets/net-log.js" defer></script>
