@@ -657,7 +657,7 @@ ${FUNDING_CHANNELS.map(([name, url]) => `      <li><a href="${url}" rel="noopene
 const V4_LINK = '<link href="/assets/css/v4.css" rel="stylesheet"/>';
 const ICO_LINK = '<link rel="icon" href="/favicon.ico" sizes="32x32">';
 // The workspace has its own 2026-11 design system; do not add the legacy v4 re-skin.
-const V4_EXEMPT = new Set(['workspace/index.html']);
+const V4_EXEMPT = new Set(['index.html', 'zh/index.html', 'ja/index.html', 'workspace/index.html']);
 function write(rel, content) {
   if (rel.endsWith('.html') && typeof content === 'string' && content.includes('</head>') && !content.includes(V4_LINK) && !V4_EXEMPT.has(rel)) {
     content = content.replace('</head>', `  ${V4_LINK}\n </head>`);
@@ -715,7 +715,10 @@ const HOME_JSONLD = { '@context': 'https://schema.org', '@graph': [
   { '@type': 'WebSite', '@id': SITE + '/#site', url: SITE + '/', name: 'SecureInChat', publisher: { '@id': SITE + '/#org' }, inLanguage: 'en' },
 ] };
 write('index.html', gptHome('en.html', '/', 'en_US', 'SecureInChat — Practical Privacy Tools', 'Practical privacy tools and guides. Check your browser privacy, protect sensitive information, and learn what your devices and online services can access.', HOME_JSONLD));
-write('zh/index.html', gptHome('zh.html', '/zh/', 'zh_CN', 'SecureInChat — 实用隐私保护工具', 'SecureInChat：实用的隐私工具与指南。', null));
+write('zh/index.html', gptHome('zh.html', '/zh/', 'zh_CN', '分享之前，先看看你将要发送什么 — SecureInChat', '在浏览器中检查文本、链接和受支持的图片。了解检查能发现什么、可能漏掉什么，以及哪些步骤仍由你决定。', null));
+write('ja/index.html', gptHome('ja.html', '/ja/', 'ja', '共有する前に、何を送ろうとしているか確かめよう — SecureInChat', 'テキスト、リンク、対応している画像をブラウザ内で確認できます。何が見つかり、何を見逃す可能性があるかを確かめてください。', null));
+write('assets/css/home-live.css', fs.readFileSync(path.join(ROOT, 'src/home/home-live.css'), 'utf8'));
+write('assets/js/text-review.js', fs.readFileSync(path.join(ROOT, 'src/workspace/text-review.js'), 'utf8'));
 write('assets/css/home.css', fs.readFileSync(path.join(ROOT, 'src/home/home.css'), 'utf8')
   .replace('src: url("/assets/fonts/noto-serif-variable.ttf") format("truetype");', 'src: url("/assets/fonts/noto-serif-latin-var.woff2") format("woff2");'));
 if (fs.existsSync(path.join(ROOT, 'src/home/home.js'))) write('assets/js/home.js', fs.readFileSync(path.join(ROOT, 'src/home/home.js')));
@@ -1160,7 +1163,7 @@ write('assets/main.js', fs.readFileSync(path.join(ROOT, 'src/main.js')));
 write('assets/site.css', fs.readFileSync(path.join(ROOT, 'src/site.css')));
 
 
-// Nord Security affiliate links on the Chinese and Japanese pages (owner decision 2026-10-22; Chinese pages are for readers outside mainland China).
+// Nord Security affiliate links on the Chinese privacy pages (owner decision 2026-10-22; Chinese pages are for readers outside mainland China).
 const NORD_VPN = 'https://go.nordvpn.net/aff_c?offer_id=15&amp;aff_id=159108&amp;url_id=902';
 const NORD_PASS = 'https://go.nordpass.io/aff_c?offer_id=488&amp;aff_id=159108&amp;url_id=9356';
 const PARTNER_ZH = `    <section class="checkup-next-section" aria-labelledby="partner-h">
@@ -1171,20 +1174,33 @@ const PARTNER_ZH = `    <section class="checkup-next-section" aria-labelledby="p
       </div>
     </section>
 `;
-const PARTNER_JA = `    <section class="wrap sec" aria-labelledby="partner-h">
-      <h2 id="partner-h">提携パートナーのツール</h2>
-      <p><a href="${NORD_VPN}" rel="sponsored noopener">NordVPN</a>（アフィリエイトリンク）：有料の VPN サービスです。接続後、<a href="/tools/ip-leak-test/" hreflang="en">IP 漏えいテスト（英語）</a>でご自身で確認できます。<a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> に直接アクセスすることもできます。</p>
-      <p><a href="${NORD_PASS}" rel="sponsored noopener">NordPass</a>（アフィリエイトリンク）：無料プランのあるパスワードマネージャーです。<a href="https://nordpass.com/" rel="noopener">nordpass.com</a> に直接アクセスすることもできます。</p>
+// Nord Security affiliate links on the Japanese home page (owner decision 2026-10-22).
+const PARTNER_JA = `    <section class="home-section home-partner" aria-labelledby="partner-h">
+      <div class="home-wrap">
+        <p class="home-eyebrow">05 / Partner</p>
+        <h2 class="home-h2" id="partner-h">提携パートナーのツール</h2>
+        <div class="home-partner__grid">
+          <p><a href="${NORD_VPN}" rel="sponsored noopener">NordVPN</a>（アフィリエイトリンク）：有料の VPN サービスです。接続後、<a href="/tools/ip-leak-test/" hreflang="en">IP 漏えいテスト（英語）</a>でご自身で確認できます。<a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> に直接アクセスすることもできます。</p>
+          <p><a href="${NORD_PASS}" rel="sponsored noopener">NordPass</a>（アフィリエイトリンク）：無料プランのあるパスワードマネージャーです。<a href="https://nordpass.com/" rel="noopener">nordpass.com</a> に直接アクセスすることもできます。</p>
+        </div>
+      </div>
     </section>
 `;
-function addPartner(rel, block) {
-  const f = path.join(PUB, rel); const h = fs.readFileSync(f, 'utf8'); const i = h.lastIndexOf('</main>');
-  if (i < 0 || h.includes('go.nordvpn.net')) throw new Error('partner block: ' + rel);
+function addPartner(rel, block, slot) {
+  const f = path.join(PUB, rel); const h = fs.readFileSync(f, 'utf8');
+  if (h.includes('go.nordvpn.net')) throw new Error('partner block: ' + rel);
+  if (slot) {
+    if (!h.includes(slot)) throw new Error('partner slot: ' + rel);
+    fs.writeFileSync(f, h.replace(slot, block));
+    return;
+  }
+  const i = h.lastIndexOf('</main>');
+  if (i < 0) throw new Error('partner block: ' + rel);
   fs.writeFileSync(f, h.slice(0, i) + block + h.slice(i));
 }
 addPartner('zh/checkup/index.html', PARTNER_ZH);
 addPartner('zh/tools/phone-checkup/index.html', PARTNER_ZH);
-addPartner('ja/index.html', PARTNER_JA);
+addPartner('ja/index.html', PARTNER_JA, '<!-- PARTNER_JA -->');
 addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap doc" aria-labelledby="partner-h">
       <h2 id="partner-h">Tools from our partner</h2>
       <p><a href="https://go.coveron.net/aff_c?offer_id=1025&amp;aff_id=159108" rel="sponsored noopener">Coveron</a> (affiliate link) is an identity theft protection service for people in the United States. Opting out of data brokers yourself, as described above, costs nothing.</p>

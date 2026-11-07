@@ -11,19 +11,32 @@
     }
   };
 
+  // Close every open disclosure, not only the first one in DOM order. If the language menu
+  // and the mobile menu were both open, one Escape must close both and leave focus on the
+  // summary that belongs to the menu the reader was using.
+  const closeAll = () => {
+    const open = disclosures.filter((item) => item.open);
+    if (!open.length) return null;
+    const focused = document.activeElement;
+    const target = open.find((item) => item.contains(focused)) || open[open.length - 1];
+    for (const item of open) item.open = false;
+    return target;
+  };
+
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
-    const open = disclosures.find((item) => item.open);
-    if (!open) return;
+    const target = closeAll();
+    if (!target) return;
     event.preventDefault();
-    open.open = false;
-    const summary = open.querySelector('summary');
+    const summary = target.querySelector('summary');
     if (summary) summary.focus();
   });
 
   document.addEventListener('click', (event) => {
-    const open = disclosures.find((item) => item.open);
-    if (open && !open.contains(event.target)) open.open = false;
+    const open = disclosures.filter((item) => item.open);
+    if (open.length && !open.some((item) => item.contains(event.target))) {
+      for (const item of open) item.open = false;
+    }
   });
 
   for (const item of disclosures) {

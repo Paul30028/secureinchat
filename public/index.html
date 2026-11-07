@@ -1,17 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#F7F5EF">
-  <meta name="description" content="Practical privacy tools and guides. Check your browser privacy, protect sensitive information, and learn what your devices and online services can access.">
-  <title>SecureInChat — Practical Privacy Tools</title>
-  <link rel="stylesheet" href="/assets/css/home.css">
-  <link rel="stylesheet" href="/assets/css/checkup.css">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#11130E">
+  <meta name="description" content="Paste text and see the emails, phone numbers, IDs and keys local rules can find before you share. Then open the workspace to review text, links and images in your browser.">
+  <title>Before you share, see what you're sending — SecureInChat</title>
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/home-live.css">
+  <link rel="preload" href="/assets/fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/dm-sans-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/dm-mono-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" href="/favicon.ico" sizes="32x32">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/text-review.js" defer></script>
+  <script src="/assets/js/home.js" defer></script>
   <link rel="canonical" href="https://secureinchat.com/">
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/">
@@ -26,12 +31,11 @@
   <meta name="twitter:card" content="summary">
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://secureinchat.com/#org","name":"SecureInChat","url":"https://secureinchat.com/"},{"@type":"WebSite","@id":"https://secureinchat.com/#site","url":"https://secureinchat.com/","name":"SecureInChat","publisher":{"@id":"https://secureinchat.com/#org"},"inLanguage":"en"}]}</script>
   <link rel="stylesheet" href="/assets/css/min-type-size.css">
-  <link href="/assets/css/v4.css" rel="stylesheet"/>
-   <link href="/assets/css/shell.css" rel="stylesheet"/>
+  <link href="/assets/css/shell.css" rel="stylesheet"/>
   <script defer src="/assets/js/shell.js"></script>
  </head>
-<body>
-  <a class="skip-link" href="#main">Skip to content</a>
+<body class="home">
+  <a class="home-skip" href="#main">Skip to content</a>
 
   <header class="sc-header">
   <div class="sc-header__inner">
@@ -76,116 +80,166 @@
   </div>
 </header>
 
-  <main id="main" class="v4-main">
+  <main id="main">
+    <section class="home-hero" aria-labelledby="hero-title">
+      <div class="home-wrap home-hero__inner">
+        <p class="home-kicker"><span class="home-kicker__dot" aria-hidden="true"></span>Private workspace / local text review</p>
+        <h1 class="home-title" id="hero-title">Before you share, <span class="home-accent">see</span> what you're sending.</h1>
+        <p class="home-lede">Review text, links, and supported images in your browser. See what the checks can find, what they can miss, and what stays in your control.</p>
 
-    <section class="v4-hero" aria-labelledby="hero-title">
-      <div class="v4-container">
-        <h1 id="hero-title" class="v4-hero-title"><span class="v4-hero-line">See what you <span class="v4-highlight">give&nbsp;away</span>.</span> <span class="v4-hero-line">Then switch it off.</span></h1>
-        <p class="v4-hero-lead">Before you send a photo, paste text into an AI chat, or open a strange link, check what you expose. Everything runs in your browser.</p>
-        <div class="v4-hero-actions">
-          <a class="v4-button v4-button--primary" href="/workspace/">
-            Open the workspace
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
-          <a class="v4-button v4-button--secondary" href="/tools/">Browse all tools</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="v4-tools" id="privacy-tools" aria-labelledby="tools-title">
-      <div class="v4-container">
-        <header class="v4-section-head">
-          <h2 id="tools-title">Start with the local tools</h2>
-          <p>These tools run in your browser and send nothing. Account checkup is a checklist that stays on your device too.</p>
-        </header>
-        <div class="v4-card-grid">
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m4 18 5-5 3 3 3-3 5 5"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/tools/photo-metadata-remover/">Photo Metadata Remover</a></h3>
-            <p>Before you send a photo, remove GPS, camera model and timestamps.</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/tools/file-metadata-remover/">File Metadata Remover</a></h3>
-            <p>Before you send a Word file or PDF, clear author, revision history and hidden properties.</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M4 12h7M4 17h9"/><path d="m15 10 4 4M19 10l-4 4"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/tools/text-redactor/">Text Redactor</a></h3>
-            <p>Before you paste text into an AI chat or send an email, replace emails, phone numbers and ID numbers. It replaces the text itself, not a box drawn over it.</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 13.5a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1.5 1.5"/><path d="M13.5 10.5a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1.5-1.5"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/tools/link-checker/">Link Checker</a></h3>
-            <p>Before you open a strange link, see its tracking parameters and host.</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10a5 5 0 0 1 10 0v3"/><path d="M9.5 12a2.5 2.5 0 0 1 5 0v3a2.5 2.5 0 0 1-5 0Z"/><path d="M12 8v5"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/tools/browser-fingerprint-test/">Browser Fingerprint Test</a></h3>
-            <p>After you switch browsers or change settings, check which traits are still visible.</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.5"/><path d="M4 20c0-3.3 2.7-6 6-6 1.2 0 2.3.3 3.2.9"/><path d="m15 12 2 2 3-3"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/tools/account-checkup/">Account Checkup</a></h3>
-            <p>A checklist you tick off item by item: sign-in, recovery, two-factor.</p>
-          </article>
-
-        </div>
-        <p class="v4-verify-link"><a href="/checkup/">Not sure where to start? Take the privacy checkup</a></p>
-      </div>
-    </section>
-
-    <section class="v4-verify" aria-labelledby="verify-title">
-      <div class="v4-container">
-        <h2 id="verify-title">Check the cleaning yourself.</h2>
-        <p>Every cleaning tool page lists the network requests it makes. While a file is being cleaned, you can watch that list and see whether anything leaves the browser.</p>
-        <p>It shows which addresses the page contacted and when. Use it as evidence, then decide for yourself.</p>
-        <figure class="v4-requests-demo">
-          <div class="v4-requests-demo-panel" aria-hidden="true">
-            <span class="v4-requests-demo-label">Requests from this page</span>
-            <span class="v4-requests-demo-value">none while cleaning</span>
+        <div class="home-check" id="home-check" aria-labelledby="home-check-title">
+          <div class="home-check__bar">
+            <strong id="home-check-title">Live text check</strong>
+            <span>Runs in this tab / no upload</span>
           </div>
-          <figcaption class="v4-requests-demo-caption">Illustration</figcaption>
-        </figure>
-        <p class="v4-verify-link"><a href="/principles/">Read the data-flow notes</a></p>
+          <noscript>
+            <p class="home-nojs" id="home-noscript">This live check needs JavaScript to read the text in your browser. Nothing is sent when it runs. Without JavaScript, open the full workspace to read what each mode checks and what it cannot.</p>
+            <p class="home-nojs"><a href="/workspace/">Open full workspace</a></p>
+          </noscript>
+          <div class="home-check__form">
+            <label class="home-check__label" for="home-text">Text to check</label>
+            <p class="home-check__hint" id="home-text-hint">Paste a message, an email or a log. It is read only in this tab; the page does not store it.</p>
+            <textarea class="home-field" id="home-text" name="home-text" rows="5" spellcheck="false" autocomplete="off" aria-describedby="home-text-hint home-text-limit" placeholder="Paste text here, for example: Mail bob@example.com or call +1 415-555-0132."></textarea>
+            <div class="home-results" id="home-results" role="status" aria-live="polite" aria-atomic="true">
+              <p class="home-status" id="home-status">Start typing to see what the rules can find.</p>
+              <ul class="home-categories" id="home-categories"></ul>
+            </div>
+            <p class="home-limit" id="home-text-limit">Pattern rules only. They can miss names, addresses, context and unusual formats, so a clear result is not a guarantee.</p>
+            <div class="home-actions">
+              <a class="home-btn" href="/workspace/">Open full workspace</a>
+              <p class="home-actions__note">No account. No automatic sending.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-proof">
+          <p class="home-proof__count" id="request-count" data-state="waiting" data-count="0" aria-live="polite">Requests since you started typing: waiting for your first keystroke</p>
+          <p class="home-proof__note">Counted with your browser's Resource Timing API. You can check the same thing in your browser developer tools, on the Network panel.</p>
+        </div>
       </div>
     </section>
 
-    <section class="v4-note">
-      <div class="v4-container">
-        <p class="v4-note-inner">These tools have limits. Local tools only clean what the browser can read. Limited network tools send the first 5 characters of a SHA-1 hash. Network tools send your IP or URL to third-party lookup services. <a href="/principles/">Read the label definitions and data flows</a></p>
+    <section class="home-section" id="share-moments" aria-labelledby="moments-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">01 / Before you send</p>
+          <h2 class="home-h2" id="moments-title">Three moments before you share.</h2>
+          <p class="home-sub">Each one opens the workspace in the right mode. The workspace is the full tool; this page is the quick look.</p>
+        </header>
+        <div class="home-moments">
+          <article class="home-moment">
+            <span class="home-moment__num">01 / TEXT</span>
+            <h3 class="home-moment__title">A message you are about to paste</h3>
+            <p class="home-moment__text">Paste text and see emails, phone-like numbers, government ID formats, card numbers and access keys the rules can find.</p>
+            <a class="home-moment__cta" href="/workspace/?mode=text">Check text <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-moment">
+            <span class="home-moment__num">02 / LINK</span>
+            <h3 class="home-moment__title">A link you are about to open</h3>
+            <p class="home-moment__text">Read the address without opening it. See tracking parameters and key names that often carry session or identity data.</p>
+            <a class="home-moment__cta" href="/workspace/?mode=link">Check a link <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-moment">
+            <span class="home-moment__num">03 / IMAGE</span>
+            <h3 class="home-moment__title">A photo you are about to send</h3>
+            <p class="home-moment__text">Check the supported formats and limits, then make a new copy in the tab. The download starts only when you ask for it.</p>
+            <a class="home-moment__cta" href="/workspace/?mode=image">Check an image <span aria-hidden="true">→</span></a>
+          </article>
+        </div>
       </div>
     </section>
 
-    <section class="v4-messaging" aria-labelledby="messaging-title">
-      <div class="v4-container">
-        <h2 id="messaging-title">Encrypted messaging is still being built.</h2>
-        <p>The chat client is developed separately from the privacy tools. No release date has been announced.</p>
-        <a class="v4-button v4-button--secondary" href="/messaging/">
-          Read about messaging
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
+    <section class="home-section" id="products" aria-labelledby="products-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">02 / Products</p>
+          <h2 class="home-h2" id="products-title">Two products, two different jobs.</h2>
+          <p class="home-sub">The local tools and the messenger are separate projects. Their status is written here rather than implied.</p>
+        </header>
+        <div class="home-products">
+          <article class="home-product">
+            <div class="home-product__top">
+              <h3 class="home-product__name">Mizpah</h3>
+              <span class="home-status-label home-status-label--dev">In development</span>
+            </div>
+            <p class="home-product__kind">Encrypted group messaging / separate client</p>
+            <p class="home-product__text">A chat client built on a blind relay. The apps are not released yet and no release date is announced.</p>
+            <a class="home-product__cta" href="/messaging/">Read about Mizpah <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-product home-product--quiet">
+            <div class="home-product__top">
+              <h3 class="home-product__name">Guardian</h3>
+              <span class="home-status-label">Coming soon</span>
+            </div>
+            <p class="home-product__kind">On-device DNS blocking for Android</p>
+            <p class="home-product__text">A local DNS filter for Android. There is no public product page yet, so there is no link to follow.</p>
+            <p class="home-product__soon">No page yet. Not available to try.</p>
+          </article>
+        </div>
       </div>
     </section>
 
+    <section class="home-section" id="principles" aria-labelledby="principles-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">03 / Principles</p>
+          <h2 class="home-h2" id="principles-title">Privacy is a boundary you can inspect.</h2>
+          <p class="home-sub">Three rules shape every tool on this site. The long version and the data-flow notes are in the principles.</p>
+        </header>
+        <ol class="home-principles">
+          <li class="home-principle">
+            <span class="home-principle__num">01</span>
+            <h3 class="home-principle__title">Process locally first</h3>
+            <p class="home-principle__text">The check runs in your browser. The live text review makes no request while you type.</p>
+          </li>
+          <li class="home-principle">
+            <span class="home-principle__num">02</span>
+            <h3 class="home-principle__title">State the limits</h3>
+            <p class="home-principle__text">The rules match formats. They do not understand names, addresses, context or unusual formats, and the result says so.</p>
+          </li>
+          <li class="home-principle">
+            <span class="home-principle__num">03</span>
+            <h3 class="home-principle__title">You decide what happens next</h3>
+            <p class="home-principle__text">Nothing is copied, replaced, downloaded or sent until you press the button that does it.</p>
+          </li>
+        </ol>
+        <p class="home-principles__more"><a href="/principles/">Read the principles and data-flow notes</a></p>
+      </div>
+    </section>
+
+    <section class="home-section" id="guides" aria-labelledby="guides-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">04 / Learn</p>
+          <h2 class="home-h2" id="guides-title">Learn how the boundary works.</h2>
+          <p class="home-sub">Three existing guides, with their real publication dates. They explain method and limits, not promises.</p>
+        </header>
+        <div class="home-guides">
+          <a class="home-guide" href="/blog/redact-text-before-you-share-it/">
+            <span class="home-guide__meta">Published 2026-10-20</span>
+            <span class="home-guide__title">Redact text before you share it: what to remove from logs, emails and configs</span>
+            <span class="home-guide__cta">Read the guide <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="home-guide" href="/blog/what-a-blind-relay-can-and-cannot-know/">
+            <span class="home-guide__meta">Published 2026-10-20</span>
+            <span class="home-guide__title">What a blind relay can and cannot know</span>
+            <span class="home-guide__cta">Read the guide <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="home-guide" href="/blog/privacy-reset-checklist-iphone-android/">
+            <span class="home-guide__meta">Published 2026-10-22</span>
+            <span class="home-guide__title">Privacy reset checklist for iPhone and Android: what each reset protects, what it costs, how to undo it</span>
+            <span class="home-guide__cta">Read the guide <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-close" aria-labelledby="close-title">
+      <div class="home-wrap home-close__inner">
+        <p class="home-close__text" id="close-title">Start with one thing you were about to send.</p>
+        <a class="home-btn" href="/workspace/">Open full workspace</a>
+      </div>
+    </section>
   </main>
 
   <footer class="sc-footer">

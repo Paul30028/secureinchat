@@ -26,10 +26,37 @@ class H(http.server.SimpleHTTPRequestHandler):
         super().end_headers()
     def log_message(self, *a): pass
 
-socketserver.TCPServer.allow_reuse_address = True
-srv = socketserver.TCPServer(('127.0.0.1', 0), H)
+socketserver.ThreadingTCPServer.allow_reuse_address = True
+socketserver.ThreadingTCPServer.daemon_threads = True
+srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), H)
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 BASE = f'http://127.0.0.1:{srv.server_address[1]}'
+
+# Layout and keyboard state settle after webfonts swap in and after native <details> toggles.
+# Wait for those explicit states rather than sleeping: a fallback font can be wider than the
+# loaded font, and a toggle event is queued after the element's open state changes.
+def settle_layout(page):
+    page.evaluate("() => (document.fonts && document.fonts.ready) ? document.fonts.ready.then(() => true) : true")
+
+def wait_state(page, expression, timeout=3000):
+    try:
+        page.wait_for_function(expression, timeout=timeout)
+        return True
+    except Exception:
+        return False
+
+def overflow_report(page):
+    return page.evaluate("""() => {
+      const w = document.documentElement.clientWidth;
+      return [...document.querySelectorAll('body *')].filter((el) => {
+        const r = el.getBoundingClientRect();
+        const s = getComputedStyle(el);
+        return r.width > 0 && r.right > w + 0.5 && s.position !== 'fixed' && s.visibility !== 'hidden';
+      }).slice(0, 6).map((el) => el.tagName.toLowerCase()
+        + (el.id ? '#' + el.id : '')
+        + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/[ ]+/).join('.') : '')
+        + ' right=' + Math.round(el.getBoundingClientRect().right));
+    }""")
 
 WS_OK = """(()=>{class W{constructor(u){this.u=u;setTimeout(()=>{this.onopen&&this.onopen();setTimeout(()=>{this.onmessage&&this.onmessage({data:JSON.stringify({type:'auth_challenge',challenge:'abcdef0123456789abcdef'})})},40)},60)}close(){}}window.WebSocket=W})();"""
 WS_BAD = """(()=>{class W{constructor(u){setTimeout(()=>{this.onerror&&this.onerror();this.onclose&&this.onclose({code:1006})},60)}close(){}}window.WebSocket=W})();"""
@@ -102,7 +129,8 @@ with sync_playwright() as p:
     # no-JS: content must be visible
     ctx2 = b.new_context(java_script_enabled=False, viewport={'width': 1280, 'height': 800}); pg2 = ctx2.new_page(); pg2.goto(BASE + '/messaging/')
     check(pg2.is_visible('#relay-diagnostic-title') and pg2.is_visible('h1.page-title'), 'no-JS: messaging heading and relay diagnostic visible')
-    pg2.goto(BASE + '/'); check(pg2.is_visible('#hero-title') and pg2.is_visible('#privacy-tools h2'), 'no-JS: home hero and tools visible')
+    pg2.goto(BASE + '/'); check(pg2.is_visible('#hero-title') and pg2.is_visible('#share-moments h2'), 'no-JS: home hero and moments visible')
+    check(pg2.is_visible('#home-noscript') and pg2.locator('.home-nojs a[href="/workspace/"]').count() >= 1, 'no-JS: home check explains itself and links the workspace')
     # language select navigates
     ctx3 = b.new_context(viewport={'width': 1280, 'height': 800}); pg3 = ctx3.new_page(); pg3.add_init_script(WS_OK); pg3.goto(BASE + '/')
     pg3.goto(BASE + '/zh/'); check(len(pg3.inner_text('#hero-title').strip()) > 4, '/zh/ hero heading')
@@ -121,9 +149,9 @@ with sync_playwright() as p:
     pg3.goto(BASE + '/checkup/')
     ec = pg3.eval_on_selector_all('.checkup-card a', 'as => as.map(a => a.getAttribute("href"))')
     check(ec == ['/tools/privacy-report/', '/tools/link-checker/', '/tools/phone-checkup/', '/tools/account-checkup/'], f'/checkup/ four checks in order {ec}')
-    pg3.goto(BASE + '/ja/'); check('何が漏れているか' in pg3.inner_text('h1'), '/ja/ heading')
+    pg3.goto(BASE + '/ja/'); check('共有する前に' in pg3.inner_text('h1'), '/ja/ heading')
     pg3.wait_for_timeout(300)
-    check(pg3.inner_text('#ro-cookies') in ('許可', 'ブロック'), '/ja/ readout localized')
+    check('入力' in pg3.inner_text('#home-status') and 'リクエスト' in pg3.inner_text('#request-count'), '/ja/ live check localized')
     check(pg3.locator('main a[href^="/"]:not([hreflang="en"])').count() == 0, '/ja/ every internal link marked hreflang=en')
 
     # Workspace: local-only text/link review, keyboard tabs, undo, blocked copy and no storage.
@@ -170,8 +198,9 @@ with sync_playwright() as p:
     # 320 px is the narrowest supported phone width.
     ctxn = b.new_context(viewport={'width': 320, 'height': 800})
     pn = ctxn.new_page(); pn.goto(BASE + '/workspace/', wait_until='load')
+    settle_layout(pn)
     ov = pn.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
-    check(ov <= 0, f'workspace 320px no horizontal overflow ({ov})')
+    check(ov <= 0, f'workspace 320px no horizontal overflow ({ov}) {overflow_report(pn) if ov > 0 else ""}')
     check(pn.is_visible('#workspace-app'), 'workspace app visible at 320px')
     pn.screenshot(path=f'{OUT}/workspace-320.png', full_page=True)
     ctxn.close()
@@ -193,6 +222,7 @@ with sync_playwright() as p:
     for nav_path, nav_labels in NAV_CASES.items():
         ctxn = b.new_context(viewport={'width': 320, 'height': 800})
         pn = ctxn.new_page(); pn.goto(BASE + nav_path, wait_until='load')
+        settle_layout(pn)
         nav = pn.locator('header nav.sc-nav').first
         got = [t.strip() for t in nav.locator('a').all_text_contents()]
         check(got == nav_labels, f'{nav_path} [nav 320] four localized items {got}')
@@ -203,6 +233,8 @@ with sync_playwright() as p:
             cta_text = (cta.text_content() or '').strip()
             check(cta.get_attribute('href') == '/workspace/', f'{nav_path} [nav 320] action opens /workspace/')
             check(cta_text and cta_text != nav_labels[0], f'{nav_path} [nav 320] action is not another Workspace title ({cta_text})')
+            cta_colors = cta.evaluate("a => { const s = getComputedStyle(a); return [s.color, s.backgroundColor]; }")
+            check(cta_colors[0] != cta_colors[1], f'{nav_path} [nav 320] action text is visible against its background {cta_colors}')
         lang_hrefs = pn.locator('header .sc-lang__menu a[href]').evaluate_all('as => as.map(a => a.getAttribute("href"))')
         check(len(lang_hrefs) > 0, f'{nav_path} [nav 320] language menu has real options')
         for href in lang_hrefs:
@@ -213,27 +245,30 @@ with sync_playwright() as p:
         for href in footer_lang:
             check(target_exists(href), f'{nav_path} [nav 320] footer language target exists {href}')
         ov = pn.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
-        check(ov <= 0, f'{nav_path} [nav 320] no horizontal overflow ({ov})')
+        check(ov <= 0, f'{nav_path} [nav 320] no horizontal overflow ({ov}) {overflow_report(pn) if ov > 0 else ""}')
         if nav_path in ('/tools/', '/zh/tools/', '/blog/', '/about/', '/workspace/'):
             cur = nav.locator('a[aria-current="page"]')
             check(cur.count() == 1, f'{nav_path} [nav 320] current item marked ({cur.count()})')
         details = pn.locator('details.sc-menu')
         if details.count():
             summary = details.locator('summary')
+            focus_summary = "() => { const s = document.querySelector('details.sc-menu > summary'); return !!s && document.activeElement === s; }"
+            menu_open = "() => { const d = document.querySelector('details.sc-menu'); if (!d || !d.open) return false; const n = d.querySelector('nav'); return !!n && getComputedStyle(n).display !== 'none' && getComputedStyle(n).visibility !== 'hidden' && n.getBoundingClientRect().width > 0; }"
+            menu_closed = "() => { const d = document.querySelector('details.sc-menu'); return !!d && !d.open; }"
             summary.focus()
-            check(pn.evaluate("document.activeElement && document.activeElement.tagName === 'SUMMARY'"),
-                  f'{nav_path} [nav 320] menu summary receives keyboard focus')
+            check(wait_state(pn, focus_summary), f'{nav_path} [nav 320] menu summary receives keyboard focus')
             pn.keyboard.press('Enter')
-            check(details.evaluate('(e) => e.open'), f'{nav_path} [nav 320] menu opens with Enter')
+            check(wait_state(pn, menu_open), f'{nav_path} [nav 320] menu opens with Enter')
             pn.keyboard.press('Escape')
-            check(not details.evaluate('(e) => e.open'), f'{nav_path} [nav 320] menu closes with Escape')
+            check(wait_state(pn, menu_closed), f'{nav_path} [nav 320] menu closes with Escape')
             summary.focus()
+            check(wait_state(pn, focus_summary), f'{nav_path} [nav 320] menu summary regains focus')
             pn.keyboard.press('Enter')
-            check(details.evaluate('(e) => e.open'), f'{nav_path} [nav 320] menu reopens with Enter')
+            check(wait_state(pn, menu_open), f'{nav_path} [nav 320] menu reopens with Enter')
             mobile = [t.strip() for t in details.locator('nav a').all_inner_texts()]
             check(mobile[:4] == nav_labels, f'{nav_path} [nav 320] mobile menu starts with the four items {mobile[:6]}')
             ov = pn.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth')
-            check(ov <= 0, f'{nav_path} [nav 320] open menu does not overflow ({ov})')
+            check(ov <= 0, f'{nav_path} [nav 320] open menu does not overflow ({ov}) {overflow_report(pn) if ov > 0 else ""}')
             details.locator('nav a').first.focus()
             check(pn.evaluate("document.activeElement && document.activeElement.tagName === 'A'"),
                   f'{nav_path} [nav 320] mobile menu links are keyboard reachable')
@@ -291,14 +326,17 @@ _zc = open(os.path.join(ROOT, 'zh', 'checkup', 'index.html'), encoding='utf-8').
 _zc_cards = _re.findall(r'class="button button--primary checkup-card-action" href="([^"]+)"', _zc)
 check(_zc_cards == ['/zh/tools/link-checker/', '/zh/tools/phone-checkup/', '/zh/tools/account-checkup/'], f'/zh/checkup/ cards link Chinese tools {_zc_cards}')
 _zh_home = open(os.path.join(ROOT, 'zh', 'index.html'), encoding='utf-8').read()
-_zh_cards = _re.findall(r'class="v4-card-link" href="([^"]+)"', _zh_home)
-# Every tool card on /zh/ points at its Chinese page (the fingerprint test got one in W16).
-check(_zh_cards == ['/zh/tools/photo-metadata-remover/', '/zh/tools/file-metadata-remover/', '/zh/tools/text-redactor/', '/zh/tools/link-checker/', '/zh/tools/browser-fingerprint-test/', '/zh/tools/account-checkup/'], f'/zh/ tool cards link Chinese tools {_zh_cards}')
+_zh_tool_links = _re.findall(r'href="(/tools/[^"]+)"', _zh_home)
+# The Chinese home never sends readers to an English tool page when a Chinese one exists; its tool
+# entry point is the Chinese index. This replaces the old v4-card regex without relaxing the rule.
+check(not [h for h in _zh_tool_links if not h.startswith('/zh/tools/')], f'/zh/ no English tool links {_zh_tool_links}')
+check('href="/zh/tools/"' in _zh_home, '/zh/ links the Chinese tools index')
 check('11 个工具' not in _zh_home, '/zh/ no stale tool count')
 _en_home = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
-_en_index_n = open(os.path.join(ROOT, 'tools', 'index.html'), encoding='utf-8').read().count('class="tool-catalogue-item"')
-_en_counts = [int(x) for x in _re.findall(r'View all (\d+) tools', _en_home)]
-check(_en_index_n >= 10 and all(n == _en_index_n for n in _en_counts), f'/ "View all N tools" matches /tools/ index ({_en_counts} vs {_en_index_n})')
+check('href="/tools/"' in _en_home, '/ links the full tools directory')
+check('eleven' not in _en_home.lower() and '11 tools' not in _en_home.lower(), '/ no stale hardcoded tool count')
+_ja_home = open(os.path.join(ROOT, 'ja', 'index.html'), encoding='utf-8').read()
+check(_re.search(r'rel="[^"]*sponsored[^"]*"', _ja_home) is not None and 'アフィリエイトリンク' in _ja_home, '/ja/ keeps the sponsored partner disclosure')
 
 # Heading order (WCAG 1.3.1): no built page may skip a level going down (h1 -> h3 breaks screen-reader outlines).
 _skips = []

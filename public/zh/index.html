@@ -1,17 +1,22 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#F7F5EF">
-  <meta name="description" content="实用的个人隐私保护工具与指南。检查浏览器隐私、保护敏感信息，了解设备和网络服务能够获取哪些信息。">
-  <title>SecureInChat — 实用隐私保护工具</title>
-  <link rel="stylesheet" href="/assets/css/home.css">
-  <link rel="stylesheet" href="/assets/css/checkup.css">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#11130E">
+  <meta name="description" content="分享之前，先在浏览器里粘贴文字，看看本地规则能发现哪些邮箱、电话、证件号和密钥。再打开工作台检查文本、链接和受支持的图片。">
+  <title>分享之前，先看看你将要发送什么 — SecureInChat</title>
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/home-live.css">
+  <link rel="preload" href="/assets/fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/dm-sans-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/dm-mono-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" href="/favicon.ico" sizes="32x32">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/text-review.js" defer></script>
+  <script src="/assets/js/home.js" defer></script>
   <link rel="canonical" href="https://secureinchat.com/zh/">
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/">
@@ -19,18 +24,17 @@
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SecureInChat">
-  <meta property="og:title" content="SecureInChat — 实用隐私保护工具">
-  <meta property="og:description" content="SecureInChat：实用的隐私工具与指南。">
+  <meta property="og:title" content="分享之前，先看看你将要发送什么 — SecureInChat">
+  <meta property="og:description" content="在浏览器中检查文本、链接和受支持的图片。了解检查能发现什么、可能漏掉什么，以及哪些步骤仍由你决定。">
   <meta property="og:url" content="https://secureinchat.com/zh/">
   <meta property="og:locale" content="zh_CN">
   <meta name="twitter:card" content="summary">
   <link rel="stylesheet" href="/assets/css/min-type-size.css">
-  <link href="/assets/css/v4.css" rel="stylesheet"/>
-   <link href="/assets/css/shell.css" rel="stylesheet"/>
+  <link href="/assets/css/shell.css" rel="stylesheet"/>
   <script defer src="/assets/js/shell.js"></script>
  </head>
-<body>
-  <a class="skip-link" href="#main">跳至正文</a>
+<body class="home">
+  <a class="home-skip" href="#main">跳到正文</a>
 
   <header class="sc-header">
   <div class="sc-header__inner">
@@ -75,116 +79,166 @@
   </div>
 </header>
 
-  <main id="main" class="v4-main">
+  <main id="main">
+    <section class="home-hero" aria-labelledby="hero-title">
+      <div class="home-wrap home-hero__inner">
+        <p class="home-kicker"><span class="home-kicker__dot" aria-hidden="true"></span>私人工作台 / 本地文字检查</p>
+        <h1 class="home-title" id="hero-title">分享之前，先看看你将要发送什么。</h1>
+        <p class="home-lede">在浏览器中检查文本、链接和受支持的图片。了解检查能发现什么、可能漏掉什么，以及哪些步骤仍由你决定。</p>
 
-    <section class="v4-hero" aria-labelledby="hero-title">
-      <div class="v4-container">
-        <h1 id="hero-title" class="v4-hero-title"><span class="v4-hero-line">看看你正在<span class="v4-highlight">泄露</span>什么。</span><span class="v4-hero-line">然后把它关掉。</span></h1>
-        <p class="v4-hero-lead">发照片、把文字粘贴进 AI 聊天、点开陌生链接之前，先看看你暴露了什么。全部在你的浏览器里完成。</p>
-        <div class="v4-hero-actions">
-          <a class="v4-button v4-button--primary" href="/workspace/">
-            打开工作台（英文）
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
-          <a class="v4-button v4-button--secondary" href="/zh/tools/">查看全部工具</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="v4-tools" id="privacy-tools" aria-labelledby="tools-title">
-      <div class="v4-container">
-        <header class="v4-section-head">
-          <h2 id="tools-title">先从本地工具开始</h2>
-          <p>这些工具在浏览器里运行，不发送任何内容。账号安全自查是一份同样只留在本机的清单。</p>
-        </header>
-        <div class="v4-card-grid">
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m4 18 5-5 3 3 3-3 5 5"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/zh/tools/photo-metadata-remover/">照片元数据清理</a></h3>
-            <p>发照片之前，先把 GPS、相机型号和时间戳去掉。</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/zh/tools/file-metadata-remover/">文件元数据清理</a></h3>
-            <p>发 Word 或 PDF 之前，清掉作者、修订记录和隐藏属性。</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M4 12h7M4 17h9"/><path d="m15 10 4 4M19 10l-4 4"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/zh/tools/text-redactor/">文本脱敏</a></h3>
-            <p>粘进 AI 聊天或发邮件之前，替换邮箱、手机号、身份证号。它替换文字本身，不是盖一个框。</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 13.5a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1.5 1.5"/><path d="M13.5 10.5a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1.5-1.5"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/zh/tools/link-checker/">链接检查器</a></h3>
-            <p>点开陌生链接之前，先看清跟踪参数和域名。</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10a5 5 0 0 1 10 0v3"/><path d="M9.5 12a2.5 2.5 0 0 1 5 0v3a2.5 2.5 0 0 1-5 0Z"/><path d="M12 8v5"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/zh/tools/browser-fingerprint-test/">浏览器特征检查</a></h3>
-            <p>换浏览器或改设置之后，看看哪些特征还在。</p>
-          </article>
-
-          <article class="v4-card">
-            <span class="v4-card-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.5"/><path d="M4 20c0-3.3 2.7-6 6-6 1.2 0 2.3.3 3.2.9"/><path d="m15 12 2 2 3-3"/></svg>
-            </span>
-            <h3><a class="v4-card-link" href="/zh/tools/account-checkup/">账号安全自查</a></h3>
-            <p>一份逐项打勾的清单：登录、恢复、二次验证。</p>
-          </article>
-
-        </div>
-        <p class="v4-verify-link"><a href="/zh/checkup/">不确定从哪开始？先做一次隐私体检</a></p>
-      </div>
-    </section>
-
-    <section class="v4-verify" aria-labelledby="verify-title">
-      <div class="v4-container">
-        <h2 id="verify-title">自己验证清理过程。</h2>
-        <p>每个清理工具页面都会列出本页发出的网络请求。清理文件时，你可以看着这个列表，确认文件没有离开浏览器。</p>
-        <p>列表显示页面向哪些地址发了请求、什么时候发的。你可以把它当作证据，再自己判断。</p>
-        <figure class="v4-requests-demo">
-          <div class="v4-requests-demo-panel" aria-hidden="true">
-            <span class="v4-requests-demo-label">清理期间本页请求</span>
-            <span class="v4-requests-demo-value">无</span>
+        <div class="home-check" id="home-check" aria-labelledby="home-check-title">
+          <div class="home-check__bar">
+            <strong id="home-check-title">实时文字检查</strong>
+            <span>在本标签页运行 / 不上传</span>
           </div>
-          <figcaption class="v4-requests-demo-caption">示意</figcaption>
-        </figure>
-        <p class="v4-verify-link"><a href="/principles/">查看数据流说明</a></p>
+          <noscript>
+            <p class="home-nojs" id="home-noscript">实时检查需要 JavaScript 才能在你的浏览器里读取文字。运行时不发送任何内容。没有 JavaScript 时，可以打开完整工作台，阅读每种模式检查什么、可能漏掉什么。</p>
+            <p class="home-nojs"><a href="/workspace/" hreflang="en">打开工作台（英文）</a></p>
+          </noscript>
+          <div class="home-check__form">
+            <label class="home-check__label" for="home-text">要检查的文字</label>
+            <p class="home-check__hint" id="home-text-hint">粘贴一段消息、邮件或日志。只在这个标签页里读取，页面不会保存它。</p>
+            <textarea class="home-field" id="home-text" name="home-text" rows="5" spellcheck="false" autocomplete="off" aria-describedby="home-text-hint home-text-limit" placeholder="在这里粘贴文字，例如：邮件 bob@example.com，或电话 +1 415-555-0132。"></textarea>
+            <div class="home-results" id="home-results" role="status" aria-live="polite" aria-atomic="true">
+              <p class="home-status" id="home-status">开始输入，看看规则能发现什么。</p>
+              <ul class="home-categories" id="home-categories"></ul>
+            </div>
+            <p class="home-limit" id="home-text-limit">只做规则匹配。姓名、地址、上下文和不常见的格式都可能漏掉，所以“没有发现”并不等于可以安全分享。</p>
+            <div class="home-actions">
+              <a class="home-btn" href="/workspace/" hreflang="en">打开工作台</a>
+              <p class="home-actions__note">无需账户，不会自动发送。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-proof">
+          <p class="home-proof__count" id="request-count" data-state="waiting" data-count="0" aria-live="polite">开始输入后本页发出的请求：等待你开始输入</p>
+          <p class="home-proof__note">数据来自浏览器的 Resource Timing API。你也可以在浏览器开发者工具的 Network 面板里自行核对。</p>
+        </div>
       </div>
     </section>
 
-    <section class="v4-note">
-      <div class="v4-container">
-        <p class="v4-note-inner">工具不是万能的：本地处理只清理浏览器能读到的数据；「有限联网」会发送 SHA-1 哈希前 5 位；「需要联网」会把 IP 或网址交给第三方查询服务。<a href="/principles/">查看标签含义与数据流</a></p>
+    <section class="home-section" id="share-moments" aria-labelledby="moments-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">01 / 发送之前</p>
+          <h2 class="home-h2" id="moments-title">分享之前的三个时刻。</h2>
+          <p class="home-sub">每一个都会在对应模式下打开工作台。工作台是完整工具，这个页面只是快速看一眼。</p>
+        </header>
+        <div class="home-moments">
+          <article class="home-moment">
+            <span class="home-moment__num">01 / 文字</span>
+            <h3 class="home-moment__title">一段正要粘贴的消息</h3>
+            <p class="home-moment__text">粘贴文字，看看规则能发现哪些邮箱、类似电话的数字、证件号格式、卡号和访问密钥。</p>
+            <a class="home-moment__cta" href="/workspace/?mode=text" hreflang="en">检查文字 <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-moment">
+            <span class="home-moment__num">02 / 链接</span>
+            <h3 class="home-moment__title">一个正要打开的链接</h3>
+            <p class="home-moment__text">不打开链接，只读地址。看看追踪参数，以及常用来携带会话或身份信息的参数名。</p>
+            <a class="home-moment__cta" href="/workspace/?mode=link" hreflang="en">检查链接 <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-moment">
+            <span class="home-moment__num">03 / 图片</span>
+            <h3 class="home-moment__title">一张正要发出的照片</h3>
+            <p class="home-moment__text">先看支持的格式和限制，再在标签页里生成一份新副本。只有你按下按钮，下载才会开始。</p>
+            <a class="home-moment__cta" href="/workspace/?mode=image" hreflang="en">检查图片 <span aria-hidden="true">→</span></a>
+          </article>
+        </div>
       </div>
     </section>
 
-    <section class="v4-messaging" aria-labelledby="messaging-title">
-      <div class="v4-container">
-        <h2 id="messaging-title">加密通信仍在开发中。</h2>
-        <p>聊天客户端与隐私工具分开开发，目前没有公布发布日期。</p>
-        <a class="v4-button v4-button--secondary" href="/messaging/">
-          了解加密通信
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
+    <section class="home-section" id="products" aria-labelledby="products-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">02 / 产品</p>
+          <h2 class="home-h2" id="products-title">两个产品，两种不同的工作。</h2>
+          <p class="home-sub">本地工具和聊天软件是两个独立项目。这里直接写出它们的当前状态，不靠暗示。</p>
+        </header>
+        <div class="home-products">
+          <article class="home-product">
+            <div class="home-product__top">
+              <h3 class="home-product__name">Mizpah</h3>
+              <span class="home-status-label home-status-label--dev">开发中</span>
+            </div>
+            <p class="home-product__kind">加密群聊 / 独立客户端</p>
+            <p class="home-product__text">基于盲中继的聊天客户端。应用尚未发布，也没有公布发布日期。</p>
+            <a class="home-product__cta" href="/messaging/" hreflang="en">了解 Mizpah <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-product home-product--quiet">
+            <div class="home-product__top">
+              <h3 class="home-product__name">Guardian</h3>
+              <span class="home-status-label">即将推出</span>
+            </div>
+            <p class="home-product__kind">Android 本地 DNS 拦截</p>
+            <p class="home-product__text">面向 Android 的本地 DNS 过滤器。目前还没有公开的产品页面，所以这里不放链接。</p>
+            <p class="home-product__soon">还没有页面，暂时无法试用。</p>
+          </article>
+        </div>
       </div>
     </section>
 
+    <section class="home-section" id="principles" aria-labelledby="principles-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">03 / 原则</p>
+          <h2 class="home-h2" id="principles-title">隐私是一条你可以检查的边界。</h2>
+          <p class="home-sub">站内每个工具都遵守三条规则。完整说明和数据流记录在原则页面里。</p>
+        </header>
+        <ol class="home-principles">
+          <li class="home-principle">
+            <span class="home-principle__num">01</span>
+            <h3 class="home-principle__title">先在本地处理</h3>
+            <p class="home-principle__text">检查在你的浏览器里运行。你输入文字时，实时文字检查不会发出请求。</p>
+          </li>
+          <li class="home-principle">
+            <span class="home-principle__num">02</span>
+            <h3 class="home-principle__title">写明局限</h3>
+            <p class="home-principle__text">规则只匹配格式，不懂姓名、地址、上下文或不常见的写法，结果旁边会写清楚。</p>
+          </li>
+          <li class="home-principle">
+            <span class="home-principle__num">03</span>
+            <h3 class="home-principle__title">你来决定下一步</h3>
+            <p class="home-principle__text">只有你按下对应按钮，才会复制、替换、下载或发送。</p>
+          </li>
+        </ol>
+        <p class="home-principles__more"><a href="/principles/" hreflang="en">阅读原则和数据流说明（英文）</a></p>
+      </div>
+    </section>
+
+    <section class="home-section" id="guides" aria-labelledby="guides-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">04 / 学习</p>
+          <h2 class="home-h2" id="guides-title">了解这条边界如何运作。</h2>
+          <p class="home-sub">三篇现有指南，标注真实发布日期。它们讲方法和局限，不讲保证。</p>
+        </header>
+        <div class="home-guides">
+          <a class="home-guide" href="/blog/redact-text-before-you-share-it/" hreflang="en">
+            <span class="home-guide__meta">发布于 2026-10-20 <span class="home-en" lang="en">English</span></span>
+            <span class="home-guide__title" lang="en">Redact text before you share it: what to remove from logs, emails and configs</span>
+            <span class="home-guide__cta">阅读指南 <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="home-guide" href="/blog/what-a-blind-relay-can-and-cannot-know/" hreflang="en">
+            <span class="home-guide__meta">发布于 2026-10-20 <span class="home-en" lang="en">English</span></span>
+            <span class="home-guide__title" lang="en">What a blind relay can and cannot know</span>
+            <span class="home-guide__cta">阅读指南 <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="home-guide" href="/blog/privacy-reset-checklist-iphone-android/" hreflang="en">
+            <span class="home-guide__meta">发布于 2026-10-22 <span class="home-en" lang="en">English</span></span>
+            <span class="home-guide__title" lang="en">Privacy reset checklist for iPhone and Android: what each reset protects, what it costs, how to undo it</span>
+            <span class="home-guide__cta">阅读指南 <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-close" aria-labelledby="close-title">
+      <div class="home-wrap home-close__inner">
+        <p class="home-close__text" id="close-title">从你正准备发送的一件事开始。</p>
+        <a class="home-btn" href="/workspace/" hreflang="en">打开工作台</a>
+      </div>
+    </section>
   </main>
 
   <footer class="sc-footer">

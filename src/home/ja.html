@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja" data-theme="dark">
+<head>
+  <!-- 日本語訳：未复核（native review pending）。 -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#11130E">
+  <meta name="description" content="共有する前に、ブラウザ内でテキストを貼り付け、ローカルのルールが検出するメール、電話番号、ID、キーを確認できます。ワークスペースではテキスト、リンク、対応画像を確認できます。">
+  <title>共有する前に、何を送ろうとしているか確かめよう — SecureInChat</title>
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/home-live.css">
+  <link rel="preload" href="/assets/fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/dm-sans-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/dm-mono-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="icon" href="/assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/text-review.js" defer></script>
+  <script src="/assets/js/home.js" defer></script>
+</head>
+<body class="home">
+  <a class="home-skip" href="#main">本文へ移動</a>
+
+  <header class="site-header">
+    <div class="container"><a class="brand" href="/ja/">SecureInChat</a></div>
+  </header>
+
+  <main id="main">
+    <section class="home-hero" aria-labelledby="hero-title">
+      <div class="home-wrap home-hero__inner">
+        <p class="home-kicker"><span class="home-kicker__dot" aria-hidden="true"></span>プライベートワークスペース / ローカル文字チェック</p>
+        <h1 class="home-title" id="hero-title">共有する前に、何を送ろうとしているか確かめよう。</h1>
+        <p class="home-lede">テキスト、リンク、対応している画像をブラウザ内で確認できます。何が見つかり、何を見逃す可能性があり、どこから先を自分で決めるのかを確かめてください。</p>
+
+        <div class="home-check" id="home-check" aria-labelledby="home-check-title">
+          <div class="home-check__bar">
+            <strong id="home-check-title">テキストのリアルタイムチェック</strong>
+            <span>このタブ内で実行 / アップロードなし</span>
+          </div>
+          <noscript>
+            <p class="home-nojs" id="home-noscript">このリアルタイムチェックは、ブラウザ内でテキストを読むために JavaScript が必要です。実行時にどこにも送信しません。JavaScript がない場合は、ワークスペースを開いて、各モードが何を確認し、何を見逃すかを読んでください。</p>
+            <p class="home-nojs"><a href="/workspace/" hreflang="en">ワークスペースを開く（英語）</a></p>
+          </noscript>
+          <div class="home-check__form">
+            <label class="home-check__label" for="home-text">確認するテキスト</label>
+            <p class="home-check__hint" id="home-text-hint">メッセージ、メール、ログを貼り付けてください。このタブ内だけで読み取り、ページには保存しません。</p>
+            <textarea class="home-field" id="home-text" name="home-text" rows="5" spellcheck="false" autocomplete="off" aria-describedby="home-text-hint home-text-limit" placeholder="ここにテキストを貼り付けます。例：メール bob@example.com、電話 +1 415-555-0132。"></textarea>
+            <div class="home-results" id="home-results" role="status" aria-live="polite" aria-atomic="true">
+              <p class="home-status" id="home-status">入力を始めると、ルールで見つかる項目が表示されます。</p>
+              <ul class="home-categories" id="home-categories"></ul>
+            </div>
+            <p class="home-limit" id="home-text-limit">パターン一致のみです。氏名、住所、文脈、特殊な形式は見逃すことがあります。「見つからない」は安全の保証ではありません。</p>
+            <div class="home-actions">
+              <a class="home-btn" href="/workspace/" hreflang="en">ワークスペースを開く</a>
+              <p class="home-actions__note">アカウント不要。自動送信はありません。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-proof">
+          <p class="home-proof__count" id="request-count" data-state="waiting" data-count="0" aria-live="polite">入力を始めてからこのページが送信したリクエスト：入力を待っています</p>
+          <p class="home-proof__note">ブラウザの Resource Timing API による集計です。開発者ツールの Network パネルでも同じ内容を確認できます。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section" id="share-moments" aria-labelledby="moments-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">01 / 送る前に</p>
+          <h2 class="home-h2" id="moments-title">共有する前の三つの場面。</h2>
+          <p class="home-sub">それぞれ対応するモードでワークスペースを開きます。ワークスペースが正式なツールで、このページは手早く見るための入口です。</p>
+        </header>
+        <div class="home-moments">
+          <article class="home-moment">
+            <span class="home-moment__num">01 / テキスト</span>
+            <h3 class="home-moment__title">これから貼り付けるメッセージ</h3>
+            <p class="home-moment__text">テキストを貼り付けると、ルールが検出できるメール、電話番号らしい数字、公的 ID の形式、カード番号、アクセスキーを表示します。</p>
+            <a class="home-moment__cta" href="/workspace/?mode=text" hreflang="en">テキストを確認 <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-moment">
+            <span class="home-moment__num">02 / リンク</span>
+            <h3 class="home-moment__title">これから開くリンク</h3>
+            <p class="home-moment__text">リンクを開かずにアドレスだけを読みます。追跡パラメータや、セッション・身元情報を含みやすいキー名を確認できます。</p>
+            <a class="home-moment__cta" href="/workspace/?mode=link" hreflang="en">リンクを確認 <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-moment">
+            <span class="home-moment__num">03 / 画像</span>
+            <h3 class="home-moment__title">これから送る写真</h3>
+            <p class="home-moment__text">対応形式と制限を確認し、このタブ内で新しいコピーを作ります。ダウンロードは、あなたがボタンを押したときだけ始まります。</p>
+            <a class="home-moment__cta" href="/workspace/?mode=image" hreflang="en">画像を確認 <span aria-hidden="true">→</span></a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section" id="products" aria-labelledby="products-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">02 / プロダクト</p>
+          <h2 class="home-h2" id="products-title">二つのプロダクト、二つの役割。</h2>
+          <p class="home-sub">ローカルツールとメッセンジャーは別のプロジェクトです。状態は推測ではなく、ここに明記します。</p>
+        </header>
+        <div class="home-products">
+          <article class="home-product">
+            <div class="home-product__top">
+              <h3 class="home-product__name">Mizpah</h3>
+              <span class="home-status-label home-status-label--dev">開発中</span>
+            </div>
+            <p class="home-product__kind">暗号化グループチャット / 独立したクライアント</p>
+            <p class="home-product__text">ブラインドリレーを使うチャットクライアントです。アプリはまだ公開されておらず、公開日も発表されていません。</p>
+            <a class="home-product__cta" href="/messaging/" hreflang="en">Mizpah について読む <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-product home-product--quiet">
+            <div class="home-product__top">
+              <h3 class="home-product__name">Guardian</h3>
+              <span class="home-status-label">近日公開</span>
+            </div>
+            <p class="home-product__kind">Android 向けのローカル DNS ブロッキング</p>
+            <p class="home-product__text">Android 向けのローカル DNS フィルターです。公開ページはまだないため、リンクはありません。</p>
+            <p class="home-product__soon">ページはまだありません。試すことはできません。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-section" id="principles" aria-labelledby="principles-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">03 / 原則</p>
+          <h2 class="home-h2" id="principles-title">プライバシーは、自分で確認できる境界です。</h2>
+          <p class="home-sub">このサイトのすべてのツールは三つのルールに従います。詳しい説明とデータの流れは原則ページにあります。</p>
+        </header>
+        <ol class="home-principles">
+          <li class="home-principle">
+            <span class="home-principle__num">01</span>
+            <h3 class="home-principle__title">まずローカルで処理する</h3>
+            <p class="home-principle__text">確認はブラウザ内で動きます。テキストを入力している間、リアルタイムチェックはリクエストを送りません。</p>
+          </li>
+          <li class="home-principle">
+            <span class="home-principle__num">02</span>
+            <h3 class="home-principle__title">限界を明記する</h3>
+            <p class="home-principle__text">ルールは形式に一致するだけで、氏名、住所、文脈、特殊な書き方は理解しません。そのことを結果のそばに書きます。</p>
+          </li>
+          <li class="home-principle">
+            <span class="home-principle__num">03</span>
+            <h3 class="home-principle__title">次に何をするかはあなたが決める</h3>
+            <p class="home-principle__text">コピー、置換、ダウンロード、送信は、対応するボタンを押すまで起きません。</p>
+          </li>
+        </ol>
+        <p class="home-principles__more"><a href="/principles/" hreflang="en">原則とデータの流れを読む（英語）</a></p>
+      </div>
+    </section>
+
+    <section class="home-section" id="guides" aria-labelledby="guides-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">04 / 学ぶ</p>
+          <h2 class="home-h2" id="guides-title">この境界がどう働くかを学ぶ。</h2>
+          <p class="home-sub">既存のガイド三本と、実際の公開日です。約束ではなく、方法と限界を説明します。</p>
+        </header>
+        <div class="home-guides">
+          <a class="home-guide" href="/blog/redact-text-before-you-share-it/" hreflang="en">
+            <span class="home-guide__meta">公開 2026-10-20 <span class="home-en" lang="en">English</span></span>
+            <span class="home-guide__title" lang="en">Redact text before you share it: what to remove from logs, emails and configs</span>
+            <span class="home-guide__cta">ガイドを読む <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="home-guide" href="/blog/what-a-blind-relay-can-and-cannot-know/" hreflang="en">
+            <span class="home-guide__meta">公開 2026-10-20 <span class="home-en" lang="en">English</span></span>
+            <span class="home-guide__title" lang="en">What a blind relay can and cannot know</span>
+            <span class="home-guide__cta">ガイドを読む <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="home-guide" href="/blog/privacy-reset-checklist-iphone-android/" hreflang="en">
+            <span class="home-guide__meta">公開 2026-10-22 <span class="home-en" lang="en">English</span></span>
+            <span class="home-guide__title" lang="en">Privacy reset checklist for iPhone and Android: what each reset protects, what it costs, how to undo it</span>
+            <span class="home-guide__cta">ガイドを読む <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARTNER_JA -->
+
+    <section class="home-close" aria-labelledby="close-title">
+      <div class="home-wrap home-close__inner">
+        <p class="home-close__text" id="close-title">これから送ろうとしている一つのものから始めましょう。</p>
+        <a class="home-btn" href="/workspace/" hreflang="en">ワークスペースを開く</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container"><p>SecureInChat</p></div>
+  </footer>
+</body>
+</html>

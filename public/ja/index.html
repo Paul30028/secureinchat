@@ -1,37 +1,42 @@
-<!DOCTYPE html>
-<html lang="ja">
+<!doctype html>
+<html lang="ja" data-theme="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#F4F6F3" />
-  <title>SecureInChat：何が漏れているかを知り、それを止める</title>
-  <meta name="description" content="スマートフォン、パソコン、アカウント、AI 利用のための実用的なプライバシー保護：自分の端末で動く無料ツール、どの手順を実際に試したかを明記したガイド、開発中のゼロ知識メッセンジャー。" />
-  <link rel="canonical" href="https://secureinchat.com/ja/" />
+  <!-- 日本語訳：未复核（native review pending）。 -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#11130E">
+  <meta name="description" content="共有する前に、ブラウザ内でテキストを貼り付け、ローカルのルールが検出するメール、電話番号、ID、キーを確認できます。ワークスペースではテキスト、リンク、対応画像を確認できます。">
+  <title>共有する前に、何を送ろうとしているか確かめよう — SecureInChat</title>
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/home-live.css">
+  <link rel="preload" href="/assets/fonts/dm-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/dm-sans-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/dm-mono-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" href="/favicon.ico" sizes="32x32">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <link rel="preload" href="/assets/fonts/atkinson-next-800.woff2" as="font" type="font/woff2" crossorigin />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="SecureInChat：何が漏れているかを知り、それを止める" />
-  <meta property="og:description" content="スマートフォン、パソコン、アカウント、AI 利用のための実用的なプライバシー保護：自分の端末で動く無料ツール、どの手順を実際に試したかを明記したガイド、開発中のゼロ知識メッセンジャー。" />
-  <meta property="og:url" content="https://secureinchat.com/ja/" />
-  <meta property="og:locale" content="ja" />
-  <meta name="twitter:card" content="summary" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <script src="/assets/js/text-review.js" defer></script>
+  <script src="/assets/js/home.js" defer></script>
+  <link rel="canonical" href="https://secureinchat.com/ja/">
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/">
   <link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/">
-  <link rel="stylesheet" href="/assets/site.css" />
-  <script src="/assets/main.js"></script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","@id":"https://secureinchat.com/ja/","url":"https://secureinchat.com/ja/","name":"SecureInChat：何が漏れているかを知り、それを止める","inLanguage":"ja","isPartOf":{"@id":"https://secureinchat.com/#site"}}</script>
-
-  <link href="/assets/css/v4.css" rel="stylesheet"/>
-   <link href="/assets/css/shell.css" rel="stylesheet"/>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SecureInChat">
+  <meta property="og:title" content="共有する前に、何を送ろうとしているか確かめよう — SecureInChat">
+  <meta property="og:description" content="テキスト、リンク、対応している画像をブラウザ内で確認できます。何が見つかり、何を見逃す可能性があるかを確かめてください。">
+  <meta property="og:url" content="https://secureinchat.com/ja/">
+  <meta property="og:locale" content="ja">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="/assets/css/min-type-size.css">
+  <link href="/assets/css/shell.css" rel="stylesheet"/>
   <script defer src="/assets/js/shell.js"></script>
  </head>
-<body>
-  <a href="#top" class="skip">本文へ移動</a>
+<body class="home">
+  <a class="home-skip" href="#main">本文へ移動</a>
+
   <header class="sc-header">
   <div class="sc-header__inner">
     <a class="sc-brand" href="/ja/" aria-label="SecureInChat ホーム">
@@ -74,96 +79,181 @@
     </details>
   </div>
 </header>
-  <main id="top">
-    <section class="wrap hero">
-      <div>
-        <p class="notice">これは日本語の概要ページです。リンク先のガイドとツール画面は現在英語のみで、リンクの横に「英語」と表示しています。</p>
-        <h1>何が漏れているかを知り、それを止める。</h1>
-        <p class="hero__sub">スマートフォン、ブラウザ、アカウント、AI ツールは、思っている以上に情報を漏らしています。何が漏れているかを具体的に示し、一層ずつ止める手順を案内します。</p>
-        <div class="hero__cta"><a class="btn btn--p" href="/workspace/" hreflang="en">ワークスペースを開く（英語）</a><a class="btn btn--s" href="/tools/" hreflang="en">無料でチェック（英語）</a></div>
-        <ul class="hero__promise"><li>Cookie なし</li><li>アカウント不要</li><li>チェックは端末内で実行</li><li>未検証の手順は明記</li></ul>
-      </div>
-      <aside class="readout" aria-labelledby="readout-h">
-        <div class="readout__head"><h2 id="readout-h">このページが読み取れるあなたの情報</h2><p>どのウェブサイトも、許可なくこれらを読み取れます。</p></div>
-        <dl id="readout">
-          <div class="readout__row"><dt>タイムゾーン</dt><dd id="ro-tz">…</dd></div>
-          <div class="readout__row"><dt>言語</dt><dd id="ro-lang">…</dd></div>
-          <div class="readout__row"><dt>画面</dt><dd id="ro-screen">…</dd></div>
-          <div class="readout__row"><dt>デバイス</dt><dd id="ro-platform">…</dd></div>
-          <div class="readout__row"><dt>CPU コア数</dt><dd id="ro-cores">…</dd></div>
-          <div class="readout__row"><dt>タッチスクリーン</dt><dd id="ro-touch">…</dd></div>
-          <div class="readout__row"><dt>Cookie</dt><dd id="ro-cookies">…</dd></div>
-          <div class="readout__row"><dt>トラッキング拒否（DNT）</dt><dd id="ro-dnt">…</dd></div>
-        </dl>
-        <p class="readout__nojs">値を表示するには JavaScript を有効にしてください。無効にするとサイトが読み取れる情報は減ります。これも私たちが解説する保護方法の一つです。</p>
-        <p class="readout__foot">このタブの中だけで読み取り、私たちにも誰にも送信していません。</p>
-      </aside>
-    </section>
 
-    <section class="wrap sec" id="start">
-      <h2>今いちばん心配なことは？</h2>
-      <ul class="situations">
-        <li><a href="/start/being-tracked/" hreflang="en"><strong>誰かに追跡されているかもしれない</strong><span>スマートフォン、位置情報、アカウント（英語）</span></a></li>
-        <li><a href="/start/account-hacked/" hreflang="en"><strong>アカウントが乗っ取られたかもしれない</strong><span>パスワード、復旧方法、キー（英語）</span></a></li>
-        <li><a href="/start/less-tracking/" hreflang="en"><strong>日常の追跡を減らしたい</strong><span>設定、ブラウザ、データブローカー（英語）</span></a></li>
-        <li><a href="/start/network-down/" hreflang="en"><strong>緊急時にモバイル回線が止まる</strong><span>災害や停電のときの連絡手段（英語）</span></a></li>
-      </ul>
-    </section>
+  <main id="main">
+    <section class="home-hero" aria-labelledby="hero-title">
+      <div class="home-wrap home-hero__inner">
+        <p class="home-kicker"><span class="home-kicker__dot" aria-hidden="true"></span>プライベートワークスペース / ローカル文字チェック</p>
+        <h1 class="home-title" id="hero-title">共有する前に、何を送ろうとしているか確かめよう。</h1>
+        <p class="home-lede">テキスト、リンク、対応している画像をブラウザ内で確認できます。何が見つかり、何を見逃す可能性があり、どこから先を自分で決めるのかを確かめてください。</p>
 
-    <section class="wrap sec" id="layers">
-      <h2>6 層の保護：身の回りから、使っているアプリまで。</h2>
-      <p class="sec__lead">一つの層が弱いと、ほかの層も効かなくなります。各層のページには、今使えるものと、開発中・検証中のものを書いています。</p>
-      <ul class="stack">
-        <li><a class="depth-1" href="/protect/physical/" hreflang="en"><div><h3>物理環境</h3><p>周りの人や機器に見られるもの、拾われるもの。</p></div><div class="tags"><span class="tag tag--untested">計画中</span><span class="tag tag--doc">英語</span></div></a></li>
-        <li><a class="depth-2" href="/protect/devices/" hreflang="en"><div><h3>デバイスとネットワーク</h3><p>スマートフォン、パソコン、ブラウザが漏らしているもの。</p></div><div class="tags"><span class="tag tag--tested">ツール 6 件</span><span class="tag tag--doc">ガイド 3 件</span><span class="tag tag--doc">英語</span></div></a></li>
-        <li><a class="depth-3" href="/protect/accounts/" hreflang="en"><div><h3>アカウントとメール</h3><p>誰があなたのアカウントに入れるか、受信箱から何が分かるか。</p></div><div class="tags"><span class="tag tag--tested">ツール 2 件</span><span class="tag tag--doc">ガイド 6 件</span><span class="tag tag--doc">英語</span></div></a></li>
-        <li><a class="depth-4" href="/protect/communication/" hreflang="en"><div><h3>通信</h3><p>会話の参加者だけが読めるメッセージ。</p></div><div class="tags"><span class="tag tag--doc">ガイド 1 件</span><span class="tag tag--lim">メッセンジャー開発中</span><span class="tag tag--doc">英語</span></div></a></li>
-        <li><a class="depth-5" href="/protect/offline/" hreflang="en"><div><h3>オフラインと緊急時</h3><p>モバイル回線が止まったときに安全に連絡を取り合う方法。</p></div><div class="tags"><span class="tag tag--doc">資料整理済み</span><span class="tag tag--untested">実地テスト待ち</span><span class="tag tag--doc">英語</span></div></a></li>
-        <li><a class="depth-6" href="/protect/ai/" hreflang="en"><div><h3>AI プライバシー</h3><p>AI アシスタントに渡している情報と、それを減らす方法。</p></div><div class="tags"><span class="tag tag--tested">ツール 2 件</span><span class="tag tag--doc">ガイド 5 件</span><span class="tag tag--doc">英語</span></div></a></li>
-      </ul>
-    </section>
+        <div class="home-check" id="home-check" aria-labelledby="home-check-title">
+          <div class="home-check__bar">
+            <strong id="home-check-title">テキストのリアルタイムチェック</strong>
+            <span>このタブ内で実行 / アップロードなし</span>
+          </div>
+          <noscript>
+            <p class="home-nojs" id="home-noscript">このリアルタイムチェックは、ブラウザ内でテキストを読むために JavaScript が必要です。実行時にどこにも送信しません。JavaScript がない場合は、ワークスペースを開いて、各モードが何を確認し、何を見逃すかを読んでください。</p>
+            <p class="home-nojs"><a href="/workspace/" hreflang="en">ワークスペースを開く（英語）</a></p>
+          </noscript>
+          <div class="home-check__form">
+            <label class="home-check__label" for="home-text">確認するテキスト</label>
+            <p class="home-check__hint" id="home-text-hint">メッセージ、メール、ログを貼り付けてください。このタブ内だけで読み取り、ページには保存しません。</p>
+            <textarea class="home-field" id="home-text" name="home-text" rows="5" spellcheck="false" autocomplete="off" aria-describedby="home-text-hint home-text-limit" placeholder="ここにテキストを貼り付けます。例：メール bob@example.com、電話 +1 415-555-0132。"></textarea>
+            <div class="home-results" id="home-results" role="status" aria-live="polite" aria-atomic="true">
+              <p class="home-status" id="home-status">入力を始めると、ルールで見つかる項目が表示されます。</p>
+              <ul class="home-categories" id="home-categories"></ul>
+            </div>
+            <p class="home-limit" id="home-text-limit">パターン一致のみです。氏名、住所、文脈、特殊な形式は見逃すことがあります。「見つからない」は安全の保証ではありません。</p>
+            <div class="home-actions">
+              <a class="home-btn" href="/workspace/" hreflang="en">ワークスペースを開く</a>
+              <p class="home-actions__note">アカウント不要。自動送信はありません。</p>
+            </div>
+          </div>
+        </div>
 
-    <section class="wrap sec" id="tools">
-      <h2>2 分でできるチェック。</h2>
-      <ul class="rows">
-        <li><a href="/tools/privacy-report/" hreflang="en"><strong>ブラウザ・プライバシーレポート</strong><span>ブラウザがサイトに渡している情報を一度に調べ、先に見直すべき項目を並べます。</span><span class="tag tag--lim">照会サービスに接続</span></a></li>
-        <li><a href="/tools/account-checkup/" hreflang="en"><strong>アカウント安全チェック</strong><span>端末内で使う 8 項目のチェックリスト：2 段階認証、パスワード使い回し、復旧方法、ログイン中の端末。Google、Apple、Microsoft の公式手順付き。</span><span class="tag tag--tested">端末内で実行</span></a></li>
-        <li><a href="/tools/link-checker/" hreflang="en"><strong>リンクチェッカー</strong><span>リンクから追跡パラメータを取り除き、開く前にフィッシングの兆候を確認します。リンクは開かれず、送信もされません。</span><span class="tag tag--tested">端末内で実行</span></a></li>
-        <li><a href="/tools/photo-metadata-remover/" hreflang="en"><strong>写真メタデータ削除</strong><span>写真に隠れた位置情報、機種、日付を確認して削除します。</span><span class="tag tag--tested">端末内で実行</span></a></li>
-        <li><a href="/tools/file-metadata-remover/" hreflang="en"><strong>ファイルメタデータ削除</strong><span>写真、動画、PDF、Office ファイルに隠れた位置情報、機種、作成者の情報を確認して削除します。</span><span class="tag tag--tested">端末内で実行</span></a></li>
-        <li><a href="/tools/text-redactor/" hreflang="en"><strong>テキスト墨消し</strong><span>文章を共有したり AI に貼り付けたりする前に、メールアドレス、番号、キーを仮の文字に置き換えます。</span><span class="tag tag--tested">端末内で実行</span></a></li>
-      </ul>
-      <p class="sec__more"><a href="/tools/" hreflang="en">すべてのツール（英語）</a></p>
-    </section>
-
-    <section class="wrap sec" id="data">
-      <div class="trust">
-        <div><h2>私たちを信じるだけでなく、確かめてください。</h2><p>各ツールは、端末に残るデータと外に出るデータを明記しています。使いながらブラウザのネットワークパネルを開いて比べてみてください。 <a href="/principles/" hreflang="en">ツールごとの詳細（英語）</a></p></div>
-        <table><thead><tr><th scope="col">ツール</th><th scope="col">端末に残るもの</th><th scope="col">外部に送られるもの</th></tr></thead><tbody>
-          <tr><td>写真メタデータ削除</td><td>写真とそのメタデータ</td><td>なし</td></tr>
-          <tr><td>テキスト墨消し</td><td>貼り付けた文章</td><td>なし</td></tr>
-          <tr><td>パスワード漏えいチェック</td><td>パスワードとその完全なハッシュ</td><td>SHA-1 ハッシュの先頭 5 文字を Pwned Passwords へ</td></tr>
-        </tbody></table>
+        <div class="home-proof">
+          <p class="home-proof__count" id="request-count" data-state="waiting" data-count="0" aria-live="polite">入力を始めてからこのページが送信したリクエスト：入力を待っています</p>
+          <p class="home-proof__note">ブラウザの Resource Timing API による集計です。開発者ツールの Network パネルでも同じ内容を確認できます。</p>
+        </div>
       </div>
     </section>
 
-    <section class="wrap sec" id="messaging">
-      <div class="band">
-        <div><h2>SecureInChat メッセンジャー：サーバーは転送するだけで、読みません。</h2><p>鍵はあなたの端末にだけ保存され、ブラインドリレーは暗号文を転送するだけです。アプリは開発中ですが、稼働中のリレーをブラウザから今すぐテストできます。</p></div>
-        <a class="btn btn--s" href="/messaging/" hreflang="en">仕組みを見る（英語）</a>
+    <section class="home-section" id="share-moments" aria-labelledby="moments-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">01 / 送る前に</p>
+          <h2 class="home-h2" id="moments-title">共有する前の三つの場面。</h2>
+          <p class="home-sub">それぞれ対応するモードでワークスペースを開きます。ワークスペースが正式なツールで、このページは手早く見るための入口です。</p>
+        </header>
+        <div class="home-moments">
+          <article class="home-moment">
+            <span class="home-moment__num">01 / テキスト</span>
+            <h3 class="home-moment__title">これから貼り付けるメッセージ</h3>
+            <p class="home-moment__text">テキストを貼り付けると、ルールが検出できるメール、電話番号らしい数字、公的 ID の形式、カード番号、アクセスキーを表示します。</p>
+            <a class="home-moment__cta" href="/workspace/?mode=text" hreflang="en">テキストを確認 <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-moment">
+            <span class="home-moment__num">02 / リンク</span>
+            <h3 class="home-moment__title">これから開くリンク</h3>
+            <p class="home-moment__text">リンクを開かずにアドレスだけを読みます。追跡パラメータや、セッション・身元情報を含みやすいキー名を確認できます。</p>
+            <a class="home-moment__cta" href="/workspace/?mode=link" hreflang="en">リンクを確認 <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-moment">
+            <span class="home-moment__num">03 / 画像</span>
+            <h3 class="home-moment__title">これから送る写真</h3>
+            <p class="home-moment__text">対応形式と制限を確認し、このタブ内で新しいコピーを作ります。ダウンロードは、あなたがボタンを押したときだけ始まります。</p>
+            <a class="home-moment__cta" href="/workspace/?mode=image" hreflang="en">画像を確認 <span aria-hidden="true">→</span></a>
+          </article>
+        </div>
       </div>
     </section>
 
-    <section class="wrap sec">
-      <h2>プライバシーは権利であり、有料機能ではありません。</h2>
-      <p class="sec__lead">手元の端末から送るメッセージまで、一層ずつプライバシーを守ります。ツールは自分の端末で動き、ガイドの手順は実際に試したもので、試していないものはそう書いています。 <a href="/mission/" hreflang="en">私たちの使命と、決してしないこと（英語）</a></p>
+    <section class="home-section" id="products" aria-labelledby="products-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">02 / プロダクト</p>
+          <h2 class="home-h2" id="products-title">二つのプロダクト、二つの役割。</h2>
+          <p class="home-sub">ローカルツールとメッセンジャーは別のプロジェクトです。状態は推測ではなく、ここに明記します。</p>
+        </header>
+        <div class="home-products">
+          <article class="home-product">
+            <div class="home-product__top">
+              <h3 class="home-product__name">Mizpah</h3>
+              <span class="home-status-label home-status-label--dev">開発中</span>
+            </div>
+            <p class="home-product__kind">暗号化グループチャット / 独立したクライアント</p>
+            <p class="home-product__text">ブラインドリレーを使うチャットクライアントです。アプリはまだ公開されておらず、公開日も発表されていません。</p>
+            <a class="home-product__cta" href="/messaging/" hreflang="en">Mizpah について読む <span aria-hidden="true">→</span></a>
+          </article>
+          <article class="home-product home-product--quiet">
+            <div class="home-product__top">
+              <h3 class="home-product__name">Guardian</h3>
+              <span class="home-status-label">近日公開</span>
+            </div>
+            <p class="home-product__kind">Android 向けのローカル DNS ブロッキング</p>
+            <p class="home-product__text">Android 向けのローカル DNS フィルターです。公開ページはまだないため、リンクはありません。</p>
+            <p class="home-product__soon">ページはまだありません。試すことはできません。</p>
+          </article>
+        </div>
+      </div>
     </section>
-      <section class="wrap sec" aria-labelledby="partner-h">
-      <h2 id="partner-h">提携パートナーのツール</h2>
-      <p><a href="https://go.nordvpn.net/aff_c?offer_id=15&amp;aff_id=159108&amp;url_id=902" rel="sponsored noopener">NordVPN</a>（アフィリエイトリンク）：有料の VPN サービスです。接続後、<a href="/tools/ip-leak-test/" hreflang="en">IP 漏えいテスト（英語）</a>でご自身で確認できます。<a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> に直接アクセスすることもできます。</p>
-      <p><a href="https://go.nordpass.io/aff_c?offer_id=488&amp;aff_id=159108&amp;url_id=9356" rel="sponsored noopener">NordPass</a>（アフィリエイトリンク）：無料プランのあるパスワードマネージャーです。<a href="https://nordpass.com/" rel="noopener">nordpass.com</a> に直接アクセスすることもできます。</p>
+
+    <section class="home-section" id="principles" aria-labelledby="principles-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">03 / 原則</p>
+          <h2 class="home-h2" id="principles-title">プライバシーは、自分で確認できる境界です。</h2>
+          <p class="home-sub">このサイトのすべてのツールは三つのルールに従います。詳しい説明とデータの流れは原則ページにあります。</p>
+        </header>
+        <ol class="home-principles">
+          <li class="home-principle">
+            <span class="home-principle__num">01</span>
+            <h3 class="home-principle__title">まずローカルで処理する</h3>
+            <p class="home-principle__text">確認はブラウザ内で動きます。テキストを入力している間、リアルタイムチェックはリクエストを送りません。</p>
+          </li>
+          <li class="home-principle">
+            <span class="home-principle__num">02</span>
+            <h3 class="home-principle__title">限界を明記する</h3>
+            <p class="home-principle__text">ルールは形式に一致するだけで、氏名、住所、文脈、特殊な書き方は理解しません。そのことを結果のそばに書きます。</p>
+          </li>
+          <li class="home-principle">
+            <span class="home-principle__num">03</span>
+            <h3 class="home-principle__title">次に何をするかはあなたが決める</h3>
+            <p class="home-principle__text">コピー、置換、ダウンロード、送信は、対応するボタンを押すまで起きません。</p>
+          </li>
+        </ol>
+        <p class="home-principles__more"><a href="/principles/" hreflang="en">原則とデータの流れを読む（英語）</a></p>
+      </div>
     </section>
-</main>
+
+    <section class="home-section" id="guides" aria-labelledby="guides-title">
+      <div class="home-wrap">
+        <header class="home-section__head">
+          <p class="home-eyebrow">04 / 学ぶ</p>
+          <h2 class="home-h2" id="guides-title">この境界がどう働くかを学ぶ。</h2>
+          <p class="home-sub">既存のガイド三本と、実際の公開日です。約束ではなく、方法と限界を説明します。</p>
+        </header>
+        <div class="home-guides">
+          <a class="home-guide" href="/blog/redact-text-before-you-share-it/" hreflang="en">
+            <span class="home-guide__meta">公開 2026-10-20 <span class="home-en" lang="en">English</span></span>
+            <span class="home-guide__title" lang="en">Redact text before you share it: what to remove from logs, emails and configs</span>
+            <span class="home-guide__cta">ガイドを読む <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="home-guide" href="/blog/what-a-blind-relay-can-and-cannot-know/" hreflang="en">
+            <span class="home-guide__meta">公開 2026-10-20 <span class="home-en" lang="en">English</span></span>
+            <span class="home-guide__title" lang="en">What a blind relay can and cannot know</span>
+            <span class="home-guide__cta">ガイドを読む <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="home-guide" href="/blog/privacy-reset-checklist-iphone-android/" hreflang="en">
+            <span class="home-guide__meta">公開 2026-10-22 <span class="home-en" lang="en">English</span></span>
+            <span class="home-guide__title" lang="en">Privacy reset checklist for iPhone and Android: what each reset protects, what it costs, how to undo it</span>
+            <span class="home-guide__cta">ガイドを読む <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+        <section class="home-section home-partner" aria-labelledby="partner-h">
+      <div class="home-wrap">
+        <p class="home-eyebrow">05 / Partner</p>
+        <h2 class="home-h2" id="partner-h">提携パートナーのツール</h2>
+        <div class="home-partner__grid">
+          <p><a href="https://go.nordvpn.net/aff_c?offer_id=15&amp;aff_id=159108&amp;url_id=902" rel="sponsored noopener">NordVPN</a>（アフィリエイトリンク）：有料の VPN サービスです。接続後、<a href="/tools/ip-leak-test/" hreflang="en">IP 漏えいテスト（英語）</a>でご自身で確認できます。<a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> に直接アクセスすることもできます。</p>
+          <p><a href="https://go.nordpass.io/aff_c?offer_id=488&amp;aff_id=159108&amp;url_id=9356" rel="sponsored noopener">NordPass</a>（アフィリエイトリンク）：無料プランのあるパスワードマネージャーです。<a href="https://nordpass.com/" rel="noopener">nordpass.com</a> に直接アクセスすることもできます。</p>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="home-close" aria-labelledby="close-title">
+      <div class="home-wrap home-close__inner">
+        <p class="home-close__text" id="close-title">これから送ろうとしている一つのものから始めましょう。</p>
+        <a class="home-btn" href="/workspace/" hreflang="en">ワークスペースを開く</a>
+      </div>
+    </section>
+  </main>
+
   <footer class="sc-footer">
   <div class="sc-footer__inner">
     <div class="sc-footer__brand">

@@ -236,9 +236,9 @@ test('tokens.css is local, token-only and shared with the workspace', () => {
 
 test('the three home pages lead with the workspace', () => {
   const cases = [
-    ['index.html', /<div class="v4-hero-actions">([\s\S]*?)<\/div>/],
-    ['zh/index.html', /<div class="v4-hero-actions">([\s\S]*?)<\/div>/],
-    ['ja/index.html', /<div class="hero__cta">([\s\S]*?)<\/div>/],
+    ['index.html', /<div class="home-actions">([\s\S]*?)<\/div>/],
+    ['zh/index.html', /<div class="home-actions">([\s\S]*?)<\/div>/],
+    ['ja/index.html', /<div class="home-actions">([\s\S]*?)<\/div>/],
   ];
   for (const [rel, blockRe] of cases) {
     const html = fs.readFileSync(path.join(PUB, rel), 'utf8');
