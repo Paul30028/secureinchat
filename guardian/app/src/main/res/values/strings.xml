@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<resources>
+    <string name="data_boundary_note">Guardian only handles DNS. Allowed queries are sent to the DNS server of the current network. Other traffic does not go through Guardian. Guardian cannot block all tracking.</string>
+    <string name="history_policy_note">Only the daily total of blocks is saved, kept for 7 days, with no domain names.</string>
+    <string name="recent_queries_note">Only the most recent 200 DNS queries are kept in memory (the screen shows the latest 10). They are cleared when Guardian stops and are never written to disk.</string>
+    <string name="clear_block_history">Clear block history</string>
+    <string name="clear_history_title">Clear 7-day block statistics?</string>
+    <string name="clear_history_message">This deletes only the daily totals stored on this device. Your custom rules and the recent queries in memory are not affected.</string>
+    <string name="clear_history_confirm">Clear</string>
+    <string name="cancel">Cancel</string>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<resources>
+    <string name="data_boundary_note">Guardian 只处理 DNS；放行的查询发给当前网络的 DNS 服务器；其他流量不经过 Guardian；它不能拦截所有追踪。</string>
+    <string name="history_policy_note">只保存每天的拦截总数，保留 7 天，不含任何域名。</string>
+    <string name="recent_queries_note">最近 200 条 DNS 查询只保存在内存里（界面显示最近 10 条），停止 Guardian 后清除，不写入磁盘。</string>
+    <string name="clear_block_history">清除拦截统计</string>
+    <string name="clear_history_title">清除 7 天拦截统计？</string>
+    <string name="clear_history_message">只删除本设备上保存的每日合计；不会影响你自定义的规则，也不会影响内存里的最近查询。</string>
+    <string name="clear_history_confirm">清除</string>
+    <string name="cancel">取消</string>
+</resources>

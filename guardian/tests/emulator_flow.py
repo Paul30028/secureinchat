@@ -586,20 +586,45 @@ def main():
     snap("stopped-app")
     print("ok: stopped from the app")
 
-    # 5b. G12: stopping flushes the last interval, so today's durable count is above 0 even though
-    # the 60 s timer may not have fired; then "Clear block history" resets the row to 0.
+    # 5b. G12/G21: stopping flushes the last interval, so today's durable count is above 0 even
+    # though the 60 s timer may not have fired. "Clear block history" must ask first; Cancel is the
+    # safe default and must leave the numbers alone, and only the dialog's Clear deletes them.
     m_hist = re.compile(r"Blocked today: (\d+) · last 7 days: (\d+)")
     nodes = find_anywhere(lambda s: (lambda m: bool(m) and int(m.group(1)) > 0)(m_hist.search(s)),
                           "Blocked today stayed 0 after blocking and stopping")
-    print("ok: " + m_hist.search(joined(nodes)).group(0))
-    nodes = scroll_find(lambda s: "Clear block history" in s, "no Clear block history button")
-    b = button(nodes, "Clear block history")
+    before = m_hist.search(joined(nodes)).group(0)
+    print("ok: " + before)
+
+    def open_clear_dialog():
+        nodes = scroll_find(lambda s: "Clear block history" in s, "no Clear block history button")
+        b = button(nodes, "Clear block history")
+        if not b:
+            fail("no Clear block history button", nodes)
+        tap(b)
+        return wait_ui(lambda s: "Clear 7-day block statistics?" in s,
+                       "no confirmation dialog before clearing history")
+
+    nodes = open_clear_dialog()
+    s = joined(nodes)
+    if "daily totals stored on this device" not in s:
+        fail("clear confirmation does not say what is deleted", nodes)
+    if "custom rules" not in s or "recent queries" not in s:
+        fail("clear confirmation does not say what is left alone", nodes)
+    b = button(nodes, "Cancel")
     if not b:
-        fail("no Clear block history button", nodes)
+        fail("no Cancel button in the clear dialog", nodes)
+    tap(b)
+    nodes = find_anywhere(lambda s: before in s, "Cancel changed the block history")
+    print("ok: Cancel left the history unchanged")
+
+    nodes = open_clear_dialog()
+    b = button(nodes, "Clear")
+    if not b:
+        fail("no Clear button in the confirmation dialog", nodes)
     tap(b)
     find_anywhere(lambda s: "Blocked today: 0 · last 7 days: 0" in s, "history not cleared")
     snap("history-cleared")
-    print("ok: Clear block history resets the row")
+    print("ok: Clear in the dialog resets the row")
 
     # 5c. G16: the privacy checkup shows three rows. Each row has either a working button or a
     # "Search Settings" hint, never both. A button must leave Guardian, and Back must return.

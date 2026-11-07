@@ -231,6 +231,12 @@ class MainActivity : Activity() {
             setPadding(0, pad / 4, 0, 0)
         }
         root.addView(historyView)
+        // G21: say what the durable numbers are (and are not) right under the row they explain.
+        // StatsStore stores one integer per day and drops entries older than seven days.
+        root.addView(TextView(this).apply {
+            textSize = 12f
+            text = getString(R.string.history_policy_note)
+        })
 
         rulesView = TextView(this).apply {
             textSize = 13f
@@ -246,15 +252,22 @@ class MainActivity : Activity() {
         }
         root.addView(hintView)
 
+        // G21: the total explanation replaces the old "No logs are saved", which wrongly suggested
+        // that Guardian never keeps anything and said nothing about where allowed queries go.
         val privacy = TextView(this).apply {
             textSize = 12f
-            text = txt(
-                "Only DNS queries go through Guardian. Allowed queries are sent to your current network's DNS servers. No logs are saved.",
-                "只有 DNS 查询经过 Guardian。放行的查询发给你当前网络的 DNS 服务器。记录不保存。"
-            )
+            text = getString(R.string.data_boundary_note)
             setPadding(0, pad / 2, 0, 0)
         }
         root.addView(privacy)
+
+        // G21: the log is a 200-entry ring in QueryHandler; only the latest 10 are drawn. Say both
+        // facts next to the log rather than leaving "No logs" to be misread as "nothing is kept".
+        root.addView(TextView(this).apply {
+            textSize = 12f
+            text = getString(R.string.recent_queries_note)
+            setPadding(0, pad / 2, 0, 0)
+        })
 
         logView = TextView(this).apply {
             textSize = 12f
@@ -362,10 +375,11 @@ class MainActivity : Activity() {
         }
         root.addView(rulesIoError)
 
-        // G12: clears the durable block history. No confirmation dialog: it is a small counter, and
-        // the result is immediately visible in the "Blocked today" row above.
+        // G21: clearing the durable history asks first. The dialog names exactly what is deleted
+        // (the on-device daily totals) and what is not (custom rules, the in-memory recent queries),
+        // with Cancel as the safe default.
         root.addView(Button(this).apply {
-            text = txt("Clear block history", "清除拦截记录")
+            text = getString(R.string.clear_block_history)
             textSize = 12f
             setOnClickListener { onClearHistoryClicked() }
         })
@@ -492,12 +506,26 @@ class MainActivity : Activity() {
         }
     }
 
-    // G12: wipe the durable block history. The in-session "Blocked: N" counter above keeps its
-    // value; only the "Blocked today / last 7 days" row reads from StatsStore and will show 0.
+    // G21: deleting the durable history is confirmed first. Only StatsStore changes here: the
+    // in-session "Blocked: N" counter and the in-memory recent queries keep their values, and rule
+    // storage is not touched. Cancel is the default focus, so the destructive button needs a
+    // deliberate second action.
     private fun onClearHistoryClicked() {
-        StatsStore.clear(this)
-        historySignature = ""
-        uiHandler.post { refreshUi() }
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.clear_history_title))
+            .setMessage(getString(R.string.clear_history_message))
+            .setPositiveButton(getString(R.string.clear_history_confirm)) { _, _ ->
+                StatsStore.clear(this)
+                historySignature = ""
+                uiHandler.post { refreshUi() }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .setCancelable(true)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.requestFocus()
+        }
+        dialog.show()
     }
 
     // G16: return the first candidate intent the system can actually handle, or null. resolveActivity
