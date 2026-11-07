@@ -2,6 +2,10 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://secureinchat.com/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/workspace/</loc>
@@ -26,9 +30,17 @@
   </url>
   <url>
     <loc>https://secureinchat.com/zh/messaging/threat-model/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/messaging/threat-model/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/messaging/threat-model/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://secureinchat.com/es/messaging/threat-model/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/messaging/threat-model/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/es/messaging/threat-model/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/messaging/threat-model/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/messaging/threat-model/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://secureinchat.com/es/messaging/threat-model/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/messaging/threat-model/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/mission/</loc>
@@ -56,33 +68,62 @@
   </url>
   <url>
     <loc>https://secureinchat.com/zh/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/ja/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://secureinchat.com/ja/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/checkup/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/checkup/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/checkup/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/checkup/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/checkup/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/checkup/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/checkup/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/checkup/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/phone-checkup/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/phone-checkup/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/phone-checkup/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/phone-checkup/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/phone-checkup/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/phone-checkup/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/phone-checkup/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/phone-checkup/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/privacy-report/</loc>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/account-checkup/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/account-checkup/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/account-checkup/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/account-checkup/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/ip-leak-test/</loc>
@@ -95,48 +136,93 @@
   </url>
   <url>
     <loc>https://secureinchat.com/tools/photo-metadata-remover/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/photo-metadata-remover/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/photo-metadata-remover/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/photo-metadata-remover/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/photo-metadata-remover/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/photo-metadata-remover/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/photo-metadata-remover/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/photo-metadata-remover/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/text-redactor/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/text-redactor/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/text-redactor/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/text-redactor/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/file-metadata-remover/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/file-metadata-remover/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/file-metadata-remover/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/file-metadata-remover/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/file-metadata-remover/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/file-metadata-remover/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/file-metadata-remover/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/file-metadata-remover/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/browser-fingerprint-test/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/browser-fingerprint-test/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/browser-fingerprint-test/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/browser-fingerprint-test/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/password-checker/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/password-checker/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/password-checker/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/password-checker/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/password-checker/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/password-checker/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/password-checker/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/password-checker/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/account-checkup/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/account-checkup/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/account-checkup/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/account-checkup/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/text-redactor/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/text-redactor/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/text-redactor/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/text-redactor/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/link-checker/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/link-checker/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/link-checker/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/link-checker/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/link-checker/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/link-checker/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/link-checker/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/link-checker/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/browser-fingerprint-test/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/browser-fingerprint-test/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/browser-fingerprint-test/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/browser-fingerprint-test/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/tools/site-health-check/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/site-health-check/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/site-health-check/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/site-health-check/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/zh/tools/site-health-check/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/site-health-check/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/site-health-check/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/site-health-check/"/>
   </url>
   <url>
     <loc>https://secureinchat.com/blog/</loc>
@@ -252,5 +338,9 @@
   </url>
   <url>
     <loc>https://secureinchat.com/messaging/threat-model/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/messaging/threat-model/"/>
+    <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/messaging/threat-model/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://secureinchat.com/es/messaging/threat-model/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/messaging/threat-model/"/>
   </url>
 </urlset>

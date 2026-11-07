@@ -14,6 +14,32 @@ const PUB = path.join(ROOT, 'public');
 const SITE = 'https://secureinchat.com';
 const DATE = '2026-10-21';
 
+// Only pages with a real, reviewed translation of the same content belong in a group. Every group has an
+// English version; x-default always points there. HTML <link rel="alternate"> and sitemap xhtml:link are
+// generated from this one list so the two cannot drift apart.
+const TRANSLATED_TOOLS = ['photo-metadata-remover', 'text-redactor', 'file-metadata-remover', 'password-checker', 'account-checkup', 'link-checker', 'browser-fingerprint-test', 'site-health-check'];
+const ALTERNATE_GROUPS = [
+  { en: '/', 'zh-CN': '/zh/', ja: '/ja/' },
+  { en: '/checkup/', 'zh-CN': '/zh/checkup/' },
+  { en: '/tools/', 'zh-CN': '/zh/tools/' },
+  { en: '/tools/phone-checkup/', 'zh-CN': '/zh/tools/phone-checkup/' },
+  { en: '/messaging/threat-model/', 'zh-CN': '/zh/messaging/threat-model/', es: '/es/messaging/threat-model/' },
+  ...TRANSLATED_TOOLS.map((slug) => ({ en: `/tools/${slug}/`, 'zh-CN': `/zh/tools/${slug}/` })),
+];
+const alternateGroup = (canonical) => ALTERNATE_GROUPS.find((group) => Object.values(group).includes(canonical));
+function alternateHead(canonical) {
+  const group = alternateGroup(canonical);
+  if (!group) return '';
+  return Object.entries(group).map(([lang, href]) => `  <link rel="alternate" hreflang="${lang}" href="${SITE}${href}">\n`).join('')
+    + `  <link rel="alternate" hreflang="x-default" href="${SITE}${group.en}">\n`;
+}
+function alternateSitemap(canonical, indent = '    ') {
+  const group = alternateGroup(canonical);
+  if (!group) return '';
+  return Object.entries(group).map(([lang, href]) => `${indent}<xhtml:link rel="alternate" hreflang="${lang}" href="${SITE}${href}"/>\n`).join('')
+    + `${indent}<xhtml:link rel="alternate" hreflang="x-default" href="${SITE}${group.en}"/>\n`;
+}
+
 const iconDir = path.join(import.meta.dirname, 'node_modules/lucide-static/icons');
 const icon = (name, cls = 'icon') => {
   let s = fs.readFileSync(path.join(iconDir, name + '.svg'), 'utf8');
@@ -75,11 +101,7 @@ function head({ title, desc, canonical, jsonld, lang = 'en', robots = '' }) {
   <meta property="og:url" content="${SITE}${canonical}" />
   <meta property="og:locale" content="${lang === 'en' ? 'en_US' : lang.replace('-', '_')}" />
   <meta name="twitter:card" content="summary" />
-${['/', '/zh/', '/ja/'].includes(canonical) ? `  <link rel="alternate" hreflang="en" href="${SITE}/" />
-  <link rel="alternate" hreflang="zh-CN" href="${SITE}/zh/" />
-  <link rel="alternate" hreflang="ja" href="${SITE}/ja/" />
-  <link rel="alternate" hreflang="x-default" href="${SITE}/" />
-` : ''}  <link rel="stylesheet" href="/assets/site.css" />
+${alternateHead(canonical)}  <link rel="stylesheet" href="/assets/site.css" />
   <script src="/assets/main.js"></script>
 ${jsonld ? `  <script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ''}`;
 }
@@ -419,9 +441,9 @@ function figFor(slug) {
   return FIG.layers;
 }
 const KIT_CURRENT = { tools: '/tools/', blog: '/blog/', about: '/mission/', messaging: '/messaging/' };
-function headExtra({ canonical, jsonld, robots = '', title, desc }) {
+function headExtra({ canonical, jsonld, robots = '', title, desc, alternates = '' }) {
   return `${robots ? `  <meta name="robots" content="${robots}" />\n` : ''}  <link href="${SITE}${canonical}" rel="canonical"/>
-  <meta content="website" property="og:type"/>
+${alternates}  <meta content="website" property="og:type"/>
   <meta content="SecureInChat" property="og:site_name"/>
   <meta content="${esc(title)}" property="og:title"/>
   <meta content="${esc(desc)}" property="og:description"/>
@@ -467,8 +489,8 @@ const PRIVACY = `    <h1>Privacy policy</h1>
     <h2>Hosting and server logs</h2>
     <p>The site is served by Cloudflare. Like any web host, Cloudflare receives your IP address and request details when your browser loads a page, and processes them to deliver the site and protect it from abuse. See <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener">Cloudflare's privacy policy</a>.</p>
 
-    <h2>Aggregate analytics</h2>
-    <p>The main pages use Cloudflare Web Analytics, which measures page views and performance without cookies and without tracking you across sites. The tools pages under /tools/ load no analytics.</p>
+    <h2>No third-party scripts</h2>
+    <p>No page on this site loads a third-party script, analytics beacon, advertising script or tracking pixel. Visitor behaviour is not measured by a script in your browser. Search performance comes from Search Console's aggregate reports, which do not require a script on the page.</p>
 
     <h2>Relay diagnostics</h2>
     <p>The <a href="/messaging/">messaging page</a> opens a WebSocket connection from your browser to our relay at ws.secureinchat.com when it loads to measure latency and verify the relay's challenge. No message content is involved. The relay and Cloudflare see the connection the way any server sees a visitor, including your IP address.</p>
@@ -654,13 +676,13 @@ for (const c of Object.keys(LOCAL)) write(`${c}/index.html`, localPage(c));
 // Home pages: designed and coded by ChatGPT (design owner since 2026-10-22), integrated unchanged except for
 // head metadata (canonical, hreflang, Open Graph) and self-hosted asset paths. Source: src/home/.
 function gptHome(file, canonical, lang, title, desc, jsonld) {
-  return gptPage('src/home/' + file, canonical, lang, title, desc, jsonld, { en: '/', 'zh-CN': '/zh/', ja: '/ja/' });
+  return gptPage('src/home/' + file, canonical, lang, title, desc, jsonld);
 }
 // GPT's images are delivered as large PNGs; the build serves WebP copies (same pixels, smaller files).
 const GPT_IMAGES = ['secureinchat-hero', 'secureinchat-guide-lake', 'secureinchat-messaging'];
-function gptPage(rel, canonical, lang, title, desc, jsonld, alternates) {
+function gptPage(rel, canonical, lang, title, desc, jsonld) {
   let h = fs.readFileSync(path.join(ROOT, rel), 'utf8');
-  const alt = alternates ? Object.entries(alternates).map(([l, u]) => `  <link rel="alternate" hreflang="${l}" href="${SITE}${u}">\n`).join('') + `  <link rel="alternate" hreflang="x-default" href="${SITE}${alternates.en}">\n` : '';
+  const alt = alternateHead(canonical);
   const meta = `  <link rel="canonical" href="${SITE}${canonical}">
 ${alt}  <meta property="og:type" content="website">
   <meta property="og:site_name" content="SecureInChat">
@@ -691,12 +713,10 @@ write('assets/css/home.css', fs.readFileSync(path.join(ROOT, 'src/home/home.css'
 if (fs.existsSync(path.join(ROOT, 'src/home/home.js'))) write('assets/js/home.js', fs.readFileSync(path.join(ROOT, 'src/home/home.js')));
 for (const n of GPT_IMAGES) write(`assets/img/${n}.webp`, fs.readFileSync(path.join(ROOT, 'src/img', n + '.webp')));
 // Privacy checkup (designed and coded by ChatGPT, 2026-10-22; official sources filled and checked by Claude).
-const CHECKUP_ALT = { en: '/checkup/', 'zh-CN': '/zh/checkup/' };
-const PHONE_ALT = { en: '/tools/phone-checkup/', 'zh-CN': '/zh/tools/phone-checkup/' };
-write('checkup/index.html', gptPage('src/checkup/checkup-en.html', '/checkup/', 'en_US', 'SecureInChat — Privacy Checkup', 'Choose a practical privacy check for your IP, a URL, phone-number settings or account security.', null, CHECKUP_ALT));
-write('zh/checkup/index.html', gptPage('src/checkup/checkup-zh.html', '/zh/checkup/', 'zh_CN', 'SecureInChat — 隐私体检', '选择适合你的隐私检查：网址、手机号设置或账号安全。', null, CHECKUP_ALT));
-write('tools/phone-checkup/index.html', gptPage('src/checkup/phone-en.html', '/tools/phone-checkup/', 'en_US', 'Phone Number Privacy Checkup', 'A six-item checklist to protect your phone number from SIM swaps and exposure. You never enter your number; nothing is saved or sent.', null, PHONE_ALT));
-write('zh/tools/phone-checkup/index.html', gptPage('src/checkup/phone-zh.html', '/zh/tools/phone-checkup/', 'zh_CN', '手机号隐私自查', '六项自查，保护手机号免受换卡诈骗和泄露。无需输入号码，不保存、不发送。', null, PHONE_ALT));
+write('checkup/index.html', gptPage('src/checkup/checkup-en.html', '/checkup/', 'en_US', 'SecureInChat — Privacy Checkup', 'Choose a practical privacy check for your IP, a URL, phone-number settings or account security.', null));
+write('zh/checkup/index.html', gptPage('src/checkup/checkup-zh.html', '/zh/checkup/', 'zh_CN', 'SecureInChat — 隐私体检', '选择适合你的隐私检查：网址、手机号设置或账号安全。', null));
+write('tools/phone-checkup/index.html', gptPage('src/checkup/phone-en.html', '/tools/phone-checkup/', 'en_US', 'Phone Number Privacy Checkup', 'A six-item checklist to protect your phone number from SIM swaps and exposure. You never enter your number; nothing is saved or sent.', null));
+write('zh/tools/phone-checkup/index.html', gptPage('src/checkup/phone-zh.html', '/zh/tools/phone-checkup/', 'zh_CN', '手机号隐私自查', '六项自查，保护手机号免受换卡诈骗和泄露。无需输入号码，不保存、不发送。', null));
 write('assets/css/subpages.css', fs.readFileSync(path.join(ROOT, 'src/subpages/subpages.css')));
 write('assets/css/v4.css', fs.readFileSync(path.join(ROOT, 'src/design-v4/v4.css')));
 for (const f of fs.readdirSync(path.join(ROOT, 'src/subpages/illustrations'))) write(`assets/illustrations/${f}`, fs.readFileSync(path.join(ROOT, 'src/subpages/illustrations', f)));
@@ -742,8 +762,7 @@ write('.well-known/security.txt', SECURITY_TXT);
 write('testing/index.html', docPage({ slug: 'testing', title: 'How we test', desc: 'The automated tests every SecureInChat release runs before it goes live, and what they do not prove.', body: TESTING, current: 'about' }));
 // R3: the threat model in three languages, linked to each other with hreflang. The Spanish page uses the English
 // header and footer (the site has no Spanish navigation yet); only its content and <html lang> are Spanish.
-const TM_ALT = { en: '/messaging/threat-model/', 'zh-CN': '/zh/messaging/threat-model/', es: '/es/messaging/threat-model/' };
-const tmAlt = Object.entries(TM_ALT).map(([l, u]) => `  <link rel="alternate" hreflang="${l}" href="${SITE}${u}"/>\n`).join('') + `  <link rel="alternate" hreflang="x-default" href="${SITE}${TM_ALT.en}"/>\n`;
+const TM_ALT = alternateGroup('/messaging/threat-model/');
 const TM = [
   { lang: 'en', htmlLang: 'en', canonical: TM_ALT.en, title: 'Messenger threat model', desc: 'What the SecureInChat messenger is designed to protect, from whom, what the relay can still see, and what it cannot protect against.', body: THREAT_MODEL, current: KIT_CURRENT.messaging, crumbs: crumbsFor('messaging/threat-model', 'Messenger threat model') },
   { lang: 'zh', htmlLang: 'zh-CN', canonical: TM_ALT['zh-CN'], title: '聊天应用威胁模型', desc: 'SecureInChat 聊天应用设计上保护什么、防范谁、中继仍能看到什么，以及保护不了什么。', body: THREAT_MODEL_ZH, current: undefined, crumbs: [['/zh/', '首页'], [TM_ALT['zh-CN'], '聊天应用威胁模型']] },
@@ -755,7 +774,7 @@ for (const P of TM) {
   const others = TM_LANGS.filter(([, , u]) => u !== P.canonical).map(([l, n, u]) => `<a href="${u}" hreflang="${l}" lang="${l}">${n}</a>`).join(' · ');
   P.body = P.body.replace(/(<p class="meta">[^<]*)<\/p>/, `$1 · ${others}</p>`);
   write(`${P.canonical.slice(1)}index.html`, infoPage({ lang: P.lang, htmlLang: P.htmlLang, title: full, desc: P.desc, canonical: P.canonical, current: P.current,
-    headExtra: headExtra({ canonical: P.canonical, title: full, desc: P.desc }) + tmAlt, crumbs: P.crumbs, body: P.body, figure: figFor('messaging/threat-model') })
+    headExtra: headExtra({ canonical: P.canonical, title: full, desc: P.desc, alternates: alternateHead(P.canonical) }), crumbs: P.crumbs, body: P.body, figure: figFor('messaging/threat-model') })
     .replace(/href="\/zh\/blog\/"/g, 'href="/blog/"')); // /zh/blog/ does not exist yet (same as the other Chinese pages)
 }
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT, current: 'about' }));
@@ -816,7 +835,7 @@ write('blog/index.html', blogIndex());
 {
   const title = 'Privacy tools | SecureInChat'; const desc = 'Free privacy tools: see what each check does, what stays in your browser and when an outside service is involved.';
   const m = kitMain('tools-index.en.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/').replace('aria-label="面包屑导航"', 'aria-label="Breadcrumb"');
-  write('tools/index.html', kitShell({ title, desc, canonical: '/tools/', current: '/tools/', headExtra: headExtra({ canonical: '/tools/', title, desc }), main: m }));
+  write('tools/index.html', kitShell({ title, desc, canonical: '/tools/', current: '/tools/', headExtra: headExtra({ canonical: '/tools/', title, desc, alternates: alternateHead('/tools/') }), main: m }));
 }
 
 // Chinese tools index: ChatGPT's tools-index.zh template. Translated tools link to their Chinese pages;
@@ -832,7 +851,7 @@ write('blog/index.html', blogIndex());
     return a.replace(/(class="tool-catalogue-action" href="[^"]+"[^>]*>)\s*立即使用/, '$1 使用（英文页面）');
   });
   // /zh/blog/ does not exist yet: the Chinese header's guides link goes to the English guides.
-  write('zh/tools/index.html', kitShell({ lang: 'zh', title, desc, canonical: '/zh/tools/', current: '/zh/tools/', headExtra: headExtra({ canonical: '/zh/tools/', title, desc }), main: m }).replace(/href="\/zh\/blog\/"/g, 'href="/blog/"'));
+  write('zh/tools/index.html', kitShell({ lang: 'zh', title, desc, canonical: '/zh/tools/', current: '/zh/tools/', headExtra: headExtra({ canonical: '/zh/tools/', title, desc, alternates: alternateHead('/zh/tools/') }), main: m }).replace(/href="\/zh\/blog\/"/g, 'href="/blog/"'));
 }
 
 // Tool detail pages: kit tool-detail layout around each tool's unchanged live markup (src/tools/<slug>.html).
@@ -857,7 +876,7 @@ write('blog/index.html', blogIndex());
   for (const [slug, name, label, figure] of TOOLS) {
     const src = fs.readFileSync(path.join(ROOT, 'src/tools', `${slug}.html`), 'utf8');
     if (!FLOW[slug]) throw new Error('no data-flow row for ' + slug);
-    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, ...(['photo-metadata-remover', 'text-redactor', 'file-metadata-remover', 'password-checker', 'account-checkup', 'link-checker', 'browser-fingerprint-test', 'site-health-check'].includes(slug) ? { alt: { en: `/tools/${slug}/`, 'zh-CN': `/zh/tools/${slug}/` } } : {}) }));
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, alternates: alternateHead(`/tools/${slug}/`) }));
   }
 }
 
@@ -866,7 +885,6 @@ write('blog/index.html', blogIndex());
 // net-log.js switch their interface strings on document.documentElement.lang instead of being duplicated.
 // The icons and the data-flow row are built here because ICONS and FLOW live inside the block above.
 {
-  const PHOTO_ALT = { en: '/tools/photo-metadata-remover/', 'zh-CN': '/zh/tools/photo-metadata-remover/' };
   const idxZh = KIT_T('tools-index.en.html');
   let photoIcon = '';
   for (const a of idxZh.match(/<article class="tool-catalogue-item">[\s\S]*?<\/article>/g) || []) {
@@ -886,7 +904,7 @@ write('blog/index.html', blogIndex());
     figure: { ...FIG.photo, alt: '照片里的位置、时间和设备信息' },
     crumbName: '照片元数据清理',
     lang: 'zh-CN',
-    alt: PHOTO_ALT,
+    alternates: alternateHead('/zh/tools/photo-metadata-remover/'),
   }));
 }
 
@@ -910,7 +928,7 @@ write('blog/index.html', blogIndex());
     figure: { ...FIG.redact, alt: '分享前被遮住敏感内容的文本' },
     crumbName: '文本脱敏',
     lang: 'zh-CN',
-    alt: { en: '/tools/text-redactor/', 'zh-CN': '/zh/tools/text-redactor/' },
+    alternates: alternateHead('/zh/tools/text-redactor/'),
   }));
 }
 
@@ -935,7 +953,7 @@ write('blog/index.html', blogIndex());
     figure: { ...FIG.photo, alt: '文件里的作者、位置、时间和设备信息' },
     crumbName: '文件元数据清理',
     lang: 'zh-CN',
-    alt: { en: '/tools/file-metadata-remover/', 'zh-CN': '/zh/tools/file-metadata-remover/' },
+    alternates: alternateHead('/zh/tools/file-metadata-remover/'),
   }));
 }
 
@@ -961,7 +979,7 @@ write('blog/index.html', blogIndex());
     figure: { ...FIG.account, alt: '账号的登录方式、受信任设备和恢复途径' },
     crumbName: '密码检查',
     lang: 'zh-CN',
-    alt: { en: '/tools/password-checker/', 'zh-CN': '/zh/tools/password-checker/' },
+    alternates: alternateHead('/zh/tools/password-checker/'),
   }));
 }
 
@@ -987,7 +1005,7 @@ write('blog/index.html', blogIndex());
     figure: { ...FIG.account, alt: '账号的登录方式、受信任设备和恢复途径' },
     crumbName: '账号安全自查',
     lang: 'zh-CN',
-    alt: { en: '/tools/account-checkup/', 'zh-CN': '/zh/tools/account-checkup/' },
+    alternates: alternateHead('/zh/tools/account-checkup/'),
   }));
 }
 
@@ -1013,7 +1031,7 @@ write('blog/index.html', blogIndex());
     figure: { ...FIG.url, alt: '一个网址被拆成网站名、路径和可能用于追踪的查询参数' },
     crumbName: '链接检查器',
     lang: 'zh-CN',
-    alt: { en: '/tools/link-checker/', 'zh-CN': '/zh/tools/link-checker/' },
+    alternates: alternateHead('/zh/tools/link-checker/'),
   }));
 }
 
@@ -1037,7 +1055,7 @@ write('blog/index.html', blogIndex());
     figure: { ...FIG.flows, alt: '浏览器向网站暴露的各类信号' },
     crumbName: '浏览器特征检查',
     lang: 'zh-CN',
-    alt: { en: '/tools/browser-fingerprint-test/', 'zh-CN': '/zh/tools/browser-fingerprint-test/' },
+    alternates: alternateHead('/zh/tools/browser-fingerprint-test/'),
   }));
 }
 
@@ -1063,7 +1081,7 @@ write('blog/index.html', blogIndex());
     figure: { ...FIG.flows, alt: '你输入的地址发送到本站，本站抓取该网站的公开页面' },
     crumbName: '网站健康检查',
     lang: 'zh-CN',
-    alt: { en: '/tools/site-health-check/', 'zh-CN': '/zh/tools/site-health-check/' },
+    alternates: alternateHead('/zh/tools/site-health-check/'),
   }));
 }
 
@@ -1160,36 +1178,49 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
     </aside>
 `);
 
-// sitemap, robots, headers
-const urls = [
+// sitemap, robots, headers. Every sitemap URL is a real generated page, uses the same trailing-slash
+// canonical form as its <link rel="canonical">, and appears once. Alternates come from ALTERNATE_GROUPS.
+const sitemapEntries = [
   ['/', 1], ['/workspace/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/zh/messaging/threat-model/', 0], ['/es/messaging/threat-model/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
+const urls = [];
+const seenUrls = new Set();
+for (const [raw] of sitemapEntries) {
+  if (raw !== '/' && !raw.endsWith('/')) throw new Error(`sitemap path is not canonical (needs a trailing slash): ${raw}`);
+  if (seenUrls.has(raw)) continue;
+  seenUrls.add(raw);
+  urls.push(raw);
+}
+for (const u of urls) {
+  const file = u === '/' ? path.join(PUB, 'index.html') : path.join(PUB, u.slice(1), 'index.html');
+  if (!fs.existsSync(file)) throw new Error(`sitemap URL has no generated page: ${u}`);
+}
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-${urls.map(([u]) => { const post = POSTS.find((p) => u === `/blog/${p.slug}/`); return `  <url>\n    <loc>${SITE}${u}</loc>\n${post ? `    <lastmod>${post.date}</lastmod>\n` : ''}  </url>`; }).join('\n')}
+${urls.map((u) => { const post = POSTS.find((p) => u === `/blog/${p.slug}/`); return `  <url>\n    <loc>${SITE}${u}</loc>\n${post ? `    <lastmod>${post.date}</lastmod>\n` : ''}${alternateSitemap(u)}  </url>`; }).join('\n')}
 </urlset>
 `);
 write('robots.txt', `User-agent: *\nAllow: /\nDisallow: /tools/api/\n\nSitemap: ${SITE}/sitemap.xml\n`);
 
-const MAIN_CSP = "default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com https://cloudflareinsights.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
+const MAIN_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://ws.secureinchat.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 // 'wasm-unsafe-eval' lets the file metadata remover compile its WebAssembly (same-origin file). It allows WebAssembly
 // compilation only; JavaScript eval stays blocked. Cloudflare joins repeated CSP headers rather than replacing them,
 // so a per-page exception under /tools/* is not possible; it is set for the whole /tools/ section.
 const TOOLS_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-// The workspace is local-only: no analytics, no fetch/XHR/WebSocket, no inline script or style.
+// The workspace is local-only: no third-party scripts, no analytics, no fetch/XHR/WebSocket, no inline script or style.
 const WORKSPACE_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
 const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
-write('_headers', `# Main pages: self-hosted assets only; Cloudflare Web Analytics and the relay websocket are allowed.
+write('_headers', `# Main pages: no third-party scripts or analytics; self-hosted assets and the relay websocket only.
 ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`).join('\n')}
 
-# Workspace: self-hosted assets only. connect-src 'none' blocks fetch, XHR and WebSocket.
+# Workspace: no third-party scripts; self-hosted assets only. connect-src 'none' blocks fetch, XHR and WebSocket.
 /workspace/*
   Content-Security-Policy: ${WORKSPACE_CSP}
 ${common}
 
-# Tools: no analytics, only the lookups the tests need.
+# Tools: no third-party scripts or analytics, only the lookups the tests need.
 /tools/*
   Content-Security-Policy: ${TOOLS_CSP}
 ${common}

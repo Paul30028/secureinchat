@@ -1,4 +1,5 @@
 import json, os, sys, threading, http.server, socketserver
+from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'public')
@@ -231,6 +232,35 @@ for _f in _glob.glob(os.path.join(ROOT, '**', '*.html'), recursive=True):
         if _prev and _l > _prev + 1: _skips.append(f'{os.path.relpath(_f, ROOT)}: h{_prev} -> h{_l}'); break
         _prev = _l
 check(not _skips, f'no skipped heading levels: {_skips[:8]}')
+
+# No third-party scripts or analytics: scan every generated page, every CSP rule and every sitemap URL.
+_cf_pages, _ext_scripts, _csp_bad, _csp_missing = [], [], [], []
+for _f in _glob.glob(os.path.join(ROOT, '**', '*.html'), recursive=True):
+    _rel = os.path.relpath(_f, ROOT)
+    _s = open(_f, encoding='utf-8').read()
+    if 'cloudflareinsights' in _s.lower(): _cf_pages.append(_rel)
+    for _src in _re.findall(r'<script\b[^>]*\bsrc="([^"]+)"', _s):
+        _u = urlparse(_src)
+        if _u.scheme in ('http', 'https') and _u.netloc != 'secureinchat.com': _ext_scripts.append(f'{_rel}: {_src}')
+        elif _src.startswith('//') and urlparse('https:' + _src).netloc != 'secureinchat.com': _ext_scripts.append(f'{_rel}: {_src}')
+check(not _cf_pages, f'no generated page mentions cloudflareinsights {_cf_pages[:3]}')
+check(not _ext_scripts, f'no external script sources in HTML {_ext_scripts[:3]}')
+
+_headers_src = open(os.path.join(ROOT, '_headers'), encoding='utf-8').read()
+check('cloudflareinsights' not in _headers_src.lower(), 'CSP headers do not allow cloudflareinsights')
+for _csp in _re.findall(r'Content-Security-Policy:\s*([^\n]+)', _headers_src):
+    _ss = _re.search(r'(?:^|;)\s*script-src\s+([^;]*)', _csp)
+    if _ss:
+        _bad = [x for x in _ss.group(1).split() if x not in ("'self'", "'wasm-unsafe-eval'", "'none'")]
+        if _bad: _csp_bad.append(_bad)
+check(not _csp_bad, f'CSP script-src is self-hosted only {_csp_bad[:3]}')
+
+_sitemap_locs = _re.findall(r'<loc>([^<]+)</loc>', open(os.path.join(ROOT, 'sitemap.xml'), encoding='utf-8').read())
+for _loc in _sitemap_locs:
+    _p = _loc.replace('https://secureinchat.com', '')
+    _csp = headers_for(_p).get('Content-Security-Policy')
+    if not _csp or 'cloudflareinsights' in _csp.lower(): _csp_missing.append(_p)
+check(len(_sitemap_locs) > 0 and not _csp_missing, f'every sitemap page has a self-hosted CSP {_csp_missing[:3]}')
 
 print('\nFAILED:' if fails else '\nSITE TESTS PASSED', *fails, sep='\n')
 sys.exit(1 if fails else 0)

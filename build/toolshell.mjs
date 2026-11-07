@@ -43,7 +43,7 @@ const CHROME = {
   },
 };
 
-export function toolPage({ slug, src, icon, label, flow, figure, crumbName, lang = 'en', alt }) {
+export function toolPage({ slug, src, icon, label, flow, figure, crumbName, lang = 'en', alternates = '' }) {
   const chrome = CHROME[lang] || CHROME.en;
   const zh = chrome === CHROME['zh-CN'];
   const head = src.slice(0, src.indexOf('</head>'));
@@ -122,17 +122,12 @@ ${side}
     </div>
    </section>`;
   const canonical = `${zh ? '/zh' : ''}/tools/${slug}/`;
-  // Alternate-language links are emitted only for pages that pass alt (a page with a translation),
-  // so every other page keeps its exact output.
-  const headAlt = alt ? [
-    `  <link href="https://secureinchat.com${alt.en}" hreflang="en" rel="alternate"/>`,
-    `  <link href="https://secureinchat.com${alt['zh-CN']}" hreflang="zh-CN" rel="alternate"/>`,
-    `  <link href="https://secureinchat.com${alt.en}" hreflang="x-default" rel="alternate"/>`,
-  ].join('\n') + '\n' : '';
+  // Alternate-language links come from ALTERNATE_GROUPS in build.mjs. Pages without a reviewed translation
+  // receive an empty string, so they get a canonical but no hreflang and no x-default.
   const keep = headScripts.filter((s) => /application\/ld\+json/.test(s));
   const scriptsHead = headScripts.filter((s) => !/application\/ld\+json/.test(s));
   const headExtra = `  <link href="https://secureinchat.com${canonical}" rel="canonical"/>
-${headAlt}  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+${alternates}  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
   <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
 ${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
 `;

@@ -50,7 +50,7 @@ The build environment could not reach the live endpoints, so the logic is tested
 - DNS is not tested. A browser cannot observe the resolver. The row says so. A real DNS test needs an authoritative DNS server that logs which resolver asks for a random subdomain, for example a small server on your VPS plus a JSON endpoint. Until then do not label this row as passed.
 - "Hosting or VPN network" versus "ISP" is a name-based guess (`HOSTING_RE` in `logic.js`). Residential VPN exits and corporate VPNs will be misjudged. The page says it is a heuristic.
 - Pages Functions free plan: 100,000 requests per day shared with Workers. One test run is one function call.
-- The page loads no analytics and sets no cookies, and says so. If you enable Cloudflare Web Analytics or add any script, update the privacy wording in the hero hint, the FAQ and the How the test works section.
+- The page loads no third-party scripts or analytics and sets no cookies, and says so. Do not add Cloudflare Web Analytics or any other third-party script; the site policy is no third-party scripts.
 - Use Search Console and Bing Webmaster Tools for search data. They need no script on the page.
 
 ## Turning on ads or affiliate links later
