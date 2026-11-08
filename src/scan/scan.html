@@ -71,6 +71,24 @@
       <p class="section__lede" id="results-summary"></p>
     </div>
     <div id="scan-groups"></div>
+    <div class="report-changes" id="report-changes" hidden>
+      <h3>Changes since the last saved scan</h3>
+      <ul id="report-changes-list"></ul>
+    </div>
+    <div class="export" aria-labelledby="export-title">
+      <h3 id="export-title">Download this report</h3>
+      <p class="export__note">Built in this tab only. Nothing is uploaded, and no file is created until you press a button.</p>
+      <div class="controls">
+        <button class="btn" id="download-text" type="button">Download report (text)</button>
+        <button class="btn" id="download-json" type="button">Download report (JSON)</button>
+      </div>
+      <div class="raw-option">
+        <input type="checkbox" id="include-raw">
+        <label for="include-raw">Include raw values</label>
+        <p class="raw-warning" id="raw-warning" hidden>Raw values may let someone recognise your device.</p>
+      </div>
+      <p class="status" id="export-status" role="status" aria-live="polite"></p>
+    </div>
     <div class="controls">
       <button class="btn" id="save-snapshot" type="button">Save this result in this page's memory</button>
       <button class="btn btn--quiet" id="clear-results" type="button">Clear this page's results</button>
@@ -130,6 +148,7 @@
 </footer>
 <script src="/scan/assets/model.js" defer></script>
 <script src="/scan/assets/diff.js" defer></script>
+<script src="/scan/assets/report.js" defer></script>
 <script src="/scan/assets/probes.js" defer></script>
 <script src="/scan/assets/scan.js" defer></script>
 </body>

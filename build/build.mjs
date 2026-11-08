@@ -1196,7 +1196,7 @@ write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 
 {
   const SCAN_DIR = path.join(ROOT, 'src/scan');
   write('scan/index.html', fs.readFileSync(path.join(SCAN_DIR, 'scan.html'), 'utf8'));
-  for (const f of ['scan.css', 'scan.js', 'model.js', 'diff.js', 'probes.js']) {
+  for (const f of ['scan.css', 'scan.js', 'model.js', 'diff.js', 'report.js', 'probes.js']) {
     write('scan/assets/' + f, fs.readFileSync(path.join(SCAN_DIR, f)));
   }
 }

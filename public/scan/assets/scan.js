@@ -4,6 +4,7 @@
   'use strict';
   var M = window.ScanModel;
   var D = window.ScanDiff;
+  var R = window.ScanReport;
   var P = window.ScanProbes;
 
   var startBtn = document.getElementById('scan-start');
@@ -23,6 +24,13 @@
   var proofCount = document.getElementById('proof-count');
   var proofNew = document.getElementById('proof-new');
   var proofList = document.getElementById('proof-list');
+  var reportChanges = document.getElementById('report-changes');
+  var reportChangesList = document.getElementById('report-changes-list');
+  var downloadTextBtn = document.getElementById('download-text');
+  var downloadJsonBtn = document.getElementById('download-json');
+  var includeRawEl = document.getElementById('include-raw');
+  var rawWarning = document.getElementById('raw-warning');
+  var exportStatus = document.getElementById('export-status');
 
   var latest = null;
   var snapshot = null;
@@ -112,18 +120,34 @@
       groupsEl.appendChild(section);
     });
 
-    var counts = M.summarize(results);
-    summaryEl.textContent = counts.total + ' local items read. ' + counts.high + ' higher exposure, ' +
-      counts.medium + ' worth a look, ' + counts.low + ' lower exposure. No network request was made.';
+    summaryEl.textContent = R.summaryLine(results) + ' No network request was made.';
     resultsSection.hidden = false;
+  }
+
+  function renderReportChanges(diff) {
+    reportChanges.hidden = false;
+    reportChangesList.textContent = '';
+    if (!diff.changed.length) {
+      var empty = el('li', 'report-changes__empty', 'No changed value was observed since the saved scan.');
+      reportChangesList.appendChild(empty);
+      return;
+    }
+    diff.changed.forEach(function (item) {
+      var li = el('li');
+      li.appendChild(el('strong', null, item.title));
+      li.appendChild(document.createTextNode(' value changed since the saved scan.'));
+      reportChangesList.appendChild(li);
+    });
   }
 
   function renderCompare() {
     if (!snapshot || !latest) {
       compareSection.hidden = true;
+      reportChanges.hidden = true;
       return;
     }
     var diff = D.diff(snapshot.results, latest);
+    renderReportChanges(diff);
     compareBody.textContent = '';
 
     function column(title, items, emptyText, showValues) {
@@ -173,8 +197,13 @@
     liveEl.textContent = '';
     resultsSection.hidden = true;
     compareSection.hidden = true;
+    reportChanges.hidden = true;
+    reportChangesList.textContent = '';
     saveStatus.textContent = '';
     compareStatus.textContent = '';
+    exportStatus.textContent = '';
+    includeRawEl.checked = false;
+    rawWarning.hidden = true;
     saveBtn.disabled = true;
     statusEl.textContent = 'No scan has run yet.';
     statusEl.removeAttribute('data-tone');
@@ -215,8 +244,11 @@
     liveEl.textContent = '';
     resultsSection.hidden = true;
     compareSection.hidden = true;
+    reportChanges.hidden = true;
+    reportChangesList.textContent = '';
     saveBtn.disabled = true;
     saveStatus.textContent = '';
+    exportStatus.textContent = '';
     statusEl.removeAttribute('data-tone');
 
     var specs = M.LOCAL_SPECS;
@@ -325,8 +357,54 @@
   clearSnapshotBtn.addEventListener('click', function () {
     snapshot = null;
     compareSection.hidden = true;
+    reportChanges.hidden = true;
+    reportChangesList.textContent = '';
     saveBtn.disabled = !latest;
     saveStatus.textContent = latest ? 'Saved comparison cleared. The current report is still in memory.' : '';
+  });
+
+  function download(kind) {
+    if (!latest) return;
+    var includeRaw = includeRawEl.checked;
+    var changes = snapshot ? D.diff(snapshot.results, latest).changed : null;
+    var options = { includeRaw: includeRaw, changes: changes, generatedAt: new Date() };
+    var content = kind === 'json' ? R.buildJson(latest, options) : R.buildText(latest, options);
+    var name = kind === 'json' ? 'exposure-report.json' : 'exposure-report.txt';
+    var blob = new Blob([content], { type: kind === 'json' ? 'application/json' : 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.hidden = true;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // The file has already been handed to the browser; release the object URL afterwards.
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    exportStatus.textContent = 'Created ' + name + ' in this tab' +
+      (includeRaw ? ' with raw values.' : ' with raw values hidden.');
+  }
+
+  downloadTextBtn.addEventListener('click', function () { download('text'); });
+  downloadJsonBtn.addEventListener('click', function () { download('json'); });
+  includeRawEl.addEventListener('change', function () {
+    rawWarning.hidden = !includeRawEl.checked;
+  });
+
+  // A printed report should include the reduction advice even when it is collapsed on screen.
+  var openedForPrint = [];
+  window.addEventListener('beforeprint', function () {
+    openedForPrint = [];
+    groupsEl.querySelectorAll('details').forEach(function (details) {
+      if (!details.open) {
+        details.open = true;
+        openedForPrint.push(details);
+      }
+    });
+  });
+  window.addEventListener('afterprint', function () {
+    openedForPrint.forEach(function (details) { details.open = false; });
+    openedForPrint = [];
   });
 
   clearBtn.addEventListener('click', resetView);
