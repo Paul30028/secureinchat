@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>模拟站点 A - 先搜索再填表</title>
+    <style>
+      body { font: 15px/1.5 -apple-system, "Segoe UI", sans-serif; max-width: 640px; margin: 32px auto; padding: 0 16px; color: #1c2b24; }
+      h1 { font-size: 20px; }
+      .panel { border: 1px solid #ccd8d2; border-radius: 8px; padding: 16px; margin-top: 16px; }
+      label { display: block; margin: 10px 0 4px; font-size: 12px; color: #52655c; }
+      input { width: 100%; padding: 7px; border: 1px solid #b9c9c1; border-radius: 6px; }
+      button { margin-top: 12px; padding: 8px 12px; border: 1px solid #1f6f4a; background: #1f6f4a; color: #fff; border-radius: 6px; }
+      .muted { color: #667; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>PeopleSearch Mock A</h1>
+    <p class="muted">本地模拟站点。先按姓名搜索，再显示退出表单。不会向任何外部地址发请求。</p>
+
+    <section class="panel">
+      <h2>1. 搜索你的记录</h2>
+      <label for="search-name">姓名</label>
+      <input id="search-name" type="text" autocomplete="off">
+      <button id="search-btn" type="button">搜索</button>
+      <p id="search-note" class="muted" hidden>找到 1 条记录。请填写退出申请。</p>
+    </section>
+
+    <section id="optout-form-panel" class="panel" hidden>
+      <h2>2. 退出申请</h2>
+      <form id="optout-form">
+        <label for="city">城市</label>
+        <input id="city" type="text" autocomplete="off">
+        <label for="state">州/省</label>
+        <input id="state" type="text" autocomplete="off">
+        <label for="email">邮箱（用于接收确认邮件）</label>
+        <input id="email" type="email" autocomplete="off">
+        <button id="final-submit" type="submit">提交退出申请</button>
+      </form>
+      <p class="muted">模拟站点：提交按钮只会记录一个本地标记，不发送任何数据。</p>
+    </section>
+
+    <script>
+      (function () {
+        'use strict';
+        window.__submitted = false;
+        window.__searchClicks = 0;
+        document.getElementById('search-btn').addEventListener('click', function () {
+          window.__searchClicks += 1;
+          document.getElementById('search-note').hidden = false;
+          document.getElementById('optout-form-panel').hidden = false;
+        });
+        document.getElementById('optout-form').addEventListener('submit', function (event) {
+          event.preventDefault();
+          window.__submitted = true;
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "SecureInChat Opt-Out",
+  "version": "0.1.0",
+  "description": "本地优先地从人员搜索网站退出。资料只在本机加密保存，最终提交、验证码与邮件确认由你本人完成。",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "optional_host_permissions": [],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "SecureInChat Opt-Out",
+    "default_popup": "popup.html"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      }
+    }
+  }
+}

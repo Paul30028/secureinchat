@@ -1,0 +1,80 @@
+{
+  "rules": [
+    {
+      "id": "mock-site-a",
+      "name": "模拟站点 A（先搜索再填表）",
+      "optOutUrl": "https://127.0.0.1:8765/site-a.html",
+      "hostPermission": "https://127.0.0.1/*",
+      "steps": [
+        {
+          "action": "fill",
+          "selector": "#search-name",
+          "field": "fullName",
+          "note": "输入姓名以搜索"
+        },
+        {
+          "action": "click",
+          "selector": "#search-btn",
+          "note": "搜索，不是最终提交"
+        },
+        {
+          "action": "waitFor",
+          "selector": "#optout-form",
+          "note": "等待退出表单出现"
+        },
+        {
+          "action": "fill",
+          "selector": "#city",
+          "field": "city"
+        },
+        {
+          "action": "fill",
+          "selector": "#state",
+          "field": "state"
+        },
+        {
+          "action": "fill",
+          "selector": "#email",
+          "field": "email"
+        },
+        {
+          "action": "pause",
+          "note": "请核对信息并亲自提交；提交后按邮件确认"
+        }
+      ],
+      "success": {
+        "selector": "#optout-form"
+      },
+      "needs": [
+        "email-confirm"
+      ],
+      "droppable": true
+    },
+    {
+      "id": "mock-site-b",
+      "name": "模拟站点 B（直接表单 + 假验证码）",
+      "optOutUrl": "https://127.0.0.1:8765/site-b.html",
+      "hostPermission": "https://127.0.0.1/*",
+      "steps": [
+        {
+          "action": "fill",
+          "selector": "#full-name",
+          "field": "fullName"
+        },
+        {
+          "action": "fill",
+          "selector": "#email",
+          "field": "email"
+        }
+      ],
+      "success": {
+        "selector": "#optout-form"
+      },
+      "needs": [
+        "captcha",
+        "email-confirm"
+      ],
+      "droppable": true
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SecureInChat Opt-Out</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <h1>Opt-Out</h1>
+        <p class="sub">资料只在本机加密，最终提交由你本人完成。</p>
+      </div>
+      <button id="lock-btn" class="ghost" type="button" hidden>锁定</button>
+    </header>
+
+    <main>
+      <section id="gate" class="card">
+        <h2 id="gate-title">设置口令</h2>
+        <p id="gate-hint" class="hint">口令不保存。忘记口令就只能删除全部资料。</p>
+        <form id="gate-form" autocomplete="off">
+          <label for="passphrase">口令（至少 8 位）</label>
+          <input id="passphrase" type="password" minlength="8" required autocomplete="new-password">
+          <div id="confirm-row">
+            <label for="passphrase-confirm">再输一次</label>
+            <input id="passphrase-confirm" type="password" minlength="8" autocomplete="new-password">
+          </div>
+          <button id="gate-submit" class="primary" type="submit">创建加密资料库</button>
+        </form>
+        <p id="gate-error" class="error" role="alert" hidden></p>
+      </section>
+
+      <section id="workspace" hidden>
+        <section class="card">
+          <h2>我的资料</h2>
+          <form id="profile-form" autocomplete="off">
+            <label for="fullName">姓名</label>
+            <input id="fullName" data-field="fullName" type="text">
+            <label for="previousNames">曾用名（逗号分隔）</label>
+            <input id="previousNames" data-field="previousNames" type="text">
+            <div class="row">
+              <div>
+                <label for="city">城市</label>
+                <input id="city" data-field="city" type="text">
+              </div>
+              <div>
+                <label for="state">州/省</label>
+                <input id="state" data-field="state" type="text">
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="ageRange">年龄范围</label>
+                <input id="ageRange" data-field="ageRange" type="text" placeholder="如 30-39">
+              </div>
+              <div>
+                <label for="phone">电话</label>
+                <input id="phone" data-field="phone" type="tel">
+              </div>
+            </div>
+            <label for="email">邮箱</label>
+            <input id="email" data-field="email" type="email">
+            <div class="actions">
+              <button id="save-btn" class="primary" type="submit">加密保存</button>
+              <button id="delete-btn" class="danger" type="button">删除全部资料</button>
+            </div>
+          </form>
+          <p id="profile-status" class="status" role="status"></p>
+        </section>
+
+        <section class="card">
+          <h2>退出队列</h2>
+          <p class="hint">一家一家处理。扩展只填入资料，提交、验证码、邮件确认和证件都由你完成。</p>
+          <ul id="queue-list" class="queue"></ul>
+          <p id="queue-empty" class="hint">队列还是空的。</p>
+        </section>
+
+        <section class="card">
+          <h2>模拟站点（本地测试）</h2>
+          <p class="hint">当前只有 2 个本地模拟站点，不连接真实网站。先在本机启动测试服务器。</p>
+          <ul id="rule-list" class="rules"></ul>
+        </section>
+        <p id="run-status" class="status" role="status"></p>
+      </section>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
