@@ -1,0 +1,9 @@
+Local AI assets for the SecureInChat private workspace
+
+Model: knowledgator/gliner-pii-small-v1.0
+License: Apache-2.0
+The model weights are redistributed as quantized ONNX shards with SHA-256
+checksums in manifest.json. See the upstream model card for attribution.
+
+Runtime: onnxruntime-web (MIT), WASM backend only.
+Tokenizer: the tokenizer files shipped with the model above.

@@ -1,0 +1,69 @@
+{
+  "version": "1.0.0",
+  "model": "knowledgator/gliner-pii-small-v1.0",
+  "license": "Apache-2.0",
+  "totalBytes": 82680500,
+  "sha256": "891589426ee96f2748b16439f44fad8c3f97e198e002a6637e58dee989500216",
+  "shards": [
+    {
+      "file": "model-0000.bin",
+      "bytes": 20971520,
+      "sha256": "08bcb794e08679caad35fd8ccca72556f6b76addce6f51c72ad67b3d31d1bd82"
+    },
+    {
+      "file": "model-0001.bin",
+      "bytes": 20971520,
+      "sha256": "aec59926f3318e71bbcc983c0832cfed3f022a850f0d81e07f7dc20954b2a869"
+    },
+    {
+      "file": "model-0002.bin",
+      "bytes": 20971520,
+      "sha256": "77b3941d0153cca67ad6169a93ab0f7e031737eefe67298ab85092b2ca0f7350"
+    },
+    {
+      "file": "model-0003.bin",
+      "bytes": 19765940,
+      "sha256": "dd4722cc7fa79a799d88d837790bc61c884dce745ea18736250891728f8f563b"
+    }
+  ],
+  "tokenizerFiles": [
+    {
+      "file": "models/gliner-pii/tokenizer.json",
+      "bytes": 3583593,
+      "sha256": "84b3a9b18f04a0ccd03b72d9f871b7e0bec40fd7021ef50bc30a7c3693c11205"
+    },
+    {
+      "file": "models/gliner-pii/tokenizer_config.json",
+      "bytes": 21214,
+      "sha256": "3398f6d1ad4b4c4f9874d390d060a75c58cad5e5ce9b22841b3e40643b4ada27"
+    },
+    {
+      "file": "models/gliner-pii/special_tokens_map.json",
+      "bytes": 694,
+      "sha256": "ea97ecdbcc73713039d8d64dbb05e3689495c96657fbd9a18f5bed381be81049"
+    }
+  ],
+  "configFiles": [
+    {
+      "file": "models/gliner-pii/gliner_config.json",
+      "bytes": 4316,
+      "sha256": "c10803bade021f40072b194bc78bc2edd2bf3e60637a6f34cc9b00705bf3c168"
+    }
+  ],
+  "runtime": {
+    "name": "onnxruntime-web",
+    "backend": "wasm",
+    "files": [
+      {
+        "file": "ort/ort-wasm-simd-threaded.mjs",
+        "bytes": 20856,
+        "sha256": "43c25054b6b9ac000f786c65545ff83a45f871e0e310e8c2f4d48a363bb66db4"
+      },
+      {
+        "file": "ort/ort-wasm-simd-threaded.wasm",
+        "bytes": 11133407,
+        "sha256": "f061472c6e77d6d50d079aacdc0ff9b63fee287ddd2cbf46cf62438d3891de2b"
+      }
+    ]
+  }
+}

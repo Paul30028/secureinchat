@@ -1150,6 +1150,24 @@ write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 
   for (const f of ['workspace.css', 'workspace.js', 'text-review.js', 'link-review.js', 'image-review.js', 'receipt.js']) {
     write('workspace/assets/' + f, fs.readFileSync(path.join(WS_DIR, f)));
   }
+  // Local AI assets live only in public/workspace/ai/ (written by build/build-ai.mjs,
+  // committed once, ~94 MB) so the model is not stored twice in git. Nothing to copy here;
+  // tests/browser-smoke.py checks the served files against manifest.json.
+  const WS_AI = path.join(WS_DIR, 'ai');
+  if (fs.existsSync(WS_AI)) {
+    const walkAi = (dir, base = dir) => {
+      const out = [];
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) out.push(...walkAi(full, base));
+        else if (entry.isFile()) out.push(path.relative(base, full).split(path.sep).join('/'));
+      }
+      return out.sort();
+    };
+    for (const rel of walkAi(WS_AI)) {
+      write('workspace/ai/' + rel, fs.readFileSync(path.join(WS_AI, rel)));
+    }
+  }
 }
 
 // fonts + script
@@ -1242,8 +1260,13 @@ const MAIN_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-
 // compilation only; JavaScript eval stays blocked. Cloudflare joins repeated CSP headers rather than replacing them,
 // so a per-page exception under /tools/* is not possible; it is set for the whole /tools/ section.
 const TOOLS_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api4.ipify.org https://api6.ipify.org https://ipwho.is https://dnsapi.secureinchat.com https://*.lk.secureinchat.com https://api.pwnedpasswords.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-// The workspace is local-only: no third-party scripts, no analytics, no fetch/XHR/WebSocket, no inline script or style.
-const WORKSPACE_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
+// The workspace is local-only: no third-party scripts, no analytics, no inline
+// script or style. The optional local-AI worker adds only these three grants:
+//   connect-src 'self'      fetch() of model shards/tokenizer/wasm from this origin
+//   'wasm-unsafe-eval'      WebAssembly compilation in the worker (no JS eval)
+//   worker-src 'self'       loading the same-origin /workspace/ai/ worker script
+// The worker itself hard-codes that fetch may only reach /workspace/ai/.
+const WORKSPACE_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
 const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: no third-party scripts or analytics; self-hosted assets and the relay websocket only.
@@ -1301,6 +1324,8 @@ ${common}
 /assets/*
   Cache-Control: public, max-age=0, must-revalidate
 /tools/assets/*
+  Cache-Control: public, max-age=0, must-revalidate
+/workspace/ai/*
   Cache-Control: public, max-age=0, must-revalidate
 /workspace/assets/*
   Cache-Control: public, max-age=0, must-revalidate
