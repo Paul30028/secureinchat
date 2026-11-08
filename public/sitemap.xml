@@ -225,6 +225,9 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/site-health-check/"/>
   </url>
   <url>
+    <loc>https://secureinchat.com/scan/</loc>
+  </url>
+  <url>
     <loc>https://secureinchat.com/blog/</loc>
   </url>
   <url>

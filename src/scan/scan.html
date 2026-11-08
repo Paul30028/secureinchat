@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Exposure scan: what a website can read from your browser | SecureInChat</title>
+<meta name="description" content="See what a normal website can read from your browser before you allow anything: time zone, screen, user agent, canvas, WebGL, fonts, Do Not Track, cookies, touch and preference signals. The local scan sends no request, writes no storage, and never claims a uniqueness score.">
+<meta name="theme-color" content="#F0EFE7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11130E" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="canonical" href="https://secureinchat.com/scan/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SecureInChat">
+<meta property="og:title" content="Exposure scan: what a website can read from your browser">
+<meta property="og:description" content="A local scan of what any website can read before you allow it. No request, no storage, no uniqueness score.">
+<meta property="og:url" content="https://secureinchat.com/scan/">
+<link rel="stylesheet" href="/scan/assets/scan.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="/" aria-label="SecureInChat home"><span class="brand-mark" aria-hidden="true"><span>+</span></span>SecureInChat</a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="/workspace/">Workspace</a>
+      <a href="/tools/">Tools</a>
+      <a href="/blog/">Learn</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+  <section class="hero" aria-labelledby="page-title">
+    <div class="wrap hero__grid">
+      <div class="hero__copy">
+        <p class="eyebrow">EXPOSURE SCAN / LOCAL PART ONLY</p>
+        <h1 id="page-title">What a website can read<br><span class="accent">before you allow anything.</span></h1>
+        <p class="lead">Any normal website can already read a set of details from your browser. This scan reads the same details locally and shows you each one, who can see it, and how to reduce it.</p>
+        <div class="hero__actions">
+          <button class="btn btn--primary" id="scan-start" type="button">Start local scan</button>
+          <button class="btn btn--quiet" id="scan-stop" type="button" hidden>Stop scan</button>
+        </div>
+        <p class="promise">This part does not use the network. It sends nothing and writes nothing to storage. Nothing starts until you press the button.</p>
+      </div>
+      <aside class="proof" aria-labelledby="proof-title">
+        <div class="proof__top"><span>NETWORK PROOF</span><span class="proof__dot" aria-hidden="true">●</span></div>
+        <h2 id="proof-title">Requests from this page</h2>
+        <p class="proof__count"><span id="proof-count">0</span> since you opened it</p>
+        <p class="proof__new" id="proof-new">No scan has run yet. Scanning adds 0 requests.</p>
+        <ul class="proof__list" id="proof-list" aria-label="Resources requested since this page opened"></ul>
+        <p class="proof__note">Read from the browser's Resource Timing list. Page files loaded before you pressed the button are listed separately from the scan; a local scan must add none.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="wrap section" id="scan-section" aria-labelledby="scan-title">
+    <div class="section__head">
+      <p class="section__index">01 / LOCAL SCAN</p>
+      <h2 id="scan-title">Read one item at a time</h2>
+      <p class="section__lede">Each line appears only when that read has actually finished. Stop at any time; completed items stay on this page until you clear them or leave.</p>
+    </div>
+    <p class="status" id="scan-status" role="status" aria-live="polite">No scan has run yet.</p>
+    <ul class="live" id="scan-live" aria-label="Scan progress"></ul>
+  </section>
+
+  <section class="wrap section" id="scan-results" aria-labelledby="results-title" hidden>
+    <div class="section__head">
+      <p class="section__index">02 / REPORT</p>
+      <h2 id="results-title">Local scan report</h2>
+      <p class="section__lede" id="results-summary"></p>
+    </div>
+    <div id="scan-groups"></div>
+    <div class="controls">
+      <button class="btn" id="save-snapshot" type="button">Save this result in this page's memory</button>
+      <button class="btn btn--quiet" id="clear-results" type="button">Clear this page's results</button>
+    </div>
+    <p class="status" id="save-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="wrap section" id="compare" aria-labelledby="compare-title" hidden>
+    <div class="section__head">
+      <p class="section__index">03 / TWO SCANS</p>
+      <h2 id="compare-title">What changed between scans</h2>
+      <p class="section__lede">Saved results stay in this tab's memory only. The comparison reports observation, not a defence verdict: the same value twice does not prove that no site has already linked the two visits.</p>
+    </div>
+    <div class="compare" id="compare-body"></div>
+    <div class="controls">
+      <button class="btn btn--quiet" id="clear-snapshot" type="button">Clear the saved comparison</button>
+    </div>
+    <p class="status" id="compare-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="wrap section notes" aria-labelledby="notes-title">
+    <div class="section__head">
+      <p class="section__index">04 / LIMITS</p>
+      <h2 id="notes-title">What this cannot tell you</h2>
+    </div>
+    <div class="notes__grid">
+      <article class="note">
+        <h3>No uniqueness score</h3>
+        <p>This page has no dataset of other browsers, so it cannot say you are unique or give a percentage. A value that looks unusual here is not proof that a site can single you out; a common value is not proof that it cannot.</p>
+      </article>
+      <article class="note">
+        <h3>No device model judgement</h3>
+        <p>The platform and user-agent lines are shown as the browser reports them. This page does not infer a device model, and browsers may hide, round or rewrite these values.</p>
+      </article>
+      <article class="note">
+        <h3>Who can read it</h3>
+        <p>Every local item is readable by scripts on any website you visit, not only by this page. Some values, such as the user agent and language, are also sent in normal HTTP request headers.</p>
+      </article>
+      <article class="note">
+        <h3>Memory only</h3>
+        <p>Results and the saved comparison live in JavaScript memory. This page uses no cookie, localStorage, sessionStorage or IndexedDB. Reloading or closing the tab clears them, and the browser may clear them earlier if it reclaims the tab.</p>
+      </article>
+    </div>
+  </section>
+</main>
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>SecureInChat. See what you give away, then switch it off.</p>
+    <nav class="foot__nav" aria-label="Footer">
+      <a href="/mission/">Mission</a>
+      <a href="/principles/">Principles</a>
+      <a href="/privacy/">Privacy</a>
+      <a href="/tools/">All tools</a>
+      <a href="/contact/">Contact</a>
+    </nav>
+  </div>
+</footer>
+<script src="/scan/assets/model.js" defer></script>
+<script src="/scan/assets/diff.js" defer></script>
+<script src="/scan/assets/probes.js" defer></script>
+<script src="/scan/assets/scan.js" defer></script>
+</body>
+</html>

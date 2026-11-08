@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Exposure scan: what a website can read from your browser | SecureInChat</title>
+<meta name="description" content="See what a normal website can read from your browser before you allow anything: time zone, screen, user agent, canvas, WebGL, fonts, Do Not Track, cookies, touch and preference signals. The local scan sends no request, writes no storage, and never claims a uniqueness score.">
+<meta name="theme-color" content="#F0EFE7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11130E" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="canonical" href="https://secureinchat.com/scan/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="SecureInChat">
+<meta property="og:title" content="Exposure scan: what a website can read from your browser">
+<meta property="og:description" content="A local scan of what any website can read before you allow it. No request, no storage, no uniqueness score.">
+<meta property="og:url" content="https://secureinchat.com/scan/">
+<link rel="stylesheet" href="/scan/assets/scan.css">
+  <link href="/assets/css/shell.css" rel="stylesheet"/>
+  <script defer src="/assets/js/shell.js"></script>
+ </head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="sc-header">
+  <div class="sc-header__inner">
+    <a class="sc-brand" href="/" aria-label="SecureInChat home">
+      <span class="sc-brand__mark" aria-hidden="true"><svg viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="18" fill="#D8F361"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#11130E"/><circle cx="43" cy="53" r="4.6" fill="#D8F361"/><circle cx="54" cy="53" r="4.6" fill="#D8F361"/><circle cx="65" cy="53" r="4.6" fill="#D8F361"/></g></svg></span>
+      <span class="sc-brand__name">SecureInChat</span>
+    </a>
+    <nav class="sc-nav" aria-label="Main navigation">
+        <a href="/workspace/">Workspace</a>
+        <a href="/tools/">Tools</a>
+        <a href="/blog/">Learn</a>
+        <a href="/about/">About</a>
+    </nav>
+    <div class="sc-header__actions">
+      <details class="sc-lang">
+        <summary aria-label="Language: English">
+          <span>English</span>
+          <svg class="sc-chevron" viewBox="0 0 12 8" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </summary>
+        <div class="sc-lang__menu" role="group" aria-label="Language">
+          <a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a>
+          <a href="/ja/" hreflang="ja" lang="ja">日本語</a>
+        </div>
+      </details>
+      <a class="sc-cta" href="/workspace/">Open workspace</a>
+    </div>
+    <details class="sc-menu">
+      <summary aria-label="Navigation menu">
+        <svg class="sc-menu__icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </summary>
+      <nav aria-label="Mobile navigation">
+        <a href="/workspace/">Workspace</a>
+        <a href="/tools/">Tools</a>
+        <a href="/blog/">Learn</a>
+        <a href="/about/">About</a>
+        <div class="sc-menu__locale" role="group" aria-label="Language">
+          <a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a>
+          <a href="/ja/" hreflang="ja" lang="ja">日本語</a>
+        </div>
+      </nav>
+    </details>
+  </div>
+</header>
+<main id="main">
+  <section class="hero" aria-labelledby="page-title">
+    <div class="wrap hero__grid">
+      <div class="hero__copy">
+        <p class="eyebrow">EXPOSURE SCAN / LOCAL PART ONLY</p>
+        <h1 id="page-title">What a website can read<br><span class="accent">before you allow anything.</span></h1>
+        <p class="lead">Any normal website can already read a set of details from your browser. This scan reads the same details locally and shows you each one, who can see it, and how to reduce it.</p>
+        <div class="hero__actions">
+          <button class="btn btn--primary" id="scan-start" type="button">Start local scan</button>
+          <button class="btn btn--quiet" id="scan-stop" type="button" hidden>Stop scan</button>
+        </div>
+        <p class="promise">This part does not use the network. It sends nothing and writes nothing to storage. Nothing starts until you press the button.</p>
+      </div>
+      <aside class="proof" aria-labelledby="proof-title">
+        <div class="proof__top"><span>NETWORK PROOF</span><span class="proof__dot" aria-hidden="true">●</span></div>
+        <h2 id="proof-title">Requests from this page</h2>
+        <p class="proof__count"><span id="proof-count">0</span> since you opened it</p>
+        <p class="proof__new" id="proof-new">No scan has run yet. Scanning adds 0 requests.</p>
+        <ul class="proof__list" id="proof-list" aria-label="Resources requested since this page opened"></ul>
+        <p class="proof__note">Read from the browser's Resource Timing list. Page files loaded before you pressed the button are listed separately from the scan; a local scan must add none.</p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="wrap section" id="scan-section" aria-labelledby="scan-title">
+    <div class="section__head">
+      <p class="section__index">01 / LOCAL SCAN</p>
+      <h2 id="scan-title">Read one item at a time</h2>
+      <p class="section__lede">Each line appears only when that read has actually finished. Stop at any time; completed items stay on this page until you clear them or leave.</p>
+    </div>
+    <p class="status" id="scan-status" role="status" aria-live="polite">No scan has run yet.</p>
+    <ul class="live" id="scan-live" aria-label="Scan progress"></ul>
+  </section>
+
+  <section class="wrap section" id="scan-results" aria-labelledby="results-title" hidden>
+    <div class="section__head">
+      <p class="section__index">02 / REPORT</p>
+      <h2 id="results-title">Local scan report</h2>
+      <p class="section__lede" id="results-summary"></p>
+    </div>
+    <div id="scan-groups"></div>
+    <div class="controls">
+      <button class="btn" id="save-snapshot" type="button">Save this result in this page's memory</button>
+      <button class="btn btn--quiet" id="clear-results" type="button">Clear this page's results</button>
+    </div>
+    <p class="status" id="save-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="wrap section" id="compare" aria-labelledby="compare-title" hidden>
+    <div class="section__head">
+      <p class="section__index">03 / TWO SCANS</p>
+      <h2 id="compare-title">What changed between scans</h2>
+      <p class="section__lede">Saved results stay in this tab's memory only. The comparison reports observation, not a defence verdict: the same value twice does not prove that no site has already linked the two visits.</p>
+    </div>
+    <div class="compare" id="compare-body"></div>
+    <div class="controls">
+      <button class="btn btn--quiet" id="clear-snapshot" type="button">Clear the saved comparison</button>
+    </div>
+    <p class="status" id="compare-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="wrap section notes" aria-labelledby="notes-title">
+    <div class="section__head">
+      <p class="section__index">04 / LIMITS</p>
+      <h2 id="notes-title">What this cannot tell you</h2>
+    </div>
+    <div class="notes__grid">
+      <article class="note">
+        <h3>No uniqueness score</h3>
+        <p>This page has no dataset of other browsers, so it cannot say you are unique or give a percentage. A value that looks unusual here is not proof that a site can single you out; a common value is not proof that it cannot.</p>
+      </article>
+      <article class="note">
+        <h3>No device model judgement</h3>
+        <p>The platform and user-agent lines are shown as the browser reports them. This page does not infer a device model, and browsers may hide, round or rewrite these values.</p>
+      </article>
+      <article class="note">
+        <h3>Who can read it</h3>
+        <p>Every local item is readable by scripts on any website you visit, not only by this page. Some values, such as the user agent and language, are also sent in normal HTTP request headers.</p>
+      </article>
+      <article class="note">
+        <h3>Memory only</h3>
+        <p>Results and the saved comparison live in JavaScript memory. This page uses no cookie, localStorage, sessionStorage or IndexedDB. Reloading or closing the tab clears them, and the browser may clear them earlier if it reclaims the tab.</p>
+      </article>
+    </div>
+  </section>
+</main>
+<footer class="sc-footer">
+  <div class="sc-footer__inner">
+    <div class="sc-footer__brand">
+      <a class="sc-brand" href="/" aria-label="SecureInChat home">
+        <span class="sc-brand__mark" aria-hidden="true"><svg viewBox="16 16 76 76" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><rect x="16" y="16" width="76" height="76" rx="18" fill="#D8F361"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#11130E"/><circle cx="43" cy="53" r="4.6" fill="#D8F361"/><circle cx="54" cy="53" r="4.6" fill="#D8F361"/><circle cx="65" cy="53" r="4.6" fill="#D8F361"/></g></svg></span>
+        <span class="sc-brand__name">SecureInChat</span>
+      </a>
+      <p class="sc-footer__note">Practical privacy tools. Clear about limits.</p>
+      <div class="sc-footer__lang" role="group" aria-label="Language">
+        <a href="/zh/" hreflang="zh-CN" lang="zh-CN">中文</a>
+        <a href="/ja/" hreflang="ja" lang="ja">日本語</a>
+      </div>
+    </div>
+    <nav class="sc-footer__col" aria-label="Explore">
+      <h2>Explore</h2>
+      <ul>
+          <li><a href="/workspace/">Workspace</a></li>
+          <li><a href="/tools/">Tools &amp; diagnostics</a></li>
+          <li><a href="/checkup/">Privacy checkup</a></li>
+          <li><a href="/blog/">Guides</a></li>
+          <li><a href="/messaging/">Messaging</a></li>
+      </ul>
+    </nav>
+    <nav class="sc-footer__col" aria-label="About &amp; policy">
+      <h2>About &amp; policy</h2>
+      <ul>
+          <li><a href="/mission/">Mission</a></li>
+          <li><a href="/principles/">Principles</a></li>
+          <li><a href="/principles/#labels">Status labels</a></li>
+          <li><a href="/privacy/">Privacy &amp; legal</a></li>
+          <li><a href="/contact/">Contact</a></li>
+          <li><a href="/sponsor/">Sponsorship &amp; affiliate disclosure</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="sc-footer__bottom">
+    <p>© 2026 SecureInChat</p>
+    <p>No tracking. No accounts.</p>
+  </div>
+</footer>
+<script src="/scan/assets/model.js" defer></script>
+<script src="/scan/assets/diff.js" defer></script>
+<script src="/scan/assets/probes.js" defer></script>
+<script src="/scan/assets/scan.js" defer></script>
+</body>
+</html>

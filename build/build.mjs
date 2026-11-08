@@ -657,7 +657,7 @@ ${FUNDING_CHANNELS.map(([name, url]) => `      <li><a href="${url}" rel="noopene
 const V4_LINK = '<link href="/assets/css/v4.css" rel="stylesheet"/>';
 const ICO_LINK = '<link rel="icon" href="/favicon.ico" sizes="32x32">';
 // The workspace has its own 2026-11 design system; do not add the legacy v4 re-skin.
-const V4_EXEMPT = new Set(['index.html', 'zh/index.html', 'ja/index.html', 'workspace/index.html']);
+const V4_EXEMPT = new Set(['index.html', 'zh/index.html', 'ja/index.html', 'workspace/index.html', 'scan/index.html']);
 function write(rel, content) {
   if (rel.endsWith('.html') && typeof content === 'string' && content.includes('</head>') && !content.includes(V4_LINK) && !V4_EXEMPT.has(rel)) {
     content = content.replace('</head>', `  ${V4_LINK}\n </head>`);
@@ -1191,6 +1191,16 @@ write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 
   }
 }
 
+// Exposure scan (/scan/): a new route with its own source and shell. Local-only phase: the CSP
+// forbids every network connection, so a future network probe cannot ship here by accident.
+{
+  const SCAN_DIR = path.join(ROOT, 'src/scan');
+  write('scan/index.html', fs.readFileSync(path.join(SCAN_DIR, 'scan.html'), 'utf8'));
+  for (const f of ['scan.css', 'scan.js', 'model.js', 'diff.js', 'probes.js']) {
+    write('scan/assets/' + f, fs.readFileSync(path.join(SCAN_DIR, f)));
+  }
+}
+
 // fonts + script
 const fonts = [
 ];
@@ -1254,7 +1264,7 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
 // sitemap, robots, headers. Every sitemap URL is a real generated page, uses the same trailing-slash
 // canonical form as its <link rel="canonical">, and appears once. Alternates come from ALTERNATE_GROUPS.
 const sitemapEntries = [
-  ['/', 1], ['/workspace/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/zh/messaging/threat-model/', 0], ['/es/messaging/threat-model/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
+  ['/', 1], ['/workspace/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/zh/messaging/threat-model/', 0], ['/es/messaging/threat-model/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/scan/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 const urls = [];
@@ -1288,6 +1298,9 @@ const TOOLS_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; sty
 //   worker-src 'self'       loading the same-origin /workspace/ai/ worker script
 // The worker itself hard-codes that fetch may only reach /workspace/ai/.
 const WORKSPACE_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
+// The exposure scan's local part needs no connection at all. connect-src 'none' is stricter than
+// the workspace: fetch, XHR, WebSocket, EventSource and beacon are all refused by the browser.
+const SCAN_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
 const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: no third-party scripts or analytics; self-hosted assets and the relay websocket only.
@@ -1296,6 +1309,11 @@ ${mainPaths.map((p) => `${p}\n  Content-Security-Policy: ${MAIN_CSP}\n${common}`
 # Workspace: no third-party scripts; self-hosted assets only. connect-src 'none' blocks fetch, XHR and WebSocket.
 /workspace/*
   Content-Security-Policy: ${WORKSPACE_CSP}
+${common}
+
+# Exposure scan: local-only. No connection is allowed by this policy.
+/scan/*
+  Content-Security-Policy: ${SCAN_CSP}
 ${common}
 
 # Tools: no third-party scripts or analytics, only the lookups the tests need.
