@@ -79,6 +79,56 @@ function requireJurisdiction(jurisdiction, allowUnverified) {
   return jurisdiction;
 }
 
+function todayIso() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function resolveLetterDate(value) {
+  if (value === undefined || value === null || String(value).trim() === '') {
+    return todayIso();
+  }
+  return requireText(value, 'date');
+}
+
+function hasArticles(record) {
+  return Boolean(
+    record &&
+      record.verified === true &&
+      record.rightArticles &&
+      typeof record.rightArticles === 'object' &&
+      typeof record.deadlineArticle === 'string' &&
+      record.deadlineArticle.trim() &&
+      typeof record.recipientsArticle === 'string' &&
+      record.recipientsArticle.trim() &&
+      typeof record.complaintArticle === 'string' &&
+      record.complaintArticle.trim()
+  );
+}
+
+function shortLaw(record) {
+  return oneLine(record.lawShort) || oneLine(record.law);
+}
+
+function articleFor(record, right) {
+  if (!hasArticles(record)) {
+    return '';
+  }
+  const article = record.rightArticles[right];
+  return typeof article === 'string' ? article.trim() : '';
+}
+
+function rightsCitation(record, right) {
+  const article = articleFor(record, right);
+  return article ? `${article} of the ${shortLaw(record)}` : record.law;
+}
+
+const DRAFT_LETTER_NOTICE =
+  'DRAFT - NOT VERIFIED: the rules for this jurisdiction have not been verified against the official text. This is not legal advice.';
+
 function requireRight(jurisdiction, right) {
   if (!Object.prototype.hasOwnProperty.call(RIGHT_PHRASES, right)) {
     throw new TemplateError('UNKNOWN_RIGHT', `Unknown right: ${String(right)}`);
@@ -127,10 +177,19 @@ function identityBlock(profile, fields) {
 }
 
 function letterFooter() {
-  return [
-    'This letter was generated locally by SecureInChat Opt-Out. No copy was sent to any server.',
-    'I am sending it myself from my own email account.'
-  ];
+  return [];
+}
+
+function signatureBlock(profile, fields) {
+  if (!Array.isArray(fields) || !fields.includes('fullName')) {
+    return [];
+  }
+  const source = profile && typeof profile === 'object' ? profile : {};
+  const name = oneLine(source.fullName);
+  if (!name) {
+    return [];
+  }
+  return ['', 'Yours faithfully,', '', name];
 }
 
 /**
@@ -143,22 +202,47 @@ export function renderRequestLetter({
   company,
   profile,
   fields,
+  date,
   allowUnverified = false
 }) {
   const record = requireJurisdiction(jurisdiction, allowUnverified);
   const phrase = requireRight(record, right);
   const recipient = requireText(company, 'company');
+  const letterDate = resolveLetterDate(date);
+  const cited = hasArticles(record);
+  const opening = cited
+    ? `I am writing to exercise my right to ${phrase} under ${rightsCitation(record, right)}.`
+    : `I am writing to ask you to ${phrase}. The jurisdiction information below is a draft and has not been verified: ${record.law}.`;
+  const articleLines = [];
+  if (cited) {
+    if (right === 'erasure') {
+      articleLines.push(
+        `If you erase my personal data, please tell me whether you have notified the recipients to whom the data was disclosed, as required by ${record.recipientsArticle} of the ${shortLaw(record)}.`
+      );
+    }
+    articleLines.push(
+      `${record.deadlineArticle} requires a response without undue delay and in any event within one month of receipt; if you extend, tell me within that month with reasons.`
+    );
+    articleLines.push(
+      'If you need further information to verify my identity, please ask only for the minimum information needed to identify me.'
+    );
+  }
   const lines = [
     `To: ${recipient} Privacy Office`,
+    `Date: ${letterDate}`,
     '',
-    `I am writing to exercise my right to ${phrase} under ${record.law}.`,
+    ...(cited ? [] : [DRAFT_LETTER_NOTICE, '']),
+    opening,
     '',
+    ...articleLines,
+    ...(articleLines.length ? [''] : []),
     'Please confirm in writing that you have received this request and tell me what action you take.',
     '',
     ...identityBlock(profile, fields),
     'Please reply to this email address.',
     '',
-    ...letterFooter()
+    ...letterFooter(),
+    ...signatureBlock(profile, fields)
   ];
   return {
     subject: `Data rights request (${record.law}) - ${recipient}`,
@@ -178,6 +262,7 @@ export function renderReminderLetter({
   fields,
   sentDate,
   dueDate,
+  date,
   allowUnverified = false
 }) {
   const record = requireJurisdiction(jurisdiction, allowUnverified);
@@ -185,18 +270,33 @@ export function renderReminderLetter({
   const recipient = requireText(company, 'company');
   const sent = requireText(sentDate, 'sentDate');
   const due = requireText(dueDate, 'dueDate');
+  const letterDate = resolveLetterDate(date);
+  const cited = hasArticles(record);
+  const reference = cited
+    ? `under ${rightsCitation(record, right)}`
+    : `under ${record.law}`;
+  const deadline = cited
+    ? `The response deadline was ${due} (${record.deadlineArticle} of the ${shortLaw(record)}). As of ${letterDate}, that deadline has passed.`
+    : `The response date recorded for that request was ${due}. I have not received a response.`;
+  const nextStep = cited
+    ? `If I do not receive a response, my next step is to lodge a complaint with ${record.regulator.name} under ${record.complaintArticle} of the ${shortLaw(record)}.`
+    : `If I do not receive a response, my next step is to contact ${record.regulator.name}.`;
   const lines = [
     `To: ${recipient} Privacy Office`,
+    `Date: ${letterDate}`,
     '',
-    `On ${sent} I sent you a request under ${record.law} to ${phrase}.`,
-    `The response date recorded for that request was ${due}. I have not received a response.`,
+    ...(cited ? [] : [DRAFT_LETTER_NOTICE, '']),
+    `On ${sent} I sent you a request ${reference} to ${phrase}.`,
+    deadline,
     '',
     'Please respond to my original request as soon as possible and confirm in writing what action you take.',
+    nextStep,
     '',
     ...identityBlock(profile, fields),
     'Please reply to this email address.',
     '',
-    ...letterFooter()
+    ...letterFooter(),
+    ...signatureBlock(profile, fields)
   ];
   return {
     subject: `Follow-up: unanswered data rights request - ${recipient}`,
@@ -238,30 +338,42 @@ export function renderComplaintDraft({
   fields,
   sentDate,
   dueDate,
+  date,
   timeline = [],
   allowUnverified = false
 }) {
   const record = requireJurisdiction(jurisdiction, allowUnverified);
-  requireRight(record, right);
+  const phrase = requireRight(record, right);
   const recipient = requireText(company, 'company');
   const sent = requireText(sentDate, 'sentDate');
   const due = requireText(dueDate, 'dueDate');
+  const letterDate = resolveLetterDate(date);
+  const cited = hasArticles(record);
+  const reference = cited
+    ? `under ${rightsCitation(record, right)}`
+    : `under ${record.law}`;
+  const deadline = cited
+    ? `The response deadline was ${due} (${record.deadlineArticle} of the ${shortLaw(record)}). That deadline has passed and I have not received a response.`
+    : `The response date recorded for that request was ${due}. I have not received a response.`;
   const lines = [
     `To: ${record.regulator.name}`,
     `Complaint portal: ${record.regulator.complaintUrl}`,
+    `Date: ${letterDate}`,
     '',
+    ...(cited ? [] : [DRAFT_LETTER_NOTICE, '']),
     `Re: unanswered data rights request to ${recipient}`,
     '',
-    `On ${sent} I sent a request to ${recipient} under ${record.law}.`,
-    `The response date recorded for that request was ${due}. I have not received a response.`,
+    `On ${sent} I sent a request to ${recipient} ${reference} to ${phrase}.`,
+    deadline,
+    ...(cited
+      ? [`I am lodging this complaint under ${record.complaintArticle} of the ${shortLaw(record)}.`]
+      : []),
     '',
     'Timeline:',
     ...formatTimeline(timeline).map((line) => `- ${line}`),
     '',
     ...identityBlock(profile, fields),
-    'This is a draft. I have not submitted it. I will review it and add any information the regulator requires before sending.',
-    '',
-    'This draft was generated locally by SecureInChat Opt-Out. No copy was sent to any server.'
+    'This is a draft. I have not submitted it. I will review it and add any information the regulator requires before sending.'
   ];
   return {
     subject: `Complaint draft: unanswered data rights request - ${recipient}`,

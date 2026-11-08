@@ -7,9 +7,11 @@ import {
   renderReminderLetter,
   renderRequestLetter
 } from '../../extension/optout/src/rights/templates.js';
-import { TEST_JURISDICTIONS } from '../../extension/optout/src/rights/jurisdictions.schema.js';
+import { getJurisdiction } from '../../extension/optout/src/rights/jurisdictions.js';
+import { TEST_JURISDICTIONS } from './fixtures/jurisdictions.js';
 
 const TEST_A = TEST_JURISDICTIONS[0];
+const GDPR = getJurisdiction('eu-gdpr');
 const PROFILE = {
   fullName: 'Alex Fixture',
   previousNames: ['Alex Oldname', 'A. Fixture'],
@@ -32,6 +34,39 @@ function request(overrides = {}) {
   });
 }
 
+function gdprRequest(overrides = {}) {
+  return renderRequestLetter({
+    jurisdiction: GDPR,
+    right: 'erasure',
+    company: 'Acme Test Co',
+    profile: PROFILE,
+    fields: ['fullName', 'email'],
+    date: '2028-01-15',
+    ...overrides
+  });
+}
+
+test('GDPR erasure letter cites Article 17, Article 12(3) and Article 19', () => {
+  const { body } = gdprRequest();
+  assert.match(body, /under Article 17 of the GDPR/);
+  assert.match(body, /Article 12\(3\) requires a response without undue delay/);
+  assert.match(body, /Article 19 of the GDPR/);
+  assert.match(body, /Date: 2028-01-15/);
+  assert.match(body, /Yours faithfully,\n\nAlex Fixture/);
+  assert.equal(body.includes('SecureInChat'), false);
+  assert.equal(body.includes('+1 512 555 0199'), false);
+  assert.equal(body.includes('Alex Oldname'), false);
+  assert.equal(body.includes('Austin'), false);
+  assert.equal(body.includes('30-39'), false);
+});
+
+test('GDPR letter does not sign when the name field is not selected', () => {
+  const { body } = gdprRequest({ fields: ['email'] });
+  assert.match(body, /alex@example\.test/);
+  assert.equal(body.includes('Alex Fixture'), false);
+  assert.equal(body.includes('Yours faithfully'), false);
+});
+
 test('request letter includes only selected identity fields and the jurisdiction law', () => {
   const { subject, body } = request();
   assert.match(subject, /Acme Test Co/);
@@ -44,6 +79,8 @@ test('request letter includes only selected identity fields and the jurisdiction
   assert.equal(body.includes('Alex Oldname'), false);
   assert.equal(body.includes('Austin'), false);
   assert.equal(body.includes('30-39'), false);
+  assert.equal(body.includes('Article'), false);
+  assert.match(body, /DRAFT - NOT VERIFIED/);
 });
 
 test('request letter rejects unverified law by default and unknown fields/rights', () => {
@@ -122,15 +159,37 @@ test('reminder letter keeps data minimization and states the recorded dates', ()
     fields: ['fullName'],
     sentDate: '2028-01-01',
     dueDate: '2028-01-31',
+    date: '2028-02-05',
     allowUnverified: true
   });
   assert.match(subject, /Follow-up/);
   assert.match(body, /2028-01-01/);
   assert.match(body, /2028-01-31/);
+  assert.match(body, /Date: 2028-02-05/);
   assert.match(body, /Alex Fixture/);
   assert.equal(body.includes('alex@example.test'), false);
   assert.equal(body.includes('+1 512 555 0199'), false);
   assert.equal(body.includes('Austin'), false);
+  assert.equal(body.includes('Article'), false);
+  assert.match(body, /DRAFT - NOT VERIFIED/);
+});
+
+test('GDPR reminder cites the original date, Article 12(3) and Article 77', () => {
+  const { body } = renderReminderLetter({
+    jurisdiction: GDPR,
+    right: 'erasure',
+    company: 'Acme Test Co',
+    profile: PROFILE,
+    fields: ['fullName'],
+    sentDate: '2028-01-01',
+    dueDate: '2028-01-31',
+    date: '2028-02-05'
+  });
+  assert.match(body, /On 2028-01-01 I sent you a request under Article 17 of the GDPR/);
+  assert.match(body, /The response deadline was 2028-01-31 \(Article 12\(3\) of the GDPR\)/);
+  assert.match(body, /As of 2028-02-05, that deadline has passed/);
+  assert.match(body, /lodge a complaint with .* under Article 77 of the GDPR/);
+  assert.equal(body.includes('SecureInChat'), false);
 });
 
 test('complaint draft addresses the regulator and renders the timeline', () => {
@@ -156,4 +215,30 @@ test('complaint draft addresses the regulator and renders the timeline', () => {
   assert.match(body, /No reply/);
   assert.match(body, /This is a draft/);
   assert.equal(body.includes('+1 512 555 0199'), false);
+  assert.equal(body.includes('Article'), false);
+  assert.equal(body.includes('SecureInChat'), false);
+});
+
+test('GDPR complaint draft cites Article 77 and includes the timeline', () => {
+  const { body } = renderComplaintDraft({
+    jurisdiction: GDPR,
+    right: 'erasure',
+    company: 'Acme Test Co',
+    profile: PROFILE,
+    fields: ['fullName', 'email'],
+    sentDate: '2028-01-01',
+    dueDate: '2028-01-31',
+    date: '2028-02-05',
+    timeline: [
+      { type: 'sent', at: '2028-01-01' },
+      { type: 'overdue', at: '2028-02-01', note: 'No reply' }
+    ]
+  });
+  assert.match(body, /On 2028-01-01 I sent a request to Acme Test Co under Article 17 of the GDPR/);
+  assert.match(body, /Article 12\(3\) of the GDPR/);
+  assert.match(body, /I am lodging this complaint under Article 77 of the GDPR/);
+  assert.match(body, /Timeline:/);
+  assert.match(body, /2028-01-01 - Request sent/);
+  assert.match(body, /No reply/);
+  assert.equal(body.includes('SecureInChat'), false);
 });

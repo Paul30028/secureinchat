@@ -23,9 +23,9 @@ import {
 } from './deadlines.js';
 import {
   RIGHTS,
-  getJurisdiction,
   validateJurisdiction
 } from './jurisdictions.schema.js';
+import { getJurisdiction } from './jurisdictions.js';
 
 export const REQUESTS_KEY = 'optout.rights.requests.v1';
 

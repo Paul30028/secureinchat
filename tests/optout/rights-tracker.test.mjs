@@ -7,7 +7,7 @@ import {
   canTransition,
   REQUESTS_KEY
 } from '../../extension/optout/src/rights/tracker.js';
-import { TEST_JURISDICTIONS } from '../../extension/optout/src/rights/jurisdictions.schema.js';
+import { TEST_JURISDICTIONS } from './fixtures/jurisdictions.js';
 
 const TEST_A = TEST_JURISDICTIONS[0];
 const TEST_B = TEST_JURISDICTIONS[1];

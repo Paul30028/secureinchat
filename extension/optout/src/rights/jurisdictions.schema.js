@@ -1,9 +1,8 @@
-// Data-rights jurisdiction schema and test fixtures.
+// Data-rights jurisdiction schema.
 //
-// IMPORTANT: the two entries below are fictional fixtures (TEST-A / TEST-B).
-// They are NOT legal information and must never be shown to users as law.
-// Real jurisdictions are supplied separately by the legal researcher and are
-// only displayable when `verified: true`.
+// Real jurisdiction records live in ./jurisdictions.js. Test fixtures live in
+// tests/optout/fixtures/jurisdictions.js so that fictional entries can never be
+// shipped as legal information.
 //
 // Pure JS, no dependencies. Runs in browsers and Node.
 
@@ -26,6 +25,7 @@ export const JURISDICTION_FIELDS = Object.freeze([
   'extendableDays',
   'dayType',
   'verificationNote',
+  'deadlineNote',
   'regulator',
   'appliesWhen',
   'sources',
@@ -97,6 +97,9 @@ export function validateJurisdiction(value) {
   if (!isNonEmptyString(value.verificationNote)) {
     errors.push('verificationNote must be a non-empty string');
   }
+  if (value.deadlineNote !== undefined && !isNonEmptyString(value.deadlineNote)) {
+    errors.push('deadlineNote must be a non-empty string when present');
+  }
   if (!isNonEmptyString(value.appliesWhen)) {
     errors.push('appliesWhen must be a non-empty string');
   }
@@ -113,8 +116,10 @@ export function validateJurisdiction(value) {
     }
   }
 
-  if (!Array.isArray(value.sources) || value.sources.length === 0) {
-    errors.push('sources must be a non-empty array');
+  if (!Array.isArray(value.sources)) {
+    errors.push('sources must be an array');
+  } else if (value.verified === true && value.sources.length === 0) {
+    errors.push('verified jurisdictions must cite at least one source');
   } else {
     value.sources.forEach((source, index) => {
       if (!source || typeof source !== 'object') {
@@ -126,6 +131,9 @@ export function validateJurisdiction(value) {
       }
       if (!isNonEmptyString(source.checked)) {
         errors.push(`sources[${index}].checked must be a date string`);
+      }
+      if (value.verified === true && !isNonEmptyString(source.quote)) {
+        errors.push(`sources[${index}].quote must be a non-empty quote for verified data`);
       }
     });
   }
@@ -171,55 +179,11 @@ export function assertUsable(value) {
   return true;
 }
 
-const TEST_A = Object.freeze({
-  id: 'TEST-A',
-  name: 'Testland A (fictional)',
-  law: 'TEST-A Data Protection Act (fictional test data)',
-  rights: Object.freeze(['erasure', 'access', 'rectification']),
-  responseDays: 30,
-  extendableDays: 30,
-  dayType: 'calendar',
-  verificationNote: 'Fictional fixture for engine tests. Not legal information.',
-  regulator: Object.freeze({
-    name: 'Testland A Privacy Authority (fictional)',
-    complaintUrl: 'https://example.test/test-a/complaint'
-  }),
-  appliesWhen: 'Fictional test only. Never show as real law.',
-  sources: Object.freeze([
-    Object.freeze({
-      url: 'https://example.test/test-a/law',
-      checked: '2026-11-08'
-    })
-  ]),
-  verified: false
-});
-
-const TEST_B = Object.freeze({
-  id: 'TEST-B',
-  name: 'Testland B (fictional)',
-  law: 'TEST-B Consumer Privacy Act (fictional test data)',
-  rights: Object.freeze(['optout-sale', 'object', 'rectification']),
-  responseDays: 10,
-  extendableDays: 0,
-  dayType: 'business',
-  verificationNote: 'Fictional fixture for engine tests. Not legal information.',
-  regulator: Object.freeze({
-    name: 'Testland B Consumer Agency (fictional)',
-    complaintUrl: 'https://example.test/test-b/complaint'
-  }),
-  appliesWhen: 'Fictional test only. Never show as real law.',
-  sources: Object.freeze([
-    Object.freeze({
-      url: 'https://example.test/test-b/law',
-      checked: '2026-11-08'
-    })
-  ]),
-  verified: false
-});
-
-export const TEST_JURISDICTIONS = Object.freeze([TEST_A, TEST_B]);
-
-export function getJurisdiction(id, list = TEST_JURISDICTIONS) {
+/**
+ * Look up an id in an explicit list. Real records live in ./jurisdictions.js;
+ * callers must pass the list or import the helper from that module.
+ */
+export function getJurisdiction(id, list = []) {
   if (!Array.isArray(list)) {
     return null;
   }

@@ -852,7 +852,8 @@ write('blog/index.html', blogIndex());
 // load tools-v4.css; every other tool keeps its current shell and stylesheet.
 {
   const title = 'Privacy tools | SecureInChat'; const desc = 'Free privacy tools: see what each check does, what stays in your browser and when an outside service is involved.';
-  const m = `<div class="tools-v4">${kitMain('tools-index.en.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/').replace('aria-label="面包屑导航"', 'aria-label="Breadcrumb"')}</div>`;
+  const rightsCard = `<article class="tool-catalogue-item"><div class="tool-catalogue-head"><div class="tool-catalogue-title"><h2>Data rights request</h2><p class="state-list"><span class="state-label">Local processing</span></p></div></div><p>Ask a company to delete, show, correct or stop using your data. Write the letter, send it from your own email and track the deadline in this tab.</p><a class="tool-catalogue-action" href="/rights/">Open data rights <span aria-hidden="true">&#8594;</span></a></article>`;
+  const m = `<div class="tools-v4">${kitMain('tools-index.en.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/').replace('aria-label="面包屑导航"', 'aria-label="Breadcrumb"').replace('<div class="tool-catalogue">', `<div class="tool-catalogue">${rightsCard}`)}</div>`;
   write('tools/index.html', kitShell({ title, desc, canonical: '/tools/', current: '/tools/', headExtra: headExtra({ canonical: '/tools/', title, desc, alternates: alternateHead('/tools/') }) + '  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>\n', main: m }));
 }
 
@@ -1261,10 +1262,35 @@ addPartner('blog/data-broker-opt-out-guide/index.html', `    <aside class="wrap 
     </aside>
 `);
 
+// Data rights page: local-only letter generator. The engine is the extension's
+// pure JS copy, written under /rights/assets/rights/ at build time.
+{
+  const body = fs.readFileSync(path.join(ROOT, 'src/rights/body.html'), 'utf8');
+  const title = 'Data rights request and deadline tracker | SecureInChat';
+  const desc = 'Generate a GDPR data rights request, send it from your own email, and track the response deadline. Local-only, no account, no uploads.';
+  const assetDir = path.join(PUB, 'rights/assets/rights');
+  fs.mkdirSync(assetDir, { recursive: true });
+  for (const file of ['jurisdictions.js', 'jurisdictions.schema.js', 'templates.js', 'deadlines.js']) {
+    write(`rights/assets/rights/${file}`, fs.readFileSync(path.join(ROOT, 'extension/optout/src/rights', file)));
+  }
+  write('rights/assets/rights-app.js', fs.readFileSync(path.join(ROOT, 'src/rights/rights.js')));
+  write('rights/assets/rights.css', fs.readFileSync(path.join(ROOT, 'src/rights/rights.css')));
+  write('rights/index.html', kitShell({
+    title,
+    desc,
+    canonical: '/rights/',
+    current: '/tools/',
+    headExtra: headExtra({ canonical: '/rights/', title, desc })
+      + '  <link href="/rights/assets/rights.css" rel="stylesheet"/>\n'
+      + '  <script defer src="/rights/assets/rights-app.js" type="module"></script>\n',
+    main: body
+  }));
+}
+
 // sitemap, robots, headers. Every sitemap URL is a real generated page, uses the same trailing-slash
 // canonical form as its <link rel="canonical">, and appears once. Alternates come from ALTERNATE_GROUPS.
 const sitemapEntries = [
-  ['/', 1], ['/workspace/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/zh/messaging/threat-model/', 0], ['/es/messaging/threat-model/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/scan/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
+  ['/', 1], ['/workspace/', 1], ['/start/', 0], ...SITUATIONS.map((S) => [`/start/${S.slug}/`, 0]), ['/messaging/', 0], ['/zh/messaging/threat-model/', 0], ['/es/messaging/threat-model/', 0], ['/mission/', 0], ['/protect/', 0], ...LAYERS.map((L) => [`/protect/${L.slug}/`, 0]), ['/zh/', 0], ['/ja/', 0], ['/checkup/', 0], ['/zh/checkup/', 0], ['/tools/phone-checkup/', 0], ['/zh/tools/phone-checkup/', 0], ['/tools/', 0], ['/rights/', 0], ['/zh/tools/', 0], ['/tools/privacy-report/', 0], ['/tools/account-checkup/', 0], ['/tools/ip-leak-test/', 0], ['/tools/webrtc-leak-test/', 0], ['/tools/ipv6-leak-test/', 0], ['/tools/photo-metadata-remover/', 0], ['/zh/tools/photo-metadata-remover/', 0], ['/zh/tools/text-redactor/', 0], ['/tools/file-metadata-remover/', 0], ['/zh/tools/file-metadata-remover/', 0], ['/tools/browser-fingerprint-test/', 0], ['/tools/password-checker/', 0], ['/zh/tools/password-checker/', 0], ['/zh/tools/account-checkup/', 0], ['/tools/text-redactor/', 0], ['/tools/link-checker/', 0], ['/zh/tools/link-checker/', 0], ['/zh/tools/browser-fingerprint-test/', 0], ['/tools/site-health-check/', 0], ['/zh/tools/site-health-check/', 0], ['/scan/', 0], ['/blog/', 0], ...POSTS.map((p) => [`/blog/${p.slug}/`, 0]), ['/about/', 0], ['/privacy/', 0], ['/contact/', 0], ['/sponsor/', 0], ['/principles/', 0], ['/security/', 0], ['/testing/', 0], ['/messaging/threat-model/', 0],
   ...(PRODUCTS.length ? [['/shop/', 0], ...PRODUCTS.map((p) => [`/shop/${p.slug}/`, 0])] : []),
 ];
 const urls = [];
@@ -1301,6 +1327,9 @@ const WORKSPACE_CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval';
 // The exposure scan's local part needs no connection at all. connect-src 'none' is stricter than
 // the workspace: fetch, XHR, WebSocket, EventSource and beacon are all refused by the browser.
 const SCAN_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
+// Data rights page: the letter and tracking records never leave the tab. The
+// page itself must not be able to open a network connection of any kind.
+const RIGHTS_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'";
 const common = `  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()`;
 const mainPaths = ['/', '/zh/', '/ja/', '/checkup/', '/zh/checkup/', '/zh/tools/', '/zh/tools/phone-checkup/', '/messaging/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/', '/start/', ...SITUATIONS.map((S) => `/start/${S.slug}/`), '/mission/', '/protect/', ...LAYERS.map((L) => `/protect/${L.slug}/`), '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/security/', '/testing/', '/messaging/threat-model/', '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/shop/', ...PRODUCTS.map((p) => `/shop/${p.slug}/`)];
 write('_headers', `# Main pages: no third-party scripts or analytics; self-hosted assets and the relay websocket only.
@@ -1314,6 +1343,11 @@ ${common}
 # Exposure scan: local-only. No connection is allowed by this policy.
 /scan/*
   Content-Security-Policy: ${SCAN_CSP}
+${common}
+
+# Data rights: letter and records stay in the tab. No connection is allowed.
+/rights/*
+  Content-Security-Policy: ${RIGHTS_CSP}
 ${common}
 
 # Tools: no third-party scripts or analytics, only the lookups the tests need.

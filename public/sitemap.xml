@@ -111,6 +111,9 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/"/>
   </url>
   <url>
+    <loc>https://secureinchat.com/rights/</loc>
+  </url>
+  <url>
     <loc>https://secureinchat.com/zh/tools/</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/"/>
     <xhtml:link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/"/>
