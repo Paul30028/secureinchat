@@ -27,7 +27,7 @@ class H(http.server.SimpleHTTPRequestHandler):
     def __init__(s, *a, **k): super().__init__(*a, directory=ROOT, **k)
     def end_headers(s): s.send_header('Content-Security-Policy', csp_zh); super().end_headers()
     def log_message(s, *a): pass
-srv = socketserver.TCPServer(('127.0.0.1', 0), H); port = srv.server_address[1]
+srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), H); port = srv.server_address[1]
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 base = f'http://127.0.0.1:{port}'
 

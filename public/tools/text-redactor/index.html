@@ -12,6 +12,7 @@
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/text-redactor/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/text-redactor/">
   <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -133,6 +134,7 @@
   </div>
 </header>
   <main class="subpage-main" id="main">
+   <div class="tool-page-v4">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
      <nav aria-label="Breadcrumb" class="breadcrumbs">
@@ -158,8 +160,17 @@
     </div>
    </section>
    <section class="subpage-section">
-    <div class="subpage-shell tool-detail-layout">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
      <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">How your data is handled</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">Local processing</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>Stays on your device</strong><p>The text you paste</p></div>
+        <div><strong>Sent to others</strong><p>Nothing</p></div>
+       </div>
+       <p class="tool-v4-flow-note">The redaction runs in this page. Nothing you paste is uploaded or stored.</p>
+      </section>
       <section class="tool-workspace" aria-label="Text redactor">
        <div class="legacy-tool">
 
@@ -224,7 +235,9 @@
     </div>
 </section></div>
       </section>
-      <div class="info-content tool-prose">
+      <section class="tool-v4-section" aria-labelledby="tool-v4-method-h">
+       <h2 id="tool-v4-method-h">Method and limits</h2>
+       <div class="info-content tool-prose">
 <section aria-labelledby="what-h">
     <h2 id="what-h">What it does</h2>
     <p>Paste text and the tool replaces emails, phone numbers, IP and MAC addresses, card numbers, IBANs (checked with the standard checksum), Chinese mainland mobile numbers, Chinese resident ID numbers (checked with the GB 11643 check digit and birth date), API keys, tokens, passwords inside URLs and private keys with labelled placeholders such as <span class="mono">[EMAIL_1]</span>. The same value always gets the same placeholder, so a log stays readable after redaction. This is useful before you paste a log, a config or an email into a bug report, a forum or an AI assistant.</p>
@@ -233,6 +246,14 @@
     <h2>How your text is handled</h2>
     <p>The text is processed in this page. It is not uploaded, logged or stored, and the page loads no analytics. Your browser or an extension may still keep what you type, so use a private window for sensitive material. Related: <a href="/tools/photo-metadata-remover/">remove metadata from a photo</a>.</p>
 </section>
+<aside id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">Tools from our partner</h2>
+    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a> (affiliate link) is encrypted cloud storage for files you need to keep or share after cleaning them. Or go to <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a> without a commission link.</p>
+</aside>
+       </div>
+      </section>
+      <section class="tool-v4-section" aria-label="FAQ">
+       <div class="info-content tool-prose">
 <section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>Is my text sent to a server?</h3>
@@ -246,31 +267,22 @@
     <h3>Can it redact a file?</h3>
     <p>Not yet. Paste the text into the box. For photos, use the photo metadata remover.</p>
 </section>
-<aside id="partner-slot" aria-labelledby="partner-h">
-    <h2 id="partner-h">Tools from our partner</h2>
-    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a> (affiliate link) is encrypted cloud storage for files you need to keep or share after cleaning them. Or go to <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a> without a commission link.</p>
-</aside>
-      </div>
-     </div>
-     <aside class="tool-sidebar">
-      <section class="content-panel">
-       <h2>How your data is handled</h2>
-       <div class="data-handling">
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>The text you paste</p></div></div>
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Sent to others</strong><p>Nothing</p></div></div>
        </div>
-       <p class="state-list"><span class="state-label">Local processing</span></p>
-       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
       </section>
-      <figure class="editorial-figure"><img alt="Text with sensitive details covered before it is shared" height="360" src="/assets/illustrations/text-redaction.svg" width="760"/></figure>
-      <section class="content-panel content-panel--soft">
-       <h2>Need a different check?</h2>
-       <p>Compare tools by what they do and what data they need.</p>
-       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>Related guides</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a></li>
+        <li><a href="/tools/">Browse all tools <span aria-hidden="true">→</span></a></li>
+       </ul>
       </section>
      </aside>
     </div>
    </section>
+   </div>
   </main>
   <footer class="sc-footer">
   <div class="sc-footer__inner">

@@ -6,7 +6,7 @@ class H(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw): super().__init__(*a, directory=ROOT, **kw)
     def log_message(self, *a): pass
 socketserver.TCPServer.allow_reuse_address = True
-srv = socketserver.TCPServer(('127.0.0.1', 0), H); threading.Thread(target=srv.serve_forever, daemon=True).start()
+srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), H); threading.Thread(target=srv.serve_forever, daemon=True).start()
 URL = f'http://127.0.0.1:{srv.server_address[1]}/tools/ip-leak-test/'
 WHO = {"ip":"185.65.134.10","asn":9009,"asOrganization":"M247 Europe SRL","city":"Bucharest","country":"RO","timezone":"Europe/Bucharest",
        "headers":{"accept-language":"en-US,en;q=0.9","via":"1.1 squid","sec-ch-ua-platform":"\"Windows\""}}

@@ -18,7 +18,7 @@ class H(http.server.SimpleHTTPRequestHandler):
     def end_headers(s): s.send_header('Content-Security-Policy', csp_tools); super().end_headers()
     def log_message(s, *a): pass
 
-srv = socketserver.TCPServer(('127.0.0.1', 0), H); port = srv.server_address[1]
+srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), H); port = srv.server_address[1]
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 base = f'http://127.0.0.1:{port}'
 fails = []
@@ -41,7 +41,7 @@ with sync_playwright() as p:
     ok(pg.locator('link[rel="alternate"][hreflang="en"]').get_attribute('href').endswith('/tools/text-redactor/'), 'hreflang en')
     crumbs = pg.locator('nav.breadcrumbs a')
     ok(crumbs.nth(0).get_attribute('href') == '/zh/' and crumbs.nth(0).inner_text() == '首页', 'breadcrumb home -> /zh/')
-    side = pg.locator('.tool-sidebar').inner_text()
+    side = pg.locator('.tool-sidebar, [aria-labelledby="tool-v4-flow-h"]').first.inner_text()
     ok(all(k in side for k in ['你的数据如何处理', '你粘贴的文本', '本地处理']), 'sidebar data flow in Chinese')
     ok('本页发出的网络请求' in pg.locator('#netlog summary').inner_text(), 'network panel title in Chinese')
     ok(pg.locator('#summary').inner_text().strip() == '粘贴文本开始脱敏。', 'idle summary')

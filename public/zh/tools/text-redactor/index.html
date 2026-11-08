@@ -12,6 +12,7 @@
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/text-redactor/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/text-redactor/">
   <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -135,6 +136,7 @@
   </div>
 </header>
   <main class="subpage-main" id="main">
+   <div class="tool-page-v4">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
      <nav aria-label="面包屑" class="breadcrumbs">
@@ -160,8 +162,17 @@
     </div>
    </section>
    <section class="subpage-section">
-    <div class="subpage-shell tool-detail-layout">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
      <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">你的数据如何处理</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">本地处理</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>留在你的设备上</strong><p>留在本机：你粘贴的文本和占位符对照表</p></div>
+        <div><strong>发送给他人</strong><p>无</p></div>
+       </div>
+       <p class="tool-v4-flow-note">脱敏在这个页面里完成，粘贴的内容不会被上传或保存。</p>
+      </section>
       <section class="tool-workspace" aria-label="文本脱敏">
        <div class="legacy-tool">
 
@@ -226,7 +237,9 @@
     </div>
 </section></div>
       </section>
-      <div class="info-content tool-prose">
+      <section class="tool-v4-section" aria-labelledby="tool-v4-method-h">
+       <h2 id="tool-v4-method-h">方法与局限</h2>
+       <div class="info-content tool-prose">
 <section aria-labelledby="what-h">
     <h2 id="what-h">它做什么</h2>
     <p>粘贴文本后，工具把手机号、身份证号、银行卡号、邮箱、IP 和 MAC 地址、API 密钥、令牌、网址里的密码和私钥换成带标签的占位符，比如 <span class="mono">[PHONE_1]</span>、<span class="mono">[ID_NUMBER_1]</span>。同一个值总是换成同一个占位符，所以 AI 仍然能看懂“这两处是同一个人的电话”。AI 回复之后，可以在下方把占位符换回真实内容。</p>
@@ -241,6 +254,10 @@
     <h2 id="how-h">你的文本如何处理</h2>
     <p>文本只在本页里处理，不上传、不记录、不保存，页面也不加载统计脚本。你的浏览器或扩展仍可能保留你输入的内容，处理敏感材料时请用无痕窗口。相关工具：<a href="/zh/tools/photo-metadata-remover/">删除照片里的元数据</a>。</p>
 </section>
+       </div>
+      </section>
+      <section class="tool-v4-section" aria-label="FAQ">
+       <div class="info-content tool-prose">
 <section aria-labelledby="faq-h">
     <h2 id="faq-h">常见问题</h2>
     <h3>我的文本会被发到服务器吗？</h3>
@@ -254,27 +271,22 @@
     <h3>怎么把 AI 回复里的占位符换回真实内容？</h3>
     <p>把 AI 的回复粘贴到“把真实内容换回来”一栏，页面会用本次会话里的对照表换回去。对照表只存在于当前标签页，刷新页面或点“清空”就没了。</p>
 </section>
-      </div>
-     </div>
-     <aside class="tool-sidebar">
-      <section class="content-panel">
-       <h2>你的数据如何处理</h2>
-       <div class="data-handling">
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>留在你的设备上</strong><p>留在本机：你粘贴的文本和占位符对照表</p></div></div>
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>发送给他人</strong><p>无</p></div></div>
        </div>
-       <p class="state-list"><span class="state-label">本地处理</span></p>
-       <a class="text-link" href="/principles/">查看每个工具的数据流 <span aria-hidden="true">→</span></a>
       </section>
-      <figure class="editorial-figure"><img alt="分享前被遮住敏感内容的文本" height="360" src="/assets/illustrations/text-redaction.svg" width="760"/></figure>
-      <section class="content-panel content-panel--soft">
-       <h2>需要别的检查？</h2>
-       <p>按用途和数据需要比较这些工具。</p>
-       <a class="text-link" href="/zh/tools/">浏览所有工具 <span aria-hidden="true">→</span></a>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>相关指南</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/">分享文本前先脱敏 <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">查看每个工具的数据流 <span aria-hidden="true">→</span></a></li>
+        <li><a href="/zh/tools/">浏览所有工具 <span aria-hidden="true">→</span></a></li>
+       </ul>
       </section>
      </aside>
     </div>
    </section>
+   </div>
   </main>
   <footer class="sc-footer">
   <div class="sc-footer__inner">

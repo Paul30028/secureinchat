@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 ROOT = os.path.join(os.path.dirname(__file__), '..', 'public')
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
-srv = socketserver.TCPServer(('127.0.0.1', 0), functools.partial(Q, directory=ROOT)); threading.Thread(target=srv.serve_forever, daemon=True).start()
+srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(Q, directory=ROOT)); threading.Thread(target=srv.serve_forever, daemon=True).start()
 BASE = f'http://127.0.0.1:{srv.server_address[1]}'
 fails = []
 def check(c, m): print(('ok   ' if c else 'FAIL ') + m); (None if c else fails.append(m))
@@ -20,7 +20,7 @@ with sync_playwright() as p:
         check('Text before an @' in rows and 'Brand name on a different site' in rows and 'Tracking parameters' in rows, 'findings shown')
         check('warning sign' in pg.inner_text('#summary'), 'summary: ' + pg.inner_text('#summary'))
         check(pg.inner_text('#lk-site').startswith('secure-paypal.example.net'), 'site shown')
-        check(len(reqs) == n0, f'no network requests while checking ({len(reqs) - n0})')
+        check(len(reqs) == n0, f"no network requests while checking ({len(reqs) - n0}) {reqs[n0:]}")
         pg.fill('#lk-in', 'mailto:paypal@evil.example'); pg.wait_for_timeout(100)
         check(pg.inner_text('#summary').strip().startswith('This is a mailto link, not a web page.') and 'Text before an @' not in pg.inner_text('#rows'), 'mailto reported as not a web page (W14): ' + pg.inner_text('#summary'))
         pg.fill('#lk-in', 'https://www.wikipedia.org/'); pg.wait_for_timeout(100)

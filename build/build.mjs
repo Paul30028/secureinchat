@@ -758,6 +758,7 @@ write('assets/fonts/noto-serif-subset.woff2', fs.readFileSync(path.join(ROOT, 's
 }
 write('assets/css/relay-diagnostic.css', fs.readFileSync(path.join(ROOT, 'src/nextbatch/relay-diagnostic.css')));
 write('assets/css/tool-widgets.css', fs.readFileSync(path.join(ROOT, 'src/nextbatch/tool-widgets.css')));
+write('assets/css/tools-v4.css', fs.readFileSync(path.join(ROOT, 'src/tools/tools-v4.css')));
 write('assets/css/min-type-size.css', fs.readFileSync(path.join(ROOT, 'src/nextbatch/min-type-size.css')));
 write('start/index.html', catalogPage({ slug: 'start', title: 'Start from your situation', lead: 'Pick what worries you most. Each page gives the first steps you can take today and the layers that matter for it.', desc: 'Pick what worries you most and get the first privacy steps you can take today.', figure: FIG.layers, items: SITUATIONS.map((S) => ({ href: `/start/${S.slug}/`, title: S.title, text: S.short, action: 'See the first steps' })) }));
 for (const S of SITUATIONS) write(`start/${S.slug}/index.html`, docPage({ slug: `start/${S.slug}`, title: S.title, desc: S.intro.slice(0, 155), body: situationBody(S, esc), current: 'protect' }));
@@ -847,11 +848,12 @@ function blogIndex() {
 }
 write('blog/index.html', blogIndex());
 
-// Tools index: ChatGPT's tools-index template (one link fixed: the health check lives at /tools/site-health-check/).
+// Tools index: new step-4 template for the first migrated batch. Only this page and text-redactor
+// load tools-v4.css; every other tool keeps its current shell and stylesheet.
 {
   const title = 'Privacy tools | SecureInChat'; const desc = 'Free privacy tools: see what each check does, what stays in your browser and when an outside service is involved.';
-  const m = kitMain('tools-index.en.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/').replace('aria-label="面包屑导航"', 'aria-label="Breadcrumb"');
-  write('tools/index.html', kitShell({ title, desc, canonical: '/tools/', current: '/tools/', headExtra: headExtra({ canonical: '/tools/', title, desc, alternates: alternateHead('/tools/') }), main: m }));
+  const m = `<div class="tools-v4">${kitMain('tools-index.en.html').replace(/\/tools\/website-health-check\//g, '/tools/site-health-check/').replace('aria-label="面包屑导航"', 'aria-label="Breadcrumb"')}</div>`;
+  write('tools/index.html', kitShell({ title, desc, canonical: '/tools/', current: '/tools/', headExtra: headExtra({ canonical: '/tools/', title, desc, alternates: alternateHead('/tools/') }) + '  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>\n', main: m }));
 }
 
 // Chinese tools index: ChatGPT's tools-index.zh template. Translated tools link to their Chinese pages;
@@ -867,7 +869,8 @@ write('blog/index.html', blogIndex());
     return a.replace(/(class="tool-catalogue-action" href="[^"]+"[^>]*>)\s*立即使用/, '$1 使用（英文页面）');
   });
   // /zh/blog/ does not exist yet: the Chinese header's guides link goes to the English guides.
-  write('zh/tools/index.html', kitShell({ lang: 'zh', title, desc, canonical: '/zh/tools/', current: '/zh/tools/', headExtra: headExtra({ canonical: '/zh/tools/', title, desc, alternates: alternateHead('/zh/tools/') }), main: m }).replace(/href="\/zh\/blog\/"/g, 'href="/blog/"'));
+  const m4 = `<div class="tools-v4">${m}</div>`;
+  write('zh/tools/index.html', kitShell({ lang: 'zh', title, desc, canonical: '/zh/tools/', current: '/zh/tools/', headExtra: headExtra({ canonical: '/zh/tools/', title, desc, alternates: alternateHead('/zh/tools/') }) + '  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>\n', main: m4 }).replace(/href="\/zh\/blog\/"/g, 'href="/blog/"'));
 }
 
 // Tool detail pages: kit tool-detail layout around each tool's unchanged live markup (src/tools/<slug>.html).
@@ -892,7 +895,7 @@ write('blog/index.html', blogIndex());
   for (const [slug, name, label, figure] of TOOLS) {
     const src = fs.readFileSync(path.join(ROOT, 'src/tools', `${slug}.html`), 'utf8');
     if (!FLOW[slug]) throw new Error('no data-flow row for ' + slug);
-    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, alternates: alternateHead(`/tools/${slug}/`) }));
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, alternates: alternateHead(`/tools/${slug}/`), v4: slug === 'text-redactor', v4Note: slug === 'text-redactor' ? 'The redaction runs in this page. Nothing you paste is uploaded or stored.' : '' }));
   }
 }
 
@@ -945,6 +948,8 @@ write('blog/index.html', blogIndex());
     crumbName: '文本脱敏',
     lang: 'zh-CN',
     alternates: alternateHead('/zh/tools/text-redactor/'),
+    v4: true,
+    v4Note: '脱敏在这个页面里完成，粘贴的内容不会被上传或保存。',
   }));
 }
 

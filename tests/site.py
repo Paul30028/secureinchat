@@ -1,4 +1,4 @@
-import json, os, sys, threading, http.server, socketserver
+import json, os, sys, threading, http.server, socketserver, re, math
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 
@@ -70,6 +70,66 @@ def check(cond, msg):
 def target_exists(href):
     path = os.path.join(ROOT, href.lstrip('/'))
     return os.path.isfile(path) or os.path.isfile(os.path.join(path, 'index.html'))
+
+# --- Step 4 first batch: migration-before/after semantic checks (static HTML) ----------------
+def text(rel):
+    return open(os.path.join(ROOT, rel), encoding='utf-8').read()
+
+def count_tag(html, tag):
+    return len(re.findall(r'<' + tag + r'\b', html))
+
+# Hard-coded from the tools page before the template change. Ids and script hooks are runtime contracts.
+REDACTOR_IDS = [
+    'rd-in', 'rd-out', 'rd-terms', 'rd-reply', 'rd-restored', 'rd-copy', 'rd-clear', 'rd-restore-copy',
+    'rd-restore-status', 'rule-term', 'rule-email', 'rule-phone', 'rule-cn_mobile', 'rule-cn_id',
+    'rule-ipv4', 'rule-ipv6', 'rule-mac', 'rule-card', 'rule-iban', 'rule-apikey', 'rule-jwt',
+    'rule-url_cred', 'rule-privkey', 'restore-h', 'results', 'results-h', 'summary', 'rows', 'netlog',
+    'what-h', 'faq-h',
+]
+REDACTOR_SCRIPTS = [
+    '/assets/js/shell.js', '/tools/assets/redact.js', '/tools/assets/redact-app.js', '/tools/assets/net-log.js',
+]
+for rel in ('tools/text-redactor/index.html', 'zh/tools/text-redactor/index.html'):
+    html = text(rel)
+    missing = [i for i in REDACTOR_IDS if f'id="{i}"' not in html]
+    check(not missing, f'{rel} keeps redactor ids {missing}')
+    scripts = re.findall(r'<script[^>]+src="([^"]+)"', html)
+    check(scripts == REDACTOR_SCRIPTS, f'{rel} keeps script references in order {scripts}')
+    check(count_tag(html, 'script') == 5, f'{rel} keeps 5 script tags (4 src + JSON-LD)')
+    check(html.count('data-tone="idle"') == 1, f'{rel} keeps the result summary data-tone hook')
+    check(len(re.findall(r'<input\b[^>]*id="rule-', html)) == 14, f'{rel} keeps 14 rule checkboxes')
+    check(len(re.findall(r'<textarea\b[^>]*id="rd-', html)) == 5, f'{rel} keeps 5 textareas')
+    check('class="tool-page-v4"' in html and '/assets/css/tools-v4.css' in html, f'{rel} uses the v4 tools template')
+    check('tool-v4-flow' in html and 'tool-v4-section' in html, f'{rel} has pre-run data flow and method sections')
+
+# Every catalogue card link must resolve, and only the migrated tools load the new stylesheet.
+index = text('tools/index.html')
+cards = re.findall(r'<a class="tool-catalogue-action" href="([^"]+)"', index)
+check(len(cards) == 12, f'/tools/ has 12 catalogue cards ({len(cards)})')
+check(all(target_exists(h) for h in cards), f'/tools/ card links resolve {[h for h in cards if not target_exists(h)]}')
+check('class="tools-v4"' in index and '/assets/css/tools-v4.css' in index, '/tools/ uses the v4 index template')
+old_tool = text('tools/photo-metadata-remover/index.html')
+check('tools-v4.css' not in old_tool and 'tool-page-v4' not in old_tool, 'unmigrated tool keeps the old template')
+
+# Contrast spot-check on the real token values: normal text must stay at or above 4.5:1.
+tokens = text('assets/css/tokens.css')
+def token_block(pattern):
+    m = re.search(pattern + r'\s*\{([^}]*)\}', tokens)
+    return {k: v.lower() for k, v in re.findall(r'(--sc-[a-z-]+):\s*(#[0-9a-fA-F]{6})', m.group(1))}
+def luminance(hex_value):
+    rgb = [int(hex_value[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+    lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+def ratio(fg, bg):
+    a, b = sorted((luminance(fg), luminance(bg)), reverse=True)
+    return (a + 0.05) / (b + 0.05)
+dark = token_block(r':root')
+light = token_block(r":root\[data-theme='light'\]")
+for theme, values in (('dark', dark), ('light', light)):
+    for fg, bg in (('--sc-ink', '--sc-canvas'), ('--sc-ink-muted', '--sc-surface'),
+                   ('--sc-accent-ink', '--sc-accent'), ('--sc-link', '--sc-canvas')):
+        r = ratio(values[fg], values[bg])
+        check(r >= 4.5, f'{theme} tokens {fg}/{bg} contrast {r:.1f}:1 >= 4.5:1')
 
 with sync_playwright() as p:
     b = p.chromium.launch()

@@ -24,9 +24,13 @@ const CHROME = {
     stays: 'Stays on your device',
     sent: 'Sent to others',
     flowLink: 'See every tool\'s data flow',
+    local: 'Local processing',
     other: 'Need a different check?',
     otherText: 'Compare tools by what they do and what data they need.',
     browse: 'Browse all tools',
+    method: 'Method and limits',
+    related: 'Related guides',
+    redactGuide: 'Redact text before you share it',
   },
   'zh-CN': {
     lang: 'zh-CN',
@@ -37,13 +41,17 @@ const CHROME = {
     stays: '留在你的设备上',
     sent: '发送给他人',
     flowLink: '查看每个工具的数据流',
+    local: '本地处理',
     other: '需要别的检查？',
     otherText: '按用途和数据需要比较这些工具。',
     browse: '浏览所有工具',
+    method: '方法与局限',
+    related: '相关指南',
+    redactGuide: '分享文本前先脱敏',
   },
 };
 
-export function toolPage({ slug, src, icon, label, flow, figure, crumbName, lang = 'en', alternates = '' }) {
+export function toolPage({ slug, src, icon, label, flow, figure, crumbName, lang = 'en', alternates = '', v4 = false, v4Note = '' }) {
   const chrome = CHROME[lang] || CHROME.en;
   const zh = chrome === CHROME['zh-CN'];
   const head = src.slice(0, src.indexOf('</head>'));
@@ -121,6 +129,78 @@ ${info}
 ${side}
     </div>
    </section>`;
+  // Step 4 first batch: the template shell is replaced, the tool markup in `ws` (ids, data-*, scripts)
+  // is inserted unchanged. Data flow is stated before the controls, then method, limits and guides.
+  const v4Main = v4 ? (() => {
+    const faqBlocks = prose.filter((b) => /faq-h/.test(b.attrs));
+    const methodBlocks = prose.filter((b) => !/faq-h/.test(b.attrs));
+    const proseHtml = (arr) => arr.map((b) => `<${b.tag}${cleanAttrs(b.attrs)}>${mapTags(b.inner)}</${b.tag}>`).join('\n');
+    const method = methodBlocks.length ? `      <section class="tool-v4-section" aria-labelledby="tool-v4-method-h">
+       <h2 id="tool-v4-method-h">${chrome.method}</h2>
+       <div class="info-content tool-prose">
+${proseHtml(methodBlocks)}
+       </div>
+      </section>` : '';
+    const faq = faqBlocks.length ? `      <section class="tool-v4-section" aria-label="FAQ">
+       <div class="info-content tool-prose">
+${proseHtml(faqBlocks)}
+       </div>
+      </section>` : '';
+    const note = v4Note || (sentIsNone
+      ? (zh ? '这项检查在你的浏览器中完成。输入的内容不会上传、记录或保存。' : 'This check runs in your browser. Nothing you enter is uploaded, logged or stored.')
+      : (zh ? '运行前请阅读下面的数据去向。' : 'Read the data flow below before you run the check.'));
+    const flowPanel = `      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">${chrome.handling}</h2>
+       ${sentIsNone ? `<p class="tool-v4-flow-state"><span class="state-label">${chrome.local}</span></p>` : ''}
+       <div class="tool-v4-flow-grid">
+        <div><strong>${chrome.stays}</strong><p>${flow.stays}</p></div>
+        <div><strong>${chrome.sent}</strong><p>${flow.sent}</p></div>
+       </div>
+       <p class="tool-v4-flow-note">${note}</p>
+      </section>`;
+    const related = `     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>${chrome.related}</h2>
+       <ul class="tool-v4-links">
+        <li><a href="${zh ? '/blog/' : '/blog/redact-text-before-you-share-it/'}">${chrome.redactGuide} <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">${chrome.flowLink} <span aria-hidden="true">→</span></a></li>
+        <li><a href="${zh ? '/zh/tools/' : '/tools/'}">${chrome.browse} <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+     </aside>`;
+    return `   <div class="tool-page-v4">
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="${chrome.crumbLabel}" class="breadcrumbs">
+      <a href="${homeHref}">${chrome.crumbHome}</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="${zh ? '/zh/tools/' : '/tools/'}">${chrome.crumbTools}</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">${crumbName}</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      ${icon ? `<span class="tool-detail-emblem">${icon.replace('tool-catalogue-icon-art', 'tool-detail-emblem-art')}</span>` : ''}
+      <div>
+       <h1 id="h1">${h1}</h1>
+       ${ledeM ? `<p class="page-lead">${ledeM[1]}</p>` : ''}
+       <ul class="state-list"><li><span class="${label[1]}">${label[0]}</span></li></ul>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
+     <div class="tool-main-column">
+${flowPanel}
+${ws}
+${method}
+${faq}
+     </div>
+${related}
+    </div>
+   </section>
+   </div>`;
+  })() : mainHtml;
   const canonical = `${zh ? '/zh' : ''}/tools/${slug}/`;
   // Alternate-language links come from ALTERNATE_GROUPS in build.mjs. Pages without a reviewed translation
   // receive an empty string, so they get a canonical but no hreflang and no x-default.
@@ -128,10 +208,10 @@ ${side}
   const scriptsHead = headScripts.filter((s) => !/application\/ld\+json/.test(s));
   const headExtra = `  <link href="https://secureinchat.com${canonical}" rel="canonical"/>
 ${alternates}  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
-  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+${v4 ? '' : '  <link as="font" crossorigin="" href="/assets/fonts/atkinson-next-400.woff2" rel="preload" type="font/woff2"/>\n'}${v4 ? '  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>\n' : ''}  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
 ${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
 `;
-  const shellArgs = { title, desc, canonical, headExtra, current: '/tools/', main: mainHtml };
+  const shellArgs = { title, desc, canonical, headExtra, current: '/tools/', main: v4Main };
   // The shared subpage shell already carries the Chinese header and footer (lang 'zh').
   if (zh) { shellArgs.lang = 'zh'; shellArgs.htmlLang = chrome.lang; }
   let html = shell(shellArgs);

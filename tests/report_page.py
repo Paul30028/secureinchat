@@ -18,7 +18,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         if CSP: self.send_header('Content-Security-Policy', CSP)
         super().end_headers()
     def log_message(self, *a): pass
-srv = socketserver.TCPServer(('127.0.0.1', 0), functools.partial(H, directory=ROOT))
+srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(H, directory=ROOT))
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 URL = f'http://127.0.0.1:{srv.server_address[1]}/tools/privacy-report/'
 fails = []
