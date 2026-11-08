@@ -184,7 +184,7 @@
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   margin: 12px 0 18px;
   border: 1px solid var(--line);
   background: var(--surface-2);
@@ -344,6 +344,26 @@ input.field {
   padding: 12px;
   border: 1px dashed var(--line);
   background: var(--surface-2);
+}
+
+.intake {
+  margin: 0 0 6px;
+}
+
+.intake .file-zone {
+  margin-top: 6px;
+}
+
+.file-group {
+  margin: 10px 0;
+}
+
+.file-confirm {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  cursor: pointer;
 }
 
 .file-zone:focus-within {
@@ -1093,7 +1113,7 @@ input.field {
 
 .limits-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
 }
 

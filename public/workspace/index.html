@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Private workspace: check text, links and images before you send | SecureInChat</title>
-<meta name="description" content="Inspect text, a link or an image in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review; local JPEG, PNG and WebP re-encoding. No upload, no storage, no automatic send, open or download.">
+<title>Private workspace: check text, links, images and documents before you send | SecureInChat</title>
+<meta name="description" content="Drop in text, a link, an image or a PDF/Office document and this page picks the right mode. Local pattern checks, URL structure, JPEG/PNG/WebP re-encoding, and PDF/DOCX/XLSX/PPTX metadata review with WebAssembly. No upload, no storage, no automatic send, open or download.">
 <meta name="theme-color" content="#F0EFE7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#11130E" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="/favicon.ico" sizes="32x32">
@@ -14,12 +14,12 @@
   <link rel="canonical" href="https://secureinchat.com/workspace/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="SecureInChat" />
-  <meta property="og:title" content="Private workspace: check text, links and images before you send | SecureInChat" />
-  <meta property="og:description" content="Inspect text, a link or an image in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review; local JPEG, PNG and WebP re-encoding. No upload, no storage, no automatic send, open or download." />
+  <meta property="og:title" content="Private workspace: check text, links, images and documents before you send | SecureInChat" />
+  <meta property="og:description" content="Drop in text, a link, an image or a PDF/Office document and this page picks the right mode. Local pattern checks, URL structure, JPEG/PNG/WebP re-encoding, and PDF/DOCX/XLSX/PPTX metadata review with WebAssembly. No upload, no storage, no automatic send, open or download." />
   <meta property="og:url" content="https://secureinchat.com/workspace/" />
   <meta property="og:locale" content="en_US" />
   <meta name="twitter:card" content="summary" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"SecureInChat private workspace","url":"https://secureinchat.com/workspace/","applicationCategory":"SecurityApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript.","isAccessibleForFree":true,"description":"Inspect text, a link or an image in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review; local JPEG, PNG and WebP re-encoding. No upload, no storage, no automatic send, open or download.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Local text pattern review with category-level replacement preview","Local link structure review with tracking-parameter and session-like key flags","Local JPEG, PNG and WebP re-encode with a user-triggered download","No upload, no account, no storage"]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"SecureInChat private workspace","url":"https://secureinchat.com/workspace/","applicationCategory":"SecurityApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript.","isAccessibleForFree":true,"description":"Drop in text, a link, an image or a PDF/Office document and this page picks the right mode. Local pattern checks, URL structure, JPEG/PNG/WebP re-encoding, and PDF/DOCX/XLSX/PPTX metadata review with WebAssembly. No upload, no storage, no automatic send, open or download.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["One drop or paste area that recognises text, a link, an image or a PDF/Office file and switches modes","Local text pattern review with category-level replacement preview","Local link structure review with tracking-parameter and session-like key flags","Local JPEG, PNG and WebP re-encode with a user-triggered download","Local PDF, DOCX, XLSX and PPTX metadata review with a cleaned copy and a user-triggered download","No upload, no account, no storage"]}</script>
   <link href="/assets/css/shell.css" rel="stylesheet"/>
   <script defer src="/assets/js/shell.js"></script>
  </head>
@@ -73,7 +73,7 @@
       <div class="hero-copy">
         <p class="eyebrow">A LOCAL CHECK BEFORE YOU SHARE</p>
         <h1 id="hero-title">Check it once more,<br><span class="accent">before you send.</span></h1>
-        <p class="hero-lead">Paste text or a link, or choose an image. This page inspects it in your browser, shows what it found and what it can miss, and waits for you to decide.</p>
+        <p class="hero-lead">Drop in anything, or paste text or a link. This page recognises the kind, inspects it in your browser, shows what it found and what it can miss, and waits for you to decide.</p>
         <ul class="promises">
           <li>No upload and no account</li>
           <li>No automatic send, open, copy or download</li>
@@ -86,10 +86,19 @@
           <div class="workbench-body">
             <h2 id="workspace-title" class="sr-only">Private workspace</h2>
             <div class="workbench-label"><span>01 / CHOOSE WHAT YOU ARE ABOUT TO SHARE</span><span>NO ACCOUNT</span></div>
+            <div class="intake" id="intake">
+              <label class="field-label" for="intake-file">Drop in anything</label>
+              <p class="hint" id="intake-hint">Drop a file, paste text or a link, or choose a file. This page decides where it belongs: text to Text, one link to Link, JPEG/PNG/WebP to Image, and PDF/DOCX/XLSX/PPTX to File. The file is read in this tab and is not uploaded.</p>
+              <div class="file-zone intake-zone" id="intake-drop" tabindex="0" role="group" aria-label="Drop or paste anything" aria-describedby="intake-hint intake-note">
+                <input class="field file-input" id="intake-file" type="file" accept=".pdf,.docx,.xlsx,.pptx,.jpg,.jpeg,.png,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png,image/webp" aria-describedby="intake-hint intake-note">
+                <p class="drop-note" id="intake-note">The file field always works with a keyboard. You can also drop one file here, or focus this area and paste (Ctrl+V or Cmd+V).</p>
+              </div>
+            </div>
             <div class="tabs" role="tablist" aria-label="Content type">
               <button class="tab is-active" id="tab-text" type="button" role="tab" aria-selected="true" aria-controls="panel-text" tabindex="0" data-mode="text">Text</button>
               <button class="tab" id="tab-link" type="button" role="tab" aria-selected="false" aria-controls="panel-link" tabindex="-1" data-mode="link">Link</button>
               <button class="tab" id="tab-image" type="button" role="tab" aria-selected="false" aria-controls="panel-image" tabindex="-1" data-mode="image">Image</button>
+              <button class="tab" id="tab-file" type="button" role="tab" aria-selected="false" aria-controls="panel-file" tabindex="-1" data-mode="file">File</button>
             </div>
             <fieldset class="context" id="recipient">
               <legend>Preparing to send to <span class="context-optional">(optional)</span></legend>
@@ -163,12 +172,33 @@
                 <button class="btn" id="clear-session-image" type="button">Clear session</button>
               </div>
             </div>
+            <div id="panel-file" role="tabpanel" aria-labelledby="tab-file" tabindex="0" hidden>
+              <label class="field-label" for="file-input">PDF or Office file</label>
+              <p class="hint" id="file-hint">Choose one PDF, DOCX, XLSX or PPTX file. It is read in this tab; it is not uploaded or stored. The local WebAssembly engine is loaded from this site the first time you choose a file.</p>
+              <div class="file-zone" id="file-drop">
+                <input class="field file-input" id="file-input" type="file" accept=".pdf,.docx,.xlsx,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation" aria-describedby="file-hint file-limits file-caveat">
+                <p class="drop-note" id="file-drop-note">You can also drop one file here. The file field always works with a keyboard. Processing starts as soon as you choose a file.</p>
+              </div>
+              <p class="hint" id="file-limits">Limit: 200 MB. The page checks the type from the file's first bytes, not only its name. The original file is not changed.</p>
+              <div class="image-caveat" id="file-caveat">
+                <strong>What this does and does not do</strong>
+                <ul>
+                  <li>It clears only the metadata fields listed after you choose a file. It does not check what the document says: names, phone numbers, addresses and other details in the text, cells or notes stay in the file. Use Text mode for text you paste.</li>
+                  <li>It does not inspect headers, footers, comments, tracked changes or embedded objects. After processing, open the cleaned copy yourself and confirm it is what you want to share.</li>
+                  <li>The cleaned copy stays in this tab until you clear the session or leave the page. Nothing is downloaded until you press its button.</li>
+                </ul>
+              </div>
+              <div class="actions">
+                <button class="btn" id="clear-session-file" type="button">Clear session</button>
+              </div>
+            </div>
             <p class="status" id="status" role="status" aria-live="polite" aria-atomic="true" data-tone="info">Ready. Nothing is uploaded.</p>
             <div class="results">
               <div class="result" id="text-result" role="region" aria-label="Text inspection result" hidden></div>
               <div class="result ai-result" id="ai-result" role="region" aria-label="AI suggestions" hidden></div>
               <div class="result" id="link-result" role="region" aria-label="Link inspection result" hidden></div>
               <div class="result" id="image-result" role="region" aria-label="Image re-encode result" hidden></div>
+              <div class="result" id="file-result" role="region" aria-label="File metadata result" hidden></div>
             </div>
             <section class="receipt" id="receipt-panel" aria-labelledby="receipt-title" hidden>
               <h3 id="receipt-title">Local processing receipt</h3>
@@ -185,13 +215,15 @@
         <noscript>
           <section class="nojs" id="nojs-fallback" aria-labelledby="nojs-title">
             <h2 id="nojs-title">The workspace needs JavaScript</h2>
-            <p>This page inspects text, links and images inside your browser, so it cannot run with JavaScript off. The method and limits are still readable here and in the section below.</p>
+            <p>This page inspects text, links, images and documents inside your browser, so it cannot run with JavaScript off. The method and limits are still readable here and in the section below.</p>
             <h3>Text mode checks common formats</h3>
             <p>Email addresses, phone-like numbers, Chinese resident ID numbers and US SSN-like formats, common access keys and tokens, payment card numbers that pass the Luhn check, and IPv4 addresses. It is pattern matching, not semantic review. Names, addresses, context and unusual formats can be missed.</p>
             <h3>Link mode reads the address only</h3>
             <p>Scheme, host, path and query parameters, with common tracking keys and key names that often carry session or identity data. It never opens or contacts the link and cannot tell whether the destination is safe.</p>
             <h3>Image mode re-encodes a local copy</h3>
             <p>JPEG, PNG and WebP only, up to 25 MB and 40,000,000 pixels. It checks the MIME type and the first bytes, decodes the image in the tab and encodes a copy. The download happens only when you press its button. It does not inspect faces, house numbers or anything else visible in the picture.</p>
+            <h3>File mode reads PDF and Office metadata</h3>
+            <p>PDF, DOCX, XLSX and PPTX only, up to 200 MB, using the same local WebAssembly engine as the older file metadata remover. It lists the metadata it can read and builds a cleaned copy in the tab. It clears only the listed metadata fields; it does not check names, phone numbers or other text inside the document. The download happens only when you press its button.</p>
             <p>Without JavaScript you can read the <a href="/principles/">principles and data-flow notes</a>, or use the older single-purpose pages: <a href="/tools/text-redactor/">text redactor</a> and <a href="/tools/link-checker/">link checker</a>. They also need JavaScript to process input.</p>
           </section>
         </noscript>
@@ -238,10 +270,21 @@
             <li>The copy is downloaded only after you press its button. The page does not open, upload or send the image.</li>
           </ul>
         </article>
+        <article class="limit-card">
+          <h3>File mode: metadata only, not the document</h3>
+          <p>It reads one PDF, DOCX, XLSX or PPTX file up to 200 MB with the same local WebAssembly engine as the older file metadata remover, lists the metadata it can read, and builds a cleaned copy in this tab.</p>
+          <ul>
+            <li>It clears only the metadata fields it lists. The text, cells, slides, images and embedded objects in the file are not checked or changed.</li>
+            <li>It does not inspect names, phone numbers, addresses or other details written inside the document. Use Text mode for text you paste.</li>
+            <li>Headers, footers, comments, tracked changes and embedded objects are not inspected. Open the cleaned copy and confirm it before sharing.</li>
+            <li>A second scan can still find values that are part of the file structure; the page lists them instead of hiding them.</li>
+            <li>The copy is downloaded only after you press its button. The page does not open, upload or send the file.</li>
+          </ul>
+        </article>
       </div>
       <div class="boundary">
         <h3>Where the data goes</h3>
-        <p>Until you turn on the optional local AI, the workspace makes no network request after it loads, and it uses no localStorage, sessionStorage or cookies. The local AI stays off until you press its download button; when you do, the model files (about the size shown in that block) come from this site only, are cached in this browser and can run offline. Your text is processed in a worker on this page and is never uploaded. Your text, link or image state is cleared when you switch modes, press Clear session, or leave the page; switching modes or clearing keeps the cached model, while Delete model removes it. Copy, replacement and download happen only when you press the relevant button. The in-memory download URL is revoked on the same clear, mode switch or exit; a file you have already downloaded is outside this page. The page loads its own CSS, JavaScript and, when present, self-hosted font files from this site.</p>
+        <p>Until you turn on the optional local AI or open File mode, the workspace makes no network request after it loads, and it uses no localStorage, sessionStorage or cookies. The local AI stays off until you press its download button; when you do, the model files (about the size shown in that block) come from this site only, are cached in this browser and can run offline. File mode loads the metadata engine (JavaScript and WebAssembly, about 0.8 MB) from this site the first time you choose a PDF or Office file; it is not a third-party request and it is not an upload. Your text is processed in a worker on this page and is never uploaded. Your text, link, image or file state is cleared when you switch modes, press Clear session, or leave the page; switching modes or clearing keeps the cached model, while Delete model removes it. Copy, replacement and download happen only when you press the relevant button. The in-memory download URL is revoked on the same clear, mode switch or exit; a file you have already downloaded is outside this page. The page loads its own CSS, JavaScript and, when present, self-hosted font files from this site.</p>
       </div>
     </div>
   </section>
@@ -290,6 +333,8 @@
 <script src="/workspace/assets/ai-review.js" defer></script>
 <script src="/workspace/assets/link-review.js" defer></script>
 <script src="/workspace/assets/image-review.js" defer></script>
+<script src="/workspace/assets/intake.js" defer></script>
+<script src="/workspace/assets/file-review.js" defer></script>
 <script src="/workspace/assets/receipt.js" defer></script>
 <script src="/workspace/assets/workspace.js" defer></script>
 </body>

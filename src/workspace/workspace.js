@@ -4,12 +4,19 @@
 
   var $ = function (id) { return document.getElementById(id); };
   var imageToken = 0;
+  var fileToken = 0;
   var receiptUrl = '';
   var receiptTimer = 0;
   function emptyImage() {
     return {
       name: '', format: '', beforeSize: 0, beforeWidth: 0, beforeHeight: 0,
       afterSize: 0, width: 0, height: 0, outputUrl: '', outputName: '', busy: false
+    };
+  }
+  function emptyFile() {
+    return {
+      name: '', ext: '', mime: '', size: 0, bytes: null, analysis: null,
+      outputUrl: '', outputName: '', remaining: [], busy: false
     };
   }
   function emptyAi() {
@@ -21,6 +28,7 @@
     ai: emptyAi(),
     link: { raw: '', analysis: null },
     image: emptyImage(),
+    file: emptyFile(),
     receipt: null
   };
 
@@ -49,7 +57,7 @@
   function plural(n, one, many) { return n === 1 ? one : many; }
 
   function hasContent() {
-    return !!($('draft').value.trim() || $('link-url').value.trim() || state.image.name || state.image.busy);
+    return !!($('draft').value.trim() || $('link-url').value.trim() || state.image.name || state.image.busy || state.file.name || state.file.busy);
   }
 
   function selectedRecipient() {
@@ -187,6 +195,13 @@
     clearNode(host);
   }
 
+  function hideFileResult() {
+    var host = $('file-result');
+    if (!host) return;
+    host.hidden = true;
+    clearNode(host);
+  }
+
   function releaseImageOutput() {
     if (state.image.outputUrl) {
       try { URL.revokeObjectURL(state.image.outputUrl); } catch (e) { /* nothing to release */ }
@@ -207,6 +222,25 @@
     hideImageResult();
   }
 
+  function releaseFileOutput() {
+    if (state.file.outputUrl) {
+      try { URL.revokeObjectURL(state.file.outputUrl); } catch (e) { /* nothing to release */ }
+    }
+    state.file.outputUrl = '';
+    state.file.outputName = '';
+  }
+
+  function resetFile() {
+    fileToken++;
+    releaseFileOutput();
+    state.file = emptyFile();
+    var input = $('file-input');
+    if (input) input.value = '';
+    var zone = $('file-drop');
+    if (zone) zone.classList.remove('is-dragover');
+    hideFileResult();
+  }
+
   function clearContent() {
     var draft = $('draft'), link = $('link-url');
     if (draft) draft.value = '';
@@ -215,6 +249,7 @@
     resetAiResults();
     state.link = { raw: '', analysis: null };
     resetImage();
+    resetFile();
     hideTextResult();
     hideLinkResult();
     clearReceipt();
@@ -227,6 +262,7 @@
     if (state.mode === 'text' && $('draft')) $('draft').focus();
     else if (state.mode === 'link' && $('link-url')) $('link-url').focus();
     else if (state.mode === 'image' && $('image-file')) $('image-file').focus();
+    else if (state.mode === 'file' && $('file-input')) $('file-input').focus();
   }
 
   function clearForExit() {
@@ -238,6 +274,7 @@
       resetAiResults();
       state.link = { raw: '', analysis: null };
       resetImage();
+      resetFile();
       hideTextResult();
       hideLinkResult();
       clearReceipt();
@@ -246,16 +283,17 @@
   }
 
   function activateMode(next, initial) {
-    if (next !== 'text' && next !== 'link' && next !== 'image') return false;
+    if (next !== 'text' && next !== 'link' && next !== 'image' && next !== 'file') return false;
     if (!initial && next !== state.mode) {
-      if (hasContent() && !window.confirm('Switching modes clears the current text, link or image. Continue?')) return false;
+      if (hasContent() && !window.confirm('Switching modes clears the current text, link, image or file. Continue?')) return false;
       clearContent();
       if (next === 'text') setStatus('Text mode. The previous input was cleared. Nothing is uploaded.', 'info');
       else if (next === 'link') setStatus('Link mode. The previous input was cleared. Nothing is opened or contacted.', 'info');
-      else setStatus('Image mode. The previous input was cleared. Nothing is uploaded or downloaded.', 'info');
+      else if (next === 'image') setStatus('Image mode. The previous input was cleared. Nothing is uploaded or downloaded.', 'info');
+      else setStatus('File mode. The previous input was cleared. Nothing is uploaded or downloaded.', 'info');
     }
     state.mode = next;
-    var tabs = [$('tab-text'), $('tab-link'), $('tab-image')];
+    var tabs = [$('tab-text'), $('tab-link'), $('tab-image'), $('tab-file')];
     for (var i = 0; i < tabs.length; i++) {
       var tab = tabs[i];
       if (!tab) continue;
@@ -267,11 +305,12 @@
     setHidden($('panel-text'), state.mode !== 'text');
     setHidden($('panel-link'), state.mode !== 'link');
     setHidden($('panel-image'), state.mode !== 'image');
+    setHidden($('panel-file'), state.mode !== 'file');
     return true;
   }
 
   function bindTabs() {
-    var tabs = [$('tab-text'), $('tab-link'), $('tab-image')];
+    var tabs = [$('tab-text'), $('tab-link'), $('tab-image'), $('tab-file')];
     for (var i = 0; i < tabs.length; i++) {
       if (!tabs[i]) continue;
       tabs[i].addEventListener('click', function () { activateMode(this.getAttribute('data-mode')); });
@@ -878,7 +917,7 @@
     host.appendChild(actions);
   }
 
-  async function processImage(file) {
+  async function processImage(file, intro) {
     var I = window.WSImage;
     if (!I) {
       imageFailure('The image checks did not load, so this file was not processed. Reload the page and try again.');
@@ -891,7 +930,7 @@
     state.image.name = file.name || 'image';
     state.image.busy = true;
     hideImageResult();
-    setStatus('Checking the file type, size and pixel limit locally…', 'info');
+    setStatus((intro ? intro + ' ' : '') + 'Checking the file type, size and pixel limit locally…', 'info');
 
     // Refuse unsupported or oversized files before reading all their bytes.
     var pre = I.inspect({ type: file.type, size: file.size, bytes: new Uint8Array(0) });
@@ -1046,6 +1085,427 @@
     });
   }
 
+  function fileFailure(message) {
+    clearReceipt();
+    fileToken++;
+    releaseFileOutput();
+    state.file = emptyFile();
+    var input = $('file-input');
+    if (input) input.value = '';
+    hideFileResult();
+    var host = $('file-result');
+    if (host) {
+      var title = make('h3', 'result-title', 'File not processed');
+      title.id = 'file-result-title';
+      host.appendChild(title);
+      host.appendChild(make('p', 'result-note', message));
+      host.appendChild(make('p', 'result-note', 'Nothing was uploaded or downloaded. Choose one PDF, DOCX, XLSX or PPTX file and try again.'));
+      host.hidden = false;
+    }
+    setStatus(message, 'alert');
+  }
+
+  function fileValue(value) {
+    var text = value === undefined || value === null ? '' : String(value);
+    return text.length > 200 ? text.slice(0, 200) + '…' : text;
+  }
+
+  function fileMetadataGroups(groups, host) {
+    groups.forEach(function (group) {
+      var card = make('section', 'image-card file-group');
+      card.appendChild(make('h4', null, group.name));
+      var facts = make('dl', 'image-facts');
+      group.items.forEach(function (item) {
+        var row = make('div', 'image-fact');
+        row.appendChild(make('dt', null, item && item.name ? String(item.name) : 'Value'));
+        row.appendChild(make('dd', null, fileValue(item && item.value)));
+        facts.appendChild(row);
+      });
+      card.appendChild(facts);
+      host.appendChild(card);
+    });
+  }
+
+  function fileRemaining(groups) {
+    var names = [];
+    groups.forEach(function (group) {
+      group.items.forEach(function (item) {
+        names.push((group.name ? group.name + ' / ' : '') + (item && item.name ? String(item.name) : 'value'));
+      });
+    });
+    return names.join(', ');
+  }
+
+  function downloadFile() {
+    if (!state.file.outputUrl) return;
+    var name = state.file.outputName || ('file-cleaned.' + (state.file.ext || 'bin'));
+    var link = document.createElement('a');
+    link.href = state.file.outputUrl;
+    link.download = name;
+    link.rel = 'noopener';
+    try {
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setStatus('Download requested: ' + name + '. The copy stays in this tab until you clear the session or leave the page.', 'info');
+    } catch (e) {
+      link.remove();
+      setStatus('The browser blocked the download. Nothing was uploaded. Try again or use another browser.', 'alert');
+    }
+  }
+
+  function updateFileGenerate() {
+    var button = $('file-generate');
+    var confirm = $('file-confirm');
+    if (button) button.disabled = !(confirm && confirm.checked) || state.file.busy || !state.file.bytes;
+  }
+
+  function renderFileResult() {
+    var host = $('file-result');
+    if (!host) return;
+    clearNode(host);
+    host.hidden = false;
+    var file = state.file;
+    var analysis = file.analysis;
+    var label = (analysis && analysis.label) || file.ext.toUpperCase();
+
+    var total = analysis ? analysis.total : 0;
+    var title = make('h3', 'result-title', total
+      ? total + ' ' + plural(total, 'metadata item', 'metadata items') + ' found'
+      : 'No readable metadata found');
+    title.id = 'file-result-title';
+    host.appendChild(title);
+    host.appendChild(make('p', 'result-note', 'File: ' + (file.name || 'file') + ' (' + label + ', ' + window.WSFile.formatBytes(file.size) + '). Read in this tab; nothing was uploaded.'));
+
+    if (analysis && analysis.groups && analysis.groups.length) {
+      fileMetadataGroups(analysis.groups, host);
+    } else {
+      host.appendChild(make('p', 'result-note', 'The engine found no metadata it can list. You can still generate a cleaned copy.'));
+    }
+
+    host.appendChild(make('p', 'result-note', 'Only the metadata fields listed above are cleared. The content of the file is not checked: names, phone numbers and other details written inside the document stay there. To check text inside the file, copy it into Text mode. After processing, open the cleaned copy yourself and confirm it.'));
+
+    if (file.outputUrl) {
+      if (file.remaining && file.remaining.length) {
+        var left = make('div', 'callout callout--alert');
+        left.appendChild(make('strong', null, 'A second scan still found ' + file.remaining.length + ' ' + plural(file.remaining.length, 'item', 'items')));
+        left.appendChild(make('p', null, fileRemaining(file.remainingGroups || []) + '. These are part of the file structure. If that matters to you, do not share the copy.'));
+        host.appendChild(left);
+      } else {
+        var ready = make('div', 'callout');
+        ready.appendChild(make('strong', null, 'Cleaned copy ready in memory'));
+        ready.appendChild(make('p', null, 'A second scan found no readable metadata left. Open the copy yourself before you share it.'));
+        host.appendChild(ready);
+      }
+
+      var actions = make('div', 'actions actions--tight');
+      var download = make('button', 'btn btn--primary', 'Download ' + file.outputName);
+      download.type = 'button';
+      download.id = 'download-file';
+      download.setAttribute('aria-describedby', 'file-result-title');
+      download.addEventListener('click', downloadFile);
+      actions.appendChild(download);
+      host.appendChild(actions);
+      return;
+    }
+
+    var confirmRow = make('label', 'rule-row file-confirm');
+    var box = document.createElement('input');
+    box.type = 'checkbox';
+    box.id = 'file-confirm';
+    box.addEventListener('change', updateFileGenerate);
+    confirmRow.appendChild(box);
+    var text = make('span', 'rule-label');
+    text.appendChild(make('strong', null, 'I want to clear the metadata fields listed above in a new copy'));
+    text.appendChild(make('small', null, 'The original file on your device is not changed.'));
+    confirmRow.appendChild(text);
+    host.appendChild(confirmRow);
+
+    var actions2 = make('div', 'actions actions--tight');
+    var generate = make('button', 'btn btn--primary', 'Generate clean copy');
+    generate.type = 'button';
+    generate.id = 'file-generate';
+    generate.disabled = true;
+    generate.addEventListener('click', processFileClean);
+    actions2.appendChild(generate);
+    host.appendChild(actions2);
+  }
+
+  function fileStale(token) {
+    return token !== fileToken;
+  }
+
+  async function processFileIntake(file, intro) {
+    var F = window.WSFile;
+    if (!F) {
+      fileFailure('The file checks did not load, so this file was not processed. Reload the page and try again.');
+      return;
+    }
+    var token = ++fileToken;
+    clearReceipt();
+    releaseFileOutput();
+    state.file = emptyFile();
+    state.file.name = file.name || 'file';
+    state.file.busy = true;
+    hideFileResult();
+    setStatus((intro ? intro + ' ' : '') + 'Reading the file in this tab…', 'info');
+
+    var pre = F.inspect(file);
+    if (!pre.ok) {
+      fileFailure(pre.message);
+      return;
+    }
+
+    var bytes;
+    try {
+      var buffer = await readBlob(file);
+      if (fileStale(token)) return;
+      bytes = new Uint8Array(buffer);
+    } catch (e) {
+      if (!fileStale(token)) fileFailure('The browser could not read this file locally. Nothing was uploaded. Try choosing it again.');
+      return;
+    }
+    if (fileStale(token)) return;
+
+    var info = F.inspect(file);
+    if (!info.ok) {
+      fileFailure(info.message);
+      return;
+    }
+    var input = $('file-input');
+    if (input) input.value = '';
+
+    setStatus('Reading the file metadata with the local engine…', 'info');
+    var analysis;
+    try {
+      analysis = await F.analyze(file, bytes);
+    } catch (e) {
+      if (!fileStale(token)) fileFailure('The local file engine could not finish. Nothing was uploaded. Try another file or reload the page.');
+      return;
+    }
+    if (fileStale(token)) return;
+    if (!analysis.ok) {
+      fileFailure(analysis.message);
+      return;
+    }
+
+    state.file = {
+      name: file.name || 'file',
+      ext: analysis.ext,
+      mime: analysis.label,
+      size: analysis.size,
+      bytes: bytes,
+      analysis: analysis,
+      outputUrl: '',
+      outputName: '',
+      remaining: [],
+      busy: false
+    };
+    renderFileResult();
+    setStatus(analysis.total
+      ? analysis.total + ' ' + plural(analysis.total, 'metadata item', 'metadata items') + ' found in this ' + analysis.label + ' file. Nothing was uploaded. Check the list, tick the box, then generate a clean copy.'
+      : 'No readable metadata found in this ' + analysis.label + ' file. You can still generate a clean copy. Nothing was uploaded.', analysis.total ? 'warn' : 'info');
+  }
+
+  async function processFileClean() {
+    if (!state.file.bytes || !state.file.ext) return;
+    var F = window.WSFile;
+    if (!F) return;
+    var token = fileToken;
+    var button = $('file-generate');
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Cleaning…';
+    }
+    setStatus('Building the cleaned copy in this tab…', 'info');
+    var result;
+    try {
+      result = await F.clean(state.file.bytes, state.file.ext);
+    } catch (e) {
+      result = { ok: false, message: 'The local engine could not clean this file. Nothing was uploaded or downloaded.' };
+    }
+    if (fileStale(token)) return;
+    if (!result.ok) {
+      if (button) {
+        button.disabled = false;
+        button.textContent = 'Generate clean copy';
+      }
+      setStatus(result.message, 'alert');
+      return;
+    }
+
+    var outputUrl;
+    try {
+      outputUrl = URL.createObjectURL(new Blob([result.bytes], { type: result.mime || 'application/octet-stream' }));
+    } catch (e) {
+      setStatus('The browser could not prepare the cleaned copy in memory. Nothing was uploaded or downloaded. Try again.', 'alert');
+      return;
+    }
+    releaseFileOutput();
+    state.file.outputUrl = outputUrl;
+    state.file.outputName = result.outputName;
+    state.file.remaining = result.remaining || [];
+    state.file.remainingGroups = result.remainingGroups || [];
+    renderFileResult();
+    setStatus('Cleaned copy ready: ' + result.outputName + '. Nothing was uploaded. The download starts only when you press its button.', state.file.remaining.length ? 'warn' : 'info');
+  }
+
+  function bindFile() {
+    if ($('file-input')) $('file-input').addEventListener('change', function () {
+      var files = this.files;
+      if (!files || !files.length) return;
+      if (files.length > 1) {
+        fileFailure('Choose one file at a time. Nothing was processed.');
+        return;
+      }
+      processFileIntake(files[0]);
+    });
+    if ($('clear-session-file')) $('clear-session-file').addEventListener('click', clearSession);
+    var zone = $('file-drop');
+    if (!zone) return;
+    ['dragenter', 'dragover'].forEach(function (name) {
+      zone.addEventListener(name, function (event) {
+        event.preventDefault();
+        zone.classList.add('is-dragover');
+      });
+    });
+    ['dragleave', 'dragend', 'drop'].forEach(function (name) {
+      zone.addEventListener(name, function (event) {
+        event.preventDefault();
+        zone.classList.remove('is-dragover');
+      });
+    });
+    zone.addEventListener('drop', function (event) {
+      var files = event.dataTransfer && event.dataTransfer.files;
+      if (!files || !files.length) {
+        setStatus('The drop did not contain a file. Use the file field to choose a PDF, DOCX, XLSX or PPTX file.', 'warn');
+        return;
+      }
+      if (files.length > 1) {
+        fileFailure('Choose one file at a time. Nothing was processed.');
+        return;
+      }
+      processFileIntake(files[0]);
+    });
+  }
+
+  function intakeFailure(message) {
+    setStatus(message, 'warn');
+  }
+
+  function handleIntake(result) {
+    if (!result || result.kind === 'empty') {
+      intakeFailure('Nothing to identify. Drop a file, paste text or paste a link.');
+      return;
+    }
+    if (!result.mode) {
+      if (result.kind === 'multiple') intakeFailure('One file at a time. Nothing was processed.');
+      else if (result.reason === 'legacy-office') intakeFailure('Old Office files (.doc, .xls, .ppt) are not supported. Save the file as .docx, .xlsx or .pptx, then try again.');
+      else if (result.reason === 'unsupported-image') intakeFailure('Image mode handles JPEG, PNG and WebP only. This file was not processed.');
+      else intakeFailure('That file type is not recognised. Use PDF, DOCX, XLSX or PPTX; JPEG, PNG or WebP; text; or one link.');
+      return;
+    }
+
+    var target = result.mode;
+    if (target === state.mode) {
+      if (hasContent() && !window.confirm('Replace the current content with the new ' + target + ' input? Continue?')) return;
+      clearContent();
+    } else if (!activateMode(target)) {
+      return;
+    }
+
+    if (result.kind === 'text') {
+      $('draft').value = result.text;
+      setStatus('Recognised as text. Switched to Text mode. Nothing was uploaded. Press Inspect locally to check it.', 'info');
+      $('draft').focus();
+    } else if (result.kind === 'url') {
+      $('link-url').value = result.url;
+      setStatus('Recognised as a link. Switched to Link mode. Nothing was opened or contacted.', 'info');
+      $('link-url').focus();
+    } else if (result.kind === 'image') {
+      processImage(result.file, 'Recognised as an image. Switched to Image mode. Nothing was uploaded.');
+    } else if (result.kind === 'file') {
+      processFileIntake(result.file, 'Recognised as a ' + result.ext.toUpperCase() + ' file. Switched to File mode. Nothing was uploaded.');
+    }
+  }
+
+  function intakeFiles(list) {
+    var files = [];
+    if (list) for (var i = 0; i < list.length; i++) if (list[i]) files.push(list[i]);
+    if (!files.length) {
+      intakeFailure('The drop did not contain a file or text.');
+      return;
+    }
+    if (!window.WSIntake) {
+      intakeFailure('The intake checks did not load. Reload the page and try again.');
+      return;
+    }
+    handleIntake(window.WSIntake.classify({ files: files }));
+  }
+
+  function bindIntake() {
+    var input = $('intake-file');
+    if (input) input.addEventListener('change', function () {
+      var files = this.files;
+      if (files && files.length) intakeFiles(files);
+      this.value = '';
+    });
+    var zone = $('intake-drop');
+    if (zone) {
+      ['dragenter', 'dragover'].forEach(function (name) {
+        zone.addEventListener(name, function (event) {
+          event.preventDefault();
+          zone.classList.add('is-dragover');
+        });
+      });
+      ['dragleave', 'dragend'].forEach(function (name) {
+        zone.addEventListener(name, function () { zone.classList.remove('is-dragover'); });
+      });
+      zone.addEventListener('drop', function (event) {
+        event.preventDefault();
+        zone.classList.remove('is-dragover');
+      });
+    }
+
+    document.addEventListener('paste', function (event) {
+      var target = event.target;
+      var tag = target && target.tagName ? target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || (target && target.isContentEditable)) return;
+      var data = event.clipboardData;
+      if (!data) return;
+      if (data.files && data.files.length) {
+        event.preventDefault();
+        intakeFiles(data.files);
+        return;
+      }
+      var text = data.getData('text/plain');
+      if (text) {
+        event.preventDefault();
+        handleIntake(window.WSIntake ? window.WSIntake.classify(text) : null);
+      }
+    });
+
+    document.addEventListener('dragover', function (event) {
+      if (event.dataTransfer && Array.prototype.indexOf.call(event.dataTransfer.types || [], 'Files') >= 0) event.preventDefault();
+    });
+    document.addEventListener('drop', function (event) {
+      var target = event.target;
+      if (target && target.closest && target.closest('#image-drop, #file-drop')) return;
+      var data = event.dataTransfer;
+      if (!data) return;
+      if (data.files && data.files.length) {
+        event.preventDefault();
+        intakeFiles(data.files);
+        return;
+      }
+      var text = data.getData('text/plain');
+      if (text) {
+        event.preventDefault();
+        handleIntake(window.WSIntake ? window.WSIntake.classify(text) : null);
+      }
+    });
+  }
+
   function bindText() {
     if ($('inspect-text')) $('inspect-text').addEventListener('click', inspectText);
     if ($('draft')) {
@@ -1078,9 +1538,11 @@
     var app = $('workspace-app');
     if (app) app.hidden = false;
     bindTabs();
+    bindIntake();
     bindText();
     bindLink();
     bindImage();
+    bindFile();
     if (window.WSAI) {
       window.WSAI.init({
         onReady: function () {
@@ -1104,6 +1566,7 @@
       var params = new URLSearchParams(window.location.search);
       if (params.get('mode') === 'link') mode = 'link';
       else if (params.get('mode') === 'image') mode = 'image';
+      else if (params.get('mode') === 'file') mode = 'file';
     } catch (e) { /* keep text */ }
     activateMode(mode, true);
     window.addEventListener('pagehide', clearForExit);

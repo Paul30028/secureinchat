@@ -1117,8 +1117,8 @@ write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 
   // DM Sans / DM Mono are self-hosted only. They are not in the repository yet, so the page keeps
   // the system stack until these files are added; @font-face in workspace.css points at /fonts/.
   const hasWorkspaceFonts = WS_FONTS.every((f) => fs.existsSync(path.join(WS_FONT_DIR, f)));
-  const wsTitle = 'Private workspace: check text, links and images before you send | SecureInChat';
-  const wsDesc = 'Inspect text, a link or an image in your browser before you share it. Local pattern checks for emails, phone numbers, IDs, access keys and cards; local URL structure and tracking-parameter review; local JPEG, PNG and WebP re-encoding. No upload, no storage, no automatic send, open or download.';
+  const wsTitle = 'Private workspace: check text, links, images and documents before you send | SecureInChat';
+  const wsDesc = 'Drop in text, a link, an image or a PDF/Office document and this page picks the right mode. Local pattern checks, URL structure, JPEG/PNG/WebP re-encoding, and PDF/DOCX/XLSX/PPTX metadata review with WebAssembly. No upload, no storage, no automatic send, open or download.';
   const wsJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
@@ -1130,7 +1130,7 @@ write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 
     isAccessibleForFree: true,
     description: wsDesc,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    featureList: ['Local text pattern review with category-level replacement preview', 'Local link structure review with tracking-parameter and session-like key flags', 'Local JPEG, PNG and WebP re-encode with a user-triggered download', 'No upload, no account, no storage'],
+    featureList: ['One drop or paste area that recognises text, a link, an image or a PDF/Office file and switches modes', 'Local text pattern review with category-level replacement preview', 'Local link structure review with tracking-parameter and session-like key flags', 'Local JPEG, PNG and WebP re-encode with a user-triggered download', 'Local PDF, DOCX, XLSX and PPTX metadata review with a cleaned copy and a user-triggered download', 'No upload, no account, no storage'],
   };
   const wsMeta = `  <link rel="canonical" href="${SITE}/workspace/" />
   <meta property="og:type" content="website" />
@@ -1168,7 +1168,7 @@ write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 
     for (const f of WS_FONTS) write('fonts/' + f, fs.readFileSync(path.join(WS_FONT_DIR, f)));
   }
   write('workspace/index.html', wsHtml);
-  for (const f of ['workspace.css', 'workspace.js', 'text-review.js', 'link-review.js', 'image-review.js', 'receipt.js', 'ai-review.js']) {
+  for (const f of ['workspace.css', 'workspace.js', 'text-review.js', 'link-review.js', 'image-review.js', 'intake.js', 'file-review.js', 'receipt.js', 'ai-review.js']) {
     write('workspace/assets/' + f, fs.readFileSync(path.join(WS_DIR, f)));
   }
   // Local AI assets live only in public/workspace/ai/ (written by build/build-ai.mjs,
