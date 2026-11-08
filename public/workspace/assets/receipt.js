@@ -52,13 +52,14 @@
   ];
 
   var METHODS = {
-    text: 'Local pattern matching for a limited set of common formats. It is not semantic review; names, addresses, context and unusual formats can be missed.',
+    text: 'Local pattern matching for a limited set of common formats. It is not semantic review; names, addresses, context and unusual formats can be missed. When the optional local AI is enabled, an English-only on-device model suggests additional items, each confirmed by the user.',
     link: 'Local parsing of the URL structure. The page did not open, contact or follow the link, and it cannot tell whether the destination is safe.',
     image: 'Local in-browser re-encode of one JPEG, PNG or WebP image. It drops most metadata chunks but does not prove every block is gone, and it does not inspect faces, house numbers, screens or anything else visible in the picture.'
   };
 
   var TEXT_CATEGORIES = ['key', 'email', 'id', 'card', 'phone', 'ipv4'];
   var LINK_COUNTS = ['queryParameters', 'trackingParameters', 'reviewParameters', 'fragmentReview'];
+  var MODEL_VERSION_RE = /^[A-Za-z0-9._-]{1,32}$/;
 
   function cloneRecipient(item) {
     return { id: item.id, label: item.label, tips: item.tips.slice() };
@@ -89,6 +90,16 @@
       out = { counts: {} };
       for (i = 0; i < TEXT_CATEGORIES.length; i++) {
         out.counts[TEXT_CATEGORIES[i]] = count(source[TEXT_CATEGORIES[i]]);
+      }
+      // Optional local AI: aggregate counts and the model version only. No text, snippet,
+      // entity value, label value or span is ever copied from the caller.
+      if (s.ai && typeof s.ai === 'object') {
+        var version = String(s.ai.modelVersion === undefined || s.ai.modelVersion === null ? '' : s.ai.modelVersion);
+        out.ai = {
+          suggested: count(s.ai.suggested),
+          accepted: count(s.ai.accepted),
+          modelVersion: MODEL_VERSION_RE.test(version) ? version : ''
+        };
       }
       return out;
     }

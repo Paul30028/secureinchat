@@ -1142,12 +1142,33 @@ write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 
   <meta name="twitter:card" content="summary" />
   <script type="application/ld+json">${JSON.stringify(wsJsonLd)}</script>`;
   let wsHtml = fs.readFileSync(path.join(WS_DIR, 'workspace.html'), 'utf8').replace('<!-- WORKSPACE_META -->', wsMeta);
+  // The AI block shows the real model size before any network request. Read it once at build
+  // time from the committed manifest instead of fetching the manifest on page load.
+  let aiBytes = '';
+  let aiVersion = '';
+  const aiManifest = path.join(PUB, 'workspace/ai/manifest.json');
+  if (fs.existsSync(aiManifest)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(aiManifest, 'utf8'));
+      // Show what enabling the AI really downloads: model shards + tokenizer + config + WASM runtime + worker,
+      // not only the model weights (honest size next to the button).
+      const listed = [...(manifest.tokenizerFiles || []), ...(manifest.configFiles || []), ...((manifest.runtime && manifest.runtime.files) || [])];
+      const workerPath = path.join(PUB, 'workspace', 'ai', 'ai-worker.js');
+      const workerBytes = fs.existsSync(workerPath) ? fs.statSync(workerPath).size : 0;
+      const downloadBytes = (manifest.totalBytes || 0) + listed.reduce((n, f) => n + (Number(f.bytes) || 0), 0) + workerBytes;
+      if (Number.isSafeInteger(downloadBytes) && downloadBytes > 0) aiBytes = String(downloadBytes);
+      if (typeof manifest.version === 'string') aiVersion = manifest.version;
+    } catch (e) {
+      // Leave the placeholders empty; the block says the size is unavailable and the AI still loads.
+    }
+  }
+  wsHtml = wsHtml.replace('<!-- AI_TOTAL_BYTES -->', aiBytes).replace('<!-- AI_VERSION -->', aiVersion);
   if (hasWorkspaceFonts) {
     wsHtml = wsHtml.replace('<html lang="en">', '<html lang="en" class="has-dm">');
     for (const f of WS_FONTS) write('fonts/' + f, fs.readFileSync(path.join(WS_FONT_DIR, f)));
   }
   write('workspace/index.html', wsHtml);
-  for (const f of ['workspace.css', 'workspace.js', 'text-review.js', 'link-review.js', 'image-review.js', 'receipt.js']) {
+  for (const f of ['workspace.css', 'workspace.js', 'text-review.js', 'link-review.js', 'image-review.js', 'receipt.js', 'ai-review.js']) {
     write('workspace/assets/' + f, fs.readFileSync(path.join(WS_DIR, f)));
   }
   // Local AI assets live only in public/workspace/ai/ (written by build/build-ai.mjs,

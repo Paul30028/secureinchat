@@ -111,6 +111,26 @@
                 <button class="btn btn--primary" id="inspect-text" type="button">Inspect locally</button>
                 <button class="btn" id="clear-session" type="button">Clear session</button>
               </div>
+              <section class="ai-block" id="ai-block" aria-labelledby="ai-title" data-ai-bytes="97975696" data-ai-version="1.0.0">
+                <h3 id="ai-title">Local AI check (English)</h3>
+                <p class="ai-copy">Run a small AI model in your browser to find names, addresses, organisations and other details the rules miss. The model is about <strong id="ai-size">the size shown on its manifest</strong>. It downloads only from this site and works offline afterwards. Your text never leaves this page: the model runs here, and nothing about the text is sent, logged or stored.</p>
+                <p class="ai-copy ai-copy--small">Off by default. Nothing is downloaded until you press the button below.</p>
+                <button class="btn" id="ai-enable" type="button" hidden>Download and enable</button>
+                <p class="hint" id="ai-unsupported" hidden>Your browser does not support local AI. The rule checks still work.</p>
+                <div class="ai-progress-wrap" id="ai-progress-wrap" hidden>
+                  <div class="ai-progress" id="ai-progress" role="progressbar" aria-label="Downloading the local AI model" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="ai-progress__bar" id="ai-progress-bar"></span></div>
+                  <p class="hint" id="ai-progress-label" role="status" aria-live="polite">0%</p>
+                </div>
+                <p class="hint" id="ai-ready" hidden></p>
+                <div class="actions actions--tight" id="ai-actions" hidden>
+                  <button class="btn btn--small" id="ai-delete" type="button">Delete model</button>
+                </div>
+                <p class="hint" id="ai-status" role="status" aria-live="polite"></p>
+                <div class="ai-honesty">
+                  <strong>What our test showed</strong>
+                  <p>In our test with 80 English samples, it found about 80% of the personal information, and about 85% of what it found was correct. It will miss some and flag some wrongly, so confirm every item. It supports English only for now; Chinese and other languages still use the rule checks.</p>
+                </div>
+              </section>
               <div class="undo-bar" id="undo-bar" hidden><span>Draft replaced with the cleaned preview.</span><button class="btn btn--small" id="undo-draft" type="button">Undo last replacement</button></div>
             </div>
             <div id="panel-link" role="tabpanel" aria-labelledby="tab-link" tabindex="0" hidden>
@@ -146,6 +166,7 @@
             <p class="status" id="status" role="status" aria-live="polite" aria-atomic="true" data-tone="info">Ready. Nothing is uploaded.</p>
             <div class="results">
               <div class="result" id="text-result" role="region" aria-label="Text inspection result" hidden></div>
+              <div class="result ai-result" id="ai-result" role="region" aria-label="AI suggestions" hidden></div>
               <div class="result" id="link-result" role="region" aria-label="Link inspection result" hidden></div>
               <div class="result" id="image-result" role="region" aria-label="Image re-encode result" hidden></div>
             </div>
@@ -194,6 +215,7 @@
             <li>IPv4 addresses.</li>
           </ul>
           <p>Names, street addresses, account numbers in other formats, context and secrets in other formats are not detected.</p>
+          <p>You can optionally download a small local AI model that suggests English names, addresses, organisations and a few other items. It is off by default, the download comes from this site only, and every suggestion is unchecked until you confirm it. Our test with 80 English samples found about 80% of the personal information, and about 85% of what it found was correct; it misses some and flags some wrongly. Chinese and other languages still use the rules only.</p>
         </article>
         <article class="limit-card">
           <h3>Link mode: structure, not a safety verdict</h3>
@@ -219,7 +241,7 @@
       </div>
       <div class="boundary">
         <h3>Where the data goes</h3>
-        <p>The workspace runs in this tab. The page code makes no network request after it loads and uses no localStorage, sessionStorage or cookies. Your text, link or image state is cleared when you switch modes, press Clear session, or leave the page. Copy, replacement and download happen only when you press the relevant button. The in-memory download URL is revoked on the same clear, mode switch or exit; a file you have already downloaded is outside this page. The page loads its own CSS, JavaScript and, when present, self-hosted font files from this site.</p>
+        <p>Until you turn on the optional local AI, the workspace makes no network request after it loads, and it uses no localStorage, sessionStorage or cookies. The local AI stays off until you press its download button; when you do, the model files (about the size shown in that block) come from this site only, are cached in this browser and can run offline. Your text is processed in a worker on this page and is never uploaded. Your text, link or image state is cleared when you switch modes, press Clear session, or leave the page; switching modes or clearing keeps the cached model, while Delete model removes it. Copy, replacement and download happen only when you press the relevant button. The in-memory download URL is revoked on the same clear, mode switch or exit; a file you have already downloaded is outside this page. The page loads its own CSS, JavaScript and, when present, self-hosted font files from this site.</p>
       </div>
     </div>
   </section>
@@ -265,6 +287,7 @@
   </div>
 </footer>
 <script src="/workspace/assets/text-review.js" defer></script>
+<script src="/workspace/assets/ai-review.js" defer></script>
 <script src="/workspace/assets/link-review.js" defer></script>
 <script src="/workspace/assets/image-review.js" defer></script>
 <script src="/workspace/assets/receipt.js" defer></script>

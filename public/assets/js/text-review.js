@@ -193,6 +193,19 @@
   var BY_ID = {};
   for (var r = 0; r < RULES.length; r++) BY_ID[RULES[r].id] = RULES[r];
 
+  // Placeholder names for items the user confirmed from the optional local AI. Labels are
+  // the model's own English labels; anything unknown is replaced as a generic AI item.
+  var AI_PLACEHOLDERS = {
+    'person': 'PERSON',
+    'street address': 'ADDRESS',
+    'city': 'CITY',
+    'organization': 'ORG',
+    'date of birth': 'DOB',
+    'bank account number': 'BANK',
+    'passport number': 'PASSPORT',
+    'username': 'USERNAME'
+  };
+
   function overlaps(list, start, end) {
     for (var i = 0; i < list.length; i++) {
       if (start < list[i][1] && end > list[i][0]) return true;
@@ -249,6 +262,35 @@
     return new Set();
   }
 
+  // Accepts only confirmed AI suggestions with exact span boundaries. Anything malformed,
+  // empty or overlapping a rule match is ignored, so a caller cannot inject a replacement.
+  function normalizeExtra(extra, text, matches) {
+    if (Object.prototype.toString.call(extra) !== '[object Array]') return [];
+    var out = [], i, j;
+    for (i = 0; i < extra.length; i++) {
+      var item = extra[i];
+      if (!item || typeof item !== 'object') continue;
+      var start = Number(item.start), end = Number(item.end);
+      if (!Number.isInteger(start) || !Number.isInteger(end)) continue;
+      if (start < 0 || end <= start || end > text.length) continue;
+      var value = text.slice(start, end);
+      if (!value) continue;
+      var label = typeof item.label === 'string' ? item.label : '';
+      var clash = false;
+      for (j = 0; j < matches.length; j++) {
+        if (start < matches[j].end && end > matches[j].start) { clash = true; break; }
+      }
+      if (!clash) {
+        for (j = 0; j < out.length; j++) {
+          if (start < out[j].end && end > out[j].start) { clash = true; break; }
+        }
+      }
+      if (clash) continue;
+      out.push({ ai: true, label: label, start: start, end: end, value: value });
+    }
+    return out;
+  }
+
   function categoryRows(matches, selected) {
     var rows = [];
     for (var i = 0; i < RULES.length; i++) {
@@ -272,18 +314,33 @@
     return { ok: true, total: matches.length, length: s.length, categories: categoryRows(matches, new Set(RULES.map(function (x) { return x.id; }))) };
   }
 
-  function redact(text, enabled) {
+  function redact(text, enabled, extra) {
     var s = text === undefined || text === null ? '' : String(text);
     var selected = normalizeEnabled(enabled);
     if (s.length > LIMIT) {
-      return { ok: false, error: 'too-long', limit: LIMIT, length: s.length, text: s, total: 0, changed: 0, categories: [] };
+      return { ok: false, error: 'too-long', limit: LIMIT, length: s.length, text: s, total: 0, changed: 0, categories: [], aiReplaced: 0 };
     }
     var matches = collect(s);
-    var counters = {}, values = {}, out = '', cursor = 0, replaced = 0;
-    for (var i = 0; i < matches.length; i++) {
-      var m = matches[i];
+    var items = matches.map(function (m) {
+      return { ai: false, rule: m.rule, start: m.start, end: m.end, value: m.value };
+    }).concat(normalizeExtra(extra, s, matches));
+    items.sort(function (a, b) { return a.start - b.start; });
+    var counters = {}, aiCounters = {}, values = {}, out = '', cursor = 0, replaced = 0, aiReplaced = 0;
+    for (var i = 0; i < items.length; i++) {
+      var m = items[i];
+      if (m.start < cursor) continue;
       out += s.slice(cursor, m.start);
-      if (selected.has(m.rule)) {
+      if (m.ai) {
+        var aiKey = m.label + '\u0000' + m.value;
+        if (!Object.prototype.hasOwnProperty.call(values, 'ai\u0000' + aiKey)) {
+          var tag = AI_PLACEHOLDERS[m.label] || 'AI';
+          aiCounters[tag] = (aiCounters[tag] || 0) + 1;
+          values['ai\u0000' + aiKey] = '[' + tag + '_' + aiCounters[tag] + ']';
+        }
+        out += values['ai\u0000' + aiKey];
+        replaced++;
+        aiReplaced++;
+      } else if (selected.has(m.rule)) {
         var key = m.rule + '\u0000' + m.value;
         if (!Object.prototype.hasOwnProperty.call(values, key)) {
           counters[m.rule] = (counters[m.rule] || 0) + 1;
@@ -303,8 +360,18 @@
       total: replaced,
       detected: matches.length,
       changed: replaced,
+      aiReplaced: aiReplaced,
       categories: categoryRows(matches, selected)
     };
+  }
+
+  // Rule match spans only. Used to keep the optional AI suggestions from repeating a rule match.
+  function locate(text) {
+    var s = text === undefined || text === null ? '' : String(text);
+    if (s.length > LIMIT) return [];
+    return collect(s).map(function (m) {
+      return { start: m.start, end: m.end, value: m.value, rule: m.rule };
+    });
   }
 
   return {
@@ -312,6 +379,7 @@
     RULES: RULES.map(cloneRule),
     analyze: analyze,
     redact: redact,
+    locate: locate,
     luhn: luhn,
     cnIdOk: cnIdOk,
     ipv4Ok: ipv4Ok

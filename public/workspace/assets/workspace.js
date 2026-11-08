@@ -12,9 +12,13 @@
       afterSize: 0, width: 0, height: 0, outputUrl: '', outputName: '', busy: false
     };
   }
+  function emptyAi() {
+    return { token: 0, entities: [], selected: new Set(), done: false };
+  }
   var state = {
     mode: 'text',
-    text: { source: '', analysis: null, selected: new Set(), preview: '', undo: [] },
+    text: { source: '', analysis: null, selected: new Set(), preview: '', undo: [], spans: [] },
+    ai: emptyAi(),
     link: { raw: '', analysis: null },
     image: emptyImage(),
     receipt: null
@@ -140,11 +144,33 @@
     setHidden(bar, state.text.undo.length === 0);
   }
 
+  function emptyText() {
+    return { source: '', analysis: null, selected: new Set(), preview: '', undo: [], spans: [] };
+  }
+
   function hideTextResult() {
     var host = $('text-result');
     if (!host) return;
     host.hidden = true;
     clearNode(host);
+  }
+
+  function hideAiResult() {
+    var host = $('ai-result');
+    if (!host) return;
+    host.hidden = true;
+    clearNode(host);
+  }
+
+  // Clears suggestions and the pending request, but leaves the loaded model in place.
+  function resetAiResults() {
+    state.ai.token++;
+    state.ai = emptyAi();
+    hideAiResult();
+    if (window.WSAI && window.WSAI.isReady()) {
+      var note = $('ai-status');
+      if (note) note.textContent = '';
+    }
   }
 
   function hideLinkResult() {
@@ -185,7 +211,8 @@
     var draft = $('draft'), link = $('link-url');
     if (draft) draft.value = '';
     if (link) link.value = '';
-    state.text = { source: '', analysis: null, selected: new Set(), preview: '', undo: [] };
+    state.text = emptyText();
+    resetAiResults();
     state.link = { raw: '', analysis: null };
     resetImage();
     hideTextResult();
@@ -207,12 +234,14 @@
       var draft = $('draft'), link = $('link-url');
       if (draft) draft.value = '';
       if (link) link.value = '';
-      state.text = { source: '', analysis: null, selected: new Set(), preview: '', undo: [] };
+      state.text = emptyText();
+      resetAiResults();
       state.link = { raw: '', analysis: null };
       resetImage();
       hideTextResult();
       hideLinkResult();
       clearReceipt();
+      if (window.WSAI) window.WSAI.terminate();
     } catch (e) { /* the page is leaving */ }
   }
 
@@ -267,6 +296,12 @@
     return count + ' ' + plural(count, 'match', 'matches');
   }
 
+  function selectedAiEntities() {
+    return state.ai.entities.filter(function (entity) {
+      return state.ai.selected.has(entity.start + ':' + entity.end);
+    });
+  }
+
   function updateTextPreview() {
     var source = state.text.source;
     var preview = $('clean-preview');
@@ -275,26 +310,31 @@
     var actions = $('preview-actions');
     if (!source || !preview) return;
 
-    if (state.text.selected.size === 0) {
+    if (state.text.selected.size === 0 && state.ai.selected.size === 0) {
       state.text.preview = '';
       preview.value = '';
       setHidden(preview, true);
       setHidden(actions, true);
       setHidden(empty, false);
       if (empty) empty.textContent = 'No categories selected. Nothing will be replaced in the preview.';
-      if (note) note.textContent = 'Choose at least one category to build a preview.';
+      if (note) note.textContent = 'Choose at least one category or AI suggestion to build a preview.';
       return;
     }
 
-    var result = window.WSText.redact(source, state.text.selected);
+    var result = window.WSText.redact(source, state.text.selected, selectedAiEntities());
     state.text.preview = result.ok ? result.text : '';
     preview.value = state.text.preview;
     setHidden(preview, false);
     setHidden(actions, false);
     setHidden(empty, true);
-    var selectedCount = result.categories.reduce(function (n, c) { return n + (state.text.selected.has(c.id) ? c.replaced : 0); }, 0);
-    var selectedTypes = result.categories.filter(function (c) { return state.text.selected.has(c.id) && c.replaced > 0; }).length;
-    if (note) note.textContent = selectedCount + ' ' + plural(selectedCount, 'match', 'matches') + ' in ' + selectedTypes + ' ' + plural(selectedTypes, 'category', 'categories') + ' will be replaced in this preview. Your draft has not changed.';
+    var ruleCount = result.categories.reduce(function (n, c) { return n + (state.text.selected.has(c.id) ? c.replaced : 0); }, 0);
+    var aiCount = result.aiReplaced || 0;
+    var selectedCount = ruleCount + aiCount;
+    if (note) {
+      note.textContent = selectedCount + ' ' + plural(selectedCount, 'match', 'matches') +
+        (aiCount ? ' (including ' + aiCount + ' confirmed AI ' + plural(aiCount, 'suggestion', 'suggestions') + ')' : '') +
+        ' will be replaced in this preview. Your draft has not changed.';
+    }
     var changed = state.text.preview !== source;
     if ($('copy-preview')) $('copy-preview').disabled = !changed;
     if ($('use-preview')) $('use-preview').disabled = !changed;
@@ -321,31 +361,31 @@
       ? 'These are common formats, not a complete review. Names, addresses, context and unusual formats can be missed.'
       : 'That does not mean the text is free of personal information. The rules only cover a few common formats.'));
 
-    if (!analysis.total) return;
+    if (analysis.total) {
+      var group = make('fieldset', 'category-group');
+      group.appendChild(make('legend', null, 'Choose which categories to replace'));
+      var hint = make('p', 'hint', 'Suggested categories are checked. Nothing is replaced until you copy the preview or choose to use it in the draft.');
+      hint.id = 'category-hint';
+      group.appendChild(hint);
 
-    var group = make('fieldset', 'category-group');
-    group.appendChild(make('legend', null, 'Choose which categories to replace'));
-    var hint = make('p', 'hint', 'Suggested categories are checked. Nothing is replaced until you copy the preview or choose to use it in the draft.');
-    hint.id = 'category-hint';
-    group.appendChild(hint);
-
-    analysis.categories.filter(function (c) { return c.count > 0; }).forEach(function (category) {
-      var label = make('label', 'rule-row');
-      var input = document.createElement('input');
-      input.type = 'checkbox';
-      input.id = 'cat-' + category.id;
-      input.value = category.id;
-      input.checked = state.text.selected.has(category.id);
-      input.addEventListener('change', onCategoryChange);
-      label.appendChild(input);
-      var text = make('span', 'rule-label');
-      text.appendChild(make('strong', null, category.label));
-      text.appendChild(make('small', null, textCategoryLabel(category.count)));
-      label.appendChild(text);
-      label.appendChild(make('span', 'rule-count', String(category.count)));
-      group.appendChild(label);
-    });
-    host.appendChild(group);
+      analysis.categories.filter(function (c) { return c.count > 0; }).forEach(function (category) {
+        var label = make('label', 'rule-row');
+        var input = document.createElement('input');
+        input.type = 'checkbox';
+        input.id = 'cat-' + category.id;
+        input.value = category.id;
+        input.checked = state.text.selected.has(category.id);
+        input.addEventListener('change', onCategoryChange);
+        label.appendChild(input);
+        var text = make('span', 'rule-label');
+        text.appendChild(make('strong', null, category.label));
+        text.appendChild(make('small', null, textCategoryLabel(category.count)));
+        label.appendChild(text);
+        label.appendChild(make('span', 'rule-count', String(category.count)));
+        group.appendChild(label);
+      });
+      host.appendChild(group);
+    }
 
     var previewBlock = make('div', 'preview-block');
     previewBlock.appendChild(make('h4', null, 'Cleaned preview'));
@@ -384,12 +424,116 @@
     updateTextPreview();
   }
 
+  function updateAiReceipt() {
+    if (!state.receipt || !state.receipt.summary || !state.ai.done) return;
+    state.receipt.summary.ai = {
+      suggested: state.ai.entities.length,
+      accepted: state.ai.selected.size,
+      modelVersion: window.WSAI ? window.WSAI.version() : ''
+    };
+  }
+
+  function onAiSuggestionChange() {
+    if (this.checked) state.ai.selected.add(this.value);
+    else state.ai.selected.delete(this.value);
+    updateTextPreview();
+    updateAiReceipt();
+  }
+
+  function aiLabel(label) {
+    var allowed = window.WSAI ? window.WSAI.LABELS : [];
+    return allowed.indexOf(label) >= 0 ? label : '';
+  }
+
+  function renderAiResult() {
+    var host = $('ai-result');
+    if (!host) return;
+    clearNode(host);
+    if (!state.ai.done) { host.hidden = true; return; }
+    host.hidden = false;
+
+    var title = make('h3', 'result-title', 'AI suggestions (please confirm)');
+    title.id = 'ai-result-title';
+    host.appendChild(title);
+    host.appendChild(make('p', 'result-note', 'These are model guesses, not confirmed facts. Every item starts unchecked; tick it to add that text to the replacement preview. Suggestions that overlap a rule match are not shown again.'));
+
+    if (!state.ai.entities.length) {
+      host.appendChild(make('p', 'result-note', 'The model suggested nothing beyond the rule matches. It can still miss names, addresses and other details, and this is not a clean bill of health.'));
+      return;
+    }
+
+    var group = make('fieldset', 'ai-group');
+    group.appendChild(make('legend', null, 'AI suggestions (please confirm)'));
+    host.appendChild(group);
+    state.ai.entities.forEach(function (entity, index) {
+      var key = entity.start + ':' + entity.end;
+      var label = make('label', 'ai-row');
+      var input = document.createElement('input');
+      input.type = 'checkbox';
+      input.id = 'ai-sug-' + index;
+      input.value = key;
+      input.checked = state.ai.selected.has(key);
+      input.addEventListener('change', onAiSuggestionChange);
+      label.appendChild(input);
+      var body = make('span', 'ai-row__body');
+      body.appendChild(make('span', 'ai-row__text', entity.text));
+      body.appendChild(make('span', 'ai-row__meta', entity.label));
+      label.appendChild(body);
+      label.appendChild(make('span', 'ai-row__score', Math.round(entity.score * 100) + '%'));
+      group.appendChild(label);
+    });
+  }
+
+  function runAi(source) {
+    if (!window.WSAI || !window.WSAI.isReady()) return;
+    var token = ++state.ai.token;
+    state.ai.entities = [];
+    state.ai.selected = new Set();
+    state.ai.done = false;
+    hideAiResult();
+    var note = $('ai-status');
+    if (note) note.textContent = 'The local model is checking this text in your browser…';
+    var rules = state.text.spans || [];
+    window.WSAI.detect(source, function (entities) {
+      if (token !== state.ai.token || state.text.source !== source) return;
+      var clean = [];
+      (entities || []).forEach(function (entity) {
+        if (!entity || typeof entity.start !== 'number' || typeof entity.end !== 'number') return;
+        if (entity.start < 0 || entity.end <= entity.start || entity.end > source.length) return;
+        if (!(entity.score >= 0.4) || !aiLabel(entity.label)) return;
+        if (source.slice(entity.start, entity.end) !== entity.text) return;
+        for (var r = 0; r < rules.length; r++) {
+          if (entity.start < rules[r].end && entity.end > rules[r].start) return;
+        }
+        for (var c = 0; c < clean.length; c++) {
+          if (entity.start < clean[c].end && entity.end > clean[c].start) return;
+        }
+        clean.push({ start: entity.start, end: entity.end, text: entity.text, label: entity.label, score: entity.score });
+      });
+      clean.sort(function (a, b) { return a.start - b.start; });
+      state.ai.entities = clean;
+      state.ai.done = true;
+      renderAiResult();
+      updateAiReceipt();
+      if (note) {
+        note.textContent = clean.length
+          ? 'The local AI suggested ' + clean.length + ' ' + plural(clean.length, 'item', 'items') + '. None is selected until you tick it.'
+          : 'The local AI suggested nothing beyond the rule matches. It can still miss things.';
+      }
+    }, function (message) {
+      if (token !== state.ai.token) return;
+      state.ai.done = false;
+      if (note) note.textContent = message || 'The local model could not check this text. The rule results above still stand.';
+    });
+  }
+
   function inspectText() {
     clearReceipt();
     var source = $('draft').value;
     if (!source.trim()) {
       setStatus('Paste some text first. Nothing was inspected.', 'warn');
       hideTextResult();
+      resetAiResults();
       return;
     }
     var analysis = window.WSText.analyze(source);
@@ -398,9 +542,11 @@
       setStatus('That text is ' + analysis.length.toLocaleString('en-US') + ' characters. The local limit is ' + analysis.limit.toLocaleString('en-US') + '. Split it into smaller parts.', 'alert');
       return;
     }
+    resetAiResults();
     state.text.source = source;
     state.text.analysis = analysis;
     state.text.selected = new Set(analysis.categories.filter(function (c) { return c.count > 0; }).map(function (c) { return c.id; }));
+    state.text.spans = typeof window.WSText.locate === 'function' ? window.WSText.locate(source) : [];
     state.text.preview = '';
     renderTextResult();
     var types = analysis.categories.filter(function (c) { return c.count > 0; }).length;
@@ -410,6 +556,7 @@
     var counts = {};
     analysis.categories.forEach(function (category) { counts[category.id] = category.count; });
     offerReceipt('text', { counts: counts });
+    runAi(source);
   }
 
   function usePreviewInDraft() {
@@ -417,9 +564,11 @@
     state.text.undo.push({ value: $('draft').value });
     $('draft').value = state.text.preview;
     var replacement = state.text.preview;
+    resetAiResults();
     state.text.analysis = null;
     state.text.source = replacement;
     state.text.preview = '';
+    state.text.spans = [];
     hideTextResult();
     clearReceipt();
     updateUndoBar();
@@ -431,9 +580,11 @@
     if (!state.text.undo.length) return;
     var previous = state.text.undo.pop();
     $('draft').value = previous.value;
+    resetAiResults();
     state.text.analysis = null;
     state.text.source = previous.value;
     state.text.preview = '';
+    state.text.spans = [];
     hideTextResult();
     clearReceipt();
     updateUndoBar();
@@ -930,6 +1081,20 @@
     bindText();
     bindLink();
     bindImage();
+    if (window.WSAI) {
+      window.WSAI.init({
+        onReady: function () {
+          if (state.mode === 'text') setStatus('Local AI is ready. It runs in this tab and uses the cached model. Press Inspect locally to use it.', 'info');
+        },
+        onDeleted: function () {
+          resetAiResults();
+          setStatus('Model deleted from this browser. The cached model files and the worker were removed. The rule checks still work.', 'info');
+        },
+        onFailed: function (message) {
+          if (state.mode === 'text') setStatus(message, 'alert');
+        }
+      });
+    }
     if ($('recipient')) {
       $('recipient').addEventListener('change', updateRecipientNote);
     }
