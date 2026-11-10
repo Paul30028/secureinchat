@@ -3,3 +3,7 @@
 /guides/* /blog/ 301
 /refund/ / 301
 /terms/ / 301
+/fdroid /messaging/ 301
+/testflight /messaging/ 301
+/app /messaging/ 301
+/download/android.apk /messaging/ 301

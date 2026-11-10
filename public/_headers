@@ -362,6 +362,8 @@
   Cache-Control: public, max-age=0, must-revalidate
 /tools/assets/*
   Cache-Control: public, max-age=0, must-revalidate
+/tools/assets/mr/*.txt
+  X-Robots-Tag: noindex
 /workspace/ai/*
   Cache-Control: public, max-age=0, must-revalidate
 /workspace/assets/*

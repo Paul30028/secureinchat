@@ -797,7 +797,8 @@ for (const P of TM) {
 write('contact/index.html', docPage({ slug: 'contact', title: 'Contact', desc: 'How to contact SecureInChat.', body: CONTACT, current: 'about' }));
 
 // /guides/, /refund/ and /terms/ removed 2026-10-22 (owner decision: AI build guides do not belong on this site).
-write('_redirects', ['/guides /blog/ 301', '/guides/ /blog/ 301', '/guides/* /blog/ 301', '/refund/ / 301', '/terms/ / 301', ''].join('\n'));
+// The last four are old app download URLs from the first site versions; Google still crawls them (Search Console 2026-11-10).
+write('_redirects', ['/guides /blog/ 301', '/guides/ /blog/ 301', '/guides/* /blog/ 301', '/refund/ / 301', '/terms/ / 301', '/fdroid /messaging/ 301', '/testflight /messaging/ 301', '/app /messaging/ 301', '/download/android.apk /messaging/ 301', ''].join('\n'));
 
 
 // blog
@@ -1398,6 +1399,8 @@ ${common}
   Cache-Control: public, max-age=0, must-revalidate
 /tools/assets/*
   Cache-Control: public, max-age=0, must-revalidate
+/tools/assets/mr/*.txt
+  X-Robots-Tag: noindex
 /workspace/ai/*
   Cache-Control: public, max-age=0, must-revalidate
 /workspace/assets/*
