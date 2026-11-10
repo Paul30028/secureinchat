@@ -11,8 +11,17 @@
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/file-metadata-remover/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/file-metadata-remover/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/file-metadata-remover/">
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-700.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" rel="preload" type="font/woff2"/>
   <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
-  <link as="font" crossorigin="" href="/assets/fonts/atkinson-next-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -142,6 +151,7 @@
   </div>
 </header>
   <main class="subpage-main" id="main">
+   <div class="tool-page-v4">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
      <nav aria-label="Breadcrumb" class="breadcrumbs">
@@ -167,14 +177,22 @@
       <div>
        <h1 id="h1">File metadata remover</h1>
        <p class="page-lead">See the hidden data in a photo, a document, a video or an audio file, then save a copy without it. The file never leaves your device.</p>
-       <ul class="state-list"><li><span class="state-label">Local processing</span></li></ul>
       </div>
      </div>
     </div>
    </section>
    <section class="subpage-section">
-    <div class="subpage-shell tool-detail-layout">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
      <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">How your data is handled</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">Local processing</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>Stays on your device</strong><p>The file and its metadata</p></div>
+        <div><strong>Sent to others</strong><p>Nothing</p></div>
+       </div>
+       <p class="tool-v4-flow-note">This check runs in your browser. Nothing you enter is uploaded, logged or stored.</p>
+      </section>
       <section class="tool-workspace" aria-label="File metadata remover">
        <div class="legacy-tool">
 
@@ -223,7 +241,18 @@
     </div>
 </section></div>
       </section>
-      <div class="info-content tool-prose">
+      <section class="tool-v4-section tool-v4-next" aria-label="Next step">
+       <h2>Next step</h2>
+       <ul class="tool-v4-next-steps">
+        <li>Share the cleaned copy, not the original file.</li>
+       </ul>
+       <ul class="tool-v4-links">
+        <li><a href="/workspace/">Clean more files in the private workspace <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+      <section class="tool-v4-section" aria-labelledby="tool-v4-method-h">
+       <h2 id="tool-v4-method-h">Method and limits</h2>
+       <div class="info-content tool-prose">
 <section aria-labelledby="what-h">
     <h2 id="what-h">What it removes</h2>
     <p>Most files carry a block of hidden data next to the content you see. A phone photo can hold the exact coordinates where you stood, the time and the device model. A Word or PDF file can hold the author, the company, the software that wrote it, and the times it was created and last edited. A video or an audio file can hold the device, the software and the date. Whoever receives the original file can read all of it with free software.</p>
@@ -240,6 +269,10 @@
     <p>Everything runs in this tab. The file is read into memory, the file type is detected, the metadata is listed and removed by a WebAssembly module, and the result is scanned one more time before it is offered as a download. No file is uploaded, nothing is stored, and the page loads no analytics.</p>
     <p>The cleaning engine is the open source <a href="https://github.com/iAnonymous3000/metadata-remover" rel="noopener">metadata-remover</a> project by iAnonymous3000, used under the MIT licence. The licence text that ships with the build is at <a href="/tools/assets/mr/LICENSE.txt">/tools/assets/mr/LICENSE.txt</a>.</p>
 </section>
+       </div>
+      </section>
+      <section class="tool-v4-section" aria-label="FAQ">
+       <div class="info-content tool-prose">
 <section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>Is my file uploaded?</h3>
@@ -255,27 +288,22 @@
     <h3>Which library does this use?</h3>
     <p>The open source metadata-remover by iAnonymous3000, used under the MIT licence. The licence text is at /tools/assets/mr/LICENSE.txt and the source is at github.com/iAnonymous3000/metadata-remover.</p>
 </section>
-      </div>
-     </div>
-     <aside class="tool-sidebar">
-      <section class="content-panel">
-       <h2>How your data is handled</h2>
-       <div class="data-handling">
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>The file and its metadata</p></div></div>
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Sent to others</strong><p>Nothing</p></div></div>
        </div>
-       <p class="state-list"><span class="state-label">Local processing</span></p>
-       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
       </section>
-      <figure class="editorial-figure"><img alt="A photo with hidden metadata fields such as location and device" height="360" src="/assets/illustrations/photo-metadata.svg" width="760"/></figure>
-      <section class="content-panel content-panel--soft">
-       <h2>Need a different check?</h2>
-       <p>Compare tools by what they do and what data they need.</p>
-       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>Related guides</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a></li>
+        <li><a href="/tools/">Browse all tools <span aria-hidden="true">→</span></a></li>
+       </ul>
       </section>
      </aside>
     </div>
    </section>
+   </div>
   </main>
   <footer class="sc-footer">
   <div class="sc-footer__inner">

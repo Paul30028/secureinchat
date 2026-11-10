@@ -67,7 +67,7 @@ with sync_playwright() as p:
             ok(pg.locator('link[rel="canonical"]').get_attribute('href') == 'https://secureinchat.com/zh/tools/site-health-check/', 'canonical')
             crumbs = pg.locator('nav.breadcrumbs a')
             ok(crumbs.nth(0).inner_text() == '首页' and crumbs.nth(0).get_attribute('href') == '/zh/', 'breadcrumb home -> /zh/')
-            side = pg.locator('.tool-sidebar').inner_text()
+            side = pg.locator('.tool-sidebar, [aria-labelledby="tool-v4-flow-h"]').first.inner_text()
             ok(all(k in side for k in ['你的数据如何处理', '会请求目标网站', '不保存也不记录']), 'sidebar data flow in Chinese')
             links = pg.eval_on_selector_all('a[href]', 'as => as.map(a => a.getAttribute("href"))')
             ok(not [h for h in links if 'nordvpn' in h or 'nordpass' in h or 'ip-leak' in h or 'vpn' in h.lower()], 'no affiliate, VPN or IP-test links (rule)')

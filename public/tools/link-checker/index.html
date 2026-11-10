@@ -11,8 +11,17 @@
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/link-checker/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/link-checker/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/link-checker/">
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-700.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" rel="preload" type="font/woff2"/>
   <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
-  <link as="font" crossorigin="" href="/assets/fonts/atkinson-next-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -126,6 +135,7 @@
   </div>
 </header>
   <main class="subpage-main" id="main">
+   <div class="tool-page-v4">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
      <nav aria-label="Breadcrumb" class="breadcrumbs">
@@ -143,14 +153,22 @@
       <div>
        <h1 id="h1">Link checker</h1>
        <p class="page-lead">Before you click a link from a message or an email: remove the tracking, and see the warning signs of phishing. The link is never opened or sent anywhere.</p>
-       <ul class="state-list"><li><span class="state-label">Local processing</span></li></ul>
       </div>
      </div>
     </div>
    </section>
    <section class="subpage-section">
-    <div class="subpage-shell tool-detail-layout">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
      <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">How your data is handled</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">Local processing</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>Stays on your device</strong><p>The link you paste; it is never opened</p></div>
+        <div><strong>Sent to others</strong><p>Nothing</p></div>
+       </div>
+       <p class="tool-v4-flow-note">This check runs in your browser. Nothing you enter is uploaded, logged or stored.</p>
+      </section>
       <section class="tool-workspace" aria-label="Link checker">
        <div class="legacy-tool">
 
@@ -176,7 +194,18 @@
     </table>
 </section></div>
       </section>
-      <div class="info-content tool-prose">
+      <section class="tool-v4-section tool-v4-next" aria-label="Next step">
+       <h2>Next step</h2>
+       <ul class="tool-v4-next-steps">
+        <li>Open anything that asks you to log in or pay from your own bookmark or app, not from the link.</li>
+       </ul>
+       <ul class="tool-v4-links">
+        <li><a href="/workspace/">Check a link and its text in the private workspace <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+      <section class="tool-v4-section" aria-labelledby="tool-v4-method-h">
+       <h2 id="tool-v4-method-h">Method and limits</h2>
+       <div class="info-content tool-prose">
 <section aria-labelledby="what-h">
     <h2 id="what-h">What it checks</h2>
     <p>Tracking parameters such as utm_source, fbclid and gclid; text before an @ that hides the real site; raw IP addresses; international characters that imitate a familiar name (shown decoded); unencrypted http; unusual ports; link shorteners that hide the destination; a well-known brand name on someone else's site; long chains of subdomains; and a second address hidden inside the link.</p>
@@ -185,6 +214,10 @@
     <h2>How your link is handled</h2>
     <p>The link is processed in this page. It is not sent to us or anyone else, and the page loads no analytics. Related: <a href="/tools/text-redactor/">redact text before you share it</a>, <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
 </section>
+       </div>
+      </section>
+      <section class="tool-v4-section" aria-label="FAQ">
+       <div class="info-content tool-prose">
 <section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>Is the link opened or sent anywhere?</h3>
@@ -196,27 +229,22 @@
     <h3>Why not check the link against a phishing database?</h3>
     <p>A database lookup would send your link to a third party, and links can contain personal tokens. We may add it as an option you have to switch on, with the service named on the page.</p>
 </section>
-      </div>
-     </div>
-     <aside class="tool-sidebar">
-      <section class="content-panel">
-       <h2>How your data is handled</h2>
-       <div class="data-handling">
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>The link you paste; it is never opened</p></div></div>
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Sent to others</strong><p>Nothing</p></div></div>
        </div>
-       <p class="state-list"><span class="state-label">Local processing</span></p>
-       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
       </section>
-      <figure class="editorial-figure"><img alt="A URL separated into its host, path and potentially tracking-related query parameters" height="340" src="/assets/illustrations/url-anatomy.svg" width="760"/></figure>
-      <section class="content-panel content-panel--soft">
-       <h2>Need a different check?</h2>
-       <p>Compare tools by what they do and what data they need.</p>
-       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>Related guides</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a></li>
+        <li><a href="/tools/">Browse all tools <span aria-hidden="true">→</span></a></li>
+       </ul>
       </section>
      </aside>
     </div>
    </section>
+   </div>
   </main>
   <footer class="sc-footer">
   <div class="sc-footer__inner">

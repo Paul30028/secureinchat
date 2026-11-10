@@ -59,7 +59,7 @@ with sync_playwright() as p:
             ok(pg.locator('link[rel="alternate"][hreflang="en"]').get_attribute('href').endswith('/tools/password-checker/'), 'hreflang en')
             crumbs = pg.locator('nav.breadcrumbs a')
             ok(crumbs.nth(0).get_attribute('href') == '/zh/' and crumbs.nth(0).inner_text() == '首页', 'breadcrumb home -> /zh/')
-            side = pg.locator('.tool-sidebar').inner_text()
+            side = pg.locator('.tool-sidebar, [aria-labelledby="tool-v4-flow-h"]').first.inner_text()
             ok(all(k in side for k in ['你的数据如何处理', '前 5 个字符', '有限查询']), 'sidebar data flow in Chinese')
             ok('本页发出的网络请求' in pg.locator('#netlog summary').inner_text(), 'network panel title in Chinese')
             links = pg.eval_on_selector_all('a[href]', 'as => as.map(a => a.getAttribute("href"))')

@@ -11,8 +11,17 @@
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/account-checkup/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/account-checkup/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/account-checkup/">
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-700.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" rel="preload" type="font/woff2"/>
   <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
-  <link as="font" crossorigin="" href="/assets/fonts/atkinson-next-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -126,6 +135,7 @@
   </div>
 </header>
   <main class="subpage-main" id="main">
+   <div class="tool-page-v4">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
      <nav aria-label="Breadcrumb" class="breadcrumbs">
@@ -145,14 +155,22 @@
       <div>
        <h1 id="h1">Account security checkup</h1>
        <p class="page-lead">Eight checks for one account, in the order we suggest fixing them. Start with your main email: password resets for most of your other accounts go there.</p>
-       <ul class="state-list"><li><span class="state-label">Local checklist</span></li></ul>
       </div>
      </div>
     </div>
    </section>
    <section class="subpage-section">
-    <div class="subpage-shell tool-detail-layout">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
      <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">How your data is handled</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">Local checklist</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>Stays on your device</strong><p>Your answers, until you reload or close the page</p></div>
+        <div><strong>Sent to others</strong><p>Nothing</p></div>
+       </div>
+       <p class="tool-v4-flow-note">This check runs in your browser. Nothing you enter is uploaded, logged or stored.</p>
+      </section>
       <section class="tool-workspace" aria-label="Account security checkup">
        <div class="legacy-tool">
 
@@ -236,7 +254,18 @@
     </div>
 </section></div>
       </section>
-      <div class="info-content tool-prose">
+      <section class="tool-v4-section tool-v4-next" aria-label="Next step">
+       <h2>Next step</h2>
+       <ul class="tool-v4-next-steps">
+        <li>Start with your main email account: password resets for most other accounts go there.</li>
+       </ul>
+       <ul class="tool-v4-links">
+        <li><a href="/rights/">Ask a company to delete or correct your data <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+      <section class="tool-v4-section" aria-labelledby="tool-v4-method-h">
+       <h2 id="tool-v4-method-h">Method and limits</h2>
+       <div class="info-content tool-prose">
 <section id="method" aria-labelledby="method-h">
     <h2 id="method-h">How this works</h2>
     <p>The checkup is a list in this page. It does not sign in to anything, look anything up or ask for your email address or password. The copied list contains only the names of the checks, never account details. The page sets no cookies and loads no analytics. See <a href="/principles/">what each tool sends</a>.</p>
@@ -244,6 +273,15 @@
     <h2>What it does not cover</h2>
     <p>It does not check your device for malware, your phone number's protection against SIM swaps, or whether a message asking you to sign in is genuine. For links, use the <a href="/tools/link-checker/">link checker</a>.</p>
 </section>
+<aside id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">Tools from our partner</h2>
+    <p><a href="https://go.nordvpn.net/aff_c?offer_id=15&amp;aff_id=159108&amp;url_id=902" rel="sponsored noopener">NordVPN</a> (affiliate link) is a paid VPN service. After you connect, run our leak tests again to check it yourself. Or go to <a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> without a commission link.</p>
+    <p><a href="https://go.nordpass.io/aff_c?offer_id=488&amp;aff_id=159108&amp;url_id=9356" rel="sponsored noopener">NordPass</a> (affiliate link) is a password manager with a free plan. Or go to <a href="https://nordpass.com/" rel="noopener">nordpass.com</a> without a commission link. Free and open-source options such as Bitwarden also exist.</p>
+</aside>
+       </div>
+      </section>
+      <section class="tool-v4-section" aria-label="FAQ">
+       <div class="info-content tool-prose">
 <section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>Is anything I tick saved or sent?</h3>
@@ -255,32 +293,22 @@
     <h3>Does a full score mean my account is safe?</h3>
     <p>No. It means the common basics are in place. Phishing, malware on your device and mistakes by the service itself can still lead to a takeover.</p>
 </section>
-<aside id="partner-slot" aria-labelledby="partner-h">
-    <h2 id="partner-h">Tools from our partner</h2>
-    <p><a href="https://go.nordvpn.net/aff_c?offer_id=15&amp;aff_id=159108&amp;url_id=902" rel="sponsored noopener">NordVPN</a> (affiliate link) is a paid VPN service. After you connect, run our leak tests again to check it yourself. Or go to <a href="https://nordvpn.com/" rel="noopener">nordvpn.com</a> without a commission link.</p>
-    <p><a href="https://go.nordpass.io/aff_c?offer_id=488&amp;aff_id=159108&amp;url_id=9356" rel="sponsored noopener">NordPass</a> (affiliate link) is a password manager with a free plan. Or go to <a href="https://nordpass.com/" rel="noopener">nordpass.com</a> without a commission link. Free and open-source options such as Bitwarden also exist.</p>
-</aside>
-      </div>
-     </div>
-     <aside class="tool-sidebar">
-      <section class="content-panel">
-       <h2>How your data is handled</h2>
-       <div class="data-handling">
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>Your answers, until you reload or close the page</p></div></div>
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Sent to others</strong><p>Nothing</p></div></div>
        </div>
-       <p class="state-list"><span class="state-label">Local checklist</span></p>
-       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
       </section>
-      <figure class="editorial-figure"><img alt="Account sign-in, trusted-device and recovery routes linked to an account" height="360" src="/assets/illustrations/account-recovery.svg" width="760"/></figure>
-      <section class="content-panel content-panel--soft">
-       <h2>Need a different check?</h2>
-       <p>Compare tools by what they do and what data they need.</p>
-       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>Related guides</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a></li>
+        <li><a href="/tools/">Browse all tools <span aria-hidden="true">→</span></a></li>
+       </ul>
       </section>
      </aside>
     </div>
    </section>
+   </div>
   </main>
   <footer class="sc-footer">
   <div class="sc-footer__inner">

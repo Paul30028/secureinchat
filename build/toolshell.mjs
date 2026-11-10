@@ -31,6 +31,7 @@ const CHROME = {
     method: 'Method and limits',
     related: 'Related guides',
     redactGuide: 'Redact text before you share it',
+    next: 'Next step',
   },
   'zh-CN': {
     lang: 'zh-CN',
@@ -48,10 +49,11 @@ const CHROME = {
     method: '方法与局限',
     related: '相关指南',
     redactGuide: '分享文本前先脱敏',
+    next: '下一步',
   },
 };
 
-export function toolPage({ slug, src, icon, label, flow, figure, crumbName, lang = 'en', alternates = '', v4 = false, v4Note = '' }) {
+export function toolPage({ slug, src, icon, label, flow, figure, crumbName, lang = 'en', alternates = '', v4 = false, v4Note = '', next = null }) {
   const chrome = CHROME[lang] || CHROME.en;
   const zh = chrome === CHROME['zh-CN'];
   const head = src.slice(0, src.indexOf('</head>'));
@@ -149,9 +151,20 @@ ${proseHtml(faqBlocks)}
     const note = v4Note || (sentIsNone
       ? (zh ? '这项检查在你的浏览器中完成。输入的内容不会上传、记录或保存。' : 'This check runs in your browser. Nothing you enter is uploaded, logged or stored.')
       : (zh ? '运行前请阅读下面的数据去向。' : 'Read the data flow below before you run the check.'));
+    // Every status label lives in the data-flow panel, so it appears once and sits next to the disclosure.
+    const heroState = '';
+    const nextStep = next && next.links && next.links.length ? `      <section class="tool-v4-section tool-v4-next" aria-label="${chrome.next}">
+       <h2>${chrome.next}</h2>
+       ${next.steps && next.steps.length ? `<ul class="tool-v4-next-steps">
+${next.steps.map((s) => `        <li>${s}</li>`).join('\n')}
+       </ul>` : ''}
+       <ul class="tool-v4-links">
+${next.links.map((l) => `        <li><a href="${l.href}">${l.label} <span aria-hidden="true">→</span></a></li>`).join('\n')}
+       </ul>
+      </section>` : '';
     const flowPanel = `      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
        <h2 id="tool-v4-flow-h">${chrome.handling}</h2>
-       ${sentIsNone ? `<p class="tool-v4-flow-state"><span class="state-label">${chrome.local}</span></p>` : ''}
+       <p class="tool-v4-flow-state"><span class="${label[1]}">${label[0]}</span></p>
        <div class="tool-v4-flow-grid">
         <div><strong>${chrome.stays}</strong><p>${flow.stays}</p></div>
         <div><strong>${chrome.sent}</strong><p>${flow.sent}</p></div>
@@ -182,8 +195,7 @@ ${proseHtml(faqBlocks)}
       ${icon ? `<span class="tool-detail-emblem">${icon.replace('tool-catalogue-icon-art', 'tool-detail-emblem-art')}</span>` : ''}
       <div>
        <h1 id="h1">${h1}</h1>
-       ${ledeM ? `<p class="page-lead">${ledeM[1]}</p>` : ''}
-       <ul class="state-list"><li><span class="${label[1]}">${label[0]}</span></li></ul>
+       ${ledeM ? `<p class="page-lead">${ledeM[1]}</p>` : ''}${heroState}
       </div>
      </div>
     </div>
@@ -193,6 +205,7 @@ ${proseHtml(faqBlocks)}
      <div class="tool-main-column">
 ${flowPanel}
 ${ws}
+${nextStep}
 ${method}
 ${faq}
      </div>
@@ -207,8 +220,17 @@ ${related}
   const keep = headScripts.filter((s) => /application\/ld\+json/.test(s));
   const scriptsHead = headScripts.filter((s) => !/application\/ld\+json/.test(s));
   const headExtra = `  <link href="https://secureinchat.com${canonical}" rel="canonical"/>
-${alternates}  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
-${v4 ? '' : '  <link as="font" crossorigin="" href="/assets/fonts/atkinson-next-400.woff2" rel="preload" type="font/woff2"/>\n'}${v4 ? '  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>\n' : ''}  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
+${alternates}${v4
+    ? ['/assets/fonts/dm-sans-400.woff2', '/assets/fonts/dm-sans-500.woff2', '/assets/fonts/dm-sans-700.woff2',
+      '/assets/fonts/dm-mono-400.woff2', '/assets/fonts/dm-mono-500.woff2',
+      '/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2',
+      '/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2',
+      '/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2',
+      '/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2',
+      '/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2']
+      .map((f) => `  <link as="font" crossorigin="" href="${f}" rel="preload" type="font/woff2"/>\n`).join('')
+    : `  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/atkinson-next-400.woff2" rel="preload" type="font/woff2"/>`}${v4 ? '  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>\n' : ''}  <link href="/assets/css/tool-legacy.css" rel="stylesheet"/>
 ${[...keep, ...scriptsHead].map((s) => `  ${s}`).join('\n')}
 `;
   const shellArgs = { title, desc, canonical, headExtra, current: '/tools/', main: v4Main };

@@ -61,7 +61,7 @@ def overflow_report(page):
 WS_OK = """(()=>{class W{constructor(u){this.u=u;setTimeout(()=>{this.onopen&&this.onopen();setTimeout(()=>{this.onmessage&&this.onmessage({data:JSON.stringify({type:'auth_challenge',challenge:'abcdef0123456789abcdef'})})},40)},60)}close(){}}window.WebSocket=W})();"""
 WS_BAD = """(()=>{class W{constructor(u){setTimeout(()=>{this.onerror&&this.onerror();this.onclose&&this.onclose({code:1006})},60)}close(){}}window.WebSocket=W})();"""
 
-PAGES = ['/', '/workspace/', '/zh/', '/ja/', '/messaging/', '/start/', '/start/being-tracked/', '/start/account-hacked/', '/start/less-tracking/', '/start/network-down/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/rights/', '/tools/privacy-report/', '/tools/account-checkup/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/link-checker/', '/tools/site-health-check/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/checkup/', '/zh/checkup/', '/tools/phone-checkup/', '/zh/tools/phone-checkup/', '/zh/tools/text-redactor/', '/zh/tools/file-metadata-remover/', '/zh/tools/password-checker/', '/zh/tools/account-checkup/', '/zh/tools/link-checker/', '/zh/tools/browser-fingerprint-test/', '/zh/tools/site-health-check/', '/blog/encrypted-messaging-when-networks-fail/', '/blog/check-app-permissions-android-iphone/', '/blog/ai-apps-permissions-and-data/', '/blog/move-to-encrypted-email/', '/blog/email-aliases-hide-your-address/', '/blog/protect-your-phone-number-sim-swap/', '/blog/privacy-reset-checklist-iphone-android/', '/blog/data-broker-opt-out-guide/', '/shop/', '/messaging/threat-model/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/', '/scan/']
+PAGES = ['/', '/workspace/', '/zh/', '/ja/', '/messaging/', '/start/', '/start/being-tracked/', '/start/account-hacked/', '/start/less-tracking/', '/start/network-down/', '/privacy/', '/about/', '/contact/', '/sponsor/', '/principles/', '/blog/', '/blog/how-the-ip-leak-test-works/', '/blog/what-a-blind-relay-can-and-cannot-know/', '/blog/webrtc-leak-explained/', '/blog/ipv6-leaks-explained/', '/blog/how-to-test-a-vpn-yourself/', '/blog/dns-leaks-explained/', '/blog/how-password-breach-checks-work/', '/blog/what-data-brokers-know-about-you/', '/blog/leak-test-sites-compared/', '/blog/redact-text-before-you-share-it/', '/tools/', '/rights/', '/tools/privacy-report/', '/tools/account-checkup/', '/tools/ip-leak-test/', '/tools/webrtc-leak-test/', '/tools/ipv6-leak-test/', '/tools/photo-metadata-remover/', '/zh/tools/photo-metadata-remover/', '/tools/browser-fingerprint-test/', '/tools/password-checker/', '/tools/text-redactor/', '/tools/link-checker/', '/tools/site-health-check/', '/blog/bank-statement-before-ai-upload/', '/blog/photo-before-ai-upload/', '/blog/cv-before-ai-upload/', '/blog/before-you-paste-into-ai-checklist/', '/mission/', '/protect/', '/protect/physical/', '/protect/devices/', '/protect/accounts/', '/protect/communication/', '/protect/offline/', '/protect/ai/', '/checkup/', '/zh/checkup/', '/tools/phone-checkup/', '/zh/tools/phone-checkup/', '/zh/tools/text-redactor/', '/zh/tools/file-metadata-remover/', '/zh/tools/password-checker/', '/zh/tools/account-checkup/', '/zh/tools/link-checker/', '/zh/tools/browser-fingerprint-test/', '/zh/tools/site-health-check/', '/blog/encrypted-messaging-when-networks-fail/', '/blog/check-app-permissions-android-iphone/', '/blog/ai-apps-permissions-and-data/', '/blog/move-to-encrypted-email/', '/blog/email-aliases-hide-your-address/', '/blog/protect-your-phone-number-sim-swap/', '/blog/privacy-reset-checklist-iphone-android/', '/blog/data-broker-opt-out-guide/', '/shop/', '/messaging/threat-model/', '/zh/messaging/threat-model/', '/es/messaging/threat-model/', '/scan/']
 fails = []
 def check(cond, msg):
     print(('ok   ' if cond else 'FAIL ') + msg)
@@ -102,14 +102,63 @@ for rel in ('tools/text-redactor/index.html', 'zh/tools/text-redactor/index.html
     check('class="tool-page-v4"' in html and '/assets/css/tools-v4.css' in html, f'{rel} uses the v4 tools template')
     check('tool-v4-flow' in html and 'tool-v4-section' in html, f'{rel} has pre-run data flow and method sections')
 
-# Every catalogue card link must resolve, and only the migrated tools load the new stylesheet.
+# Every catalogue card link must resolve, and every tool detail page now uses the v4 shell.
 index = text('tools/index.html')
 cards = re.findall(r'<a class="tool-catalogue-action" href="([^"]+)"', index)
 check(len(cards) == 14, f'/tools/ has 14 catalogue cards ({len(cards)})')
 check(all(target_exists(h) for h in cards), f'/tools/ card links resolve {[h for h in cards if not target_exists(h)]}')
 check('class="tools-v4"' in index and '/assets/css/tools-v4.css' in index, '/tools/ uses the v4 index template')
-old_tool = text('tools/photo-metadata-remover/index.html')
-check('tools-v4.css' not in old_tool and 'tool-page-v4' not in old_tool, 'unmigrated tool keeps the old template')
+
+# Step 5: every migrated tool page. Key control ids are the pre-migration inventory from
+# src/tools/<slug>.html and src/tools/zh/<slug>.html; the shell swap must not rename, drop or duplicate them.
+MIGRATED = [
+    '/tools/link-checker/', '/tools/photo-metadata-remover/', '/tools/file-metadata-remover/',
+    '/tools/password-checker/', '/tools/account-checkup/', '/tools/browser-fingerprint-test/',
+    '/tools/site-health-check/', '/tools/ip-leak-test/', '/tools/ipv6-leak-test/',
+    '/tools/webrtc-leak-test/', '/tools/privacy-report/', '/tools/text-redactor/',
+    '/zh/tools/photo-metadata-remover/', '/zh/tools/text-redactor/', '/zh/tools/file-metadata-remover/',
+    '/zh/tools/password-checker/', '/zh/tools/account-checkup/', '/zh/tools/link-checker/',
+    '/zh/tools/browser-fingerprint-test/', '/zh/tools/site-health-check/',
+    '/tools/phone-checkup/', '/zh/tools/phone-checkup/',
+]
+CONTROL_IDS = {
+    'phone-checkup': ['phone-check-1', 'phone-check-2', 'phone-check-3', 'phone-check-4', 'phone-check-5', 'phone-check-6'],
+    'link-checker': ['lk-in', 'lk-out', 'lk-copy', 'lk-clear'],
+    'photo-metadata-remover': ['file', 'clean'],
+    'file-metadata-remover': ['file', 'clean'],
+    'password-checker': ['pw', 'show', 'breach', 'gen-new', 'gen-copy', 'gen-len', 'g-lower', 'g-upper', 'g-digits', 'g-symbols'],
+    'account-checkup': ['ac-copy', 'ac-reset'],
+    'browser-fingerprint-test': ['run'],
+    'site-health-check': ['sc-url', 'sc-go', 'sc-copy', 'sb-list', 'sb-go', 'sb-dl'],
+    'ip-leak-test': ['run', 'vpn', 'copy'],
+    'ipv6-leak-test': ['run', 'vpn'],
+    'webrtc-leak-test': ['run', 'vpn'],
+    'privacy-report': ['run', 'vpn', 'copy'],
+    'text-redactor': ['rd-in', 'rd-out', 'rd-terms', 'rule-term', 'rule-email', 'rule-phone', 'rule-cn_mobile',
+                      'rule-cn_id', 'rule-ipv4', 'rule-ipv6', 'rule-mac', 'rule-card', 'rule-iban', 'rule-apikey',
+                      'rule-jwt', 'rule-url_cred', 'rule-privkey', 'rd-copy', 'rd-clear', 'rd-reply', 'rd-restored',
+                      'rd-restore-copy'],
+}
+LOCAL_MARKERS = ('Local processing', '本地处理')
+for path in MIGRATED:
+    rel = path.strip('/') + '/index.html'
+    html = text(rel)
+    check('class="tool-page-v4"' in html and '/assets/css/tools-v4.css' in html, f'{rel} uses the v4 tools template')
+    nxt = re.search(r'<section class="tool-v4-section tool-v4-next"[\s\S]*?</section>', html)
+    check(bool(nxt), f'{rel} has a Next step block')
+    if nxt:
+        hrefs = re.findall(r'href="([^"]+)"', nxt.group(0))
+        check(bool(hrefs), f'{rel} Next step has a link')
+        check(all(h.startswith('#') or h.startswith('http') or target_exists(h) for h in hrefs), f'{rel} Next step targets exist {[h for h in hrefs if not (h.startswith("#") or h.startswith("http") or target_exists(h))]}')
+    slug = path.rstrip('/').split('/')[-1]
+    ids = re.findall(r'<(?:input|textarea|select|button)\b[^>]*\bid="([^"]+)"', html)
+    check(sorted(ids) == sorted(CONTROL_IDS[slug]), f'{rel} key control ids unchanged ({len(ids)}/{len(CONTROL_IDS[slug])})')
+    if path in ('/tools/link-checker/', '/tools/photo-metadata-remover/', '/tools/file-metadata-remover/', '/tools/text-redactor/',
+                '/tools/browser-fingerprint-test/',
+                '/zh/tools/photo-metadata-remover/', '/zh/tools/text-redactor/', '/zh/tools/file-metadata-remover/',
+                '/zh/tools/link-checker/', '/zh/tools/browser-fingerprint-test/'):
+        marker = LOCAL_MARKERS[1] if path.startswith('/zh/') else LOCAL_MARKERS[0]
+        check(html.count(f'<span class="state-label">{marker}</span>') == 1, f'{rel} shows the local marker once')
 
 # Contrast spot-check on the real token values: normal text must stay at or above 4.5:1.
 tokens = text('assets/css/tokens.css')

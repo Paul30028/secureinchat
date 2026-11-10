@@ -45,7 +45,7 @@ with sync_playwright() as p:
     ok(pg.locator('h1').inner_text().strip() == '照片元数据清理', 'h1')
     crumbs = pg.locator('nav.breadcrumbs a')
     ok(crumbs.nth(0).get_attribute('href') == '/zh/' and crumbs.nth(0).inner_text() == '首页', 'breadcrumb home -> /zh/')
-    side = pg.locator('.tool-sidebar').inner_text()
+    side = pg.locator('.tool-sidebar, [aria-labelledby="tool-v4-flow-h"]').first.inner_text()
     ok(all(k in side for k in ['你的数据如何处理', '留在本机：照片和读出的元数据', '无', '本地处理']), 'sidebar data flow in Chinese')
     ok('本页发出的网络请求' in pg.locator('#netlog summary').inner_text(), 'network panel title in Chinese')
     heads = pg.locator('#netlog thead th').all_text_contents()

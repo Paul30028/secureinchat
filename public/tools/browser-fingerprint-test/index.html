@@ -11,8 +11,17 @@
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/browser-fingerprint-test/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/browser-fingerprint-test/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/browser-fingerprint-test/">
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-700.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" rel="preload" type="font/woff2"/>
   <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
-  <link as="font" crossorigin="" href="/assets/fonts/atkinson-next-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -158,6 +167,7 @@
   </div>
 </header>
   <main class="subpage-main" id="main">
+   <div class="tool-page-v4">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
      <nav aria-label="Breadcrumb" class="breadcrumbs">
@@ -175,14 +185,22 @@
       <div>
        <h1 id="h1">Browser fingerprint test</h1>
        <p class="page-lead">See what your browser tells every site you visit, and whether your defences hide it.</p>
-       <ul class="state-list"><li><span class="state-label">Local processing</span></li></ul>
       </div>
      </div>
     </div>
    </section>
    <section class="subpage-section">
-    <div class="subpage-shell tool-detail-layout">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
      <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">How your data is handled</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">Local processing</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>Stays on your device</strong><p>All signals</p></div>
+        <div><strong>Sent to others</strong><p>Nothing</p></div>
+       </div>
+       <p class="tool-v4-flow-note">This check runs in your browser. Nothing you enter is uploaded, logged or stored.</p>
+      </section>
       <section class="tool-workspace" aria-label="Browser fingerprint test">
        <div class="legacy-tool">
 
@@ -208,7 +226,18 @@
     </table>
 </section></div>
       </section>
-      <div class="info-content tool-prose">
+      <section class="tool-v4-section tool-v4-next" aria-label="Next step">
+       <h2>Next step</h2>
+       <ul class="tool-v4-next-steps">
+        <li>Read which signals this browser exposes. No result tells you how unique you are.</li>
+       </ul>
+       <ul class="tool-v4-links">
+        <li><a href="/scan/">See what a website can read in the local scan <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+      <section class="tool-v4-section" aria-labelledby="tool-v4-method-h">
+       <h2 id="tool-v4-method-h">Method and limits</h2>
+       <div class="info-content tool-prose">
 <section aria-labelledby="what-h">
     <h2 id="what-h">What this test reads</h2>
     <p>Any page you visit can read the signals below without asking. This test reads them and tells you which ones help a tracker recognise you, and which defences your browser already applies.</p>
@@ -221,6 +250,10 @@
     <h2 id="limits-h">What this test cannot tell you</h2>
     <p>It does not test fonts, audio processing or every API, and it cannot say how rare your combination is. Treat the result as a list of what your browser exposes, and re-run it after you change browser, settings or extensions. For your network address, run the <a href="/tools/ip-leak-test/">IP leak test</a>.</p>
 </section>
+       </div>
+      </section>
+      <section class="tool-v4-section" aria-label="FAQ">
+       <div class="info-content tool-prose">
 <section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>What is browser fingerprinting?</h3>
@@ -240,27 +273,22 @@
     <h3>Does this page store my data?</h3>
     <p>No. Everything is computed in your browser and nothing is sent. The page sets no cookies and loads no analytics.</p>
 </section>
-      </div>
-     </div>
-     <aside class="tool-sidebar">
-      <section class="content-panel">
-       <h2>How your data is handled</h2>
-       <div class="data-handling">
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>All signals</p></div></div>
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Sent to others</strong><p>Nothing</p></div></div>
        </div>
-       <p class="state-list"><span class="state-label">Local processing</span></p>
-       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
       </section>
-      <figure class="editorial-figure"><img alt="Separate data flows for encrypted messaging and privacy tools that use outside lookups" height="400" src="/assets/illustrations/data-flows.svg" width="760"/></figure>
-      <section class="content-panel content-panel--soft">
-       <h2>Need a different check?</h2>
-       <p>Compare tools by what they do and what data they need.</p>
-       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>Related guides</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a></li>
+        <li><a href="/tools/">Browse all tools <span aria-hidden="true">→</span></a></li>
+       </ul>
       </section>
      </aside>
     </div>
    </section>
+   </div>
   </main>
   <footer class="sc-footer">
   <div class="sc-footer__inner">

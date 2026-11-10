@@ -73,7 +73,7 @@ with sync_playwright() as p:
             crumbs = pg.locator('nav.breadcrumbs a')
             ok(crumbs.nth(0).get_attribute('href') == '/zh/' and crumbs.nth(0).inner_text() == '首页', 'breadcrumb home -> /zh/')
             ok(any(h == '/zh/tools/' for h in crumbs.evaluate_all('els => els.map(e => e.getAttribute("href"))')), 'breadcrumb tools -> /zh/tools/')
-            side = pg.locator('.tool-sidebar').inner_text()
+            side = pg.locator('.tool-sidebar, [aria-labelledby="tool-v4-flow-h"]').first.inner_text()
             ok(all(k in side for k in ['你的数据如何处理', '留在本机：你的文件、读出的元数据和清理后的副本', '本地处理']), 'sidebar data flow in Chinese')
             ok('本页发出的网络请求' in pg.locator('#netlog summary').inner_text(), 'network panel title in Chinese')
             ok(pg.locator('#netlog thead th').all_text_contents() == ['时间', '类型', '地址', '大小'], 'network table headers')

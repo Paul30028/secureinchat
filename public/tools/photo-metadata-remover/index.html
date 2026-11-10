@@ -11,8 +11,17 @@
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/photo-metadata-remover/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/photo-metadata-remover/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/photo-metadata-remover/">
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-700.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" rel="preload" type="font/woff2"/>
   <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
-  <link as="font" crossorigin="" href="/assets/fonts/atkinson-next-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -150,6 +159,7 @@
   </div>
 </header>
   <main class="subpage-main" id="main">
+   <div class="tool-page-v4">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
      <nav aria-label="Breadcrumb" class="breadcrumbs">
@@ -171,14 +181,22 @@
       <div>
        <h1 id="h1">Photo metadata remover</h1>
        <p class="page-lead">See what a photo reveals about where and when it was taken, then save a copy without it. The file never leaves your device.</p>
-       <ul class="state-list"><li><span class="state-label">Local processing</span></li></ul>
       </div>
      </div>
     </div>
    </section>
    <section class="subpage-section">
-    <div class="subpage-shell tool-detail-layout">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
      <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">How your data is handled</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">Local processing</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>Stays on your device</strong><p>The photo and its metadata</p></div>
+        <div><strong>Sent to others</strong><p>Nothing</p></div>
+       </div>
+       <p class="tool-v4-flow-note">This check runs in your browser. Nothing you enter is uploaded, logged or stored.</p>
+      </section>
       <section class="tool-workspace" aria-label="Photo metadata remover">
        <div class="legacy-tool">
 
@@ -227,7 +245,18 @@
     </div>
 </section></div>
       </section>
-      <div class="info-content tool-prose">
+      <section class="tool-v4-section tool-v4-next" aria-label="Next step">
+       <h2>Next step</h2>
+       <ul class="tool-v4-next-steps">
+        <li>Save a copy without metadata before you share the photo.</li>
+       </ul>
+       <ul class="tool-v4-links">
+        <li><a href="/workspace/">Clean more files in the private workspace <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+      <section class="tool-v4-section" aria-labelledby="tool-v4-method-h">
+       <h2 id="tool-v4-method-h">Method and limits</h2>
+       <div class="info-content tool-prose">
 <section aria-labelledby="what-h">
     <h2 id="what-h">What is hiding in your photos</h2>
     <p>Most phone photos are saved with a block of hidden data called EXIF. It can include the exact coordinates where you stood, the time, and the model of your device. If you post or send the original file, whoever receives it can read that data with free software.</p>
@@ -239,6 +268,14 @@
       <li>Turn off location tagging in your camera app if you rarely need it.</li>
     </ul>
 </section>
+<aside id="partner-slot" aria-labelledby="partner-h">
+    <h2 id="partner-h">Tools from our partner</h2>
+    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a> (affiliate link) is encrypted cloud storage for files you need to keep or share after cleaning them. Or go to <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a> without a commission link.</p>
+</aside>
+       </div>
+      </section>
+      <section class="tool-v4-section" aria-label="FAQ">
+       <div class="info-content tool-prose">
 <section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>Is my photo uploaded?</h3>
@@ -256,31 +293,22 @@
     <h3>Does it remove what is in the picture itself?</h3>
     <p>No. A street sign, a face or a landmark in the photo can still give away where you are. This tool only removes hidden data.</p>
 </section>
-<aside id="partner-slot" aria-labelledby="partner-h">
-    <h2 id="partner-h">Tools from our partner</h2>
-    <p><a href="https://go.nordlocker.net/aff_c?offer_id=489&amp;aff_id=159108" rel="sponsored noopener">NordLocker</a> (affiliate link) is encrypted cloud storage for files you need to keep or share after cleaning them. Or go to <a href="https://nordlocker.com/" rel="noopener">nordlocker.com</a> without a commission link.</p>
-</aside>
-      </div>
-     </div>
-     <aside class="tool-sidebar">
-      <section class="content-panel">
-       <h2>How your data is handled</h2>
-       <div class="data-handling">
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>The photo and its metadata</p></div></div>
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Sent to others</strong><p>Nothing</p></div></div>
        </div>
-       <p class="state-list"><span class="state-label">Local processing</span></p>
-       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
       </section>
-      <figure class="editorial-figure"><img alt="A photo with hidden metadata fields such as location and device" height="360" src="/assets/illustrations/photo-metadata.svg" width="760"/></figure>
-      <section class="content-panel content-panel--soft">
-       <h2>Need a different check?</h2>
-       <p>Compare tools by what they do and what data they need.</p>
-       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>Related guides</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a></li>
+        <li><a href="/tools/">Browse all tools <span aria-hidden="true">→</span></a></li>
+       </ul>
       </section>
      </aside>
     </div>
    </section>
+   </div>
   </main>
   <footer class="sc-footer">
   <div class="sc-footer__inner">

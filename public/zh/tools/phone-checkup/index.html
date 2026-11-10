@@ -1,35 +1,40 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#F7F5EF">
-  <meta name="description" content="通过本地勾选清单检查手机号相关的保护设置；无需输入手机号，刷新页面即清空。">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>SecureInChat — 手机号隐私自查</title>
-  <link rel="stylesheet" href="/assets/css/home.css">
-  <link rel="stylesheet" href="/assets/css/checkup.css">
-  <link rel="icon" href="/favicon.ico" sizes="32x32">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <script src="/assets/js/phone-checkup.js" defer></script>
-  <link rel="canonical" href="https://secureinchat.com/zh/tools/phone-checkup/">
+  <meta content="通过本地勾选清单检查手机号相关的保护设置；无需输入手机号，刷新页面即清空。" name="description"/>
+  <link href="https://secureinchat.com/zh/tools/phone-checkup/" rel="canonical"/>
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/phone-checkup/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/phone-checkup/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/phone-checkup/">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="SecureInChat">
-  <meta property="og:title" content="手机号隐私自查">
-  <meta property="og:description" content="六项自查，保护手机号免受换卡诈骗和泄露。无需输入号码，不保存、不发送。">
-  <meta property="og:url" content="https://secureinchat.com/zh/tools/phone-checkup/">
-  <meta property="og:locale" content="zh_CN">
-  <meta name="twitter:card" content="summary">
-  <link rel="stylesheet" href="/assets/css/min-type-size.css">
-  <link href="/assets/css/v4.css" rel="stylesheet"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-700.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/checkup.css" rel="stylesheet"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
+   <link href="/assets/css/v4.css" rel="stylesheet"/>
    <link href="/assets/css/shell.css" rel="stylesheet"/>
   <script defer src="/assets/js/shell.js"></script>
  </head>
-<body>
-  <a class="skip-link" href="#main">跳至正文</a>
+ <body>
+  <a class="skip-link" href="#main">跳到正文</a>
   <header class="sc-header">
   <div class="sc-header__inner">
     <a class="sc-brand" href="/zh/" aria-label="SecureInChat 首页">
@@ -70,20 +75,40 @@
     </details>
   </div>
 </header>
-  <main id="main" class="phone-checkup-page" data-phone-checkup>
-    <section class="checkup-hero phone-checkup-hero">
-      <div class="container checkup-hero-inner">
-        <div class="checkup-heading">
-          <p class="phone-page-breadcrumb"><a href="/zh/checkup/">隐私体检</a> <span aria-hidden="true">/</span> 手机号</p>
-          <h1>手机号隐私自查</h1>
-          <p>逐项检查六个保护环节。勾选代表你已检查该项或采取适当行动，不代表网站验证了你的设备或账户设置。</p>
-        </div>
-        <aside class="checkup-privacy-note checkup-privacy-note--strong">
-          <span class="checkup-privacy-icon" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="3" width="14" height="26" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 7h4M14 25h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m13 16 2 2 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <div><h2>无需输入手机号</h2><p>不要在此输入手机号。勾选状态只存在于当前页面内存中，不会保存或发送；刷新页面或离开页面会清空。</p></div>
-        </aside>
+  <main class="subpage-main" id="main">
+   <div class="tool-page-v4" data-phone-checkup>
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="面包屑" class="breadcrumbs">
+      <a href="/zh/">首页</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/zh/tools/">工具</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">手机号隐私自查</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <div>
+       <h1 id="h1">手机号隐私自查</h1>
+       <p class="page-lead">逐项检查六个保护环节。勾选代表你已检查该项或采取适当行动，不代表网站验证了你的设备或账户设置。</p>
       </div>
-    </section>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
+     <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">你的数据如何处理</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">本地清单</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>留在你的设备上</strong><p>你的答案，直到刷新或关闭页面</p></div>
+        <div><strong>发送给他人</strong><p>无</p></div>
+       </div>
+       <p class="tool-v4-flow-note">清单在这个页面里勾选。答案只存在于当前页面内存中，不会保存或发送；刷新或离开页面会清空。</p>
+      </section>
+      <div class="tool-workspace phone-v4-workspace">
+
+
 
     <section class="section phone-checklist-section" aria-labelledby="phone-checklist-title">
       <div class="container">
@@ -105,7 +130,7 @@
       <div class="phone-check-item-content">
         <p><strong>为什么重要</strong> SIM 卡 PIN 可以增加一层保护，降低 SIM 卡被放入其他设备或设备重启后被擅自使用的风险。不同手机和运营商的行为可能不同；多次输入错误也可能锁卡。</p>
         <p><strong>怎么做</strong> 打开手机的 SIM 卡或移动网络安全设置。准备启用 PIN 前，先了解恢复流程，并确认如何向运营商获取 PUK，避免反复猜测 PIN。</p>
-        
+
         <p class="phone-source-slot"><strong>官方来源：</strong> <span><a href="https://support.apple.com/en-us/118228" rel="noopener">Apple：为 iPhone 设置 SIM 卡 PIN</a> · <a href="https://support.google.com/pixelphone/answer/2824802" rel="noopener">Google：Pixel SIM 卡锁</a></span></p>
       </div>
     </article>
@@ -117,7 +142,7 @@
       <div class="phone-check-item-content">
         <p><strong>为什么重要</strong> 如果攻击者说服运营商转移号码或更换 SIM 卡，就可能接收到原本发给你的电话或短信。</p>
         <p><strong>怎么做</strong> 通过运营商官方 App、账户门户或官网公布的客服电话联系运营商，询问账户 PIN、转网锁、号码锁和 SIM 换卡保护，并启用当前套餐可用的选项。</p>
-        
+
         <p class="phone-source-slot"><strong>官方来源：</strong> <span><a href="https://www.verizon.com/support/knowledge-base-309293/" rel="noopener">Verizon</a> · <a href="https://www.t-mobile.com/support/plans-features/help-with-t-mobile-account-fraud" rel="noopener">T-Mobile</a> · <a href="https://about.att.com/story/2025/wireless-account-lock.html" rel="noopener">AT&amp;T Wireless Account Lock</a> · <a href="https://www.ofcom.org.uk/phones-and-broadband/switching-provider/switching-mobile" rel="noopener">Ofcom (UK)</a></span></p>
       </div>
     </article>
@@ -129,7 +154,7 @@
       <div class="phone-check-item-content">
         <p><strong>为什么重要</strong> 短信验证码依赖你持续控制手机号，可能受到号码转移或 SIM 换卡攻击影响。重要账号可能支持更强的验证方式。</p>
         <p><strong>怎么做</strong> 优先检查邮箱、金融账户和主要身份账号。在支持的情况下，考虑使用通行密钥、验证器 App 或安全密钥，并妥善保存恢复代码。</p>
-        
+
         <p class="phone-source-slot"><strong>官方来源：</strong> <span><a href="https://consumer.ftc.gov/articles/use-two-factor-authentication-protect-your-accounts" rel="noopener">FTC: Use two-factor authentication</a> · <a href="https://www.cisa.gov/MFA" rel="noopener">CISA: More than a password</a></span></p>
       </div>
     </article>
@@ -141,7 +166,7 @@
       <div class="phone-check-item-content">
         <p><strong>为什么重要</strong> 公开的手机号可能让他人更容易把不同平台上的资料关联到同一个人，也可能带来更多骚扰电话或消息。</p>
         <p><strong>怎么做</strong> 查看社交平台个人简介、公开资料、交易信息和旧帖。尽可能从公开字段中移除不需要公开的号码，并检查账户联系信息的可见范围。</p>
-        
+
         <p class="phone-source-slot"><strong>官方来源：</strong> <span><a href="https://help.x.com/en/safety-and-security/email-and-phone-discoverability-settings" rel="noopener">X: phone discoverability</a> · <a href="https://www.linkedin.com/help/linkedin/answer/a548109" rel="noopener">LinkedIn: profile visibility</a></span></p>
       </div>
     </article>
@@ -165,7 +190,7 @@
       <div class="phone-check-item-content">
         <p><strong>为什么重要</strong> 注册锁或应用特定的 PIN 可以增加他人尝试用你的号码重新注册账号时的保护。具体功能因应用而异。</p>
         <p><strong>怎么做</strong> 打开常用通信应用的账户或安全设置，查看官方说明中的注册锁、账号 PIN 或同类功能，并在适合的情况下启用。</p>
-        
+
         <p class="phone-source-slot"><strong>官方来源：</strong> <span><a href="https://support.signal.org/hc/en-us/articles/360007059792-Signal-PIN" rel="noopener">Signal: PIN and registration lock</a> · <a href="https://faq.whatsapp.com/1920866721452534" rel="noopener">WhatsApp: two-step verification</a></span></p>
       </div>
     </article>
@@ -180,6 +205,28 @@
         <p class="phone-source-disclaimer">来源已于 2026 年 10 月 22 日对照链接中的官方页面核对（英文页面）。菜单位置可能变化，请以官方页面为准。</p>
       </div>
     </section>
+
+      </div>
+      <section class="tool-v4-section tool-v4-next" aria-label="下一步">
+       <h2>下一步</h2>
+       <ul class="tool-v4-next-steps"><li>先检查 SIM 卡 PIN 设置，并在启用前了解运营商提供的恢复方法。</li></ul>
+       <ul class="tool-v4-links"><li><a href="/blog/protect-your-phone-number-sim-swap/">手机号与 SIM 换卡防护指南 <span aria-hidden="true">→</span></a></li></ul>
+      </section>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>相关指南</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/protect-your-phone-number-sim-swap/">手机号与 SIM 换卡防护指南 <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">查看每个工具的数据流 <span aria-hidden="true">→</span></a></li>
+        <li><a href="/zh/tools/">浏览所有工具 <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+     </aside>
+    </div>
+   </section>
+   <script src="/assets/js/phone-checkup.js" defer></script>
+   </div>
       <section class="checkup-next-section" aria-labelledby="partner-h">
       <div class="container checkup-next-panel">
         <div><h2 id="partner-h">合作伙伴工具</h2>
@@ -227,5 +274,5 @@
     <p>不追踪，不需要账户。</p>
   </div>
 </footer>
-</body>
+ </body>
 </html>

@@ -8,8 +8,17 @@
   <title>Browser Privacy Report: Leaks and Fingerprint in One Check</title>
   <meta content="Free browser privacy report. One run checks your IP, WebRTC, IPv6 and DNS leaks and what your browser exposes to trackers, then lists what to look at first. Nothing is saved." name="description"/>
   <link href="https://secureinchat.com/tools/privacy-report/" rel="canonical"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-700.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" rel="preload" type="font/woff2"/>
   <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
-  <link as="font" crossorigin="" href="/assets/fonts/atkinson-next-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
   <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -125,6 +134,7 @@
   </div>
 </header>
   <main class="subpage-main" id="main">
+   <div class="tool-page-v4">
    <section class="tool-detail-hero">
     <div class="subpage-shell">
      <nav aria-label="Breadcrumb" class="breadcrumbs">
@@ -139,14 +149,22 @@
       <div>
        <h1 id="h1">Browser privacy report</h1>
        <p class="page-lead">One run checks whether your connection leaks your real address and what your browser gives away, then lists what to look at first.</p>
-       <ul class="state-list"><li><span class="state-label state-label--network">Some network lookups</span></li></ul>
       </div>
      </div>
     </div>
    </section>
    <section class="subpage-section">
-    <div class="subpage-shell tool-detail-layout">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
      <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">How your data is handled</h2>
+       <p class="tool-v4-flow-state"><span class="state-label state-label--network">Some network lookups</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>Stays on your device</strong><p>The whole report, until you close the tab</p></div>
+        <div><strong>Sent to others</strong><p>The same requests as the IP leak test; the browser checks send nothing</p></div>
+       </div>
+       <p class="tool-v4-flow-note">Read the data flow below before you run the check.</p>
+      </section>
       <section class="tool-workspace" aria-label="Browser privacy report">
        <div class="legacy-tool">
 
@@ -244,7 +262,18 @@
     </table>
 </section></div>
       </section>
-      <div class="info-content tool-prose">
+      <section class="tool-v4-section tool-v4-next" aria-label="Next step">
+       <h2>Next step</h2>
+       <ul class="tool-v4-next-steps">
+        <li>Look at the items marked to fix first, then run the report again after a change.</li>
+       </ul>
+       <ul class="tool-v4-links">
+        <li><a href="/scan/">See what a website can read in the local scan <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+      <section class="tool-v4-section" aria-labelledby="tool-v4-method-h">
+       <h2 id="tool-v4-method-h">Method and limits</h2>
+       <div class="info-content tool-prose">
 <section id="method" aria-labelledby="method-h">
     <h2 id="method-h">What leaves your browser</h2>
     <p>The connection checks are the same as the <a href="/tools/ip-leak-test/">IP leak test</a> and contact the same services: this site's /tools/api/whoami, api4.ipify.org and api6.ipify.org, ipwho.is, random names under lk.secureinchat.com with dnsapi.secureinchat.com, and stun.cloudflare.com. The IP leak test page explains what each one sees and keeps.</p>
@@ -252,6 +281,10 @@
     <h2 id="limits-h">What the report cannot tell you</h2>
     <p>It cannot say how rare your browser is, because that needs data about other people's browsers, which we do not collect. It does not check your phone's apps, your accounts or your router. Run it again after you change your VPN, browser or settings.</p>
 </section>
+       </div>
+      </section>
+      <section class="tool-v4-section" aria-label="FAQ">
+       <div class="info-content tool-prose">
 <section aria-labelledby="faq-h">
     <h2 id="faq-h">Frequently asked questions</h2>
     <h3>What does the report check?</h3>
@@ -263,27 +296,22 @@
     <h3>Why is something marked to fix when I am not using a VPN?</h3>
     <p>With the VPN box unticked, connection checks only show what sites see and are not judged. Browser checks are judged the same way either way.</p>
 </section>
-      </div>
-     </div>
-     <aside class="tool-sidebar">
-      <section class="content-panel">
-       <h2>How your data is handled</h2>
-       <div class="data-handling">
-        <div class="data-handling-row"><span class="data-handling-mark">✓</span><div><strong>Stays on your device</strong><p>The whole report, until you close the tab</p></div></div>
-        <div class="data-handling-row"><span class="data-handling-mark">↗</span><div><strong>Sent to others</strong><p>The same requests as the IP leak test; the browser checks send nothing</p></div></div>
        </div>
-       <p class="state-list"><span class="state-label state-label--network">Some network lookups</span></p>
-       <a class="text-link" href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a>
       </section>
-      <figure class="editorial-figure"><img alt="Separate data flows for encrypted messaging and privacy tools that use outside lookups" height="400" src="/assets/illustrations/data-flows.svg" width="760"/></figure>
-      <section class="content-panel content-panel--soft">
-       <h2>Need a different check?</h2>
-       <p>Compare tools by what they do and what data they need.</p>
-       <a class="text-link" href="/tools/">Browse all tools <span aria-hidden="true">→</span></a>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>Related guides</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/redact-text-before-you-share-it/">Redact text before you share it <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a></li>
+        <li><a href="/tools/">Browse all tools <span aria-hidden="true">→</span></a></li>
+       </ul>
       </section>
      </aside>
     </div>
    </section>
+   </div>
   </main>
   <footer class="sc-footer">
   <div class="sc-footer__inner">

@@ -28,9 +28,17 @@
 
 /* ---- Shared hero / breadcrumb ------------------------------------------------ */
 
-.tools-v4 .page-intro,
-.tool-page-v4 .tool-detail-hero {
+.tools-v4 .page-intro {
   padding-block: clamp(var(--sc-space-6), 6vw, var(--sc-space-9));
+  border-bottom: 1px solid var(--sc-rule);
+  background:
+    radial-gradient(60rem 22rem at 85% 0%, rgb(216 243 97 / 9%), transparent 70%),
+    var(--sc-canvas);
+  color: var(--sc-ink);
+}
+
+.tool-page-v4 .tool-detail-hero {
+  padding-block: clamp(var(--sc-space-5), 4vw, var(--sc-space-7));
   border-bottom: 1px solid var(--sc-rule);
   background:
     radial-gradient(60rem 22rem at 85% 0%, rgb(216 243 97 / 9%), transparent 70%),
@@ -95,6 +103,10 @@
   color: var(--sc-ink-muted);
   font-size: var(--sc-text-lg);
   line-height: var(--sc-leading-body);
+}
+
+.tool-page-v4 .page-lead {
+  margin-bottom: 0;
 }
 
 .tools-v4 .page-actions {
@@ -676,6 +688,59 @@
 .tool-page-v4 .tool-prose a {
   color: var(--sc-link);
   text-decoration: underline;
+}
+
+.tool-page-v4 .tool-v4-next {
+  padding: var(--sc-space-5);
+  margin-top: var(--sc-space-6);
+  border: 1px solid var(--sc-rule);
+  border-radius: var(--sc-radius-lg);
+  background: var(--sc-surface);
+}
+
+.tool-page-v4 .tool-v4-next > h2 {
+  padding: 0;
+  margin: 0 0 var(--sc-space-3);
+  border: 0;
+  font-family: var(--sc-font-sans);
+  font-size: var(--sc-text-xl);
+}
+
+.tool-page-v4 .tool-v4-next-steps {
+  margin: 0 0 var(--sc-space-3);
+  padding-left: 1.1em;
+  color: var(--sc-ink-muted);
+}
+
+.tool-page-v4 .tool-v4-next-steps li {
+  margin-bottom: var(--sc-space-1);
+  font-size: var(--sc-text-sm);
+  line-height: var(--sc-leading-body);
+}
+
+.tool-page-v4 .tool-v4-next .tool-v4-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--sc-space-5);
+}
+
+.tool-page-v4 .phone-v4-workspace {
+  background: var(--color-canvas, #f7f5ef);
+  color: var(--color-text, #17211b);
+}
+
+.tool-page-v4 .phone-v4-workspace .container {
+  width: auto;
+  max-width: none;
+  margin: 0;
+}
+
+.tool-page-v4 .phone-v4-workspace .phone-checklist-section {
+  padding-block: 0;
+}
+
+.tool-page-v4 .phone-v4-workspace .next-step-panel {
+  margin-top: var(--sc-space-6);
 }
 
 .tool-page-v4 .tool-v4-aside {

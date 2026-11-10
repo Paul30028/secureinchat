@@ -1,34 +1,39 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#F7F5EF">
-  <meta name="description" content="Review phone-number privacy protections using a local checklist. No phone number is entered, saved or sent.">
+<!DOCTYPE html>
+<html lang="en_US">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta content="light" name="color-scheme"/>
+  <meta content="#F7F5EF" name="theme-color"/>
   <title>SecureInChat — Phone Number Privacy Checkup</title>
-  <link rel="stylesheet" href="/assets/css/home.css">
-  <link rel="stylesheet" href="/assets/css/checkup.css">
-  <link rel="icon" href="/favicon.ico" sizes="32x32">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <script src="/assets/js/phone-checkup.js" defer></script>
-  <link rel="canonical" href="https://secureinchat.com/tools/phone-checkup/">
+  <meta content="Review phone-number privacy protections using a local checklist. No phone number is entered, saved or sent." name="description"/>
+  <link href="https://secureinchat.com/tools/phone-checkup/" rel="canonical"/>
   <link rel="alternate" hreflang="en" href="https://secureinchat.com/tools/phone-checkup/">
   <link rel="alternate" hreflang="zh-CN" href="https://secureinchat.com/zh/tools/phone-checkup/">
   <link rel="alternate" hreflang="x-default" href="https://secureinchat.com/tools/phone-checkup/">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="SecureInChat">
-  <meta property="og:title" content="Phone Number Privacy Checkup">
-  <meta property="og:description" content="A six-item checklist to protect your phone number from SIM swaps and exposure. You never enter your number; nothing is saved or sent.">
-  <meta property="og:url" content="https://secureinchat.com/tools/phone-checkup/">
-  <meta property="og:locale" content="en_US">
-  <meta name="twitter:card" content="summary">
-  <link rel="stylesheet" href="/assets/css/min-type-size.css">
-  <link href="/assets/css/v4.css" rel="stylesheet"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-sans-700.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-400.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/assets/fonts/dm-mono-500.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2" rel="preload" type="font/woff2"/>
+  <link as="font" crossorigin="" href="/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2" rel="preload" type="font/woff2"/>
+
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
+  <link as="font" crossorigin="" href="/assets/fonts/noto-serif-subset.woff2" rel="preload" type="font/woff2"/>
+  <link href="/assets/css/home.css" rel="stylesheet"/>
+  <link href="/assets/css/subpages.css" rel="stylesheet"/>
+  <link href="/assets/css/checkup.css" rel="stylesheet"/>
+  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>
+   <link href="/assets/css/v4.css" rel="stylesheet"/>
    <link href="/assets/css/shell.css" rel="stylesheet"/>
   <script defer src="/assets/js/shell.js"></script>
  </head>
-<body>
+ <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="sc-header">
   <div class="sc-header__inner">
@@ -70,20 +75,40 @@
     </details>
   </div>
 </header>
-  <main id="main" class="phone-checkup-page" data-phone-checkup>
-    <section class="checkup-hero phone-checkup-hero">
-      <div class="container checkup-hero-inner">
-        <div class="checkup-heading">
-          <p class="phone-page-breadcrumb"><a href="/checkup/">Privacy checkup</a> <span aria-hidden="true">/</span> Phone number</p>
-          <h1>Phone number privacy checkup</h1>
-          <p>Review six protective measures. Checking an item means you reviewed it or took an appropriate action; this page does not verify your device or account settings.</p>
-        </div>
-        <aside class="checkup-privacy-note checkup-privacy-note--strong">
-          <span class="checkup-privacy-icon" aria-hidden="true"><svg viewBox="0 0 32 32" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="3" width="14" height="26" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 7h4M14 25h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m13 16 2 2 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <div><h2>No phone number needed</h2><p>Do not enter your phone number here. Checkbox state exists only in this page’s memory; it is not saved or sent. Refreshing or leaving the page clears it.</p></div>
-        </aside>
+  <main class="subpage-main" id="main">
+   <div class="tool-page-v4" data-phone-checkup>
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="Breadcrumb" class="breadcrumbs">
+      <a href="/">Home</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="/tools/">Tools</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">Phone number privacy checkup</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <div>
+       <h1 id="h1">Phone number privacy checkup</h1>
+       <p class="page-lead">Review six protective measures. Checking an item means you reviewed it or took an appropriate action; this page does not verify your device or account settings.</p>
       </div>
-    </section>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
+     <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">How your data is handled</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">Local checklist</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>Stays on your device</strong><p>Your answers, until you refresh or close the page</p></div>
+        <div><strong>Sent to others</strong><p>Nothing</p></div>
+       </div>
+       <p class="tool-v4-flow-note">The checklist runs in this page. Answers exist only in this page’s memory; they are not saved or sent, and refreshing or leaving clears them.</p>
+      </section>
+      <div class="tool-workspace phone-v4-workspace">
+
+
 
     <section class="section phone-checklist-section" aria-labelledby="phone-checklist-title">
       <div class="container">
@@ -105,7 +130,7 @@
       <div class="phone-check-item-content">
         <p><strong>Why it matters</strong> A SIM PIN can add a layer of protection when a SIM is used in another device or after a restart. Device and carrier behaviour varies, and too many incorrect attempts can lock the SIM.</p>
         <p><strong>What to do</strong> Open your device’s SIM or mobile-network security settings. If you plan to enable a PIN, make sure you understand the recovery process and know how to obtain the PUK from your carrier before entering guesses.</p>
-        
+
         <p class="phone-source-slot"><strong>Official source:</strong> <span><a href="https://support.apple.com/en-us/118228" rel="noopener">Apple: Use a SIM PIN for your iPhone</a> · <a href="https://support.google.com/pixelphone/answer/2824802" rel="noopener">Google: Pixel SIM lock</a></span></p>
       </div>
     </article>
@@ -117,7 +142,7 @@
       <div class="phone-check-item-content">
         <p><strong>Why it matters</strong> An attacker who convinces a carrier to transfer or replace your SIM may receive calls or SMS intended for you.</p>
         <p><strong>What to do</strong> Contact your mobile carrier using its official app, account portal or published support number. Ask about account PINs, port-out locks, number locks and SIM-swap protection; enable the options available for your plan. <a href="#carrier-locks">See the carrier table below</a>.</p>
-        
+
         <p class="phone-source-slot"><strong>Official source:</strong> <span><a href="https://www.verizon.com/support/knowledge-base-309293/" rel="noopener">Verizon</a> · <a href="https://www.t-mobile.com/support/plans-features/help-with-t-mobile-account-fraud" rel="noopener">T-Mobile</a> · <a href="https://about.att.com/story/2025/wireless-account-lock.html" rel="noopener">AT&amp;T Wireless Account Lock</a> · <a href="https://www.ofcom.org.uk/phones-and-broadband/switching-provider/switching-mobile-phone-provider" rel="noopener">Ofcom (UK)</a></span></p>
       </div>
     </article>
@@ -129,7 +154,7 @@
       <div class="phone-check-item-content">
         <p><strong>Why it matters</strong> SMS codes depend on continued control of your phone number and can be exposed to number-transfer attacks. Stronger options may be available for important accounts.</p>
         <p><strong>What to do</strong> Prioritise email, financial and primary identity accounts. Where supported, consider passkeys, an authenticator app or a security key, and store recovery codes securely.</p>
-        
+
         <p class="phone-source-slot"><strong>Official source:</strong> <span><a href="https://consumer.ftc.gov/articles/use-two-factor-authentication-protect-your-accounts" rel="noopener">FTC: Use two-factor authentication</a> · <a href="https://www.cisa.gov/MFA" rel="noopener">CISA: More than a password</a></span></p>
       </div>
     </article>
@@ -141,7 +166,7 @@
       <div class="phone-check-item-content">
         <p><strong>Why it matters</strong> A publicly visible phone number can make it easier to connect different profiles to the same person and may increase unwanted calls or messages.</p>
         <p><strong>What to do</strong> Review social profiles, public bios, marketplace listings and old posts. Remove the number from public-facing fields where possible and check who can see account contact details.</p>
-        
+
         <p class="phone-source-slot"><strong>Official source:</strong> <span><a href="https://help.x.com/en/safety-and-security/email-and-phone-discoverability-settings" rel="noopener">X: phone discoverability</a> · <a href="https://www.linkedin.com/help/linkedin/answer/a548109" rel="noopener">LinkedIn: profile visibility</a></span></p>
       </div>
     </article>
@@ -165,7 +190,7 @@
       <div class="phone-check-item-content">
         <p><strong>Why it matters</strong> A registration lock or app-specific PIN can add protection against another person attempting to register an account with your number. The exact feature differs by app.</p>
         <p><strong>What to do</strong> Open the security or account settings of each messaging app you use. Check its official instructions for registration lock, account PIN or equivalent protection and enable it if appropriate.</p>
-        
+
         <p class="phone-source-slot"><strong>Official source:</strong> <span><a href="https://support.signal.org/hc/en-us/articles/360007059792-Signal-PIN" rel="noopener">Signal: PIN and registration lock</a> · <a href="https://faq.whatsapp.com/1920866721452534" rel="noopener">WhatsApp: two-step verification</a></span></p>
       </div>
     </article>
@@ -222,6 +247,28 @@
         <p class="phone-source-disclaimer">Sources checked against the linked official pages on 22 October 2026. Menus change; if a step has moved, follow the official page.</p>
       </div>
     </section>
+
+      </div>
+      <section class="tool-v4-section tool-v4-next" aria-label="Next step">
+       <h2>Next step</h2>
+       <ul class="tool-v4-next-steps"><li>Start with the SIM PIN setting and understand the recovery process before enabling it.</li></ul>
+       <ul class="tool-v4-links"><li><a href="/blog/protect-your-phone-number-sim-swap/">Protect your phone number from SIM swaps <span aria-hidden="true">→</span></a></li></ul>
+      </section>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>Related guides</h2>
+       <ul class="tool-v4-links">
+        <li><a href="/blog/protect-your-phone-number-sim-swap/">Protect your phone number from SIM swaps <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">See every tool's data flow <span aria-hidden="true">→</span></a></li>
+        <li><a href="/tools/">Browse all tools <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+     </aside>
+    </div>
+   </section>
+   <script src="/assets/js/phone-checkup.js" defer></script>
+   </div>
   </main>
   <footer class="sc-footer">
   <div class="sc-footer__inner">
@@ -262,5 +309,5 @@
     <p>No tracking. No accounts.</p>
   </div>
 </footer>
-</body>
+ </body>
 </html>

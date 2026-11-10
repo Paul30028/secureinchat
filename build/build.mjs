@@ -726,8 +726,6 @@ for (const n of GPT_IMAGES) write(`assets/img/${n}.webp`, fs.readFileSync(path.j
 // Privacy checkup (designed and coded by ChatGPT, 2026-10-22; official sources filled and checked by Claude).
 write('checkup/index.html', gptPage('src/checkup/checkup-en.html', '/checkup/', 'en_US', 'SecureInChat — Privacy Checkup', 'Choose a practical privacy check for your IP, a URL, phone-number settings or account security.', null));
 write('zh/checkup/index.html', gptPage('src/checkup/checkup-zh.html', '/zh/checkup/', 'zh_CN', 'SecureInChat — 隐私体检', '选择适合你的隐私检查：网址、手机号设置或账号安全。', null));
-write('tools/phone-checkup/index.html', gptPage('src/checkup/phone-en.html', '/tools/phone-checkup/', 'en_US', 'Phone Number Privacy Checkup', 'A six-item checklist to protect your phone number from SIM swaps and exposure. You never enter your number; nothing is saved or sent.', null));
-write('zh/tools/phone-checkup/index.html', gptPage('src/checkup/phone-zh.html', '/zh/tools/phone-checkup/', 'zh_CN', '手机号隐私自查', '六项自查，保护手机号免受换卡诈骗和泄露。无需输入号码，不保存、不发送。', null));
 write('assets/css/subpages.css', fs.readFileSync(path.join(ROOT, 'src/subpages/subpages.css')));
 write('assets/css/v4.css', fs.readFileSync(path.join(ROOT, 'src/design-v4/v4.css')));
 // Shared design tokens, base layer and site shell (step 1-2 of the 2026-11 redesign).
@@ -876,6 +874,7 @@ write('blog/index.html', blogIndex());
 }
 
 // Tool detail pages: kit tool-detail layout around each tool's unchanged live markup (src/tools/<slug>.html).
+let NEXT; let nextFor;
 {
   const idx = KIT_T('tools-index.en.html');
   const ICONS = {};
@@ -893,11 +892,32 @@ write('blog/index.html', blogIndex());
     ['ip-leak-test', 'IP leak test', L.net, FIG.flows], ['webrtc-leak-test', 'WebRTC leak test', L.net, FIG.flows], ['ipv6-leak-test', 'IPv6 leak test', L.net, FIG.flows],
     ['privacy-report', 'Browser privacy report', L.some, FIG.flows], ['password-checker', 'Password checker', L.limited, FIG.account], ['site-health-check', 'Website health check', L.site, FIG.flows],
   ];
+  // "Next step": free follow-ups that already appear on the page, plus one related on-site tool.
+  // No new claims and no partner links. Chinese pages get the Chinese wording.
+  NEXT = {
+    'link-checker': { steps: ['Open anything that asks you to log in or pay from your own bookmark or app, not from the link.'], zhSteps: ['需要登录或付款时，从你自己的书签或应用打开，不要从链接打开。'], links: [{ href: '/workspace/', label: 'Check a link and its text in the private workspace', zhLabel: '在工作台检查链接和周围的文本' }] },
+    'photo-metadata-remover': { steps: ['Save a copy without metadata before you share the photo.'], zhSteps: ['分享照片前，先保存一份不含元数据的副本。'], links: [{ href: '/workspace/', label: 'Clean more files in the private workspace', zhLabel: '在工作台继续清理其他文件' }] },
+    'file-metadata-remover': { steps: ['Share the cleaned copy, not the original file.'], zhSteps: ['分享清理后的副本，不要分享原文件。'], links: [{ href: '/workspace/', label: 'Clean more files in the private workspace', zhLabel: '在工作台继续清理其他文件' }] },
+    'text-redactor': { steps: ['Replace emails, numbers and keys with placeholders before you share the text.'], zhSteps: ['分享文本前，把邮箱、号码和密钥换成占位符。'], links: [{ href: '/workspace/', label: 'Review text before you share it in the private workspace', zhLabel: '在工作台检查要分享的文本' }] },
+    'browser-fingerprint-test': { steps: ['Read which signals this browser exposes. No result tells you how unique you are.'], zhSteps: ['看清这个浏览器暴露了哪些信号。结果不会告诉你自己有多独特。'], links: [{ href: '/scan/', label: 'See what a website can read in the local scan', zhLabel: '用本地扫描看看网站能读到什么' }] },
+    'account-checkup': { steps: ['Start with your main email account: password resets for most other accounts go there.'], zhSteps: ['先检查主要邮箱：大多数其他账号的密码重置都发到那里。'], links: [{ href: '/rights/', label: 'Ask a company to delete or correct your data', zhLabel: '要求公司删除或更正你的数据' }] },
+    'password-checker': { steps: ['Use a different password on every site, ideally from a password manager.'], zhSteps: ['每个网站使用不同的密码，最好由密码管理器生成。'], links: [{ href: '/blog/how-password-breach-checks-work/', label: 'How password breach checks work', zhLabel: '密码泄露检查是怎么工作的' }] },
+    'site-health-check': { steps: ['Read what the result does and does not cover before you act on it.'], zhSteps: ['根据结果行动之前，先看清它能说明什么、不能说明什么。'], links: [{ href: '/scan/', label: 'See what a website can read in the local scan', zhLabel: '用本地扫描看看网站能读到什么' }] },
+    'ip-leak-test': { steps: ['Read how to fix each leak, then run the test again after the change.'], zhSteps: ['按每种泄露的修复步骤处理，改完后再测一次。'], links: [{ href: '/scan/', label: 'See what a website can read in the local scan', zhLabel: '用本地扫描看看网站能读到什么' }, { href: '/blog/how-the-ip-leak-test-works/', label: 'How the IP leak test works', zhLabel: 'IP 泄露测试是怎么工作的' }] },
+    'ipv6-leak-test': { steps: ['Read how to close an IPv6 leak, then run the test again after the change.'], zhSteps: ['按 IPv6 泄露的关闭步骤处理，改完后再测一次。'], links: [{ href: '/scan/', label: 'See what a website can read in the local scan', zhLabel: '用本地扫描看看网站能读到什么' }, { href: '/blog/ipv6-leaks-explained/', label: 'IPv6 leaks explained', zhLabel: 'IPv6 泄露说明' }] },
+    'webrtc-leak-test': { steps: ['Read how to close a WebRTC leak, then run the test again after the change.'], zhSteps: ['按 WebRTC 泄露的关闭步骤处理，改完后再测一次。'], links: [{ href: '/scan/', label: 'See what a website can read in the local scan', zhLabel: '用本地扫描看看网站能读到什么' }, { href: '/blog/webrtc-leak-explained/', label: 'WebRTC leaks explained', zhLabel: 'WebRTC 泄露说明' }] },
+    'privacy-report': { steps: ['Look at the items marked to fix first, then run the report again after a change.'], zhSteps: ['先处理标记为需要修复的项目，改动后再生成一次报告。'], links: [{ href: '/scan/', label: 'See what a website can read in the local scan', zhLabel: '用本地扫描看看网站能读到什么' }] },
+  };
+  nextFor = (slug, zh) => {
+    const n = NEXT[slug]; if (!n) return null;
+    return { steps: zh ? n.zhSteps : n.steps, links: n.links.map((l) => ({ href: l.href, label: zh ? l.zhLabel : l.label })) };
+  };
+
   write('assets/css/tool-legacy.css', `/* Previous tool widget styles, scoped to .legacy-tool (generated from src/tools/legacy-style.css). */\n${scopeLegacyCss(fs.readFileSync(path.join(ROOT, 'src/tools/legacy-style.css'), 'utf8'))}`);
   for (const [slug, name, label, figure] of TOOLS) {
     const src = fs.readFileSync(path.join(ROOT, 'src/tools', `${slug}.html`), 'utf8');
     if (!FLOW[slug]) throw new Error('no data-flow row for ' + slug);
-    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, alternates: alternateHead(`/tools/${slug}/`), v4: slug === 'text-redactor', v4Note: slug === 'text-redactor' ? 'The redaction runs in this page. Nothing you paste is uploaded or stored.' : '' }));
+    write(`tools/${slug}/index.html`, toolPage({ slug, src, icon: ICONS[slug], label, flow: FLOW[slug], figure, crumbName: name, alternates: alternateHead(`/tools/${slug}/`), v4: true, next: nextFor(slug, false), v4Note: slug === 'text-redactor' ? 'The redaction runs in this page. Nothing you paste is uploaded or stored.' : '' }));
   }
 }
 
@@ -926,6 +946,8 @@ write('blog/index.html', blogIndex());
     crumbName: '照片元数据清理',
     lang: 'zh-CN',
     alternates: alternateHead('/zh/tools/photo-metadata-remover/'),
+    v4: true,
+    next: nextFor('photo-metadata-remover', true),
   }));
 }
 
@@ -951,6 +973,7 @@ write('blog/index.html', blogIndex());
     lang: 'zh-CN',
     alternates: alternateHead('/zh/tools/text-redactor/'),
     v4: true,
+    next: nextFor('text-redactor', true),
     v4Note: '脱敏在这个页面里完成，粘贴的内容不会被上传或保存。',
   }));
 }
@@ -977,6 +1000,8 @@ write('blog/index.html', blogIndex());
     crumbName: '文件元数据清理',
     lang: 'zh-CN',
     alternates: alternateHead('/zh/tools/file-metadata-remover/'),
+    v4: true,
+    next: nextFor('file-metadata-remover', true),
   }));
 }
 
@@ -1003,6 +1028,8 @@ write('blog/index.html', blogIndex());
     crumbName: '密码检查',
     lang: 'zh-CN',
     alternates: alternateHead('/zh/tools/password-checker/'),
+    v4: true,
+    next: nextFor('password-checker', true),
   }));
 }
 
@@ -1029,6 +1056,8 @@ write('blog/index.html', blogIndex());
     crumbName: '账号安全自查',
     lang: 'zh-CN',
     alternates: alternateHead('/zh/tools/account-checkup/'),
+    v4: true,
+    next: nextFor('account-checkup', true),
   }));
 }
 
@@ -1055,6 +1084,8 @@ write('blog/index.html', blogIndex());
     crumbName: '链接检查器',
     lang: 'zh-CN',
     alternates: alternateHead('/zh/tools/link-checker/'),
+    v4: true,
+    next: nextFor('link-checker', true),
   }));
 }
 
@@ -1079,6 +1110,8 @@ write('blog/index.html', blogIndex());
     crumbName: '浏览器特征检查',
     lang: 'zh-CN',
     alternates: alternateHead('/zh/tools/browser-fingerprint-test/'),
+    v4: true,
+    next: nextFor('browser-fingerprint-test', true),
   }));
 }
 
@@ -1105,10 +1138,101 @@ write('blog/index.html', blogIndex());
     crumbName: '网站健康检查',
     lang: 'zh-CN',
     alternates: alternateHead('/zh/tools/site-health-check/'),
+    v4: true,
+    next: nextFor('site-health-check', true),
   }));
 }
 
+// Phone number checkup: same live markup and ids as src/checkup/phone-*.html, wrapped in the v4 shell.
+// Its checklist keeps checkup.css; the data-flow panel states the local handling before the controls.
+function phoneToolPage({ src, lang, canonical, crumbName }) {
+  const zh = lang === 'zh-CN';
+  const head = src.slice(0, src.indexOf('</head>'));
+  const title = /<title>([\s\S]*?)<\/title>/.exec(head)[1];
+  const desc = /<meta name="description" content="([^"]*)"/.exec(head)[1];
+  const main = src.slice(src.indexOf('<main'), src.indexOf('</main>'));
+  const inner = main.replace(/^<main[^>]*>/, '');
+  const hero = /<section class="checkup-hero[\s\S]*?<\/section>/.exec(inner)[0];
+  const h1 = /<h1[^>]*>([\s\S]*?)<\/h1>/.exec(hero)[1];
+  const lead = /<h1[^>]*>[\s\S]*?<\/h1>\s*<p>([\s\S]*?)<\/p>/.exec(hero)[1];
+  const rest = inner.replace(hero, '').replace(/[ \t]+$/gm, '');
+  const fonts = ['/assets/fonts/dm-sans-400.woff2', '/assets/fonts/dm-sans-500.woff2', '/assets/fonts/dm-sans-700.woff2',
+    '/assets/fonts/dm-mono-400.woff2', '/assets/fonts/dm-mono-500.woff2',
+    '/tools/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2',
+    '/tools/fonts/atkinson-hyperlegible-next-latin-600-normal.woff2',
+    '/tools/fonts/atkinson-hyperlegible-next-latin-800-normal.woff2',
+    '/tools/fonts/atkinson-hyperlegible-mono-latin-400-normal.woff2',
+    '/tools/fonts/atkinson-hyperlegible-mono-latin-600-normal.woff2']
+    .map((f) => `  <link as="font" crossorigin="" href="${f}" rel="preload" type="font/woff2"/>\n`).join('');
+  const next = zh
+    ? { steps: ['先检查 SIM 卡 PIN 设置，并在启用前了解运营商提供的恢复方法。'], links: [{ href: '/blog/protect-your-phone-number-sim-swap/', label: '手机号与 SIM 换卡防护指南' }] }
+    : { steps: ['Start with the SIM PIN setting and understand the recovery process before enabling it.'], links: [{ href: '/blog/protect-your-phone-number-sim-swap/', label: 'Protect your phone number from SIM swaps' }] };
+  const html = `   <div class="tool-page-v4" data-phone-checkup>
+   <section class="tool-detail-hero">
+    <div class="subpage-shell">
+     <nav aria-label="${zh ? '面包屑' : 'Breadcrumb'}" class="breadcrumbs">
+      <a href="${zh ? '/zh/' : '/'}">${zh ? '首页' : 'Home'}</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <a href="${zh ? '/zh/tools/' : '/tools/'}">${zh ? '工具' : 'Tools'}</a>
+      <span aria-hidden="true" class="breadcrumb-separator">/</span>
+      <span aria-current="page">${crumbName}</span>
+     </nav>
+     <div class="tool-detail-title-row">
+      <div>
+       <h1 id="h1">${h1}</h1>
+       <p class="page-lead">${lead}</p>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section class="subpage-section">
+    <div class="subpage-shell tool-detail-layout tool-v4-layout">
+     <div class="tool-main-column">
+      <section class="tool-v4-flow" aria-labelledby="tool-v4-flow-h">
+       <h2 id="tool-v4-flow-h">${zh ? '你的数据如何处理' : 'How your data is handled'}</h2>
+       <p class="tool-v4-flow-state"><span class="state-label">${zh ? '本地清单' : 'Local checklist'}</span></p>
+       <div class="tool-v4-flow-grid">
+        <div><strong>${zh ? '留在你的设备上' : 'Stays on your device'}</strong><p>${zh ? '你的答案，直到刷新或关闭页面' : 'Your answers, until you refresh or close the page'}</p></div>
+        <div><strong>${zh ? '发送给他人' : 'Sent to others'}</strong><p>${zh ? '无' : 'Nothing'}</p></div>
+       </div>
+       <p class="tool-v4-flow-note">${zh ? '清单在这个页面里勾选。答案只存在于当前页面内存中，不会保存或发送；刷新或离开页面会清空。' : 'The checklist runs in this page. Answers exist only in this page’s memory; they are not saved or sent, and refreshing or leaving clears them.'}</p>
+      </section>
+      <div class="tool-workspace phone-v4-workspace">
+${rest}
+      </div>
+      <section class="tool-v4-section tool-v4-next" aria-label="${zh ? '下一步' : 'Next step'}">
+       <h2>${zh ? '下一步' : 'Next step'}</h2>
+       <ul class="tool-v4-next-steps"><li>${next.steps[0]}</li></ul>
+       <ul class="tool-v4-links"><li><a href="${next.links[0].href}">${next.links[0].label} <span aria-hidden="true">→</span></a></li></ul>
+      </section>
+     </div>
+     <aside class="tool-v4-aside">
+      <section class="tool-v4-card">
+       <h2>${zh ? '相关指南' : 'Related guides'}</h2>
+       <ul class="tool-v4-links">
+        <li><a href="${next.links[0].href}">${next.links[0].label} <span aria-hidden="true">→</span></a></li>
+        <li><a href="/principles/">${zh ? '查看每个工具的数据流' : 'See every tool\'s data flow'} <span aria-hidden="true">→</span></a></li>
+        <li><a href="${zh ? '/zh/tools/' : '/tools/'}">${zh ? '浏览所有工具' : 'Browse all tools'} <span aria-hidden="true">→</span></a></li>
+       </ul>
+      </section>
+     </aside>
+    </div>
+   </section>
+   <script src="/assets/js/phone-checkup.js" defer></script>
+   </div>`;
+  const headExtra = `  <link href="https://secureinchat.com${canonical}" rel="canonical"/>
+${alternateHead(canonical)}${fonts}
+`;
+  let page = kitShell({ lang: zh ? 'zh' : 'en', htmlLang: lang, title, desc, canonical, headExtra, current: '/tools/', main: html });
+  page = page.replace('<link href="/assets/css/subpages.css" rel="stylesheet"/>', '<link href="/assets/css/subpages.css" rel="stylesheet"/>\n  <link href="/assets/css/checkup.css" rel="stylesheet"/>\n  <link href="/assets/css/tools-v4.css" rel="stylesheet"/>');
+  if (zh) page = page.replace(/href="\/zh\/blog\/"/g, 'href="/blog/"');
+  return page;
+}
+write('tools/phone-checkup/index.html', phoneToolPage({ src: fs.readFileSync(path.join(ROOT, 'src/checkup/phone-en.html'), 'utf8'), lang: 'en_US', canonical: '/tools/phone-checkup/', crumbName: 'Phone number privacy checkup' }));
+write('zh/tools/phone-checkup/index.html', phoneToolPage({ src: fs.readFileSync(path.join(ROOT, 'src/checkup/phone-zh.html'), 'utf8'), lang: 'zh-CN', canonical: '/zh/tools/phone-checkup/', crumbName: '手机号隐私自查' }));
 write('favicon.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="16 16 76 76"><rect x="16" y="16" width="76" height="76" rx="19" fill="#123B3A"/><g transform="translate(54 54) scale(0.86) translate(-54 -58.5)"><path d="M54 24c9 6 18 8 28 8v20c0 17-12 28-28 33l-12 8v-11C32 77 26 66 26 52V32c10 0 19-2 28-8z" fill="#F4EFE4"/><circle cx="43" cy="53" r="4.6" fill="#123B3A"/><circle cx="54" cy="53" r="4.6" fill="#123B3A"/><circle cx="65" cy="53" r="4.6" fill="#E3A23B"/></g></svg>`);
+
+
 
 // Private workspace (Phase 1): a new route with its own source, shell and design system. Old tool
 // pages and old URLs are left exactly as they are.
